@@ -261,7 +261,7 @@ export default function HomePage() {
 
           <div className="interve-glass rounded-[var(--radius-xl)] p-10 max-w-3xl w-full text-center">
             <blockquote className="text-lg text-[var(--interve-text-body)] italic leading-relaxed mb-4">
-              "Interve AI 帮助我系统化提升了面试能力，每次模拟后的详细报告都让我知道具体该从哪里改进。最终顺利拿到了心仪公司的 Offer。"
+              &quot;Interve AI 帮助我系统化提升了面试能力，每次模拟后的详细报告都让我知道具体该从哪里改进。最终顺利拿到了心仪公司的 Offer。&quot;
             </blockquote>
             <div className="flex items-center justify-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--interve-brand-accent)] to-[#8BB7FF] flex items-center justify-center text-white font-bold text-sm">L</div>
