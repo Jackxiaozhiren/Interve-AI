@@ -47,3 +47,14 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Dev artifacts & test data
+/artifacts/
+/scratch/
+test-output.txt
+dummy_resume.pdf
+
+# AI tooling
+CLAUDE.md
+task.md
+implementation_plan.md
