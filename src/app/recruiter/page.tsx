@@ -170,7 +170,7 @@ export default function RecruiterDashboard() {
           <SpotlightCard className="p-8 border-slate-100 shadow-sm bg-white/70 backdrop-blur-xl min-h-[400px] flex flex-col">
             <h3 className="text-lg font-semibold text-slate-900 mb-6">{t.recruiter.pipelineConversion}</h3>
             <div className="flex-1 w-full min-h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280}>
                 <BarChart data={pipelineData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
@@ -188,7 +188,7 @@ export default function RecruiterDashboard() {
           <SpotlightCard className="p-8 border-slate-100 shadow-sm bg-white/70 backdrop-blur-xl min-h-[400px] flex flex-col">
             <h3 className="text-lg font-semibold text-slate-900 mb-6">{t.recruiter.activeRoles}</h3>
             <div className="flex-1 w-full min-h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280}>
                 <PieChart>
                   <Pie
                     data={roleDistribution}

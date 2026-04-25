@@ -14,7 +14,7 @@ export const config = {
   ],
 };
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // 1. Dashboard Protection

@@ -61,7 +61,7 @@ export function SystemTelemetry() {
 
       <div className="flex-1 w-full min-h-[200px]">
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
             <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
