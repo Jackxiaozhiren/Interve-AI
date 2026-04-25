@@ -75,10 +75,18 @@ export function InterveNavLink({
   className,
 }: InterveNavLinkProps) {
   const Tag = href ? "a" : "button";
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (onClick && href?.startsWith("#")) {
+      e.preventDefault();
+    }
+    onClick?.();
+  };
+
   return (
     <Tag
       href={href}
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         "px-3 py-1.5 text-[14px] font-medium rounded-[var(--radius-sm)]",
         "transition-colors duration-[var(--motion-fast)] ease-[var(--ease-primary)]",

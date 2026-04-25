@@ -32,10 +32,10 @@ export default function HomePage() {
           </>
         }
       >
-        <InterveNavLink href="#home" active>首页</InterveNavLink>
-        <InterveNavLink href="#features">功能</InterveNavLink>
-        <InterveNavLink href="#pricing">定价</InterveNavLink>
-        <InterveNavLink href="#about">关于</InterveNavLink>
+        <InterveNavLink href="#home" active onClick={() => { document.getElementById('home')?.scrollIntoView({ behavior: 'smooth' }); }}>首页</InterveNavLink>
+        <InterveNavLink href="#features" onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }}>功能</InterveNavLink>
+        <InterveNavLink href="#pricing" onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }}>定价</InterveNavLink>
+        <InterveNavLink href="#about" onClick={() => { document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' }); }}>关于</InterveNavLink>
       </InterveTopNav>
 
       <main className="pt-32 pb-16 px-6 lg:px-16 max-w-7xl mx-auto flex flex-col gap-32 responsive-container">
@@ -148,6 +148,127 @@ export default function HomePage() {
                 content="很好的选择。React Query 处理了服务端状态，而 Zustand 管理了客户端状态。那么在迁移过程中，你们遇到了哪些性能挑战？是如何解决不必要重渲染的问题的？"
                 timestamp="10:01"
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="w-full flex flex-col items-center gap-12">
+          <div className="text-center">
+            <h2 className="text-3xl font-semibold text-[var(--interve-text-title)] mb-4">灵活的定价方案</h2>
+            <p className="text-[var(--interve-text-secondary)] max-w-xl mx-auto">无论是个人求职者还是企业团队，我们都有适合你的方案</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+            {/* Free Plan */}
+            <div className="interve-glass p-8 rounded-[var(--radius-xl)] flex flex-col gap-5 transition-transform hover:-translate-y-1 hover:shadow-[var(--interve-shadow-md)] duration-[var(--motion-moderate)]">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--interve-text-title)] mb-1">免费版</h3>
+                <p className="text-sm text-[var(--interve-text-secondary)]">体验核心功能</p>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-[var(--interve-text-title)]">¥0</span>
+                <span className="text-sm text-[var(--interve-text-secondary)]">/月</span>
+              </div>
+              <ul className="flex flex-col gap-3 text-sm text-[var(--interve-text-body)] flex-1">
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>每月 3 次模拟面试</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>基础能力报告</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>社区面试题库</li>
+              </ul>
+              <Link href="/signup">
+                <InterveButton variant="secondary" size="lg" className="w-full justify-center">免费开始</InterveButton>
+              </Link>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="relative interve-glass p-8 rounded-[var(--radius-xl)] flex flex-col gap-5 transition-transform hover:-translate-y-1 border-2 border-[var(--interve-brand-accent)]/30 shadow-[0_8px_32px_rgba(22,93,255,0.12)] duration-[var(--motion-moderate)]">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[var(--interve-brand-accent)] text-white text-xs font-semibold tracking-wide shadow-md">最受欢迎</div>
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--interve-text-title)] mb-1">专业版</h3>
+                <p className="text-sm text-[var(--interve-text-secondary)]">求职者的最佳选择</p>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-[var(--interve-brand-accent)]">¥49</span>
+                <span className="text-sm text-[var(--interve-text-secondary)]">/月</span>
+              </div>
+              <ul className="flex flex-col gap-3 text-sm text-[var(--interve-text-body)] flex-1">
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>无限次模拟面试</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>深度 AI 评估报告</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>六维能力雷达图</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>面试回放与复盘</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>个性化成长路线</li>
+              </ul>
+              <Link href="/signup">
+                <InterveButton size="lg" className="w-full justify-center shadow-[var(--interve-shadow-button)]">立即升级</InterveButton>
+              </Link>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="interve-glass p-8 rounded-[var(--radius-xl)] flex flex-col gap-5 transition-transform hover:-translate-y-1 hover:shadow-[var(--interve-shadow-md)] duration-[var(--motion-moderate)]">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--interve-text-title)] mb-1">企业版</h3>
+                <p className="text-sm text-[var(--interve-text-secondary)]">为招聘团队量身定制</p>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-[var(--interve-text-title)]">定制</span>
+              </div>
+              <ul className="flex flex-col gap-3 text-sm text-[var(--interve-text-body)] flex-1">
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>专业版全部功能</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>团队协作面板</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>候选人管理系统</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>API 接入 & SSO</li>
+                <li className="flex items-center gap-2"><svg className="w-4 h-4 text-[var(--interve-success-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>专属客户经理</li>
+              </ul>
+              <Link href="#about">
+                <InterveButton variant="secondary" size="lg" className="w-full justify-center">联系销售</InterveButton>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section id="about" className="w-full flex flex-col items-center gap-12">
+          <div className="text-center max-w-3xl">
+            <h2 className="text-3xl font-semibold text-[var(--interve-text-title)] mb-4">关于 Interve AI</h2>
+            <p className="text-[var(--interve-text-secondary)] leading-relaxed mb-8">
+              Interve AI 由一群热爱技术与教育的工程师打造，致力于通过人工智能重新定义面试体验。我们相信每个人都值得一次公平、高效、深度的面试机会。
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+            <div className="interve-glass p-8 rounded-[var(--radius-xl)] text-center flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 hover:shadow-[var(--interve-shadow-md)] duration-[var(--motion-moderate)]">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] flex items-center justify-center mb-2">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <h3 className="text-2xl font-bold text-[var(--interve-text-title)]">10,000+</h3>
+              <p className="text-sm text-[var(--interve-text-secondary)]">活跃用户</p>
+            </div>
+            <div className="interve-glass p-8 rounded-[var(--radius-xl)] text-center flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 hover:shadow-[var(--interve-shadow-md)] duration-[var(--motion-moderate)]">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--interve-success-surface)] text-[var(--interve-success-text)] flex items-center justify-center mb-2">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <h3 className="text-2xl font-bold text-[var(--interve-text-title)]">50,000+</h3>
+              <p className="text-sm text-[var(--interve-text-secondary)]">模拟面试完成</p>
+            </div>
+            <div className="interve-glass p-8 rounded-[var(--radius-xl)] text-center flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 hover:shadow-[var(--interve-shadow-md)] duration-[var(--motion-moderate)]">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--interve-warning-surface)] text-[var(--interve-warning-text)] flex items-center justify-center mb-2">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              </div>
+              <h3 className="text-2xl font-bold text-[var(--interve-text-title)]">95%</h3>
+              <p className="text-sm text-[var(--interve-text-secondary)]">用户满意度</p>
+            </div>
+          </div>
+
+          <div className="interve-glass rounded-[var(--radius-xl)] p-10 max-w-3xl w-full text-center">
+            <blockquote className="text-lg text-[var(--interve-text-body)] italic leading-relaxed mb-4">
+              "Interve AI 帮助我系统化提升了面试能力，每次模拟后的详细报告都让我知道具体该从哪里改进。最终顺利拿到了心仪公司的 Offer。"
+            </blockquote>
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--interve-brand-accent)] to-[#8BB7FF] flex items-center justify-center text-white font-bold text-sm">L</div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-[var(--interve-text-title)]">李明</p>
+                <p className="text-xs text-[var(--interve-text-secondary)]">前端工程师 · 腾讯</p>
+              </div>
             </div>
           </div>
         </section>
