@@ -1,3 +1,6 @@
+// @vitest-environment node
+// MSW node server must run in a pure node env: under jsdom, fetch crosses
+// realms and undici throws `webidl.util.markAsUncloneable` (Node 20, CI).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { dsaServer } from "@/mocks/server";
 import {
