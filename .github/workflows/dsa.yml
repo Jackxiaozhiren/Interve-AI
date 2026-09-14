@@ -1,0 +1,41 @@
+name: DSA
+on:
+  push:
+    branches: [main]
+    paths: ["apps/dsa-web/**", "services/dsa-api/**", ".github/workflows/dsa.yml"]
+  pull_request:
+    paths: ["apps/dsa-web/**", "services/dsa-api/**", ".github/workflows/dsa.yml"]
+
+jobs:
+  dsa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/dsa-web/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install web deps
+        working-directory: apps/dsa-web
+        run: npm ci
+      - name: Install API deps
+        run: pip install -r services/dsa-api/requirements.txt
+      - run: npm --prefix apps/dsa-web run typecheck
+      - run: npm --prefix apps/dsa-web run test
+      - run: npm --prefix apps/dsa-web run build
+      - name: Start API (background)
+        run: nohup uvicorn app.main:app --port 8000 --app-dir services/dsa-api > /tmp/dsa-api.log 2>&1 &
+      - name: Install Playwright browsers
+        working-directory: apps/dsa-web
+        run: npx playwright install --with-deps chromium
+      - name: Playwright smoke (mock lane, desktop + mobile)
+        working-directory: apps/dsa-web
+        run: E2E_MOCK=1 npx playwright test --project=chrome-1280x720 --project=mobile-390
+        env:
+          CI: true
+      - run: npm --prefix apps/dsa-web audit --audit-level=critical

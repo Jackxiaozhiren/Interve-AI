@@ -61,3 +61,13 @@ task.md
 implementation_plan.md
 
 .vercel
+
+# dsa-web: independent Next app, explicitly NOT merged into npm workspaces
+# (Next 16.3 + Tailwind 3.4 vs root Next 16.2 + Tailwind v4; separate deploys)
+apps/dsa-web/.next/
+apps/dsa-web/test-results/
+apps/dsa-web/playwright-report/
+
+# dsa-api: standalone FastAPI service
+services/dsa-api/.venv/
+__pycache__/
