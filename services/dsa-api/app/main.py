@@ -9,6 +9,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -20,7 +21,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
-ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:3001"]
+# Comma-separated extra origins for deploys, e.g.
+# DSA_ALLOWED_ORIGINS=https://dsa-web.vercel.app. Localhost defaults stay.
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in (["http://localhost:3000", "http://localhost:3001"] + os.environ.get("DSA_ALLOWED_ORIGINS", "").split(","))
+    if o.strip()
+]
 CSV_MIMES = {"text/csv", "application/csv", "application/vnd.ms-excel"}
 JSON_MIMES = {"application/json", "application/ld+json"}
 

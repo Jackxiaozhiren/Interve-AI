@@ -10,9 +10,9 @@ curl -s -D - http://localhost:8000/health
 # → 200 {"status":"ok"} + x-request-id
 ```
 
-顶栏 pill 显示 `API down`：先确认 8000 进程与 CORS（仅放行
-`http://localhost:3000`、`http://localhost:3001`；Vercel 预览域名需追加
-`ALLOWED_ORIGINS` 后重起）。
+顶栏 pill 显示 `API down`：先确认 8000 进程与 CORS（默认放行
+`http://localhost:3000`、`http://localhost:3001`；生产域名经环境变量
+`DSA_ALLOWED_ORIGINS=https://a.example,https://b.example` 追加后重起）。
 
 ## 2. 状态码对照
 

@@ -42,3 +42,4 @@ overrides the API origin without touching `lib/api.ts`.
   `NEXT_PUBLIC_API_BASE_URL=<api-url>`. No build tweaks needed.
 - API (Docker): `services/dsa-api/Dockerfile` (`FROM python:3.12-slim`),
   `docker build -t dsa-api services/dsa-api && docker run -p 8000:8000 dsa-api`.
+  生产跨域：`-e DSA_ALLOWED_ORIGINS=https://<web域名>`（逗号分隔，可多个）。
