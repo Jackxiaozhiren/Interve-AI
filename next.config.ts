@@ -9,6 +9,15 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   output: 'standalone',
   serverExternalPackages: ['pdf-parse'],
+  images: {
+    remotePatterns: [
+      // OAuth avatars bridged into the app session (Google / GitHub).
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+      // Mock-login avatar host (local dev login).
+      { protocol: 'https', hostname: 'api.dicebear.com' },
+    ],
+  },
   webpack: (config) => {
     // Ignore node-specific modules when bundling for the browser
     // This is required for @huggingface/transformers to work properly in the browser
