@@ -97,6 +97,59 @@ export const EvaluationV2Schema = z.object({
 
 export type EvaluationV2 = z.infer<typeof EvaluationV2Schema>;
 
+/**
+ * Phase 9 keyed fix (2026-09-15): second-stage repair for small chat models.
+ *
+ * Zhipu flash emits the right SHAPE but sloppy TYPES (captured live):
+ * anchor scores as strings ("3") and empty evidence arrays on thin
+ * dimensions. The strict schema must keep rejecting those (negative tests
+ * pin it: evidence-less rejection, out-of-anchor rejection), so this pure
+ * helper salvages them in the `experimental_repairText` pass instead:
+ * - "1".."5" strings → numbers (anything else passes through → still
+ *   rejected: 0/6/2.5/"high" can never validate).
+ * - Dimensions with empty/missing evidence are DROPPED (partial dimension
+ *   sets stay valid downstream: UI shows what was evaluated, coverage gaps
+ *   stay visible). Dropping satisfies rule 2's intent ("no number without
+ *   proof") more honestly than pinning score 1 with zero quotes, and avoids
+ *   500ing a response whose other dimensions are fully grounded. If nothing
+ *   grounded remains, returns null → the error propagates as before.
+ * Non-objects, missing/empty dimensions arrays, and unparseable text pass
+ * through (null when nothing changed → the error propagates as before).
+ */
+export function repairEvaluationText(text: string): string | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+  const obj = parsed as Record<string, unknown>;
+  if (!Array.isArray(obj.dimensions) || obj.dimensions.length === 0) return null;
+  let changed = false;
+  const dimensions: unknown[] = [];
+  for (const dim of obj.dimensions) {
+    if (typeof dim !== "object" || dim === null || Array.isArray(dim)) {
+      dimensions.push(dim);
+      continue;
+    }
+    const d = { ...(dim as Record<string, unknown>) };
+    if (typeof d.score === "string" && /^[1-5]$/.test(d.score.trim())) {
+      d.score = Number(d.score.trim());
+      changed = true;
+    }
+    // No quotes = no proof = no dimension (see docblock). At least one
+    // grounded dimension must remain, else the response is worthless.
+    if (!Array.isArray(d.evidence) || d.evidence.length === 0) {
+      changed = true;
+      continue;
+    }
+    dimensions.push(d);
+  }
+  if (!changed || dimensions.length === 0) return null;
+  return JSON.stringify({ ...obj, dimensions });
+}
+
 /** UI 0-100 for a dimension (deterministic). */
 export function dimensionScore100(d: Pick<DimensionResult, "score">): number {
   return anchorToScore100(d.score);

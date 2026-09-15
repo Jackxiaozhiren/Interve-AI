@@ -10,6 +10,7 @@ import { getInterviewType } from "@/ai/interview/types";
 import {
   EVALUATION_VERSION,
   EvaluationV2Schema,
+  repairEvaluationText,
   type EvaluationV2,
 } from "@/ai/evaluation-contract";
 import {
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
       ? "\n\nSTAR REQUIREMENT: In qaReview flaws, explicitly mark which STAR components were present vs missing (e.g. [S: present] [T: missing] [A: present] [R: missing]) and call out missing components as a major flaw."
       : "") +
     "\n\nProvide all textual analysis and reasoning in Chinese.";
-  const prompt = buildEvaluationUserPrompt(messages, framework);
+  const prompt = buildEvaluationUserPrompt(messages, framework, rubric);
 
   try {
     // Cost-aware routing: short interviews use flash, long ones thinking.
@@ -82,8 +83,13 @@ export async function POST(req: Request) {
           abortSignal: signal,
           schema: EvaluationV2Schema,
           // Zhipu chat models ignore json_schema and fence the JSON —
-          // repair strips fences before re-parse (registry, live-verified).
-          experimental_repairText: repairZhipuJson,
+          // repair strips fences, then coerces sloppy types (string scores,
+          // empty-evidence pin) WITHOUT relaxing the strict schema.
+          experimental_repairText: async ({ text }) => {
+            const stripped = await repairZhipuJson({ text });
+            const base = stripped ?? text;
+            return repairEvaluationText(base) ?? stripped;
+          },
           system: systemPrompt,
           prompt,
         });

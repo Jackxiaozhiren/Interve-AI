@@ -37,15 +37,46 @@ SCORING RULES (binding):
 8. strengths/weaknesses: up to 5 short bullets each, grounded in dimensions.
 9. nextDrills: 1-5 concrete practice tasks targeting the weakest dimensions.
 10. qaReview: key Q&A pairs with flaws and a professional rewrite. For behavioral interviews, mark STAR components explicitly ([S]/[T]/[A]/[R] present vs missing).
-11. FORBIDDEN: hiring decisions (hire/no-hire), culture-fit judgments, personality/values/psychology inference, and any use of protected attributes. This is PRACTICE feedback: ${READINESS_DISCLAIMER}`;
+11. FORBIDDEN: hiring decisions (hire/no-hire), culture-fit judgments, personality/values/psychology inference, and any use of protected attributes. This is PRACTICE feedback: ${READINESS_DISCLAIMER}
+12. Emit the JSON object with the exact keys in OUTPUT SHAPE (user message): "dimensions" is an ARRAY with one entry per dimension (never an object keyed by dimension name), "version" is always "2.0".`;
 }
 
 export function buildEvaluationUserPrompt(
   messages: unknown,
-  framework?: string
+  framework?: string,
+  rubric?: Rubric,
 ): string {
+  // Shape block (Phase 9 fix, keyed-verified): Zhipu chat models ignore
+  // `response_format: json_schema`, so without an explicit skeleton the model
+  // improvises (observed: dimension-name-keyed MAP instead of the
+  // `dimensions` ARRAY → NoObjectGenerated → 500). Scored fields use <...>
+  // type placeholders, NEVER literal example values: a literal "developing"
+  // / score 3 in the skeleton measurably anchors the small flash model to
+  // the middle bucket (keyed 2026-09-15: strong AND weak cases both returned
+  // the example value). Dimension ids ARE literal — constrained vocabulary.
+  // The block is appended only when the caller passes the rubric, so 2-arg
+  // callers render byte-identical output to before.
+  const shape = rubric
+    ? `
+OUTPUT SHAPE (exact keys; fill every <...> with real content from THIS transcript; never emit <...> literally):
+{
+  "version": "2.0",
+  "rubricId": "${rubric.id}",
+  "readiness": "<one of: needs_foundation | developing | interview_ready | strongly_prepared — pick by rules 6-7, not by vicinity>",
+  "readinessRationale": "<1-3 sentences tying the level to specific dimensions>",
+  "dimensions": [
+    {"id": "<one of: ${rubric.dimensions.map((d) => d.id).join(" | ")}>", "score": "<1-5 anchor level>", "evidence": ["<verbatim quote from transcript>"], "rationale": "<1-3 sentences>", "confidence": "<high | medium | low>", "improvement": "<one concrete drill>"}
+  ],
+  "strengths": ["<bullet>"],
+  "weaknesses": ["<bullet>"],
+  "nextDrills": ["<concrete task>"],
+  "qaReview": [{"question": "<...>", "userAnswer": "<...>", "flaws": "<...>", "perfectRewrite": "<...>"}]
+}
+SHAPE RULES: "dimensions" MUST be an array with one entry per rubric dimension below (never an object keyed by dimension name). "version" is always "2.0".
+`
+    : "";
   return `Evaluate the following interview transcript${framework ? ` (format hint: ${framework})` : ""}.
-
+${shape}
 HARD CONSTRAINTS (output will be schema-validated; violations are rejected):
 - Output MUST match the JSON schema exactly.
 - Every dimension MUST have score 1-5 AND at least one verbatim evidence quote from the transcript below. No evidence => score 1.

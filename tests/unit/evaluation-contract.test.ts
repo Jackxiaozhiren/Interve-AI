@@ -7,6 +7,7 @@ import {
   dimensionScore100,
   overallConfidence,
   evaluationAverage,
+  repairEvaluationText,
 } from "../../src/ai/evaluation-contract";
 import {
   buildEvaluationSystemPrompt,
@@ -57,13 +58,62 @@ describe("EvaluationV2Schema", () => {
     expect(EvaluationV2Schema.safeParse(validEvaluation({ dimensions: [validDimension({ score: 4.5 })] })).success).toBe(false);
   });
 
-  it("has no hire/culture fields in the contract", () => {
-    const shape = Object.keys(EvaluationV2Schema.shape);
+  it("has no hire/culture fields in the contract", () => {    const shape = Object.keys(EvaluationV2Schema.shape);
     for (const banned of ["hireVerdict", "councilDebate", "cultureFitAdvisor", "culturalTraits"]) {
       expect(shape).not.toContain(banned);
     }
     expect(READINESS_LEVELS).toEqual(["needs_foundation", "developing", "interview_ready", "strongly_prepared"]);
     expect(READINESS_DISCLAIMER).toMatch(/not an employment decision/);
+  });
+});
+
+describe("repairEvaluationText (keyed shape, captured 2026-09-15)", () => {
+  // Mirrors the live glm-4-flash payload: right shape, sloppy types —
+  // string scores + empty evidence on thin dims. Repair must salvage it
+  // into something the STRICT schema accepts, without relaxing the schema.
+  function sloppyEvaluation() {
+    return JSON.stringify({
+      ...validEvaluation(),
+      dimensions: [
+        validDimension({ id: "correctness", score: "3" as unknown as number }),
+        validDimension({ id: "tradeoffs", score: 2, evidence: [] }),
+      ],
+    });
+  }
+
+  it("coerces string scores and drops evidence-less dims (rest stays valid)", () => {
+    const repaired = repairEvaluationText(sloppyEvaluation());
+    expect(repaired).not.toBeNull();
+    const parsed = EvaluationV2Schema.safeParse(JSON.parse(repaired!));
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      // correctness kept with coerced 3; tradeoffs (no quotes) dropped —
+      // no number without proof, coverage gap stays visible.
+      expect(parsed.data.dimensions.map((d) => d.id)).toEqual(["correctness"]);
+      expect(parsed.data.dimensions[0]?.score).toBe(3);
+    }
+  });
+
+  it("returns null when nothing grounded remains", () => {
+    const allEmpty = JSON.stringify({
+      ...validEvaluation(),
+      dimensions: [validDimension({ evidence: [] })],
+    });
+    expect(repairEvaluationText(allEmpty)).toBeNull();
+  });
+
+  it("passes through garbage (still rejected downstream, never laundered)", () => {
+    expect(repairEvaluationText("not json")).toBeNull();
+    expect(repairEvaluationText(JSON.stringify({ version: "2.0" }))).toBeNull();
+    // Out-of-anchor strings are NOT coerced: "7" stays, schema rejects.
+    const bad = JSON.stringify({
+      ...validEvaluation(),
+      dimensions: [validDimension({ score: "7" as unknown as number })],
+    });
+    const repaired = repairEvaluationText(bad);
+    expect(repaired).toBeNull();
+    // Already-clean payloads are untouched (null = no repair needed).
+    expect(repairEvaluationText(JSON.stringify(validEvaluation()))).toBeNull();
   });
 });
 
@@ -96,5 +146,24 @@ describe("prompt builder", () => {
     expect(sys).toMatch(/not an employment decision/);
     const user = buildEvaluationUserPrompt([{ role: "user", content: "hi" }], "behavioral");
     expect(user).toContain("No evidence => score 1");
+  });
+
+  it("shape block: absent without rubric (backward compat), exact ids with rubric", async () => {
+    const { RUBRICS } = await import("../../src/ai/rubrics");
+    const technical = RUBRICS["technical-v1"] ?? Object.values(RUBRICS)[0];
+    const without = buildEvaluationUserPrompt([{ role: "user", content: "hi" }]);
+    expect(without).not.toContain("OUTPUT SHAPE");
+    const withRubric = buildEvaluationUserPrompt([{ role: "user", content: "hi" }], undefined, technical);
+    expect(withRubric).toContain("OUTPUT SHAPE");
+    expect(withRubric).toContain('"version": "2.0"');
+    expect(withRubric).toContain(`"rubricId": "${technical.id}"`);
+    for (const d of technical.dimensions) {
+      expect(withRubric).toContain(d.id);
+    }
+    expect(withRubric).toMatch(/dimensions.*MUST be an array/i);
+    // Anti-anchoring: scored fields must be <...> placeholders, never literal
+    // example values the small model would copy (keyed 2026-09-15).
+    expect(withRubric).not.toContain('"readiness": "developing"');
+    expect(withRubric).not.toMatch(/"score": 3/);
   });
 });
