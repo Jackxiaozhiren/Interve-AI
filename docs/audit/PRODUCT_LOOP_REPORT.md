@@ -138,3 +138,27 @@ execution; continuous whiteboard eval; full i18n.
   `next build` re-run at gate.
 - `mock-contract` green (drillIds validate) · lanes envelope compat green ·
   keyed practice suite still self-skips (no keys).
+
+---
+
+## 11. Decision 2026-09-15: alignment canonical, match converges (cut deferred)
+
+> Product call, per user delegation ("follow your recommendation").
+> No runtime double spend for new sessions (setup persists a matchData-shaped
+> copy so `KnowledgeMatchLoader` skips its `analyze-match` fetch); the cost is
+> maintenance duplication + a lossy adaptation that dropped evidence/confidence.
+
+- **Keep `analyze-alignment`** (edge, Gemini flash): it feeds `buildInterviewPlan`
+  (strengths/gaps → focus areas) via `recommendedFocus` — cutting it would mean
+  rebuilding the plan chain on match.
+- **Converge `analyze-match`** (nodejs, cost-aware Zhipu) to a legacy compat
+  shim: old sessions without `matchData` keep rendering; new sessions never
+  call it. The actual route removal happens only after keyed parity
+  (identical-model A/B on a shared JD-gap golden set: score drift ≤ 10 +
+  evidence overlap), per §9.2 criteria.
+- **Shipped now (keyless-safe, additive):** `matchData` += optional
+  `evidence`/`confidence` (`db.ts`); setup persists the alignment envelope via
+  shared `normalizeGrounding()` (`evidence.ts`, pinned by
+  `tests/unit/match-grounding.test.ts`); `KnowledgeMatchGraph` already rendered
+  these fields when present, so new sessions light up "Basis in your documents"
+  with zero change to old rows. No prompt/model/consumer change.

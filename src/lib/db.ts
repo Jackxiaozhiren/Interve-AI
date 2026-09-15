@@ -86,6 +86,11 @@ export interface Interview {
     alignedSkills: string[];
     missingSkills: string[];
     recommendations: string[];
+    // Phase 9 grounding passthrough: alignment envelope persisted alongside
+    // the adapted shape so the dashboard can render "Basis in your documents".
+    // Optional — legacy rows without them render exactly as before.
+    evidence?: string[];
+    confidence?: "high" | "medium" | "low";
   };
   culturalTraits?: {
     trait: string;

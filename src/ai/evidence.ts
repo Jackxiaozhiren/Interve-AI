@@ -19,3 +19,30 @@ export function evidenceField(maxItems: number, describe: string) {
 export function confidenceField(describe: string) {
   return z.enum(["high", "medium", "low"]).default("medium").describe(describe);
 }
+
+export type GroundingConfidence = "high" | "medium" | "low";
+
+/**
+ * Client-safe grounding normalizer (no zod import at runtime, never throws).
+ * Filters non-strings/empties, caps to `max`, enum-falls-back-to-medium.
+ * Shared by the interview store, practice attempts, and the
+ * alignment→matchData adaptation so all three surfaces drift together.
+ */
+export function normalizeGrounding(
+  evidence: unknown,
+  confidence: unknown,
+  max = 6,
+): { evidence: string[]; confidence: GroundingConfidence } {
+  try {
+    const quotes = Array.isArray(evidence)
+      ? evidence.filter((q): q is string => typeof q === "string" && q.trim().length > 0).slice(0, max)
+      : [];
+    const conf: GroundingConfidence =
+      confidence === "high" || confidence === "medium" || confidence === "low"
+        ? confidence
+        : "medium";
+    return { evidence: quotes, confidence: conf };
+  } catch {
+    return { evidence: [], confidence: "medium" };
+  }
+}

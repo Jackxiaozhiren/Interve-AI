@@ -21,6 +21,7 @@ import { micConstraints } from "@/lib/audio/vad";
 import { INTERVIEW_TYPES, getInterviewType } from "@/ai/interview/types";
 import { RUBRICS } from "@/ai/rubrics";
 import { buildInterviewPlan, type InterviewPlan } from "@/ai/interview/plan";
+import { normalizeGrounding } from "@/ai/evidence";
 import { type Difficulty } from "@/ai/interview/state";
 
 const DIFFICULTY_OPTIONS: { id: Difficulty; name: string; desc: string }[] = [
@@ -420,7 +421,11 @@ export default function SetupPage() {
           overallScore: alignmentReport.matchScore,
           alignedSkills: alignmentReport.strengths,
           missingSkills: alignmentReport.gaps,
-          recommendations: [alignmentReport.recommendedFocus]
+          recommendations: [alignmentReport.recommendedFocus],
+          // Grounding passthrough (decision: alignment canonical) — the
+          // dashboard graph renders "Basis in your documents" from these;
+          // legacy rows without them render exactly as before.
+          ...normalizeGrounding(alignmentReport.evidence, alignmentReport.confidence, 6),
         } : undefined,
         updatedAt: new Date(),
       };
