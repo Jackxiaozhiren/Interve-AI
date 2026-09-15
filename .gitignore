@@ -71,3 +71,6 @@ apps/dsa-web/playwright-report/
 # dsa-api: standalone FastAPI service
 services/dsa-api/.venv/
 __pycache__/
+
+# supabase CLI local state (project-ref, pooler-url, versions) — never commit
+/supabase/.temp/

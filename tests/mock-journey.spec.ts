@@ -111,10 +111,10 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     // Step through the real dismissal path (Next ×2 → Get Started), which
     // also covers the tour itself; absent on repeat visits (flag persisted).
     // Generous window: the tour fires 1s after hydration, and cold-compile
-    // hydration alone can take several seconds (a short window here silently
-    // skips, leaving the overlay to block the Start click below).
+    // hydration alone can exceed 15s on a fresh dev server (a short window
+    // here silently skips, leaving the overlay to block the Start click below).
     const tour = page.getByRole('dialog', { name: /Welcome to Interve AI|Mock Interviews|Analytics/ });
-    if (await tour.isVisible({ timeout: 15000 }).catch(() => false)) {
+    if (await tour.isVisible({ timeout: 45000 }).catch(() => false)) {
       for (let i = 0; i < 4; i++) {
         const done = tour.getByRole('button', { name: 'Get Started' });
         if (await done.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -127,6 +127,13 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     }
 
     // 2. Setup selections.
+    // Late-tour guard: if the overlay arrived after the window above (cold
+    // dev compile), Escape-dismiss via the pinned WCAG path instead of
+    // letting it block the Start click for the full test timeout.
+    if (await tour.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await page.keyboard.press('Escape');
+      await expect(tour).toBeHidden({ timeout: 10000 });
+    }
     const startLink = page.getByRole('link', { name: /New Mock Interview/i });
     const startBtn = page.getByRole('button', { name: /Start Your First Mock Interview/i });
     await expect(startLink.or(startBtn)).toBeVisible();
