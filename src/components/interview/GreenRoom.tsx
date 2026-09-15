@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Microphone, WarningCircle, CheckCircle, ArrowRight } from "@phosphor-icons/react";
+import { Microphone, WarningCircle, CheckCircle, ArrowRight, ArrowClockwise } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/interview/LiveWaveform";
+import { micConstraints, getPreferredMicDevice, setPreferredMicDevice } from "@/lib/audio/vad";
 
 interface GreenRoomProps {
   onComplete: () => void;
@@ -15,29 +16,46 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [deviceId, setDeviceId] = useState<string | null>(() => getPreferredMicDevice());
+  const [attempt, setAttempt] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>(0);
+  // Mirror of `stream` for the effect cleanup: reading `stream` state
+  // directly would capture the initial null (stale closure).
+  const streamRef = useRef<MediaStream | null>(null);
 
+  // Phase 8: permission recovery (retry) + input device selection.
   useEffect(() => {
     let active = true;
 
     async function setupMic() {
       try {
-        const str = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setError(null);
+        const str = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(deviceId) });
         if (!active) {
           str.getTracks().forEach(t => t.stop());
           return;
         }
         setStream(str);
-        
+        streamRef.current = str;
+
+        // Refresh the device list now that permission labels are visible.
+        try {
+          const all = await navigator.mediaDevices.enumerateDevices();
+          setDevices(all.filter((d) => d.kind === "audioinput"));
+        } catch {
+          // labels stay hidden without permission — non-fatal
+        }
+
         const AudioContext = window.AudioContext || (window as Window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
         const ctx = new AudioContext();
         audioContextRef.current = ctx;
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 256;
         analyserRef.current = analyser;
-        
+
         const source = ctx.createMediaStreamSource(str);
         source.connect(analyser);
 
@@ -58,7 +76,7 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
       } catch (err) {
         if (!active) return;
         console.error("Mic access denied or error", err);
-        setError("无法访问麦克风。请在浏览器设置中允许麦克风权限。");
+        setError("无法访问麦克风。请在浏览器设置中允许麦克风权限，或重试。");
       }
     }
 
@@ -70,11 +88,14 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close().catch(console.error);
       }
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
+      // Use the ref mirror: `stream` state here would be the initial null.
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
       }
     };
-  }, []);
+    // Re-run on retry or device switch (old stream is released above first).
+  }, [attempt, deviceId]);
 
   const handleComplete = () => {
     // Release the stream before moving to the actual interview room 
@@ -85,6 +106,7 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
     if (stream) {
       stream.getTracks().forEach(t => t.stop());
     }
+    streamRef.current = null;
     onComplete();
   };
 
@@ -96,6 +118,7 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
     if (stream) {
       stream.getTracks().forEach(t => t.stop());
     }
+    streamRef.current = null;
     onBypass();
   };
 
@@ -122,9 +145,19 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
         </p>
 
         {error ? (
-          <div className="w-full bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-start gap-3 mb-8 text-left shadow-inner">
-            <WarningCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" weight="fill" />
-            <p className="text-sm text-rose-700 font-medium leading-relaxed">{error}</p>
+          <div className="w-full bg-rose-50 border border-rose-100 rounded-2xl p-4 flex flex-col gap-3 mb-8 text-left shadow-inner">
+            <div className="flex items-start gap-3">
+              <WarningCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" weight="fill" />
+              <p className="text-sm text-rose-700 font-medium leading-relaxed">{error}</p>
+            </div>
+            {/* Phase 8: permission recovery — re-request access. */}
+            <button
+              onClick={() => setAttempt((a) => a + 1)}
+              className="inline-flex items-center gap-2 self-start text-sm font-bold text-rose-600 hover:text-rose-500 underline underline-offset-4"
+            >
+              <ArrowClockwise className="w-4 h-4" weight="bold" aria-hidden="true" />
+              重新请求麦克风权限
+            </button>
           </div>
         ) : (
           <div className="w-full mb-8 flex flex-col items-center gap-4">
@@ -132,6 +165,28 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
               <CheckCircle className="w-4 h-4 text-emerald-500" weight="fill" />
               麦克风已连接
             </div>
+
+            {/* Phase 8: input device selection (persisted). */}
+            {devices.length > 1 && (
+              <label className="flex items-center gap-2 text-xs text-slate-500">
+                输入设备
+                <select
+                  value={deviceId ?? ""}
+                  onChange={(e) => {
+                    setDeviceId(e.target.value || null);
+                    setPreferredMicDevice(e.target.value);
+                  }}
+                  aria-label="选择麦克风设备"
+                  className="max-w-[220px] text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-600 focus:outline-none focus:border-sky-300"
+                >
+                  {devices.map((d, i) => (
+                    <option key={d.deviceId || i} value={d.deviceId}>
+                      {d.label || `麦克风 ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             
             {/* Volume indicator */}
             <div className="w-full max-w-[280px] mt-2 mb-2 relative">
@@ -153,7 +208,7 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
           
           <button 
             onClick={handleBypass}
-            className="text-xs font-medium text-slate-400 hover:text-slate-600 underline-offset-4 hover:underline transition-all mt-2"
+            className="text-xs font-medium text-slate-500 hover:text-slate-700 underline-offset-4 hover:underline transition-all mt-2"
             aria-label="跳过语音测试，以纯文本模式继续"
           >
             跳过语音测试，以纯文本模式继续

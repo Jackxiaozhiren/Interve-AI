@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
 import {
   expectNoWhitescreen,
   mockApiController,
-  useMocks,
+  shouldUseMocks,
 } from "./helpers";
 
 interface RowSpec {
@@ -39,7 +39,7 @@ const MATRIX: RowSpec[] = [
 
 for (const row of MATRIX) {
   test(`${row.route} → loading / normal / empty / error`, async ({ page }) => {
-    test.skip(!useMocks(), "matrix needs E2E_MOCK=1");
+    test.skip(!shouldUseMocks(), "matrix needs E2E_MOCK=1");
 
     const api = await mockApiController(page);
 

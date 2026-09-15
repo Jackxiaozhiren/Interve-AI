@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { SESSION_COOKIE, getSessionSecret, verifySessionCookie } from '@/lib/api/session';
 
 export const config = {
   matcher: [
@@ -8,44 +9,65 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - pdf.worker.min.mjs (public worker)
      */
-    '/((?!_next/static|_next/image|favicon.ico|pdf\\.worker\\.min\\.mjs).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
 
-export default function proxy(request: NextRequest) {
+// Phase 2: every page that consumes metered AI APIs requires a signed
+// session. Anonymous demo browsing (/, /landing, /login, /signup) stays open.
+// /api/* enforcement lives in each Route Handler (guardRequest), not here.
+const PROTECTED_PAGE_PREFIXES = [
+  '/dashboard',
+  '/setup',
+  '/interview',
+  '/chat',
+  '/recruiter',
+  '/practice',
+];
+
+function isProtectedPage(pathname: string): boolean {
+  return PROTECTED_PAGE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+function loginRedirect(request: NextRequest): NextResponse {
+  const loginUrl = new URL('/login', request.url);
+  loginUrl.searchParams.set('from', request.nextUrl.pathname);
+  const response = NextResponse.redirect(loginUrl);
+  response.cookies.delete(SESSION_COOKIE);
+  return response;
+}
+
+export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // 1. Dashboard Protection
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/api/dashboard')) {
-    const userCookie = request.cookies.get('interveai_user');
-    
-    if (!userCookie || !userCookie.value) {
+  // 1. Session protection (HMAC-signed cookie; legacy unsigned cookies fail
+  //    verification and force one re-login).
+  if (isProtectedPage(pathname) || pathname.startsWith('/api/dashboard')) {
+    const raw = request.cookies.get(SESSION_COOKIE)?.value;
+    const secret = getSessionSecret();
+    // Fail closed when the server cannot verify sessions at all.
+    if (!secret || !raw) {
       if (pathname.startsWith('/api/')) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
       }
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('from', request.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
+      return loginRedirect(request);
     }
-    
-    try {
-      const user = JSON.parse(userCookie.value);
-      if (!user || typeof user !== 'object' || !user.id) {
-        throw new Error('Invalid user format');
+    return verifySessionCookie(raw, secret).then((session) => {
+      if (!session || !session.id) {
+        if (pathname.startsWith('/api/')) {
+          return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+        }
+        return loginRedirect(request);
       }
-    } catch {
-      if (pathname.startsWith('/api/')) {
-        return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
-      }
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('from', request.nextUrl.pathname);
-      const response = NextResponse.redirect(loginUrl);
-      response.cookies.delete('interveai_user');
-      return response;
-    }
+      return afterAuth(request, pathname, searchParams);
+    });
   }
+
+  return afterAuth(request, pathname, searchParams);
+}
+
+function afterAuth(request: NextRequest, pathname: string, searchParams: URLSearchParams) {
 
   // 2. Interview preflight check
   if (pathname.startsWith('/interview')) {

@@ -1,30 +1,25 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamObject } from 'ai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
+import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
+import { logApi } from "@/lib/api/logging";
+import { resolveCostAwareModel, FALLBACK_MAX_RETRIES, repairZhipuJson } from "@/ai/providers/registry";
+import { isMockEnabled, mockTextStream, MOCK_STREAMS } from "@/ai/providers/mock";
+import { buildContextSystem, buildContextPrompt } from "@/ai/prompts/context";
 
-// Ensure standard Edge runtime for fast response
-export const runtime = 'edge';
+// Buffered generateObject completes before first byte → nodejs (edge needs
+// first byte within 25s for long responses). Budget fits Vercel Hobby free max.
+export const runtime = 'nodejs';
+export const maxDuration = 120;
 
-// We initialize the custom Zhipu AI provider
-const zhipu = createOpenAI({
-  // @ts-expect-error - compatibility flag needed for Zhipu AI provider
-  compatibility: 'compatible',
-  baseURL: process.env.OPENAI_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4/',
-  apiKey: process.env.ZHIPU_API_KEY,
-  fetch: async (url, options) => {
-    if (options?.body) {
-      const body = JSON.parse(options.body as string);
-      if (body.model === 'glm-4.7-flash') {
-        body.thinking = { type: 'enabled' };
-        body.max_tokens = 65536;
-      }
-      options.body = JSON.stringify(body);
-    }
-    return fetch(url, options);
-  }
+const ROUTE = "init-context";
+
+const BodySchema = z.object({
+  jobDescription: z.string().min(1).max(60000),
+  resumeContext: z.string().min(1).max(60000),
 });
 
-const InitContextSchema = z.object({
+// Output contract (exported for mock validation + future eval harness).
+export const InitContextOutputSchema = z.object({
   cheatsheet: z.array(z.string()).describe('List of 5-7 bullet points summarizing key requirements and qualifications from the JD matched against the resume.'),
   topPredictions: z.array(
     z.object({
@@ -36,55 +31,45 @@ const InitContextSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const gate = await guardRequest(req, {
+    route: ROUTE,
+    schema: BodySchema,
+    maxBytes: 256 * 1024,
+    rateLimit: { limit: 20, windowMs: 60_000 },
+    // Measured 2026-09-13: free glm-4-flash streams ~50 chars/s.
+    timeoutMs: 110000,
+  });
+  if (!gate.ok) return gate.response;
+  const { requestId, data, signal } = gate.ctx;
+  const { jobDescription, resumeContext } = data;
+  if (isMockEnabled()) return mockTextStream(MOCK_STREAMS[ROUTE], requestId);
+  const startTime = performance.now();
+
   try {
-    const { jobDescription, resumeContext } = await req.json();
-
-    if (!jobDescription || !resumeContext) {
-      return new Response('Missing jobDescription or resumeContext', { status: 400 });
-    }
-
-    const systemPrompt = `
-You are an expert technical interviewer and HR career coach. Your task is to analyze the provided Job Description (JD) and the candidate's Resume context, then generate:
-1. A concise cheatsheet of key requirements matched with the candidate's experience.
-2. Top 5 predicted interview questions with rationale and key points to hit. Ensure a mix of technical and Behavioral/HR questions.
-
-Follow these rules:
-- Be highly specific to the provided JD and Resume.
-- The cheatsheet should highlight strengths and potential gap areas.
-- For behavioral questions, structure the \`keyPointsToHit\` using the STAR method (Situation, Task, Action, Result).
-- Keep the output extremely focused and professional.
-- Your output must perfectly match the requested JSON schema.
-- Language: Please generate all content in Chinese (zh-CN), as requested by the user.
-    `;
-
-    const userPrompt = `
-### Job Description:
-${jobDescription}
-
-### Resume Context:
-${resumeContext}
-    `;
-
     // Cost-aware routing: determine complexity by input length
     const totalLength = jobDescription.length + resumeContext.length;
-    const isComplex = totalLength > 2500;
-    const modelId = isComplex ? 'glm-4.7-flash' : 'glm-4-flash';
-    console.log(`[Cost-Aware] Routing to ${modelId} based on context length (${totalLength} chars)`);
+    const { model, modelId } = resolveCostAwareModel(totalLength);
 
-    const result = await streamObject({
-      model: zhipu(modelId),
-      schema: InitContextSchema,
-      system: systemPrompt,
-      prompt: userPrompt,
+    // Phase 14: generateObject (complete JSON) instead of streamObject:
+    // StreamObjectResult has no UI-message stream response in ai v6, and
+    // the text stream it did emit is unparseable by chat transports — the
+    // same P0 class fixed in interview-chat. No callers exist (verified),
+    // so the complete-object shape is strictly more usable.
+    const { object } = await generateObject({
+      model,
+      schema: InitContextOutputSchema,
+      experimental_repairText: repairZhipuJson,
+      system: buildContextSystem(),
+      prompt: buildContextPrompt({ jobDescription, resumeContext }),
       temperature: 1.0,
+      maxRetries: FALLBACK_MAX_RETRIES,
+      abortSignal: signal,
     });
 
-    return result.toTextStreamResponse();
-  } catch (error) {
-    console.error('API Error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to generate context' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId });
+    return okResponse(object, requestId);
+  } catch {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+    return errorResponse("UPSTREAM_ERROR", "Failed to generate context", 500, requestId);
   }
 }

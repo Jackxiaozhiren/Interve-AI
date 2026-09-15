@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { loginAs } from './helpers';
 
-test.describe('Chat Interface', () => {
+// fixme: this suite drives live AI interviews (sendMessage -> /api/interview-chat
+// -> Zhipu/Gemini). It needs provider keys with budget caps plus a deterministic
+// AI stub for CI. Re-enable in Phase 3 with the AI Eval harness; see
+// STABILIZATION_REPORT "Deferred: keyed AI e2e".
+test.describe.fixme('Chat Interface', () => {
   test.describe.configure({ timeout: 60000 });
 
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      window.localStorage.setItem("interve_auth_user", JSON.stringify({ id: "test", email: "test@example.com", name: "Test User" }));
-      window.localStorage.setItem("interve_has_seen_onboarding", "true");
-    });
+    await loginAs(page);
     await page.goto('/interview?id=test-session-123&role=frontend&level=Mid-Level&persona=supportive&aiModel=zhipu&testMode=true');
     page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
     page.on('pageerror', error => console.log('BROWSER ERROR:', error.message));

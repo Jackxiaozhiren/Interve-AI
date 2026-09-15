@@ -1,0 +1,54 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npm run test:eval
+        env:
+          CI: true
+      - run: npm run verify:supabase-free
+        env:
+          CI: true
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:smoke
+        env:
+          CI: true
+      - run: npm audit --audit-level=critical
+
+  # FREE-tier live AI smoke (≤3 flash calls). Runs only when a free Zhipu key
+  # is configured as a repo secret; forks without secrets skip safely.
+  # Full 31-call suites stay manual/nightly (see docs/AI_EVALUATION.md).
+  free-eval-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ secrets.ZHIPU_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:eval:free
+        env:
+          CI: true
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}

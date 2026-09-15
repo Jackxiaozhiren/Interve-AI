@@ -3,8 +3,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, WarningCircle, Lightbulb } from "@phosphor-icons/react";
 import { useInterveStore } from "@/store/useInterveStore";
 
+/** §9: tooltip/sr-only grounding line. Pure helper so the copy pattern is pinned by test. */
+export function starGroundingTitle(evidence: string[], confidence: string): string | undefined {
+  if (evidence.length === 0) return undefined;
+  return `Basis in your answer: “${evidence[0]}”${evidence.length > 1 ? ` (+${evidence.length - 1} more)` : ""} · Evaluator confidence: ${confidence} (evidence sufficiency)`;
+}
+
 export function StarTracker() {
   const { starProgress } = useInterveStore();
+  // §9 grounding: LiveStats tile is the visual grounding surface (progress-ring
+  // widget has no fit for quotes). The tracker only carries the grounding for
+  // hover tooltips + screen readers — visuals render exactly as before.
+  const starEvidence = useInterveStore((s) => s.starEvidence);
+  const starConfidence = useInterveStore((s) => s.starConfidence);
+  const groundingTitle = starGroundingTitle(starEvidence, starConfidence);
 
   const steps = [
     { key: "S", label: "Situation", data: starProgress.s },
@@ -47,6 +59,7 @@ export function StarTracker() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="absolute top-6 left-6 z-20 bg-white/70 backdrop-blur-xl border border-white/80 p-4 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col gap-4 min-w-[280px]"
+      {...(groundingTitle ? { title: groundingTitle } : {})}
     >
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold tracking-widest text-slate-500 uppercase flex items-center gap-2">
@@ -134,6 +147,12 @@ export function StarTracker() {
       </div>
 
       {/* Deeper Real-time Feedback Logic */}
+      {/* §9: screen-reader grounding — never a visual score addition. */}
+      {starEvidence.length > 0 && (
+        <p className="sr-only" role="note">
+          {groundingTitle}
+        </p>
+      )}
       <AnimatePresence mode="popLayout">
         <motion.div 
           key={getFeedbackMessage()}

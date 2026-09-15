@@ -1,11 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { loginAs } from './helpers';
 
 test.describe('Settings Interface', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      window.localStorage.setItem("interve_auth_user", JSON.stringify({ id: "test", email: "test@example.com", name: "Test User" }));
-      window.localStorage.setItem("interve_has_seen_onboarding", "true");
-    });
+    await loginAs(page);
     await page.goto('/dashboard/settings');
     await page.waitForLoadState('networkidle');
   });

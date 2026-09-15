@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { averageSpectrum, micConstraints } from "@/lib/audio/vad";
 
 /**
  * A hook that monitors background noise levels and warns the user if it's too high.
@@ -42,7 +43,7 @@ export function useAmbientNoise(
 
     const startMonitoring = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
         if (!isMonitoring) {
           stream.getTracks().forEach(t => t.stop());
           return;
@@ -67,12 +68,7 @@ export function useAmbientNoise(
           if (!isMonitoring) return;
 
           analyser.getByteFrequencyData(dataArray);
-
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-          }
-          const average = sum / dataArray.length;
+          const average = averageSpectrum(dataArray);
 
           if (average > threshold) {
             consecutiveHighVolume++;

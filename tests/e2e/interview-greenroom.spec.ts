@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { loginAs } from '../helpers';
 
 test.describe('Interview Green Room', () => {
   test('Green Room flow and bypass', async ({ page, browserName }) => {
@@ -19,9 +20,11 @@ test.describe('Interview Green Room', () => {
       }
     };
 
-    // Go to interview page
-    await page.goto('/interview');
-    await page.waitForLoadState('networkidle');
+    // Go to interview page (id required by the preflight gate; no testMode
+    // so the GreenRoom gate shows instead of skipping to standby).
+    // NOTE: no `networkidle` wait — model workers keep the network busy.
+    await loginAs(page);
+    await page.goto('/interview?id=e2e-greenroom', { waitUntil: 'domcontentloaded' });
 
     // Verify Green Room is present
     const greenRoomHeading = page.locator('h1:has-text("设备自检室")');

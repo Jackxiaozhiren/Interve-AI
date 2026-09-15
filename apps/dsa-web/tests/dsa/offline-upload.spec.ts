@@ -4,11 +4,11 @@ import {
   blackoutApi,
   expectNoWhitescreen,
   mockApiController,
-  useMocks,
+  shouldUseMocks,
 } from "./helpers";
 
 test("datasets upload failure surfaces a friendly error (413)", async ({ page }) => {
-  test.skip(!useMocks(), "needs E2E_MOCK=1");
+  test.skip(!shouldUseMocks(), "needs E2E_MOCK=1");
   const api = await mockApiController(page);
   api.setMode("normal");
   await page.goto("/datasets");

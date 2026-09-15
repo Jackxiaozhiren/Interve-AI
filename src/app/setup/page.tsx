@@ -17,6 +17,27 @@ import { toast } from "sonner";
 import { useInterveStore } from "@/store/useInterveStore";
 import { WaveformVisualizer } from "@/components/setup/WaveformVisualizer";
 import { TextSelectionMenu } from "@/components/setup/TextSelectionMenu";
+import { micConstraints } from "@/lib/audio/vad";
+import { INTERVIEW_TYPES, getInterviewType } from "@/ai/interview/types";
+import { RUBRICS } from "@/ai/rubrics";
+import { buildInterviewPlan, type InterviewPlan } from "@/ai/interview/plan";
+import { type Difficulty } from "@/ai/interview/state";
+
+const DIFFICULTY_OPTIONS: { id: Difficulty; name: string; desc: string }[] = [
+  { id: "easy", name: "Easy", desc: "Foundations first, generous pacing." },
+  { id: "medium", name: "Medium", desc: "Standard professional bar." },
+  { id: "hard", name: "Hard", desc: "Deep follow-ups, edge cases." },
+  { id: "expert", name: "Expert", desc: "Bar-raiser depth. No mercy on details." },
+];
+
+const DURATION_OPTIONS = [
+  { sec: 600, label: "10 min" },
+  { sec: 900, label: "15 min" },
+  { sec: 1200, label: "20 min" },
+  { sec: 1800, label: "30 min" },
+];
+
+const DEFAULT_CUSTOM_TYPE_TEXT = "General free-flowing interview across behavioral and technical topics.";
 
 const roles = [
   { id: "frontend", name: "Frontend Engineer", icon: Code },
@@ -82,6 +103,13 @@ export default function SetupPage() {
   const [framework, setFramework] = useState("general");
   const [stressTest, setStressTest] = useState(false);
   const [aiModel, setAiModel] = useState("zhipu");
+  // Phase 7 goal-based session: type/difficulty/duration are all wired —
+  // type selects the evaluation rubric, difficulty seeds the adaptive loop,
+  // duration sets its time budget. No decorative options.
+  const [selectedInterviewType, setSelectedInterviewType] = useState("custom");
+  const [customTypeText, setCustomTypeText] = useState(DEFAULT_CUSTOM_TYPE_TEXT);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>("medium");
+  const [selectedDurationSec, setSelectedDurationSec] = useState(900);
   const [context, setContext] = useState("");
   const [isStarting, setIsStarting] = useState(false);
   
@@ -185,7 +213,8 @@ export default function SetupPage() {
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        // Phase 8: echo/noise suppression on the audio track.
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(), video: true });
         streamRef.current = stream;
         
         if (videoRef.current) {
@@ -260,6 +289,8 @@ export default function SetupPage() {
     strengths: string[];
     gaps: string[];
     recommendedFocus: string;
+    evidence?: string[];
+    confidence?: "high" | "medium" | "low";
   } | null>(null);
 
   const [hasAutoAnalyzed, setHasAutoAnalyzed] = useState(false);
@@ -359,15 +390,32 @@ export default function SetupPage() {
     if (isStarting) return; // Prevent double-clicks
     setIsStarting(true);
     try {
-      let interviewId = currentInterviewId;
-      
+      let interviewId: number | string | null = currentInterviewId;
+      // Phase 7: goal-based plan (deterministic from alignment + type).
+      const planType = getInterviewType(selectedInterviewType);
+      const planRubric = RUBRICS[planType.rubricId];
+      const plan: InterviewPlan = buildInterviewPlan({
+        interviewTypeId: planType.id,
+        rubricId: planType.rubricId,
+        rubricDimensions: planRubric.dimensions.map((d) => ({ id: d.id, name: d.name })),
+        difficulty: selectedDifficulty,
+        timeBudgetSec: selectedDurationSec,
+        strengths: alignmentReport?.strengths,
+        gaps: alignmentReport?.gaps,
+      });
+
       const interviewData = {
         title: `${selectedLevel} ${roles.find(r => r.id === selectedRole)?.name || selectedRole} Interview`,
         jobDescription: context.substring(0, 500),
         resumeText: parsedResumeText,
-        includeCoding,
+        includeCoding: includeCoding || planType.needsCoding,
         problemStatement,
         status: 'in_progress' as const,
+        interviewType: planType.id,
+        customTypeDescription: planType.id === "custom" ? customTypeText.substring(0, 500) : undefined,
+        difficulty: selectedDifficulty,
+        timeBudgetSec: selectedDurationSec,
+        plan,
         matchData: alignmentReport ? {
           overallScore: alignmentReport.matchScore,
           alignedSkills: alignmentReport.strengths,
@@ -377,15 +425,26 @@ export default function SetupPage() {
         updatedAt: new Date(),
       };
 
-      if (interviewId) {
-        await db.interviews.update(interviewId, interviewData);
-      } else {
-        interviewId = await db.interviews.add({
-          ...interviewData,
-          cheatsheet: cheatsheet || [],
-          topPredictions: topPredictions || [],
-          createdAt: new Date(),
-        }) as number;
+      try {
+        if (interviewId) {
+          await db.interviews.update(interviewId as number, interviewData);
+        } else {
+          interviewId = await db.interviews.add({
+            ...interviewData,
+            cheatsheet: cheatsheet || [],
+            topPredictions: topPredictions || [],
+            createdAt: new Date(),
+          }) as number;
+        }
+      } catch (dbError) {
+        // Supabase is documented as optional (.env.example): when the database
+        // is unreachable, fall back to a local-only session instead of
+        // blocking the demo. Interview context still travels via URL params +
+        // store + localStorage snapshot; persistence features (report/replay/
+        // dashboard history) degrade with explicit toasts downstream.
+        console.warn("Database unavailable, starting local-only session:", dbError);
+        interviewId = `local-${crypto.randomUUID()}`;
+        toast.info("本地模式", { description: "未连接数据库，本次面试仅保存在当前浏览器。" });
       }
 
       if (!interviewId) {
@@ -400,6 +459,9 @@ export default function SetupPage() {
         persona: selectedPersona,
         company: selectedCompany,
         framework: framework,
+        interviewType: planType.id,
+        difficulty: selectedDifficulty,
+        timeBudgetSec: String(selectedDurationSec),
         stressTest: stressTest.toString(),
         aiModel: aiModel,
         context: context.substring(0, 500)
@@ -477,6 +539,10 @@ export default function SetupPage() {
         {/* Right Side: Scrollable Forms (Bento UI) */}
         <div className="lg:w-[55%] p-8 lg:p-16 lg:py-24 overflow-y-auto z-10 flex flex-col">
           <div className="max-w-2xl mx-auto w-full flex-grow flex flex-col">
+            {/* Step 眉题：维持 Setup → Interview → Review 叙事 */}
+            <p aria-live="polite" className="mb-6 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+              Step {currentStep} of {totalSteps} · Setup → Interview → Review
+            </p>
             {/* Stepper Progress */}
             <div className="mb-12 flex items-center justify-between relative">
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 rounded-full -z-10 overflow-hidden">
@@ -639,7 +705,7 @@ export default function SetupPage() {
             <motion.section variants={waterfallVariant} className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
                 <h2 className="text-2xl font-serif tracking-tight text-slate-800">Interviewer Persona</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">03</span>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">03a</span>
               </div>
               
               <div className="flex flex-col gap-4 relative">
@@ -702,7 +768,7 @@ export default function SetupPage() {
             <motion.section variants={waterfallVariant} className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
                 <h2 className="text-2xl font-serif tracking-tight text-slate-800">Interview Framework</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">04</span>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">03b</span>
               </div>
               
               <div className="grid grid-cols-2 gap-4 relative">
@@ -737,11 +803,118 @@ export default function SetupPage() {
               </div>
             </motion.section>
 
+            {/* Interview Type (Phase 7: selects evaluation rubric + tooling) */}
+            <motion.section variants={waterfallVariant} className="space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
+                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Interview Type</h2>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">03c</span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 relative">
+                {INTERVIEW_TYPES.map((t) => {
+                  const isSelected = selectedInterviewType === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        setSelectedInterviewType(t.id);
+                        if (t.needsCoding) setIncludeCoding(true);
+                      }}
+                      className={`group relative p-4 rounded-[20px] text-left transition-all duration-300 outline-none flex flex-col gap-1 border ${
+                        isSelected
+                          ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]"
+                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60"
+                      }`}
+                      aria-pressed={isSelected}
+                    >
+                      <span className={`font-semibold tracking-wide text-[14px] ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
+                        {t.name}
+                      </span>
+                      <span className={`text-[12px] leading-snug ${isSelected ? 'text-slate-600' : 'text-slate-400'}`}>
+                        {t.nameZh}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedInterviewType === "custom" && (
+                <textarea
+                  value={customTypeText}
+                  onChange={(e) => setCustomTypeText(e.target.value)}
+                  rows={2}
+                  maxLength={500}
+                  placeholder="Describe your custom focus…"
+                  aria-label="Custom interview focus"
+                  className="w-full p-4 rounded-[20px] border border-slate-200/60 bg-white/70 text-[14px] text-slate-700 focus:outline-none focus:border-sky-300"
+                />
+              )}
+              <p className="text-[13px] text-slate-400 leading-relaxed">
+                Rubric: {RUBRICS[getInterviewType(selectedInterviewType).rubricId]?.track ?? "General"}
+                {getInterviewType(selectedInterviewType).needsCoding ? " · enables the coding scratchpad" : ""}
+                {getInterviewType(selectedInterviewType).needsWhiteboard ? " · uses the system-design whiteboard" : ""}
+              </p>
+            </motion.section>
+
+            {/* Difficulty & Duration (Phase 7: wired to the adaptive loop) */}
+            <motion.section variants={waterfallVariant} className="space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
+                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Difficulty & Duration</h2>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">03d</span>
+              </div>
+
+              <div>
+                <p className="text-[13px] font-semibold text-slate-500 mb-3 uppercase tracking-wider">Starting difficulty (adapts live)</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {DIFFICULTY_OPTIONS.map((d) => {
+                    const isSelected = selectedDifficulty === d.id;
+                    return (
+                      <button
+                        key={d.id}
+                        onClick={() => setSelectedDifficulty(d.id)}
+                        aria-pressed={isSelected}
+                        className={`p-4 rounded-[20px] text-left border transition-all duration-300 outline-none ${
+                          isSelected
+                            ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]"
+                            : "border-slate-200/40 bg-white/40 hover:bg-white/80"
+                        }`}
+                      >
+                        <span className={`block font-semibold text-[14px] ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>{d.name}</span>
+                        <span className="block text-[12px] text-slate-400 mt-1 leading-snug">{d.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[13px] font-semibold text-slate-500 mb-3 uppercase tracking-wider">Time budget</p>
+                <div className="flex flex-wrap gap-3">
+                  {DURATION_OPTIONS.map((o) => {
+                    const isSelected = selectedDurationSec === o.sec;
+                    return (
+                      <button
+                        key={o.sec}
+                        onClick={() => setSelectedDurationSec(o.sec)}
+                        aria-pressed={isSelected}
+                        className={`px-5 py-2.5 rounded-full text-[14px] font-semibold border transition-all duration-300 outline-none ${
+                          isSelected
+                            ? "bg-slate-900 text-white border-slate-900"
+                            : "bg-white/40 text-slate-600 border-slate-200/60 hover:bg-white/80"
+                        }`}
+                      >
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.section>
+
             {/* Stress Test */}
             <motion.section variants={waterfallVariant} className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
                 <h2 className="text-2xl font-serif tracking-tight text-slate-800">Stress Test Mode</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">05</span>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">03e</span>
               </div>
               
               <button
@@ -848,7 +1021,7 @@ export default function SetupPage() {
             <motion.section variants={waterfallVariant} className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
                 <h2 className="text-2xl font-serif tracking-tight text-slate-800">Resume Integration</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">05</span>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">05a</span>
               </div>
               
               <div 
@@ -929,7 +1102,7 @@ export default function SetupPage() {
             <motion.section variants={waterfallVariant} className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
                 <h2 className="text-2xl font-serif tracking-tight text-slate-800">Additional Context</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">06</span>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">05b</span>
               </div>
               
               <div className="relative group">
@@ -953,7 +1126,7 @@ export default function SetupPage() {
             <motion.section variants={waterfallVariant} className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
                 <h2 className="text-2xl font-serif tracking-tight text-slate-800">Resume Alignment</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">07</span>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">05c</span>
               </div>
               
               {!alignmentReport ? (
@@ -1038,6 +1211,51 @@ export default function SetupPage() {
                       </ul>
                     </div>
                   </div>
+
+                  {/* Phase 4: evidence grounding — document lines behind strengths/gaps. */}
+                  {alignmentReport.evidence && alignmentReport.evidence.length > 0 && (
+                    <div className="mt-4 rounded-xl border border-slate-200/70 bg-white/60 p-4">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                        Basis in your documents{alignmentReport.confidence ? ` · Evaluator confidence: ${alignmentReport.confidence}` : ""}
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {alignmentReport.evidence.map((q, i) => (
+                          <li key={i} className="text-[13px] text-slate-600 border-l-2 border-indigo-300 pl-3 italic">“{q}”</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Interview Plan preview (Phase 7: deterministic from alignment + type) */}
+                  {(() => {
+                    const type = getInterviewType(selectedInterviewType);
+                    const rubric = RUBRICS[type.rubricId];
+                    const plan: InterviewPlan = buildInterviewPlan({
+                      interviewTypeId: type.id,
+                      rubricId: type.rubricId,
+                      rubricDimensions: rubric.dimensions.map((d) => ({ id: d.id, name: d.name })),
+                      difficulty: selectedDifficulty,
+                      timeBudgetSec: selectedDurationSec,
+                      strengths: alignmentReport.strengths,
+                      gaps: alignmentReport.gaps,
+                    });
+                    return (
+                      <div className="mt-6 p-5 rounded-[20px] border border-sky-200/50 bg-sky-50/40">
+                        <h4 className="text-sm font-bold text-sky-800 mb-3">
+                          Your interview plan · {type.name} · {selectedDifficulty} · {Math.round(selectedDurationSec / 60)} min
+                        </h4>
+                        <p className="text-[13px] text-slate-600 mb-2 font-semibold">Focus areas (highest-value gaps first):</p>
+                        <ul className="space-y-1.5">
+                          {plan.focusAreas.map((f, i) => (
+                            <li key={i} className="text-[13px] text-slate-700 flex items-start gap-2">
+                              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
                 </motion.div>
               )}
             </motion.section>
@@ -1046,7 +1264,7 @@ export default function SetupPage() {
             <motion.section variants={waterfallVariant} className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
                 <h2 className="text-2xl font-serif tracking-tight text-slate-800">Technical Assessment</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">08</span>
+                <span className="text-sky-400/60 font-mono text-sm font-bold">05d</span>
               </div>
               
               <button
@@ -1122,7 +1340,7 @@ export default function SetupPage() {
               <motion.section variants={waterfallVariant} className="space-y-8">
                 <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
                   <h2 className="text-2xl font-serif tracking-tight text-slate-800">Hardware Check</h2>
-                  <span className="text-emerald-400/80 font-mono text-sm font-bold">05</span>
+                  <span className="text-emerald-400/80 font-mono text-sm font-bold">06</span>
                 </div>
                 
                 <div className="bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-[32px] p-8 shadow-sm">
@@ -1260,7 +1478,11 @@ export default function SetupPage() {
               ) : (
                 <Button 
                   onClick={confirmAndStart} 
-                  disabled={micStatus === "testing" || isStarting}
+                  // Phase 2: never trap the user while hardware is probing.
+                  // The label already promises "Start without Mic"; the
+                  // interview GreenRoom re-checks the mic anyway. Only block
+                  // while a start is already in flight.
+                  disabled={isStarting}
                   size="lg" 
                   className="relative rounded-[24px] h-12 px-8 font-bold tracking-wide shadow-[0_8px_24px_rgba(14,165,233,0.25)] group overflow-hidden bg-slate-900 text-white hover:bg-slate-800 border border-slate-800 transition-all duration-300"
                 >

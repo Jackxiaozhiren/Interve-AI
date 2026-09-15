@@ -1,4 +1,6 @@
 import { dbClient } from './api-client';
+import type { EvaluationV2 } from '@/ai/evaluation-contract';
+import type { InterviewPlan } from '@/ai/interview/plan';
 
 export interface TopPrediction {
   question: string;
@@ -27,6 +29,15 @@ export interface Interview {
   stressTest?: boolean;
   topPredictions?: TopPrediction[];
   status: 'pending' | 'in_progress' | 'completed';
+  /**
+   * Phase 7 goal-based session config. All optional/additive: older rows
+   * and direct /interview links simply run engine defaults.
+   */
+  interviewType?: string;
+  customTypeDescription?: string;
+  difficulty?: string;
+  timeBudgetSec?: number;
+  plan?: InterviewPlan;
   radarScores?: {
     logic: number;
     expression: number;
@@ -45,9 +56,25 @@ export interface Interview {
   deliveryStats?: {
     wpm: number;
     fillerWords: number;
+    /** Phase 8 observable analytics (all optional/additive). */
+    interruptions?: number;
+    avgAnswerSec?: number;
+    avgRoundTripMs?: number;
+    sttAvgConfidence?: number;
+    sttFinals?: number;
+    sttReconnects?: number;
+    /** Phase 13 latency breakdown averages, ms (optional/additive). */
+    ttftMs?: number;
+    whisperMs?: number;
+    ttsStartupMs?: number;
   };
   hireVerdict?: 'strong_hire' | 'hire' | 'leaning_hire' | 'leaning_no_hire' | 'no_hire';
   verdictRationale?: string;
+  /**
+   * Phase 4 evidence-grounded evaluation. Written by all NEW sessions.
+   * Legacy fields above are read-only history (see eval-compat adapter).
+   */
+  evaluationV2?: EvaluationV2;
   councilDebate?: {
     technicalAdvisor: { stance: string; reasoning: string };
     hrAdvisor: { stance: string; reasoning: string };
@@ -95,6 +122,13 @@ export interface PracticeSession {
   score: number;
   strengths: string[];
   improvements: string[];
+  /**
+   * Practice evidence persistence (EVALUATION_V2 §9): verbatim quotes +
+   * evaluator confidence behind the score. Optional/additive — older rows
+   * without them render exactly as before (history preserved, never rewritten).
+   */
+  evidence?: string[];
+  confidence?: "high" | "medium" | "low";
   createdAt: Date;
 }
 

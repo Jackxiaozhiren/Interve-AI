@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { Badge } from "@/components/ui/badge";
+import { DataTable, PageHeader, StatusBadge, type DataTableColumn } from "@/components/data";
 import { dbClient as db, useLiveQuery } from "@/lib/api-client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -116,6 +117,39 @@ export default function RecruiterDashboard() {
     setTags(tags.filter(t => t !== tagToRemove));
   };
 
+  type CandidateRow = typeof mockCandidates[number];
+
+  const candidateColumns: DataTableColumn<CandidateRow>[] = [
+    {
+      key: "id",
+      label: "Candidate ID",
+      render: (c) => <span className="font-mono text-slate-500">{c.id}</span>,
+    },
+    {
+      key: "name",
+      label: "Name",
+      sortable: true,
+      render: (c) => <span className="font-semibold text-slate-900">{c.name}</span>,
+    },
+    { key: "role", label: "Role", sortable: true },
+    {
+      key: "score",
+      label: "Match Score",
+      sortable: true,
+      render: (c) => (
+        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${c.score >= 90 ? 'bg-emerald-100 text-emerald-700' : c.score >= 80 ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700'}`}>
+          {c.score}
+        </span>
+      ),
+    },
+    { key: "stage", label: "Stage" },
+    {
+      key: "status",
+      label: "Status",
+      render: (c) => <StatusBadge status={c.status} />,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 md:px-8 relative overflow-hidden">
       {/* Background blobs */}
@@ -128,23 +162,26 @@ export default function RecruiterDashboard() {
         variants={staggerContainer}
         className="max-w-7xl mx-auto relative z-10 flex flex-col gap-8"
       >
-        {/* Header */}
-        <motion.div variants={fadeUpVariant} className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-serif text-slate-900 tracking-tight">{t.recruiter.commandCenter}</h1>
-            <p className="text-slate-500 mt-2 text-lg">{t.recruiter.commandCenterDesc}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <LanguageToggle />
-            <Link href="/recruiter/assessments">
-              <Button variant="outline" className="rounded-full px-6 h-12 border-slate-200 text-slate-700 hover:bg-slate-50 transition-all">
-                {t.recruiter.smartParser}
-              </Button>
-            </Link>
-            <Button className="bg-slate-900 text-white rounded-full px-6 h-12 shadow-md hover:bg-slate-800 transition-all">
-              <Funnel className="w-4 h-4 mr-2" /> {t.common.generateReport}
-            </Button>
-          </div>
+        {/* Header：全站统一 PageHeader */}
+        <motion.div variants={fadeUpVariant}>
+          <PageHeader
+            eyebrow="Recruiter"
+            title={t.recruiter.commandCenter}
+            description={t.recruiter.commandCenterDesc}
+            actions={
+              <>
+                <LanguageToggle />
+                <Link href="/recruiter/assessments">
+                  <Button variant="outline" className="rounded-full px-6 h-12 border-slate-200 text-slate-700 hover:bg-slate-50 transition-all">
+                    {t.recruiter.smartParser}
+                  </Button>
+                </Link>
+                <Button className="bg-slate-900 text-white rounded-full px-6 h-12 shadow-md hover:bg-slate-800 transition-all">
+                  <Funnel className="w-4 h-4 mr-2" /> {t.common.generateReport}
+                </Button>
+              </>
+            }
+          />
         </motion.div>
 
         {/* KPIs */}
@@ -243,56 +280,15 @@ export default function RecruiterDashboard() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 text-xs uppercase tracking-widest font-bold">
-                    <th className="pb-4 font-sans px-4">Candidate ID</th>
-                    <th className="pb-4 font-sans px-4">Name</th>
-                    <th className="pb-4 font-sans px-4">Role</th>
-                    <th className="pb-4 font-sans px-4 text-center">Match Score</th>
-                    <th className="pb-4 font-sans px-4">Stage</th>
-                    <th className="pb-4 font-sans px-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm font-medium text-slate-700">
-                  {filteredCandidates.map((candidate) => (
-                    <tr 
-                      key={candidate.id} 
-                      onClick={() => setSelectedCandidate(candidate)}
-                      className="border-b border-slate-50 last:border-0 hover:bg-slate-50/80 cursor-pointer transition-colors"
-                    >
-                      <td className="py-4 px-4 text-slate-500 font-mono">{candidate.id}</td>
-                      <td className="py-4 px-4 text-slate-900 font-semibold">{candidate.name}</td>
-                      <td className="py-4 px-4 text-slate-600">{candidate.role}</td>
-                      <td className="py-4 px-4 text-center">
-                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${candidate.score >= 90 ? 'bg-emerald-100 text-emerald-700' : candidate.score >= 80 ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {candidate.score}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">{candidate.stage}</td>
-                      <td className="py-4 px-4">
-                        <Badge 
-                          variant="secondary" 
-                          className={
-                            candidate.status === 'Active' ? 'bg-sky-50 text-sky-700 border border-sky-100' :
-                            candidate.status === 'Hired' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                            'bg-slate-100 text-slate-600 border border-slate-200'
-                          }
-                        >
-                          {candidate.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredCandidates.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">{t.recruiter.noCandidates}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              caption="候选人列表"
+              columns={candidateColumns}
+              rows={filteredCandidates}
+              rowKey={(c) => c.id}
+              onRowClick={(c) => setSelectedCandidate(c)}
+              emptyTitle={t.recruiter.noCandidates}
+              emptyDescription="调整搜索关键词后重试。"
+            />
           </SpotlightCard>
         </motion.div>
 

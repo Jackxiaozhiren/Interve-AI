@@ -2,7 +2,8 @@ import { create, insertMultiple, search, type AnyOrama } from '@orama/orama';
 
 export interface InterviewQuestion {
   id: string;
-  category: 'Behavioral' | 'Technical' | 'System Design' | 'Leadership';
+  // Phase 7: 'Custom' covers retry drills built from interview history.
+  category: 'Behavioral' | 'Technical' | 'System Design' | 'Leadership' | 'Custom';
   title: string;
   description: string;
   tags: string[];

@@ -3,28 +3,38 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { WifiHigh, Warning, Checks } from '@phosphor-icons/react';
 
 export function SystemHealthIndicator({ 
-  isOnline = true, 
-  wsLatency = 45,
+  isOnline = true,
   stressTest = false
 }: { 
   isOnline?: boolean;
-  wsLatency?: number;
   stressTest?: boolean;
+  // Phase 3: `wsLatency` prop removed — it was animated with unseeded
+  // randomness ("Mock latency fluctuations") and presented as a live
+  // measurement.
+  // This indicator now reports only real state: browser connectivity
+  // (navigator.onLine, live-updated) plus the explicit stress-test flag.
+  // Per-call API latency remains visible in Dashboard > System Telemetry,
+  // which measures real fetch durations.
+  wsLatency?: never;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
-  // Mock latency fluctuations
-  const [currentLatency, setCurrentLatency] = useState(wsLatency);
-  
+  const [online, setOnline] = useState(
+    () => (typeof navigator !== "undefined" ? navigator.onLine : isOnline) && isOnline
+  );
+
   useEffect(() => {
-    if (!isOnline) return;
-    const interval = setInterval(() => {
-      setCurrentLatency(prev => Math.max(10, prev + (Math.random() * 20 - 10)));
-    }, 5000);
-    return () => clearInterval(interval);
+    const update = () => setOnline(navigator.onLine && isOnline);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
   }, [isOnline]);
 
   // Determine status
-  const status = !isOnline ? 'offline' : currentLatency > 200 ? 'warning' : stressTest ? 'stress' : 'healthy';
+  const status = !online ? 'offline' : stressTest ? 'stress' : 'healthy';
 
   const statusConfig = {
     healthy: {
@@ -38,12 +48,6 @@ export function SystemHealthIndicator({
       icon: <Warning className="w-3.5 h-3.5 text-rose-500" />,
       text: '压力测试模式开启',
       shadow: 'shadow-[0_0_8px_rgba(244,63,94,0.6)]'
-    },
-    warning: {
-      color: 'bg-amber-400',
-      icon: <Warning className="w-3.5 h-3.5 text-amber-500" />,
-      text: '网络延迟较高',
-      shadow: 'shadow-[0_0_8px_rgba(251,191,36,0.4)]'
     },
     offline: {
       color: 'bg-slate-400',
@@ -75,9 +79,9 @@ export function SystemHealthIndicator({
               {config.icon}
               <span className="text-xs font-medium text-slate-700">{config.text}</span>
             </div>
-            {isOnline && status !== 'stress' && (
+            {online && status !== 'stress' && (
               <div className="text-[10px] text-slate-400 font-mono ml-5">
-                实时延迟: {Math.round(currentLatency)}ms
+                Browser online · API latency in Dashboard
               </div>
             )}
           </motion.div>

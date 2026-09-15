@@ -8,8 +8,13 @@ const eslintConfig = defineConfig([
   {
     ignores: [
       ".next/**",
+      "**/.next/**",
       "out/**",
+      "**/out/**",
       "build/**",
+      "coverage/**",
+      "playwright-report/**",
+      "test-results/**",
       "next-env.d.ts",
       "public/**",
       "refactor.js",

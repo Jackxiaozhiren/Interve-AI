@@ -61,7 +61,8 @@ export function LandingBackground() {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // ─── FPS auto-degrade logic ───
-    let isDegraded = false;
+    // When fps stays below threshold for 3s, render one static frame and
+    // stop the loop (previous `isDegraded` flag was write-only).
     let lastFrameTime = performance.now();
     let lowFpsStart = 0; // Timestamp when fps first dropped below 45
     const FPS_THRESHOLD = 45;
@@ -143,7 +144,6 @@ export function LandingBackground() {
           lowFpsStart = now;
         } else if (now - lowFpsStart >= DEGRADE_DURATION_MS) {
           // 3 seconds of low fps → degrade to static
-          isDegraded = true;
           renderFrame(false); // Render one static frame
           return; // Stop animation loop
         }

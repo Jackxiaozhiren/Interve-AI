@@ -3,8 +3,11 @@ import Link from "next/link";
 import { InterveButton } from "@/components/interve-ui";
 
 export function HeroSection() {
+  // Phase 13: no entrance animation on the LCP element. The 1s fade/slide
+  // delayed largest-paint by ~1s with zero information value; motion stays
+  // on below-fold sections.
   return (
-    <section id="home" className="flex flex-col items-center text-center mt-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-[var(--ease-primary)]">
+    <section id="home" className="flex flex-col items-center text-center mt-12">
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] text-xs font-medium mb-6 ring-1 ring-[var(--interve-brand-accent)]/10">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--interve-brand-accent)] opacity-40"></span>

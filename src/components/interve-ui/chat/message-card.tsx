@@ -52,8 +52,10 @@ export function InterveMessageCard({
       <div
         className={cn(
           "relative max-w-[60%] min-w-[80px]",
+          // Phase 14: user-bubble text darkened for 4.5:1 on the tint
+          // (brand-accent measured 3.85:1 here).
           isUser
-            ? "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] rounded-[16px] rounded-br-[4px]"
+            ? "bg-[var(--interve-brand-surface)] text-blue-700 rounded-[16px] rounded-br-[4px]"
             : "bg-white interve-shadow-xs border border-[var(--interve-border)] rounded-[16px] rounded-bl-[4px] text-[var(--interve-text-title)]"
         )}
       >
@@ -82,14 +84,13 @@ export function InterveMessageCard({
           </div>
         )}
 
-        {/* Timestamp */}
+        {/* Timestamp (Phase 13: secondary meets 4.5:1; Phase 14: slate-600
+            for tinted demo bubbles where secondary measured 4.14) */}
         {timestamp && !streaming && (
           <div
             className={cn(
-              "px-4 pb-2 text-[11px]",
-              isUser
-                ? "text-[var(--interve-brand-accent)]/50 text-right"
-                : "text-[var(--interve-text-placeholder)]"
+              "px-4 pb-2 text-[11px] text-slate-600",
+              isUser && "text-right"
             )}
           >
             {timestamp}

@@ -4,15 +4,19 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db, Interview } from "@/lib/db";
 import { motion, AnimatePresence } from "framer-motion";
-import { CaretLeft, ChatCircleDots, WarningCircle, CheckCircle, Robot, User, UsersThree, Star, Lightbulb, UserList, Users, DownloadSimple } from "@phosphor-icons/react";
+import { CaretLeft, ChatCircleDots, WarningCircle, CheckCircle, Robot, User, Star, DownloadSimple } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Shimmer } from "@/components/ui/shimmer";
+import { ErrorState, StatusBadge } from "@/components/data";
 import { ReplayTimeline } from "@/components/interview/ReplayTimeline";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { exportInterviewToMarkdown, downloadFile } from "@/lib/utils/export";
 import { PrintLayout } from "@/components/interview/PrintLayout";
+import { retryPracticeHref } from "@/lib/retry-link";
+import { toEvaluationView } from "@/lib/eval-compat";
+import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills } from "@/components/evaluation/EvaluationView";
 
-type TabId = 'diagnostic' | 'council' | 'culture';
+type TabId = 'diagnostic' | 'dimensions' | 'readiness';
 
 export default function ReplayPage() {
   const { id } = useParams();
@@ -32,8 +36,13 @@ export default function ReplayPage() {
 
   useEffect(() => {
     if (id) {
+      // Phase 2: never strand the page on the loading spinner when the
+      // database is unreachable — fall through to the not-found state.
       db.interviews.get(parseInt(id as string, 10)).then((data) => {
         setInterview(data || null);
+        setLoading(false);
+      }).catch(() => {
+        setInterview(null);
         setLoading(false);
       });
     }
@@ -76,11 +85,13 @@ export default function ReplayPage() {
 
   if (!interview) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-[#FDFBF7] text-center px-4">
-        <WarningCircle className="w-16 h-16 text-slate-300 mb-4" />
-        <h1 className="text-2xl font-serif text-slate-800 mb-2">Interview Not Found</h1>
-        <p className="text-slate-500 mb-6">This session may have been deleted or doesn&apos;t exist.</p>
-        <Button onClick={() => router.push("/dashboard")}>Return to Dashboard</Button>
+      <div className="flex flex-col h-screen items-center justify-center bg-[#FDFBF7] px-4">
+        <ErrorState
+          title="Interview Not Found"
+          message="This session may have been deleted or doesn't exist."
+          backHref="/dashboard"
+          backLabel="Return to Dashboard"
+        />
       </div>
     );
   }
@@ -98,9 +109,12 @@ export default function ReplayPage() {
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: 'diagnostic', label: 'Diagnostics', icon: <Robot className="w-4 h-4" /> },
-    { id: 'council', label: 'Council Debate', icon: <UsersThree className="w-4 h-4" /> },
-    { id: 'culture', label: 'Cultural Traits', icon: <Star className="w-4 h-4" /> },
+    { id: 'dimensions', label: 'Dimensions', icon: <Star className="w-4 h-4" /> },
+    { id: 'readiness', label: 'Readiness', icon: <CheckCircle className="w-4 h-4" /> },
   ];
+
+  // Phase 4: single view model over V2 and legacy rows.
+  const view = toEvaluationView(interview);
 
   return (
     <>
@@ -124,7 +138,10 @@ export default function ReplayPage() {
             <CaretLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="font-serif text-xl font-medium tracking-tight text-slate-900">{interview.title}</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-serif text-xl font-medium tracking-tight text-slate-900">{interview.title}</h1>
+              <StatusBadge status={interview.status} />
+            </div>
             <p className="text-xs font-mono text-slate-500">{new Date(interview.createdAt).toLocaleString()}</p>
           </div>
         </div>
@@ -312,7 +329,14 @@ export default function ReplayPage() {
                       {/* Context Question Reference */}
                       <div className="pt-4 border-t border-white/40">
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-2">Original Question Context</h3>
-                        <p className="text-[13px] text-slate-600 italic">&quot;{interview.qaReview[selectedQAIndex].question}&quot;</p>
+                        <p className="text-[13px] text-slate-600 italic mb-3">&quot;{interview.qaReview[selectedQAIndex].question}&quot;</p>
+                        {/* Phase 7: Replay → Retry */}
+                        <a
+                          href={retryPracticeHref(interview.qaReview[selectedQAIndex].question)}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-sky-600 hover:text-sky-500 hover:underline"
+                        >
+                          Retry this question →
+                        </a>
                       </div>
                     </div>
                   ) : (
@@ -329,137 +353,52 @@ export default function ReplayPage() {
                 </motion.div>
               )}
 
-              {/* COUNCIL DEBATE TAB */}
-              {activeTab === 'council' && (
+              {/* DIMENSIONS TAB (Phase 4: evidence-grounded; legacy rows show transparency notes) */}
+              {activeTab === 'dimensions' && (
                 <motion.div
-                  key="council"
-                  id="panel-council"
+                  key="dimensions"
+                  id="panel-dimensions"
                   role="tabpanel"
-                  aria-labelledby="tab-council"
+                  aria-labelledby="tab-dimensions"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                   className="space-y-4"
                 >
-                  {interview.councilDebate ? (
-                    <>
-                      <div className="mb-6">
-                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono mb-2">Synthesis</h3>
-                        <p className="text-sm text-slate-700 leading-relaxed bg-white/40 p-4 rounded-2xl border border-white shadow-sm">
-                          {interview.verdictRationale || "The council has debated your performance across technical, HR, and cultural dimensions."}
-                        </p>
-                      </div>
-
-                      {/* Technical Advisor */}
-                      <SpotlightCard className="p-4 rounded-2xl border border-white/50 bg-white/30 backdrop-blur-sm">
-                        <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200">
-                            <Lightbulb className="w-5 h-5 text-blue-600" weight="duotone" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="text-sm font-bold text-slate-800">Technical Advisor</h4>
-                              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                                {interview.councilDebate.technicalAdvisor.stance.replace(/_/g, ' ')}
-                              </span>
-                            </div>
-                            <p className="text-sm text-slate-600 leading-relaxed">
-                              {interview.councilDebate.technicalAdvisor.reasoning}
-                            </p>
-                          </div>
-                        </div>
-                      </SpotlightCard>
-
-                      {/* HR Advisor */}
-                      <SpotlightCard className="p-4 rounded-2xl border border-white/50 bg-white/30 backdrop-blur-sm">
-                        <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200">
-                            <UserList className="w-5 h-5 text-amber-600" weight="duotone" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="text-sm font-bold text-slate-800">HR Advisor</h4>
-                              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
-                                {interview.councilDebate.hrAdvisor.stance.replace(/_/g, ' ')}
-                              </span>
-                            </div>
-                            <p className="text-sm text-slate-600 leading-relaxed">
-                              {interview.councilDebate.hrAdvisor.reasoning}
-                            </p>
-                          </div>
-                        </div>
-                      </SpotlightCard>
-
-                      {/* Culture Fit Advisor */}
-                      <SpotlightCard className="p-4 rounded-2xl border border-white/50 bg-white/30 backdrop-blur-sm">
-                        <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200">
-                            <Users className="w-5 h-5 text-emerald-600" weight="duotone" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="text-sm font-bold text-slate-800">Culture Fit Advisor</h4>
-                              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
-                                {interview.councilDebate.cultureFitAdvisor.stance.replace(/_/g, ' ')}
-                              </span>
-                            </div>
-                            <p className="text-sm text-slate-600 leading-relaxed">
-                              {interview.councilDebate.cultureFitAdvisor.reasoning}
-                            </p>
-                          </div>
-                        </div>
-                      </SpotlightCard>
-                    </>
+                  {view.legacy && <LegacyBanner text={view.disclaimer} />}
+                  {view.dimensions.length > 0 ? (
+                    <DimensionsSection view={view} />
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-12">
-                      <UsersThree className="w-12 h-12 text-slate-300 mb-4" />
-                      <p className="text-sm">Council debate data is not available for this session.</p>
+                      <Star className="w-12 h-12 text-slate-300 mb-4" />
+                      <p className="text-sm">Dimension data is not available for this session.</p>
                     </div>
                   )}
                 </motion.div>
               )}
 
-              {/* CULTURE TAB */}
-              {activeTab === 'culture' && (
+              {/* READINESS TAB (Phase 4: practice readiness replaces hire verdicts) */}
+              {activeTab === 'readiness' && (
                 <motion.div
-                  key="culture"
-                  id="panel-culture"
+                  key="readiness"
+                  id="panel-readiness"
                   role="tabpanel"
-                  aria-labelledby="tab-culture"
+                  aria-labelledby="tab-readiness"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                   className="space-y-4"
                 >
-                  {interview.culturalTraits && interview.culturalTraits.length > 0 ? (
-                    interview.culturalTraits.map((trait, idx) => (
-                      <SpotlightCard key={idx} className="p-5 rounded-2xl border border-white/50 bg-white/30 backdrop-blur-sm flex flex-col gap-3">
-                        <div className="flex justify-between items-center">
-                          <h4 className="text-[13px] font-bold text-slate-800 font-mono tracking-tight">{trait.trait}</h4>
-                          <span className="text-[11px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
-                            {trait.score}/100
-                          </span>
-                        </div>
-                        {/* Progress Bar */}
-                        <div className="w-full h-1.5 bg-slate-200/50 rounded-full overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${trait.score}%` }}
-                            transition={{ type: "spring", stiffness: 50, damping: 15, delay: idx * 0.1 }}
-                            className="h-full bg-gradient-to-r from-sky-400 to-teal-400"
-                          />
-                        </div>
-                        <p className="text-xs text-slate-600 mt-1 italic">&quot;{trait.evidence}&quot;</p>
-                      </SpotlightCard>
-                    ))
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-12">
-                      <Star className="w-12 h-12 text-slate-300 mb-4" />
-                      <p className="text-sm">Cultural traits data is not available for this session.</p>
-                    </div>
+                  <ReadinessBadge view={view} />
+                  {view.readinessRationale && (
+                    <p className="text-sm text-slate-700 leading-relaxed bg-white/40 p-4 rounded-2xl border border-white shadow-sm">
+                      {view.readinessRationale}
+                    </p>
                   )}
+                  {!view.legacy && <ReadinessDisclaimer />}
+                  <StrengthsDrills view={view} />
                 </motion.div>
               )}
 

@@ -1,0 +1,9 @@
+# AI_EVALUATION
+
+> Details: `docs/audit/EVALUATION_V2_REPORT.md` + `docs/audit/EVAL_REPORT.md` + `docs/ai-governance/{MODEL_CARD,EVALUATION_CARD}.md` + `evals/`.
+
+- Contract: 5 versioned rubrics (behavioral/technical/system-design/data-ml/general-v1), 1-5 anchors/dim, ≥1 verbatim evidence/dim (Zod-enforced), 0-100 = ×20 derivation, per-dim + overall (weakest-link) evaluator confidence, improvement drill/dim, readiness (`needs_foundation/developing/interview_ready/strongly_prepared`) + mandatory training-estimate disclaimer. No hire verdicts, no culture-fit.
+- Harness: `evals/golden.json` (12 synthetic, 6 tracks × strong/weak, anchor bands), `injection-cases.json` (4 vectors), `fairness-pairs.json` (surface-token swaps, no protected traits), `free.eval.test.ts` (≤3-call free smoke), `runner.ts` (in-process REAL handler, `ZHIPU_API_KEY`-gated, keyless skip), metrics (QW-Kappa/Spearman-tied/MAE/exact+adjacent/stdev) hand-verified.
+- Lanes (all $0): keyless `npm run test:eval` (contracts + math, live suites skip exit 0) → free live `npm run test:eval:free` (≤3 `glm-4-flash` calls: weak-case readiness + smallest injection vector; fits the free 1-concurrency allowance, CI secret-gated) → full `npm run test:eval` with free key (31+3 calls, nightly/manual only).
+- Bars (provisional until free-key nightlies + multi-rater labels): golden MAE<1.0 + adjacent>0.8 + ρ>0.5 + κ>0.4; stability σ≤1.0 + no readiness flips; injection/fairness drift≤20 + no flips/markers. Breach = human review, not proof.
+- Fairness: four-fifths (0.80) framing for any future employer use; intersectional work requires ethicist review (deliberately not built). Stability + injection + fairness run in `npm run test:eval`.

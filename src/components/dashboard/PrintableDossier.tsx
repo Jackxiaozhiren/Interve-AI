@@ -1,5 +1,7 @@
 import React from 'react';
 import { type Interview } from '@/lib/db';
+import { toEvaluationView } from '@/lib/eval-compat';
+import { READINESS_META, READINESS_DISCLAIMER, type ReadinessLevel } from '@/ai/evaluation-contract';
 
 // This component is designed exclusively for A4 PDF export via html2canvas.
 // It uses fixed dimensions and high-contrast styling appropriate for print.
@@ -7,6 +9,14 @@ import { type Interview } from '@/lib/db';
 
 export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Interview }>(({ session }, ref) => {
   if (!session) return null;
+  // Phase 4: readiness (V2) or badged legacy verdict. No hire decisions produced.
+  const view = toEvaluationView(session);
+  const readinessLabel = view.legacy
+    ? (view.readinessLabel ?? 'Legacy assessment')
+    : view.readinessLabel
+      ? `${READINESS_META[view.readinessLabel as ReadinessLevel]?.label ?? view.readinessLabel} (${READINESS_META[view.readinessLabel as ReadinessLevel]?.labelZh ?? ''})`
+      : 'Pending';
+  const readinessRationale = view.readinessRationale ?? session.verdictRationale;
 
   return (
     <div 
@@ -27,14 +37,19 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
         </div>
       </div>
 
-      {/* Verdict & Delivery */}
+      {/* Readiness & Delivery */}
       <div className="flex gap-6 mb-10">
         <div className="flex-1 bg-slate-50 border border-slate-200 p-6 rounded-2xl">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Final Verdict</div>
-          <div className="text-3xl font-bold text-slate-800 mb-2 capitalize">
-            {session.hireVerdict ? session.hireVerdict.replace(/_/g, ' ') : 'Pending'}
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+            {view.legacy ? 'Final Verdict (Legacy Assessment)' : 'Interview Readiness'}
           </div>
-          <p className="text-sm text-slate-600 leading-relaxed">{session.verdictRationale}</p>
+          <div className="text-3xl font-bold text-slate-800 mb-2 capitalize">
+            {readinessLabel}
+          </div>
+          <p className="text-sm text-slate-600 leading-relaxed">{readinessRationale}</p>
+          {!view.legacy && (
+            <p className="text-xs text-slate-400 leading-relaxed mt-2">{READINESS_DISCLAIMER}</p>
+          )}
         </div>
         
         {session.deliveryStats && (
@@ -51,8 +66,30 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
         )}
       </div>
 
-      {/* Council Debate */}
-      {session.councilDebate && (
+      {/* Dimensions (V2 with evidence, or legacy note) */}
+      {view.dimensions.length > 0 && (
+        <div className="mb-10 page-break-inside-avoid">
+          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">
+            Rubric Dimensions{view.legacy ? ' (Legacy Assessment)' : ''}
+          </div>
+          {view.dimensions.map((dim) => (
+            <div key={dim.id} className="bg-slate-50 border border-slate-200 p-5 rounded-2xl mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <div className="font-bold text-sm text-slate-900">{dim.name}{dim.anchorLevel !== null ? ` (L${dim.anchorLevel}/5)` : ''}</div>
+                <div className="text-xs font-mono font-bold text-sky-600">{dim.score100}/100 · {dim.confidence} confidence</div>
+              </div>
+              <p className="text-xs text-slate-700 mb-2">{dim.rationale}</p>
+              {dim.evidence.map((q, i) => (
+                <p key={i} className="text-xs text-slate-600 italic mb-1">&quot;{q}&quot;</p>
+              ))}
+              <p className="text-xs text-emerald-800 mt-2">Next drill: {dim.improvement}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Council Debate (legacy rows only) */}
+      {view.legacy && session.councilDebate && (
         <div className="mb-10 page-break-inside-avoid">
           <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Hiring Council Evaluation</div>
           <div className="grid grid-cols-3 gap-6">
@@ -75,10 +112,10 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
         </div>
       )}
 
-      {/* Cultural Traits */}
+      {/* Cultural Traits (legacy rows only) */}
       {session.culturalTraits && session.culturalTraits.length > 0 && (
         <div className="mb-10 page-break-inside-avoid">
-          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Cultural & Behavioral Traits</div>
+          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Cultural & Behavioral Traits (Legacy Assessment)</div>
           <div className="grid grid-cols-2 gap-6">
             {session.culturalTraits.map((trait, idx: number) => (
               <div key={idx} className="bg-slate-50 border border-slate-200 p-5 rounded-2xl">

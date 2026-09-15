@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useInterveStore } from "@/store/useInterveStore";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/data";
 
 export default function KnowledgePage() {
   const { resumeText, jobDescription, topPredictions } = useInterveStore();
@@ -14,19 +15,20 @@ export default function KnowledgePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-serif text-slate-900 tracking-tight">Knowledge Base</h1>
-          <p className="text-slate-500 mt-2">Manage your uploaded resumes, technical context, and parsed documents.</p>
-        </div>
-        {hasData && (
-          <Link href="/">
-            <Button variant="outline" className="gap-2 rounded-xl border-slate-200">
-              <Plus className="w-4 h-4" /> New Context
-            </Button>
-          </Link>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Step 1 · Prepare"
+        title="Knowledge Base"
+        description="Manage your uploaded resumes, technical context, and parsed documents."
+        actions={
+          hasData ? (
+            <Link href="/">
+              <Button variant="outline" className="gap-2 rounded-xl border-slate-200">
+                <Plus className="w-4 h-4" /> New Context
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
 
       {!hasData ? (
         <motion.div 

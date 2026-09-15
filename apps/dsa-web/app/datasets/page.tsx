@@ -24,10 +24,10 @@ export default function DatasetsPage() {
   const [dragOver, setDragOver] = useState(false);
 
   const load = () => {
-    setError(null);
     listDatasets()
       .then((d) => {
         setRows(d);
+        setError(null);
         setApi("checked");
       })
       .catch((e: unknown) => {
@@ -37,7 +37,9 @@ export default function DatasetsPage() {
     checkApiHealth().then((s) => setApi(s)).catch(() => setApi("down"));
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   async function uploadFile(file: File) {
     setUploading(true);

@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState, createContext, useContext, useRef, useEffect } from "react";
-import { Sparkle, SquaresFour, FileText, Gear, SignOut, CloudArrowUp } from "@phosphor-icons/react";
+import { Sparkle, SquaresFour, FileText, Gear, SignOut, CloudArrowUp, ShieldCheck } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -35,6 +35,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     { name: "Dashboard", href: "/dashboard", icon: SquaresFour },
     { name: "My Interviews", href: "/dashboard", icon: FileText },
     { name: "Knowledge Base", href: "/dashboard/knowledge", icon: CloudArrowUp },
+    { name: "Privacy", href: "/dashboard/privacy", icon: ShieldCheck },
     { name: "Settings", href: "/dashboard/settings", icon: Gear },
   ];
 

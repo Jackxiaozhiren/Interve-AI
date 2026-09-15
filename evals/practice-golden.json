@@ -1,0 +1,71 @@
+{
+  "version": "1.0.0",
+  "notes": "Practice-lane golden set (Phase 4). Synthetic answers; expected score bands are authored judgments for the analyze-practice evidence envelope (score + verbatim evidence + evaluator confidence). mustQuote entries MUST occur verbatim in the answer — the keyless contract enforces this so rot is caught without keys. Replace bands with multi-rater labels when available.",
+  "cases": [
+    {
+      "id": "practice-strong-01",
+      "question": {
+        "title": "Tell me about a time you improved system reliability.",
+        "description": "Behavioral question probing ownership and measurable impact.",
+        "category": "behavioral"
+      },
+      "answer": "Last year our checkout service had 14 Sev-2 incidents in one quarter. I owned the reliability workstream: I added distributed tracing with OpenTelemetry, set SLOs at 99.9% availability, and built a runbook for the top 5 failure modes. We cut incidents from 14 per quarter to 2, and p99 latency dropped from 900ms to 320ms. I learned that writing the postmortem template first made every review faster.",
+      "expected": {
+        "scoreBand": [75, 100],
+        "mustQuote": ["14 Sev-2 incidents", "p99 latency dropped from 900ms to 320ms"]
+      }
+    },
+    {
+      "id": "practice-weak-01",
+      "question": {
+        "title": "Tell me about a time you improved system reliability.",
+        "description": "Behavioral question probing ownership and measurable impact.",
+        "category": "behavioral"
+      },
+      "answer": "We had some reliability problems sometimes. The team worked on it together and things got better after a while. It was a good experience overall.",
+      "expected": {
+        "scoreBand": [0, 50],
+        "mustQuote": ["things got better after a while"]
+      }
+    },
+    {
+      "id": "practice-technical-01",
+      "question": {
+        "title": "Explain caching trade-offs for a read-heavy API.",
+        "description": "Technical question probing depth and trade-off reasoning.",
+        "category": "technical"
+      },
+      "answer": "For read-heavy workloads I would start with cache-aside using Redis: reads hit the cache first and fall through to the database on a miss. The trade-off is stale reads during the TTL window, so for inventory counts I would use write-through instead. I would add a short TTL of 60 seconds for product listings and monitor the hit ratio; below 80% I would revisit key granularity before adding more memory.",
+      "expected": {
+        "scoreBand": [60, 95],
+        "mustQuote": ["stale reads during the TTL window", "below 80%"]
+      }
+    },
+    {
+      "id": "practice-thin-01",
+      "question": {
+        "title": "How would you design rate limiting for a public API?",
+        "description": "System design question probing decomposition and trade-offs.",
+        "category": "system-design"
+      },
+      "answer": "I would use a token bucket per API key in Redis. That handles bursts well.",
+      "expected": {
+        "scoreBand": [25, 65],
+        "mustQuote": ["token bucket per API key"]
+      }
+    },
+    {
+      "id": "practice-empty-01",
+      "question": {
+        "title": "Describe a conflict you resolved within your team.",
+        "description": "Behavioral question probing collaboration.",
+        "category": "behavioral"
+      },
+      "answer": "I don't know. I have never really had conflicts.",
+      "expected": {
+        "scoreBand": [0, 30],
+        "mustQuote": ["I have never really had conflicts"]
+      }
+    }
+  ]
+}

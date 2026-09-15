@@ -1,74 +1,66 @@
 import { generateObject } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
-import { NextResponse } from "next/server";
 import { z } from "zod";
+import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
+import { logApi } from "@/lib/api/logging";
+import { resolveCostAwareModel, DEFAULT_MAX_RETRIES, repairZhipuJson } from "@/ai/providers/registry";
+import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
+import { buildMatchPrompt } from "@/ai/prompts/match";
+import { evidenceField, confidenceField } from "@/ai/evidence";
 
-const zhipu = createOpenAI({
-  // @ts-expect-error - compatibility flag needed for Zhipu AI provider
-  compatibility: 'compatible',
-  baseURL: process.env.OPENAI_BASE_URL || "https://open.bigmodel.cn/api/paas/v4/",
-  apiKey: process.env.ZHIPU_API_KEY,
-  fetch: async (url, options) => {
-    if (options?.body) {
-      const body = JSON.parse(options.body as string);
-      if (body.model === 'glm-4.7-flash') {
-        body.thinking = { type: 'enabled' };
-        body.max_tokens = 65536;
-      }
-      options.body = JSON.stringify(body);
-    }
-    return fetch(url, options);
-  }
+export const runtime = 'nodejs';
+export const maxDuration = 120;
+
+const ROUTE = "analyze-match";
+
+export const MatchOutputSchema = z.object({
+  overallScore: z.number().min(0).max(100),
+  alignedSkills: z.array(z.string()),
+  missingSkills: z.array(z.string()),
+  recommendations: z.array(z.string()),
+  // Phase 4 evidence envelope: verbatim quotes grounding the match.
+  // Optional-with-default so older model outputs and stored rows still validate.
+  evidence: evidenceField(6, "2-6 verbatim quotes — JD requirement lines plus the resume lines that show or miss them (exact substrings)."),
+  confidence: confidenceField("Evaluator confidence = how much usable evidence both documents contained; never candidate psychology."),
 });
 
-export const runtime = 'edge';
+const BodySchema = z.object({
+  resumeText: z.string().max(60000).optional().default(""),
+  jobDescription: z.string().min(1).max(60000),
+});
 
 export async function POST(req: Request) {
+  const gate = await guardRequest(req, {
+    route: ROUTE,
+    schema: BodySchema,
+    maxBytes: 256 * 1024,
+    rateLimit: { limit: 20, windowMs: 60_000 },
+    // Measured 2026-09-13: free glm-4-flash streams ~50 chars/s.
+    timeoutMs: 110000,
+  });
+  if (!gate.ok) return gate.response;
+  const { requestId, data, signal } = gate.ctx;
+  const { resumeText, jobDescription } = data;
+  if (isMockEnabled()) return mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId);
+  const startTime = performance.now();
+
   try {
-    const { resumeText, jobDescription } = await req.json();
-
-    if (!jobDescription) {
-      return NextResponse.json({ error: "Missing job description" }, { status: 400 });
-    }
-
     // Cost-aware routing
     const textLength = (resumeText?.length || 0) + jobDescription.length;
-    const modelId = textLength > 2000 ? 'glm-4.7-flash' : 'glm-4-flash';
-    console.log(`[Cost-Aware] Analyzing match with ${modelId} (Chars: ${textLength})`);
+    const { model, modelId } = resolveCostAwareModel(textLength);
 
     const result = await generateObject({
-      model: zhipu(modelId),
-      schema: z.object({
-        overallScore: z.number().min(0).max(100),
-        alignedSkills: z.array(z.string()),
-        missingSkills: z.array(z.string()),
-        recommendations: z.array(z.string()),
-      }),
-      prompt: `You are an expert technical recruiter and hiring manager.
-Your task is to analyze the gap between a candidate's resume and a job description.
-
-Job Description:
-${jobDescription}
-
-Candidate Resume:
-${resumeText || 'No resume provided. Candidate may just be doing a general mock interview.'}
-
-Please extract the following structured information:
-1. overallScore: A match score from 0 to 100 representing how well the resume aligns with the JD. If no resume is provided, score it based on general baseline or 0.
-2. alignedSkills: A list of 3-7 skills or requirements from the JD that the candidate clearly possesses.
-3. missingSkills: A list of 3-7 skills or requirements from the JD that the candidate lacks or hasn't explicitly mentioned.
-4. recommendations: A list of 2-4 actionable recommendations for the candidate to improve their fit or address the missing skills during an interview.
-
-Provide your analysis in Chinese.
-`,
+      model,
+      maxRetries: DEFAULT_MAX_RETRIES,
+      schema: MatchOutputSchema,
+      experimental_repairText: repairZhipuJson,
+      prompt: buildMatchPrompt({ resumeText, jobDescription }),
+      abortSignal: signal,
     });
 
-    return NextResponse.json({ matchData: result.object });
-  } catch (error) {
-    console.error("Error analyzing match:", error);
-    return NextResponse.json(
-      { error: "Failed to analyze match" },
-      { status: 500 }
-    );
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId });
+    return okResponse({ matchData: result.object }, requestId);
+  } catch {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+    return errorResponse("UPSTREAM_ERROR", "Failed to analyze match", 500, requestId);
   }
 }

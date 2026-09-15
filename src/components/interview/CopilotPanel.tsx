@@ -8,10 +8,9 @@ import { StarTracker } from "./StarTracker";
 
 interface CopilotPanelProps {
   latestAiMessage: string;
-  messages: Array<{ role: string; content?: string; text?: string }>;
 }
 
-export const CopilotPanel = React.memo(({ latestAiMessage, messages }: CopilotPanelProps) => {
+export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) => {
   const [hints, setHints] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isBehavioral, setIsBehavioral] = useState(false);

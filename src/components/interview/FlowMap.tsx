@@ -53,13 +53,15 @@ export function FlowMap({ messageCount }: FlowMapProps) {
                 />
              )}
              
-             <div className="flex flex-col items-center gap-2 relative z-10">
-                <motion.div 
+              <div className="flex flex-col items-center gap-2 relative z-10">
+                <motion.div
                   initial={false}
-                  animate={{ 
+                  animate={{
                     scale: isActive ? 1.2 : 1,
                     backgroundColor: isActive ? '#0ea5e9' : isPast ? '#0ea5e9' : '#f1f5f9',
-                    color: isActive || isPast ? '#ffffff' : '#94a3b8',
+                    // Phase 14: #64748b (slate-500) meets 4.5:1 on the dot;
+                    // #94a3b8 did not. Animated props otherwise untouched.
+                    color: isActive || isPast ? '#ffffff' : '#64748b',
                     boxShadow: isActive ? '0 0 0 4px rgba(14, 165, 233, 0.2)' : '0 0 0 0px rgba(14, 165, 233, 0)'
                   }}
                   className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border border-white/50"
@@ -72,10 +74,12 @@ export function FlowMap({ messageCount }: FlowMapProps) {
                     idx + 1
                   )}
                 </motion.div>
-                <span className={`text-[11px] font-semibold transition-colors duration-300 ${isActive ? 'text-sky-600' : isPast ? 'text-slate-600' : 'text-slate-400'}`}>
+                {/* Phase 14: active sky-700 (was sky-600, 4.02) and idle
+                    slate-500 (was slate-400, 2.63) meet 4.5:1. */}
+                <span className={`text-[11px] font-semibold transition-colors duration-300 ${isActive ? 'text-sky-700' : isPast ? 'text-slate-600' : 'text-slate-500'}`}>
                   {stage.label}
                 </span>
-             </div>
+              </div>
           </div>
         );
       })}

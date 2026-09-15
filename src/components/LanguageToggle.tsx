@@ -13,6 +13,8 @@ export function LanguageToggle() {
       variant="outline" 
       size="sm" 
       onClick={toggleLang}
+      aria-label={lang === 'en' ? 'Switch language to Chinese / 切换到中文' : 'Switch language to English / 切换到英文'}
+      title={lang === 'en' ? 'Switch language / 切换语言' : 'Switch language / 切换语言'}
       className="rounded-full bg-white/50 border-slate-200 text-slate-700 hover:bg-slate-100 transition-all flex items-center gap-2"
     >
       <Translate className="w-4 h-4" />

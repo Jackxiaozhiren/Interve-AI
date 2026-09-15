@@ -7,7 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "node -e \"const fs=require('fs'); fs.copyFileSync('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', 'public/pdf.worker.min.mjs')\""
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests/unit tests/integration",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "test:e2e:mock": "E2E_MOCK=1 playwright test --project=chrome-1280x720 tests/mock-journey.spec.ts",
+    "test:eval": "vitest run --config vitest.eval.config.ts",
+    "test:eval:free": "vitest run --config vitest.eval.config.ts evals/free.eval.test.ts",
+    "verify:supabase-free": "node scripts/verify-supabase-free.mjs",
+    "test:e2e:smoke": "playwright test --project=chrome-1280x720 tests/landing.spec.ts tests/setup.spec.ts tests/interview.spec.ts tests/interview-flow.spec.ts tests/dashboard.spec.ts tests/replay.spec.ts tests/settings.spec.ts tests/accessibility.spec.ts tests/chat.spec.ts",
+    "test:a11y": "playwright test --project=chrome-1280x720 tests/accessibility.spec.ts",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
@@ -39,7 +50,6 @@
     "next": "16.2.4",
     "next-themes": "^0.4.6",
     "pdf-parse": "^2.4.5",
-    "pdfjs-dist": "^5.6.205",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
@@ -52,6 +62,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -62,6 +73,7 @@
     "eslint-config-next": "16.2.4",
     "playwright": "^1.59.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

@@ -76,7 +76,9 @@
   --interve-danger-text: #F53F3F;
   --interve-text-title: #1D2129;
   --interve-text-body: #4E5969;
-  --interve-text-secondary: #86909C;
+  /* Phase 13: was #86909C (3.24:1 on white — fails WCAG AA 4.5).
+     #5B6472 measures 5.98:1. Affects all secondary text app-wide. */
+  --interve-text-secondary: #5B6472;
   --interve-text-placeholder: #C9CDD4;
   --interve-text-disabled: #C9CDD4;
   --interve-border: rgba(0, 0, 0, 0.05);

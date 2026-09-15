@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { motion, animate } from "framer-motion";
 import { Pulse, Brain } from "@phosphor-icons/react";
 import { useInterveStore } from "@/store/useInterveStore";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 function AnimatedNumber({ value, pad }: { value: number, pad: number }) {
   const nodeRef = useRef<HTMLSpanElement>(null);
@@ -29,14 +30,30 @@ function AnimatedNumber({ value, pad }: { value: number, pad: number }) {
 interface LiveStatsProps {
   wpm: number;
   fillerWordsCount: number;
-  visionScore?: number;
-  sentimentScore?: number;
-  accuracyScore?: number;
+  /** Phase 9: AI-estimated tiles hidden by default (score distraction). */
+  showAiEstimates?: boolean;
 }
 
-export const LiveStats = React.memo(({ wpm, fillerWordsCount, visionScore }: LiveStatsProps) => {
+// Phase 3 (Truthfulness Reset): `visionScore` (random-walk fake), plus dead
+// `sentimentScore`/`accuracyScore` props, are removed. WPM and filler counts
+// are measured from the speech recognizer. STAR/behavior tiles below are
+// LLM estimates and are now badged Experimental until the Phase 4
+// evidence-grounded rubric engine lands.
+export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = false }: LiveStatsProps) => {
+  const { t } = useLanguage();
   const cognitiveLoad = useInterveStore((state) => state.cognitiveLoad);
+  // Phase 9: subscriptions stay unconditional (rules-of-hooks); the tiles
+  // below render conditionally on showAiEstimates.
+  const starS = useInterveStore((state) => state.starProgress.s.progress);
+  const starT = useInterveStore((state) => state.starProgress.t.progress);
+  const starA = useInterveStore((state) => state.starProgress.a.progress);
+  const starR = useInterveStore((state) => state.starProgress.r.progress);
   const behavioralTraits = useInterveStore((state) => state.behavioralTraits);
+  // Steering envelope (§7): verbatim quotes behind the live numbers.
+  const starEvidence = useInterveStore((state) => state.starEvidence);
+  const starConfidence = useInterveStore((state) => state.starConfidence);
+  const traitsEvidence = useInterveStore((state) => state.traitsEvidence);
+  const traitsConfidence = useInterveStore((state) => state.traitsConfidence);
   
   const getWpmStatus = (wpm: number) => {
     if (wpm === 0) return { label: "WAIT", color: "text-slate-400", bg: "bg-slate-100/50" };
@@ -95,9 +112,9 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, visionScore }: Liv
           <div className="flex items-center justify-between mb-2 z-10">
             <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Filler</span>
             {fillerWordsCount > 5 ? (
-               <span className="text-[9px] text-rose-600 font-bold uppercase tracking-wide bg-rose-100/50 px-1.5 py-0.5 rounded-md shadow-sm">WARN</span>
+               <span className="text-[9px] text-rose-700 font-bold uppercase tracking-wide bg-rose-100/50 px-1.5 py-0.5 rounded-md shadow-sm">WARN</span>
             ) : (
-               <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-wide bg-emerald-100/50 px-1.5 py-0.5 rounded-md shadow-sm">OK</span>
+               <span className="text-[9px] text-emerald-700 font-bold uppercase tracking-wide bg-emerald-100/50 px-1.5 py-0.5 rounded-md shadow-sm">OK</span>
             )}
           </div>
           <div className="text-3xl font-bold text-zinc-900 font-mono tracking-tight leading-none z-10">
@@ -105,94 +122,50 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, visionScore }: Liv
           </div>
         </motion.div>
 
-        {/* Vision Score Tile */}
-        {visionScore !== undefined && (
-          <motion.div 
-            whileHover={{ y: -4, scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            role="region"
-            aria-label="Vision Index Score"
-            className="flex flex-col p-4 glass-card rounded-2xl col-span-1 relative overflow-hidden group"
-          >
-            <div className="flex items-center justify-between mb-2 z-10">
-              <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Vision</span>
-              <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md shadow-sm ${visionScore >= 80 ? 'text-emerald-600 bg-emerald-100/50' : 'text-amber-600 bg-amber-100/50'}`}>
-                {visionScore >= 80 ? 'GOOD' : 'POOR'}
-              </span>
-            </div>
-            <div className="flex items-end gap-2 z-10">
-              <div className="text-3xl font-bold text-zinc-900 font-mono tracking-tight leading-none">
-                <AnimatedNumber value={Math.round(visionScore)} pad={1} />
-              </div>
-              <span className="text-sm font-bold text-slate-400 mb-0.5">%</span>
-            </div>
-            {/* Minimal progress bar */}
-            <div className="w-full h-1 bg-slate-100 rounded-full mt-3 overflow-hidden z-10">
-               <motion.div 
-                 initial={{ width: 0 }}
-                 animate={{ width: `${visionScore}%` }}
-                 transition={{ type: "spring", stiffness: 50, damping: 15 }}
-                 className={`h-full ${visionScore >= 80 ? 'bg-emerald-400' : 'bg-amber-400'}`}
-               />
-            </div>
-          </motion.div>
-        )}
+        {/* Phase 3: Vision tile removed (was random-walk fake). */}
 
-        {/* Cognitive Load Tile */}
+        {/* Delivery Strain Tile (experimental heuristic, opt-in) */}
+        {showAiEstimates && (
         <motion.div 
           whileHover={{ y: -4, scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
           role="region"
-          aria-label="Cognitive Load Score"
+          aria-label="Delivery strain estimate, experimental"
           className={`flex flex-col p-4 glass-card rounded-2xl col-span-2 relative overflow-hidden group`}
         >
-          {/* Stress ripple effect */}
-          {cognitiveLoad > 70 && (
-            <motion.div 
-              animate={{ scale: [1, 1.5, 1], opacity: [0, 0.2, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-              className="absolute inset-0 bg-rose-500/20 pointer-events-none rounded-2xl"
-            />
-          )}
           <div className="flex items-center justify-between mb-2 z-10">
             <div className="flex items-center gap-1">
-              <Brain weight="bold" className={`w-3 h-3 ${cognitiveLoad > 70 ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`} />
-              <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Load</span>
+              <Brain weight="bold" className="w-3 h-3 text-slate-400" />
+              <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Strain</span>
             </div>
-            <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md shadow-sm ${
-              cognitiveLoad < 40 ? 'text-emerald-600 bg-emerald-100/50' : 
-              cognitiveLoad < 70 ? 'text-amber-600 bg-amber-100/50' : 
-              'text-rose-600 bg-rose-100/50'
-            }`}>
-              {cognitiveLoad < 40 ? 'LOW' : cognitiveLoad < 70 ? 'MED' : 'HIGH'}
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md shadow-sm text-slate-500 bg-slate-100/70">
+              {t.interview.experimental}
             </span>
           </div>
           <div className="flex items-end gap-2 z-10">
-            <div className={`text-3xl font-bold font-mono tracking-tight leading-none ${
-              cognitiveLoad > 70 ? 'text-rose-600' : 'text-zinc-900'
-            }`}>
+            <div className="text-3xl font-bold font-mono tracking-tight leading-none text-zinc-900">
               <AnimatedNumber value={Math.round(cognitiveLoad)} pad={1} />
             </div>
             <span className="text-sm font-bold text-slate-400 mb-0.5">%</span>
           </div>
-          {/* Dynamic stress bar */}
-          <div className="w-full h-1 bg-slate-100 rounded-full mt-3 overflow-hidden z-10 relative">
-             <motion.div 
-               initial={{ width: 0 }}
-               animate={{ width: `${cognitiveLoad}%` }}
-               transition={{ type: "spring", stiffness: 50, damping: 15 }}
-               className={`h-full absolute left-0 top-0 ${
-                 cognitiveLoad < 40 ? 'bg-emerald-400' : 
-                 cognitiveLoad < 70 ? 'bg-amber-400' : 
-                 'bg-rose-500'
-               }`}
-             />
+          <p className="text-[9px] text-slate-400 mt-2 z-10 leading-relaxed">
+            {t.interview.strainCaption}
+          </p>
+          {/* Strain bar */}
+          <div className="w-full h-1 bg-slate-100 rounded-full mt-2 overflow-hidden z-10 relative">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${cognitiveLoad}%` }}
+              transition={{ type: "spring", stiffness: 50, damping: 15 }}
+              className="h-full absolute left-0 top-0 bg-slate-400"
+            />
           </div>
         </motion.div>
+        )}
         
-        {/* STAR Progress Tile */}
+        {/* STAR Progress Tile (experimental LLM estimate, opt-in) */}
+        {showAiEstimates && (
         <motion.div 
           whileHover={{ y: -4, scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
@@ -203,14 +176,14 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, visionScore }: Liv
         >
           <div className="flex items-center justify-between mb-3 z-10">
             <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">STAR Progress</span>
-            <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wide bg-blue-100/50 px-1.5 py-0.5 rounded-md shadow-sm">AI ASSESS</span>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wide bg-slate-100/70 px-1.5 py-0.5 rounded-md shadow-sm">{t.interview.aiEstimate} · {t.interview.experimental}</span>
           </div>
           <div className="grid grid-cols-4 gap-2 z-10">
             {[
-              { label: 'S', value: useInterveStore((state) => state.starProgress.s.progress) },
-              { label: 'T', value: useInterveStore((state) => state.starProgress.t.progress) },
-              { label: 'A', value: useInterveStore((state) => state.starProgress.a.progress) },
-              { label: 'R', value: useInterveStore((state) => state.starProgress.r.progress) },
+              { label: 'S', value: starS },
+              { label: 'T', value: starT },
+              { label: 'A', value: starA },
+              { label: 'R', value: starR },
             ].map((item, idx) => (
               <div key={idx} className="flex flex-col items-center gap-1.5">
                 <div className="w-full h-12 bg-slate-100 rounded-lg overflow-hidden relative flex items-end justify-center">
@@ -230,9 +203,22 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, visionScore }: Liv
               </div>
             ))}
           </div>
+          {/* Steering envelope (§7): grounding rides with the numbers — old
+              sessions without evidence render exactly as before. */}
+          {starEvidence.length > 0 && (
+            <div className="mt-3 z-10 border-t border-slate-100/70 pt-2">
+              <p className="text-[9px] text-slate-400 leading-relaxed">
+                Basis in your answer: “{starEvidence[0]}”
+                {starEvidence.length > 1 ? ` (+${starEvidence.length - 1} more)` : ""}
+                {` · Evaluator confidence: ${starConfidence} (evidence sufficiency)`}
+              </p>
+            </div>
+          )}
         </motion.div>
+        )}
 
-        {/* Behavioral Traits Tile */}
+        {/* Behavioral Traits Tile (experimental LLM estimate, opt-in) */}
+        {showAiEstimates && (
         <motion.div 
           whileHover={{ y: -4, scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
@@ -243,7 +229,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, visionScore }: Liv
         >
           <div className="flex items-center justify-between mb-3 z-10">
             <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Behavioral Traits</span>
-            <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wide bg-purple-100/50 px-1.5 py-0.5 rounded-md shadow-sm">AI ASSESS</span>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wide bg-slate-100/70 px-1.5 py-0.5 rounded-md shadow-sm">{t.interview.aiEstimate} · {t.interview.experimental}</span>
           </div>
           <div className="flex flex-col gap-3 z-10">
             {[
@@ -267,7 +253,18 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, visionScore }: Liv
               </div>
             ))}
           </div>
+          {/* Steering envelope (§7): see STAR tile above. */}
+          {traitsEvidence.length > 0 && (
+            <div className="mt-3 z-10 border-t border-slate-100/70 pt-2">
+              <p className="text-[9px] text-slate-400 leading-relaxed">
+                Basis in your answer: “{traitsEvidence[0]}”
+                {traitsEvidence.length > 1 ? ` (+${traitsEvidence.length - 1} more)` : ""}
+                {` · Evaluator confidence: ${traitsConfidence} (evidence sufficiency)`}
+              </p>
+            </div>
+          )}
         </motion.div>
+        )}
       </div>
     </div>
   );

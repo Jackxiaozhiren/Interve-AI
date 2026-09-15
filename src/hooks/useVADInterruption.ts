@@ -1,4 +1,10 @@
 import { useEffect, useRef, useCallback } from "react";
+import {
+  vadStep,
+  averageSpectrum,
+  micConstraints,
+  VAD_DEFAULTS,
+} from "@/lib/audio/vad";
 
 /**
  * A hook that listens to the microphone when the AI is speaking,
@@ -8,8 +14,9 @@ import { useEffect, useRef, useCallback } from "react";
 export function useVADInterruption(
   isAiSpeaking: boolean,
   onInterrupt: () => void,
-  threshold = 25,
-  consecutiveFramesRequired = 5
+  threshold = VAD_DEFAULTS.threshold,
+  consecutiveFramesRequired = VAD_DEFAULTS.consecutiveFramesRequired,
+  deviceId?: string | null
 ) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -42,10 +49,18 @@ export function useVADInterruption(
     }
 
     let isInterrupted = false;
+    // Generation guard (Phase 8): if the effect re-runs or unmounts while
+    // getUserMedia is still pending, the late stream is stopped immediately
+    // instead of leaking.
+    let cancelled = false;
 
     const startVAD = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(deviceId ?? undefined) });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         streamRef.current = stream;
 
         const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -62,24 +77,16 @@ export function useVADInterruption(
         let consecutiveHighVolume = 0;
 
         const checkVolume = () => {
-          if (!isAiSpeaking || isInterrupted) return;
+          if (!isAiSpeaking || isInterrupted || cancelled) return;
 
           analyser.getByteFrequencyData(dataArray);
+          const average = averageSpectrum(dataArray);
 
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-          }
-          const average = sum / dataArray.length;
-
-          if (average > threshold) {
-            consecutiveHighVolume++;
-            if (consecutiveHighVolume >= consecutiveFramesRequired) {
-              isInterrupted = true;
-              onInterruptRef.current();
-            }
-          } else {
-            consecutiveHighVolume = Math.max(0, consecutiveHighVolume - 1);
+          const step = vadStep(consecutiveHighVolume, average, threshold, consecutiveFramesRequired);
+          consecutiveHighVolume = step.consecutive;
+          if (step.triggered) {
+            isInterrupted = true;
+            onInterruptRef.current();
           }
 
           if (!isInterrupted) {
@@ -95,6 +102,9 @@ export function useVADInterruption(
 
     startVAD();
 
-    return cleanup;
-  }, [isAiSpeaking, threshold, consecutiveFramesRequired, cleanup]);
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [isAiSpeaking, threshold, consecutiveFramesRequired, deviceId, cleanup]);
 }

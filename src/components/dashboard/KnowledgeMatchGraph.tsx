@@ -9,6 +9,8 @@ interface KnowledgeMatchGraphProps {
     alignedSkills: string[];
     missingSkills: string[];
     recommendations: string[];
+    evidence?: string[];
+    confidence?: "high" | "medium" | "low";
   };
 }
 
@@ -67,6 +69,7 @@ export function KnowledgeMatchGraph({ matchData }: KnowledgeMatchGraphProps) {
         </div>
         <p className="text-xs text-slate-400 text-center mt-2">
           Alignment between your resume and the job description.
+          {matchData.confidence ? ` Evaluator confidence: ${matchData.confidence}.` : ""}
         </p>
       </div>
 
@@ -134,6 +137,18 @@ export function KnowledgeMatchGraph({ matchData }: KnowledgeMatchGraphProps) {
             ))}
           </ul>
         </div>
+
+        {/* Phase 4: evidence grounding — document lines behind the match. */}
+        {matchData.evidence && matchData.evidence.length > 0 && (
+          <div className="bg-white/50 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Basis in your documents</h4>
+            <ul className="space-y-1.5">
+              {matchData.evidence.map((q, idx) => (
+                <li key={idx} className="text-sm text-slate-600 border-l-2 border-sky-300 pl-3 italic">“{q}”</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

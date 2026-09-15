@@ -13,7 +13,7 @@ import {
 } from "../../mocks/fixtures";
 
 export const DSA_API = "http://localhost:8000";
-export const useMocks = () => process.env.E2E_MOCK === "1";
+export const shouldUseMocks = () => process.env.E2E_MOCK === "1";
 
 export const ROUTES_14 = [
   "/",
@@ -76,7 +76,7 @@ export type MockMode = "normal" | "empty" | "error" | "delayed";
  */
 export async function mockApiController(page: Page) {
   let mode: MockMode = "normal";
-  if (useMocks()) {
+  if (shouldUseMocks()) {
     await page.route(`${DSA_API}/**`, async (route) => {
       const req = route.request();
       const m = mode;

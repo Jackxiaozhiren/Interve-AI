@@ -47,19 +47,34 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { LiveStats } from "@/components/interview/LiveStats";
-import { TechnicalScratchpad } from "@/components/interview/TechnicalScratchpad";
-import { SystemDesignBoard } from "@/components/interview/SystemDesignBoard";
+import dynamic from "next/dynamic";
+// Phase 13: drawer-gated heavies load on demand, not on first paint.
+// tldraw (~1MB+) and the scratchpad wrapper only mount when opened.
+const TechnicalScratchpad = dynamic(
+  () => import("@/components/interview/TechnicalScratchpad").then((m) => m.TechnicalScratchpad),
+  { ssr: false }
+);
+const SystemDesignBoard = dynamic(
+  () => import("@/components/interview/SystemDesignBoard").then((m) => m.SystemDesignBoard),
+  { ssr: false }
+);
 import { TelemetryWidget } from "@/components/interview/TelemetryWidget";
 import { CopilotPanel } from "@/components/interview/CopilotPanel";
-import { VisionTelemetry } from "@/components/interview/VisionTelemetry";
+import { CameraSelfView } from "@/components/interview/CameraSelfView";
 import { CopilotHints } from "@/components/interview/CopilotHints";
 import { StarTracker } from "@/components/interview/StarTracker";
 import { useKeyboardShortcuts, createCtrlCmdShortcut } from "@/hooks/useKeyboardShortcuts";
 import { MultiAgentVisualizer, type AIExpert } from "@/components/interview/MultiAgentVisualizer";
 import { DynamicLoader } from "@/components/ui/DynamicLoader";
 import { SystemHealthIndicator } from "@/components/interview/SystemHealthIndicator";
-import { useInterveStore } from "@/store/useInterveStore";
+import { getMessageText } from "@/lib/message-text";
+import { useInterveStore, normalizeGrounding } from "@/store/useInterveStore";
+import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useVADInterruption } from "@/hooks/useVADInterruption";
+import { createSttSession } from "@/lib/audio/stt";
+import { summarizeDelivery, avgLatencyMs } from "@/lib/audio/delivery";
+import { micConstraints, getPreferredMicDevice } from "@/lib/audio/vad";
 import { FlowMap } from "@/components/interview/FlowMap";
 import { PinnedQuestion } from "@/components/interview/PinnedQuestion";
 import { SoftPacingBar } from "@/components/interview/SoftPacingBar";
@@ -99,19 +114,16 @@ function InterviewRoomContent() {
   const [activeExpert, setActiveExpert] = useState<AIExpert>('system');
   
 
-  // Delivery Stats State
+  // Delivery Stats State (observable signals only — see TRUTHFULNESS_REPORT)
   const [wpm, setWpm] = useState(0);
   const [fillerWordsCount, setFillerWordsCount] = useState(0);
-  const [sentimentScore, setSentimentScore] = useState<number | undefined>(undefined);
-  const [accuracyScore, setAccuracyScore] = useState<number | undefined>(undefined);
   
   const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
   const [isSystemDesignOpen, setIsSystemDesignOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const { isCalmMode, toggleCalmMode: setIsCalmMode, isLiveCaptionsEnabled, toggleLiveCaptions, isDyslexiaMode, toggleDyslexiaMode } = useAccessibilityStore();
+  const { isCalmMode, toggleCalmMode: setIsCalmMode, isLiveCaptionsEnabled, toggleLiveCaptions, isDyslexiaMode, toggleDyslexiaMode, showLiveInsights, toggleLiveInsights } = useAccessibilityStore();
   const isPageVisible = usePageVisibility();
   const [activeUserTranscript, setActiveUserTranscript] = useState("");
-  const [visionData, setVisionData] = useState<{ eyeContact: number; posture: number; expression: number } | null>(null);
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
   const [isStandby, setIsStandby] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
@@ -123,6 +135,45 @@ function InterviewRoomContent() {
   const totalFillerWordsRef = useRef<number>(0);
   const lastSpeechTimeRef = useRef<number>(Date.now());
   const lastAnalysisTimeRef = useRef<number>(0);
+  // Phase 8: observable delivery analytics (no psychology). Refs only —
+  // nothing here is displayed as a score during the interview.
+  const sttSessionRef = useRef(createSttSession());
+  const interruptionsRef = useRef(0);
+  const answerSegmentsRef = useRef<{ startMs: number; endMs: number }[]>([]);
+  const roundTripsRef = useRef<number[]>([]);
+  const lastSendAtRef = useRef<number | null>(null);
+  const sttRestartsRef = useRef(0);
+  const unmountedRef = useRef(false);
+  // Phase 13: latency breakdown refs (31). TTFT ≈ submit→streaming;
+  // whisper = post→complete turnaround; TTS = speak-request→first audio.
+  const ttftSamplesRef = useRef<number[]>([]);
+  const whisperSendAtRef = useRef<number | null>(null);
+  const whisperTurnaroundsRef = useRef<number[]>([]);
+  const ttsRequestAtRef = useRef<number | null>(null);
+  const ttsStartupSamplesRef = useRef<number[]>([]);
+  // Phase 6: interview loop (turns/difficulty/budget). Initialized per
+  // interview id; authority stays server-side (synthesizeServerState).
+  // Phase 9: loop chrome text comes from the locale dictionary.
+  const { t } = useLanguage();
+  const interviewIdParam = searchParams?.get('id') ?? null;
+  const initLoop = useInterviewLoopStore((s) => s.initLoop);
+  const loopMeta = useInterviewLoopStore((s) => {
+    if (!s.loop) return null;
+    const diffKey = `difficulty${s.loop.difficulty[0].toUpperCase()}${s.loop.difficulty.slice(1)}` as const;
+    const diffLabel =
+      diffKey === "difficultyEasy" ? t.interview.difficultyEasy
+      : diffKey === "difficultyMedium" ? t.interview.difficultyMedium
+      : diffKey === "difficultyHard" ? t.interview.difficultyHard
+      : t.interview.difficultyExpert;
+    return `${t.interview.turn} ${s.loop.turnCount} · ${diffLabel}`;
+  });
+  useEffect(() => {
+    const budget = Number(searchParams?.get('timeBudgetSec'));
+    initLoop(level, {
+      difficulty: searchParams?.get('difficulty') ?? undefined,
+      timeBudgetSec: Number.isFinite(budget) && budget > 0 ? budget : undefined,
+    });
+  }, [interviewIdParam, level, initLoop, searchParams]);
   const setCognitiveLoad = useInterveStore(state => state.setCognitiveLoad);
   
   const activeCodeContextRef = useRef(activeCodeContext);
@@ -199,6 +250,11 @@ function InterviewRoomContent() {
 
     currentAudioSource.current = source;
     source.start();
+    // Phase 13: Kokoro TTS startup = generate-request → first audio frame.
+    if (ttsRequestAtRef.current !== null) {
+      ttsStartupSamplesRef.current.push(Date.now() - ttsRequestAtRef.current);
+      ttsRequestAtRef.current = null;
+    }
   }
 
   // Cognitive Load Silence Tracking
@@ -228,6 +284,9 @@ function InterviewRoomContent() {
         stressTest,
         setupContext,
         framework,
+        // Phase 7: interview type selects the evaluation rubric server-side
+        // (framework keeps precedence for explicit non-general formats).
+        interviewType: searchParams?.get('interviewType') || undefined,
         resumeText,
         model: aiModel,
         cognitiveLoad: useInterveStore.getState().cognitiveLoad,
@@ -236,7 +295,13 @@ function InterviewRoomContent() {
       }
     }),
     onFinish: (message) => {
-      const textToSpeak = (message as { content?: string; text?: string }).content || (message as { content?: string; text?: string }).text || "";
+      // Phase 8: send→complete round trip (includes generation time).
+      if (lastSendAtRef.current !== null) {
+        roundTripsRef.current.push(Date.now() - lastSendAtRef.current);
+        lastSendAtRef.current = null;
+      }
+      // Phase 14: v6 messages carry parts[], not .content/.text.
+      const textToSpeak = getMessageText(message as { parts?: unknown; content?: unknown; text?: unknown });
       
       // Check if text contains Chinese characters to route to the appropriate TTS engine
       const hasChinese = /[\u4e00-\u9fa5]/.test(textToSpeak);
@@ -248,10 +313,19 @@ function InterviewRoomContent() {
         // If Chinese characters are present, explicitly request a Chinese voice
         utterance.lang = hasChinese ? 'zh-CN' : 'en-US'; 
         utterance.onend = () => setIsAiSpeaking(false);
+        // Phase 13: TTS startup = speak() → first audio.
+        ttsRequestAtRef.current = Date.now();
+        utterance.onstart = () => {
+          if (ttsRequestAtRef.current !== null) {
+            ttsStartupSamplesRef.current.push(Date.now() - ttsRequestAtRef.current);
+            ttsRequestAtRef.current = null;
+          }
+        };
         window.speechSynthesis.speak(utterance);
       } else if (modelsReady && kokoroWorker.current) {
         setIsAiSpeaking(true);
         setModelStatus("正在生成语音...");
+        ttsRequestAtRef.current = Date.now();
         kokoroWorker.current.postMessage({
           type: 'generate',
           text: textToSpeak,
@@ -272,6 +346,10 @@ function InterviewRoomContent() {
       const t2 = setTimeout(() => setLatencyPhase(2), 7000);
       return () => { clearTimeout(t1); clearTimeout(t2); };
     } else if (status === 'streaming') {
+      // Phase 13: stream-start latency ≈ LLM TTFT (submit → first chunk).
+      if (lastSendAtRef.current !== null) {
+        ttftSamplesRef.current.push(Date.now() - lastSendAtRef.current);
+      }
       setLatencyPhase(3);
     } else {
       setLatencyPhase(0);
@@ -279,6 +357,8 @@ function InterviewRoomContent() {
   }, [status]);
   const handleUserInput = async (text: string) => {
     stopAiPlayback();
+    // Phase 8: send timestamp for round-trip measurement (19.3).
+    lastSendAtRef.current = Date.now();
     
     let oramaContext = "";
     if (modelsReady || isUsingNativeTTS) {
@@ -319,8 +399,29 @@ function InterviewRoomContent() {
     setActiveSystemDesignContext(sysDesignCtx);
 
     // Give React a tick to update the context before appending
+    // Phase 6: record the turn and send FRESH snapshots per message (the
+    // transport-level body is a render-time snapshot and may be stale).
+    const loopStore = useInterviewLoopStore.getState();
+    const analyzerStore = useInterveStore.getState();
+    loopStore.recordUserTurn(latestAiMessage || "(opening)", {
+      starProgress: analyzerStore.starProgress,
+      behavioralTraits: analyzerStore.behavioralTraits,
+    });
+    const freshLoop = useInterviewLoopStore.getState().loop;
     setTimeout(() => {
-      sendMessage({ text });
+      sendMessage({ text }, {
+        body: {
+          context: oramaContext,
+          codeContext: codeCtx,
+          systemDesignContext: sysDesignCtx,
+          starProgress: analyzerStore.starProgress,
+          behavioralTraits: analyzerStore.behavioralTraits,
+          cognitiveLoad: analyzerStore.cognitiveLoad,
+          interviewLoop: freshLoop
+            ? { startedAt: freshLoop.startedAt, timeBudgetSec: freshLoop.timeBudgetSec, difficulty: freshLoop.difficulty }
+            : undefined,
+        },
+      });
     }, 0);
   };
 
@@ -348,8 +449,8 @@ function InterviewRoomContent() {
     } catch {}
 
     const chatHistory = messages.map(m => {
-      const msg = m as UIMessage & { content?: string; text?: string };
-      return `${msg.role}: ${msg.content || msg.text || ''}`;
+      // Phase 14: v6 parts-first extraction.
+      return `${m.role}: ${getMessageText(m as { parts?: unknown; content?: unknown; text?: unknown })}`;
     }).join("\n");
 
     try {
@@ -414,7 +515,7 @@ function InterviewRoomContent() {
     };
   }, []);
 
-  // Phase 26: Session Persistence
+  // Phase 26: Session Persistence (+ Phase 10: 30-day local retention)
   useEffect(() => {
     const interviewId = searchParams?.get('id');
     if (!interviewId || messages.length === 0) return;
@@ -422,7 +523,8 @@ function InterviewRoomContent() {
       localStorage.setItem(`interve_session_${interviewId}`, JSON.stringify({
         messages,
         wpm,
-        fillerWordsCount
+        fillerWordsCount,
+        savedAt: Date.now(),
       }));
     } catch {}
   }, [messages, wpm, fillerWordsCount, searchParams]);
@@ -434,6 +536,11 @@ function InterviewRoomContent() {
       const saved = localStorage.getItem(`interve_session_${interviewId}`);
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Phase 10: local snapshots expire after 30 days (Privacy Center).
+        if (parsed && typeof parsed.savedAt === "number" && Date.now() - parsed.savedAt > 30 * 24 * 3600 * 1000) {
+          localStorage.removeItem(`interve_session_${interviewId}`);
+          return;
+        }
         if (parsed && parsed.messages && parsed.messages.length > 0) {
           toast("发现未完成的面试记录", {
             description: "是否恢复之前的对话和状态？",
@@ -479,9 +586,7 @@ function InterviewRoomContent() {
     if (testMode) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setModelsReady(true);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsUsingNativeTTS(true);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setModelStatus("");
       return;
     }
@@ -496,6 +601,11 @@ function InterviewRoomContent() {
       if (status === 'ready') {
         console.log("Whisper ready");
       } else if (status === 'complete' && text) {
+        // Phase 13: STT latency turnaround.
+        if (whisperSendAtRef.current !== null) {
+          whisperTurnaroundsRef.current.push(Date.now() - whisperSendAtRef.current);
+          whisperSendAtRef.current = null;
+        }
         setModelStatus("");
         
         // Delivery Analysis Logic
@@ -545,7 +655,8 @@ function InterviewRoomContent() {
             })
           }).then(res => res.json()).then(data => {
             if (data && data.s && typeof data.s.progress === 'number') {
-              useInterveStore.getState().setStarProgress((prev) => ({
+              const store = useInterveStore.getState();
+              store.setStarProgress((prev) => ({
                 s: { 
                   progress: Math.max(prev.s.progress, data.s.progress), 
                   confidence: data.s.confidence || 0, 
@@ -567,6 +678,11 @@ function InterviewRoomContent() {
                   timeSpentSeconds: prev.r.timeSpentSeconds + (data.r.timeSpentSeconds || 0) 
                 },
               }));
+              // Steering envelope (§7): latest quotes replace per call.
+              const grounding = normalizeGrounding(data, 4);
+              if (grounding.evidence.length > 0) {
+                store.setStarGrounding(grounding.evidence, grounding.confidence);
+              }
             }
           }).catch(err => console.error("STAR analysis error:", err));
 
@@ -577,11 +693,17 @@ function InterviewRoomContent() {
             body: JSON.stringify({ transcript: trimmedText })
           }).then(res => res.json()).then(data => {
             if (data && typeof data.leadership === 'number') {
-              useInterveStore.getState().setBehavioralTraits((prev) => ({
+              const store = useInterveStore.getState();
+              store.setBehavioralTraits((prev) => ({
                 leadership: Math.max(prev.leadership, data.leadership),
                 problemSolving: Math.max(prev.problemSolving, data.problemSolving),
                 communication: Math.max(prev.communication, data.communication)
               }));
+              // Steering envelope (§7): latest quotes replace per call.
+              const grounding = normalizeGrounding(data, 4);
+              if (grounding.evidence.length > 0) {
+                store.setTraitsGrounding(grounding.evidence, grounding.confidence);
+              }
             }
           }).catch(err => console.error("Behavioral analysis error:", err));
         }
@@ -664,28 +786,28 @@ function InterviewRoomContent() {
   const latestAiMessage = (() => {
     const lastAss = [...messages].reverse().find(m => m.role === 'assistant');
     if (!lastAss) return "";
-    const msg = lastAss as UIMessage & { content?: string; text?: string; parts?: unknown[] };
-    return typeof (msg as unknown as Record<string, unknown>).content === 'string' ? (msg as unknown as Record<string, unknown>).content as string : ((msg as unknown as Record<string, unknown>).text as string || "");
+    // Phase 14: v6 parts-first extraction (legacy .content/.text fallback).
+    return getMessageText(lastAss as { parts?: unknown; content?: unknown; text?: unknown });
   })();
 
   useEffect(() => {
     if (latestAiMessage) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (latestAiMessage.startsWith('[Tech]')) setActiveExpert('tech');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       else if (latestAiMessage.startsWith('[HR]')) setActiveExpert('hr');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       else if (latestAiMessage.startsWith('[Product]')) setActiveExpert('product');
     }
   }, [latestAiMessage]);
 
   useVADInterruption(isAiSpeaking, () => {
+    // Phase 8: barge-in counted as an observable interruption (19.1).
+    interruptionsRef.current += 1;
     stopAiPlayback();
     toast.info("🎤 检测到您的发言", { description: "AI已暂停，您可以继续表达" });
     if (!isRecording && modelsReady && !isStandby) {
       startRecording();
     }
-  });
+  }, 25, 5, getPreferredMicDevice());
 
   // Phase 38: Ambient Noise Warning
   useAmbientNoise(!isStandby && !isRecording && !isAiSpeaking && !isPaused, 20, 180);
@@ -693,6 +815,24 @@ function InterviewRoomContent() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Phase 8: release microphone tracks + recognizer if the user leaves
+  // mid-recording (back navigation). onstop handlers check unmountedRef.
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      try {
+        if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
+          mediaRecorder.current.stop();
+        } else {
+          mediaRecorder.current?.stream.getTracks().forEach((t) => t.stop());
+        }
+      } catch { /* best-effort teardown */ }
+      try { speechRecognition.current?.stop(); } catch { /* noop */ }
+      try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
+    };
+  }, []);
 
   const handleEndCall = async () => {
     if (isEnding) return;
@@ -724,35 +864,57 @@ function InterviewRoomContent() {
         const res = await fetch("/api/analyze-interview", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages })
+          body: JSON.stringify({ messages, framework, interviewType: searchParams?.get('interviewType') || undefined })
         });
         
         if (res.ok) {
-          const { radarScores, qaReview, hireVerdict } = await res.json();
+          // Phase 4: evidence-grounded evaluation (rubric-anchored dimensions
+          // + readiness). Legacy radarScores/hireVerdict are no longer
+          // produced; historical rows keep rendering via the eval-compat
+          // adapter. See EVALUATION_V2_REPORT.
+          const evaluationV2 = await res.json();
+          const { qaReview } = evaluationV2 as { qaReview?: { question: string; userAnswer: string; flaws: string; perfectRewrite: string }[] };
           
-          // Save to Dexie
+          // Phase 3 (Truthfulness Reset): no visual metrics are collected
+          // anymore (CameraSelfView performs zero analysis), so nothing
+          // vision-derived is persisted.
           const id = parseInt(interviewId, 10);
-          const bodyLanguageScore = visionData 
-            ? Math.round((visionData.eyeContact + visionData.posture + visionData.expression) / 3) 
-            : 0;
-            
+          // Phase 8 (19.3): observable delivery analytics only.
+          // Phase 13 (31): latency breakdown averages (undefined when unmeasured).
+          const stt = sttSessionRef.current.stats();
+          const delivery = summarizeDelivery({
+            wpm: wpm || 0,
+            fillerWords: fillerWordsCount || 0,
+            answerSegments: answerSegmentsRef.current,
+            interruptions: interruptionsRef.current,
+            roundTripsMs: roundTripsRef.current,
+            sttAvgConfidence: stt.avgConfidence,
+            sttFinals: stt.finals,
+            sttReconnects: stt.reconnects,
+          });
           await db.interviews.update(id, {
             status: 'completed',
-            radarScores: {
-              ...radarScores,
-              bodyLanguage: bodyLanguageScore
-            },
+            evaluationV2,
             qaReview,
-            hireVerdict,
             transcript: messages.map((m: UIMessage & { content?: string; parts?: unknown[]; createdAt?: Date }) => ({
               id: m.id,
               role: m.role,
-              content: typeof (m as unknown as Record<string, unknown>).content === 'string' ? (m as unknown as Record<string, unknown>).content as string : JSON.stringify((m as unknown as Record<string, unknown>).content || m.parts),
+              // Phase 14: persist rendered text (v6 parts-first).
+              content: getMessageText(m as { parts?: unknown; content?: unknown; text?: unknown }),
               createdAt: m.createdAt || new Date()
             })),
             deliveryStats: {
-              wpm: wpm || 0,
-              fillerWords: fillerWordsCount || 0
+              wpm: delivery.wpm,
+              fillerWords: delivery.fillerWords,
+              interruptions: delivery.interruptions,
+              avgAnswerSec: delivery.avgAnswerSec ?? undefined,
+              avgRoundTripMs: delivery.avgRoundTripMs ?? undefined,
+              sttAvgConfidence: delivery.sttAvgConfidence ?? undefined,
+              sttFinals: delivery.sttFinals,
+              sttReconnects: delivery.sttReconnects,
+              ttftMs: avgLatencyMs(ttftSamplesRef.current),
+              whisperMs: avgLatencyMs(whisperTurnaroundsRef.current),
+              ttsStartupMs: avgLatencyMs(ttsStartupSamplesRef.current),
             },
             updatedAt: new Date()
           });
@@ -788,7 +950,7 @@ function InterviewRoomContent() {
       // Voice interruption: Stop AI speaking if user starts talking
       stopAiPlayback();
       
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(getPreferredMicDevice()) });
       setActiveStream(stream);
       mediaRecorder.current = new MediaRecorder(stream);
       audioChunks.current = [];
@@ -808,15 +970,19 @@ function InterviewRoomContent() {
          let accumulatedDraft = "";
          let localFillerCount = 0;
 
-         speechRecognition.current.onresult = (event: ISpeechRecognitionEvent) => {
+          speechRecognition.current.onresult = (event: ISpeechRecognitionEvent) => {
             let interimTranscript = '';
             let finalTranscript = '';
             
             for (let i = event.resultIndex; i < event.results.length; ++i) {
+               const alternative = event.results[i][0] as { transcript: string; confidence?: number };
                if (event.results[i].isFinal) {
-                  finalTranscript += event.results[i][0].transcript;
+                  finalTranscript += alternative.transcript;
+                  // Phase 8: STT observability (19.2) — finals with confidence.
+                  sttSessionRef.current.recordFinal(alternative.transcript, alternative.confidence);
                } else {
-                  interimTranscript += event.results[i][0].transcript;
+                  interimTranscript += alternative.transcript;
+                  sttSessionRef.current.recordPartial(alternative.transcript);
                }
             }
             
@@ -851,35 +1017,37 @@ function InterviewRoomContent() {
             }
             
             // Parallel API Analysis on final chunks
+            // Phase 3 (Truthfulness Reset): the chunk-analysis endpoint
+            // response (sentiment/accuracy scores) had NO consumer — both
+            // setters fed dead LiveStats props — while burning provider quota
+            // on every final chunk. The call is removed; WPM/filler above
+            // remain the observable delivery signals. See TRUTHFULNESS_REPORT.
             if (finalTranscript.trim()) {
                accumulatedDraft += finalTranscript;
-               
-               fetch('/api/analyze-chunk', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                     text: finalTranscript.trim(),
-                     context: activeContext,
-                     role,
-                     level
-                  })
-               })
-               .then(res => res.json())
-               .then(data => {
-                  if (data.sentimentScore !== undefined) setSentimentScore(data.sentimentScore);
-                  if (data.technicalAccuracy !== undefined) setAccuracyScore(data.technicalAccuracy);
-               })
-               .catch(err => console.error("Chunk analysis error:", err));
             }
          };
-         speechRecognition.current.onerror = (e: ISpeechRecognitionErrorEvent) => {
+          speechRecognition.current.onerror = (e: ISpeechRecognitionErrorEvent) => {
             console.warn("Speech recognition error:", e.error);
-         };
+            // Phase 8 (19.2): bounded auto-reconnect on network drops only.
+            // 'no-speech' is normal silence; 'not-allowed' needs the user.
+            if (e.error === "network" && sttRestartsRef.current < 3) {
+              sttRestartsRef.current += 1;
+              sttSessionRef.current.recordReconnect();
+              try {
+                speechRecognition.current?.start();
+              } catch {
+                // already running — the next result will arrive on its own
+              }
+            }
+          };
          
          speechRecognition.current.start();
       }
 
-      mediaRecorder.current.onstop = async () => {
+       mediaRecorder.current.onstop = async () => {
+        // Clean up mic stream
+        stream.getTracks().forEach(track => track.stop());
+        if (unmountedRef.current) return;
         const blob = new Blob(audioChunks.current, { type: 'audio/webm' });
         setModelStatus("正在识别语音...");
         
@@ -893,9 +1061,8 @@ function InterviewRoomContent() {
           type: 'transcribe',
           audio: float32Data
         }, [float32Data.buffer]);
-        
-        // Clean up mic stream
-        stream.getTracks().forEach(track => track.stop());
+        // Phase 13: STT latency = post → complete turnaround.
+        whisperSendAtRef.current = Date.now();
       };
 
       mediaRecorder.current.start();
@@ -919,6 +1086,10 @@ function InterviewRoomContent() {
     }
     if (speechRecognition.current) {
       speechRecognition.current.stop();
+    }
+    // Phase 8: close the answer segment for duration analytics.
+    if (recordingStartTimeRef.current !== null) {
+      answerSegmentsRef.current.push({ startMs: recordingStartTimeRef.current, endMs: Date.now() });
     }
     setIsRecording(false);
     setRecordingStartTime(null);
@@ -1083,7 +1254,7 @@ function InterviewRoomContent() {
       {/* Top Header */}
       <header className="flex items-center justify-between px-6 py-4 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full z-10 shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.02)] mx-2 mt-2">
         <div className="flex items-center gap-3">
-          <SystemHealthIndicator isOnline={true} wsLatency={45} stressTest={stressTest} />
+          <SystemHealthIndicator isOnline={true} stressTest={stressTest} />
           <h1 className="text-[15px] font-heading font-semibold tracking-tight text-slate-700">
             {stressTest ? "AI 面试间 (压力测试模式)" : "AI 面试间"}
           </h1>
@@ -1129,6 +1300,7 @@ function InterviewRoomContent() {
             className={`rounded-full transition-all duration-300 ${isCalmMode ? 'bg-teal-500 text-white shadow-md hover:bg-teal-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isCalmMode ? "退出宁静模式" : "开启宁静模式 (防过度视觉刺激)"}
             aria-label={isCalmMode ? "退出宁静模式" : "开启宁静模式"}
+            aria-pressed={isCalmMode}
           >
             <Brain className="w-4 h-4" />
           </Button>
@@ -1139,8 +1311,21 @@ function InterviewRoomContent() {
             className={`rounded-full transition-all duration-300 ${isFocusMode ? 'bg-sky-500 text-white shadow-md hover:bg-sky-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isFocusMode ? "退出专注模式 (F)" : "开启专注模式 (F)"}
             aria-label={isFocusMode ? "退出专注模式" : "开启专注模式"}
+            aria-pressed={isFocusMode}
           >
             {isFocusMode ? <CornersIn className="w-4 h-4" /> : <CornersOut className="w-4 h-4" />}
+          </Button>
+          {/* Phase 9: live AI estimates hidden by default (score distraction). */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => toggleLiveInsights()}
+            className={`rounded-full transition-all duration-300 font-bold text-[10px] ${showLiveInsights ? 'bg-violet-500 text-white shadow-md hover:bg-violet-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            title={showLiveInsights ? t.interview.hideAiEstimatesTitle : t.interview.showAiEstimatesTitle}
+            aria-label={showLiveInsights ? t.interview.hideAiEstimates : t.interview.showAiEstimates}
+            aria-pressed={showLiveInsights}
+          >
+            AI
           </Button>
           <Button
             variant="ghost"
@@ -1149,6 +1334,7 @@ function InterviewRoomContent() {
             className={`rounded-full transition-all duration-300 font-bold text-[10px] ${isLiveCaptionsEnabled ? 'bg-sky-500 text-white shadow-md hover:bg-sky-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕"}
             aria-label={isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕"}
+            aria-pressed={isLiveCaptionsEnabled}
           >
             CC
           </Button>
@@ -1159,6 +1345,7 @@ function InterviewRoomContent() {
             className={`rounded-full transition-all duration-300 font-bold text-[12px] ${isDyslexiaMode ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助"}
             aria-label={isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助"}
+            aria-pressed={isDyslexiaMode}
           >
             A
           </Button>
@@ -1216,7 +1403,7 @@ function InterviewRoomContent() {
                />
 
                {/* Pinned Question */}
-               <PinnedQuestion questionText={latestAiMessage} isVisible={isRecording && !isFocusMode} />
+               <PinnedQuestion questionText={latestAiMessage} isVisible={isRecording && !isFocusMode} loopMeta={loopMeta} />
 
                {/* Ambient Background Glows - Liquid Fluid Animation */}
                {!isCalmMode && (
@@ -1292,6 +1479,11 @@ function InterviewRoomContent() {
                       onMouseUp={stopRecording}
                       onTouchStart={startRecording}
                       onTouchEnd={stopRecording}
+                      // Phase 9: keyboard users activate via click (Enter/Space).
+                      // Mouse/touch use press-and-hold above; real clicks from
+                      // pointing devices have event.detail > 0 and are ignored
+                      // here to avoid double-toggling.
+                      onClick={(e) => { if (e.detail === 0) handleStartSpeaking(); }}
                       disabled={!modelsReady || isLoading}
                       whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.95 }}
@@ -1408,9 +1600,7 @@ function InterviewRoomContent() {
                     <LiveStats 
                       wpm={wpm} 
                       fillerWordsCount={fillerWordsCount} 
-                      visionScore={visionData ? (visionData.eyeContact + visionData.posture + visionData.expression) / 3 : undefined}
-                      sentimentScore={sentimentScore}
-                      accuracyScore={accuracyScore}
+                      showAiEstimates={showLiveInsights}
                     />
                   </motion.div>
                   <motion.div 
@@ -1418,14 +1608,14 @@ function InterviewRoomContent() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <TelemetryWidget isRecording={isRecording} isAiSpeaking={isAiSpeaking} wpm={wpm} />
+                    <TelemetryWidget isRecording={isRecording} isAiSpeaking={isAiSpeaking} />
                   </motion.div>
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
                   >
-                    <VisionTelemetry onVisionDataUpdate={setVisionData} />
+                    <CameraSelfView />
                   </motion.div>
                 </motion.div>
               )}
@@ -1455,7 +1645,8 @@ function InterviewRoomContent() {
             )}
             
             {messages.map((m, idx) => {
-              const content = typeof (m as unknown as Record<string, unknown>).content === 'string' ? (m as unknown as Record<string, unknown>).content as string : ((m as unknown as Record<string, unknown>).text as string || '');
+              // Phase 14: v6 parts-first text (legacy fallback inside helper).
+              const content = getMessageText(m as { parts?: unknown; content?: unknown; text?: unknown });
               const isLastMessage = idx === messages.length - 1;
               return (
               <motion.div
@@ -1477,8 +1668,8 @@ function InterviewRoomContent() {
                   {content}
                 </div>
                 
-                {/* Actions */}
-                <div className={`flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${m.role === 'user' ? 'flex-row-reverse mr-1' : 'ml-1'}`}>
+                {/* Actions (visible on hover AND keyboard focus) */}
+                <div className={`flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 transition-opacity ${m.role === 'user' ? 'flex-row-reverse mr-1' : 'ml-1'}`}>
                   <button 
                     onClick={() => {
                       navigator.clipboard.writeText(content);
@@ -1544,7 +1735,6 @@ function InterviewRoomContent() {
                 >
                   <CopilotPanel 
                     latestAiMessage={latestAiMessage} 
-                    messages={messages}
                   />
                 </motion.div>
               )}
@@ -1590,7 +1780,6 @@ function InterviewRoomContent() {
       {!isFocusMode && (
         <CopilotHints 
           wpm={wpm} 
-          visionData={visionData} 
           isRecording={isRecording} 
         />
       )}

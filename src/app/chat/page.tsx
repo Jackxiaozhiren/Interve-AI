@@ -10,6 +10,7 @@ import {
 } from "@/components/interve-ui/chat";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { getMessageText } from "@/lib/message-text";
 
 const ChatBackground = dynamic(() => import("@/components/interve-ui/backgrounds").then(m => m.ChatBackground), { ssr: false });
 
@@ -185,7 +186,8 @@ export default function ChatPage() {
                 >
                   <InterveMessageCard
                     role={msg.role as 'user' | 'assistant'}
-                    content={typeof msg.content === 'string' ? msg.content : ''}
+                    // Phase 14: v6 messages carry parts[], not .content.
+                    content={getMessageText(msg as { parts?: unknown; content?: unknown; text?: unknown })}
                     timestamp={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     className="!animate-none"
                   />

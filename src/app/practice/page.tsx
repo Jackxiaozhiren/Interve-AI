@@ -1,20 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Search, Compass, Target, Layers, Play } from "lucide-react";
+import { Search, Compass, Target, Layers, Play, FlaskConical } from "lucide-react";
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InterviewQuestion, searchQuestions, initQuestionBank } from "@/lib/question-bank";
 import { Input } from "@/components/ui/input";
 import { InterveDotsLoader } from "@/components/interve-ui/loading";
+import { EmptyState } from "@/components/data";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { MagneticWrapper } from "@/components/ui/magnetic-wrapper";
+import { decodeRetryQuestion } from "@/lib/retry-link";
+import PracticeSessionClient from "./[id]/client";
 import Link from "next/link";
 
+/** Stable short hash so identical retry questions share attempt history. */
+function hashQuestion(s: string): string {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
 export default function PracticeHubPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><InterveDotsLoader size="md" /></div>}>
+      <PracticeHubInner />
+    </Suspense>
+  );
+}
+
+function PracticeHubInner() {
+  const searchParams = useSearchParams();
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  // Phase 7: `?q=` prefills search (drill links); `?retry=` opens a custom
+  // retry session for an arbitrary question (Replay/Report → Retry).
+  const [searchTerm, setSearchTerm] = useState(() => searchParams?.get("q") ?? "");
+  const [retryQuestion, setRetryQuestion] = useState<string | null>(() =>
+    decodeRetryQuestion(searchParams?.get("retry") ?? "")
+  );
   const [activeCategory, setActiveCategory] = useState<string | undefined>();
   const [isReady, setIsReady] = useState(false);
 
@@ -53,6 +81,35 @@ export default function PracticeHubPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-100/40 rounded-full blur-[120px] pointer-events-none" />
 
       <main className="w-full max-w-6xl px-4 py-16 relative z-10 flex flex-col gap-12">
+        {/* Phase 7: custom retry session (Replay/Report → Retry this question) */}
+        {retryQuestion && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="w-full max-w-3xl mx-auto"
+          >
+            <div className="flex items-center gap-2 mb-4 text-sm text-slate-500">
+              <FlaskConical className="w-4 h-4 text-indigo-500" />
+              <span className="font-medium">Retry drill — your previous question, another attempt (attempts are compared below).</span>
+              <button onClick={() => setRetryQuestion(null)} className="ml-auto text-xs font-bold text-slate-400 hover:text-slate-700 underline underline-offset-2">
+                Dismiss
+              </button>
+            </div>
+            <PracticeSessionClient
+              key={retryQuestion}
+              question={{
+                // Stable per-question id so retry attempts compare correctly.
+                id: `custom-${hashQuestion(retryQuestion)}`,
+                title: retryQuestion,
+                description: "Custom retry drill from your interview history.",
+                category: "Custom",
+                tags: ["retry", "drill"],
+              }}
+            />
+          </motion.div>
+        )}
+
         
         {/* Header */}
         <motion.div
@@ -137,12 +194,11 @@ export default function PracticeHubPage() {
           )}
           
           {isReady && questions.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-2">
-                <Search className="w-6 h-6 text-slate-400" />
-              </div>
-              <p className="text-lg font-medium text-foreground">No questions found</p>
-              <p className="text-muted-foreground">Try adjusting your search or filters.</p>
+            <div className="col-span-full">
+              <EmptyState
+                title="No questions found"
+                description="Try adjusting your search or filters."
+              />
             </div>
           )}
 

@@ -1,10 +1,19 @@
 import React from "react";
 import { Interview } from "@/lib/db";
+import { toEvaluationView } from "@/lib/eval-compat";
+import { READINESS_META, READINESS_DISCLAIMER, type ReadinessLevel } from "@/ai/evaluation-contract";
 
 export function PrintLayout({ interview }: { interview: Interview }) {
   if (!interview) return null;
 
   const dateStr = new Date(interview.createdAt).toLocaleString();
+  // Phase 4: readiness (V2) or badged legacy verdict.
+  const view = toEvaluationView(interview);
+  const readinessLabel = view.legacy
+    ? (view.readinessLabel ?? 'Legacy assessment')
+    : view.readinessLabel
+      ? `${READINESS_META[view.readinessLabel as ReadinessLevel]?.label ?? view.readinessLabel}`
+      : 'Pending';
 
   return (
     <div className="hidden print:block w-full text-black font-sans bg-white p-8">
@@ -20,10 +29,42 @@ export function PrintLayout({ interview }: { interview: Interview }) {
         </div>
       </div>
 
-      {/* Cultural Traits */}
+      {/* Readiness */}
+      <div className="mb-8 break-inside-avoid">
+        <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">
+          {view.legacy ? 'Final Verdict (Legacy Assessment)' : 'Interview Readiness'}
+        </h2>
+        <p className="font-bold mb-2">{readinessLabel}</p>
+        {view.readinessRationale && <p className="text-sm text-gray-800 mb-2">{view.readinessRationale}</p>}
+        {!view.legacy && <p className="text-xs text-gray-500">{READINESS_DISCLAIMER}</p>}
+      </div>
+
+      {/* Dimensions */}
+      {view.dimensions.length > 0 && (
+        <div className="mb-8 break-inside-avoid">
+          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Rubric Dimensions</h2>
+          <div className="space-y-4">
+            {view.dimensions.map((dim) => (
+              <div key={dim.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-bold text-gray-800">{dim.name}</h3>
+                  <span className="font-mono text-sm bg-gray-200 px-2 py-1 rounded">{dim.score100}/100 · {dim.confidence}</span>
+                </div>
+                <p className="text-sm text-gray-700 mb-2">{dim.rationale}</p>
+                {dim.evidence.map((q, i) => (
+                  <p key={i} className="text-xs text-gray-700 italic mb-1">&quot;{q}&quot;</p>
+                ))}
+                <p className="text-xs text-gray-700 mt-2">Next drill: {dim.improvement}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cultural Traits (legacy rows only) */}
       {interview.culturalTraits && interview.culturalTraits.length > 0 && (
         <div className="mb-8 break-inside-avoid">
-          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Cultural & Behavioral Traits</h2>
+          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Cultural & Behavioral Traits (Legacy)</h2>
           <div className="space-y-4">
             {interview.culturalTraits.map((trait, idx) => (
               <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -38,10 +79,10 @@ export function PrintLayout({ interview }: { interview: Interview }) {
         </div>
       )}
 
-      {/* Council Debate */}
+      {/* Council Debate (legacy rows only) */}
       {interview.councilDebate && (
         <div className="mb-8 break-inside-avoid">
-          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Council Debate & Synthesis</h2>
+          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Council Debate & Synthesis (Legacy)</h2>
           
           {interview.verdictRationale && (
             <div className="mb-4 p-4 bg-gray-100 rounded-lg border border-gray-300">

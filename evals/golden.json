@@ -1,0 +1,198 @@
+{
+  "version": "1.0.0",
+  "notes": "Synthetic, anonymized benchmark. Fictional candidates; any resemblance is coincidental. Expected bands are authored rubric judgments (v1 human labels) — replace with multi-rater labels when available.",
+  "cases": [
+    {
+      "id": "behavioral-strong-01",
+      "track": "behavioral",
+      "framework": "behavioral",
+      "rubricId": "behavioral-v1",
+      "messages": [
+        { "role": "assistant", "content": "Tell me about a time you disagreed with a teammate on a technical direction." },
+        { "role": "user", "content": "Last spring our team split over migrating the billing service to event-driven processing. I owned the payments path, so I proposed a two-week spike: I built a prototype consumer, measured 40% lower p99 latency, and wrote the trade-off doc. Two senior engineers still preferred the rewrite, so I ran a joint review where we agreed to migrate only new event types first." },
+        { "role": "assistant", "content": "What was the measurable outcome?" },
+        { "role": "user", "content": "We cut billing incidents from 9 per quarter to 2, and onboarding a new payment method went from 3 weeks to 4 days. I learned to separate the decision (migrate incrementally) from the debate format (written trade-offs beat meetings for this team)." }
+      ],
+      "expected": {
+        "readiness": "interview_ready",
+        "dimensions": { "relevance": [4, 5], "star_completeness": [4, 5], "specificity": [4, 5], "ownership": [4, 5], "impact": [4, 5], "reflection": [3, 5] }
+      }
+    },
+    {
+      "id": "behavioral-weak-01",
+      "track": "behavioral",
+      "framework": "behavioral",
+      "rubricId": "behavioral-v1",
+      "messages": [
+        { "role": "assistant", "content": "Tell me about a time you disagreed with a teammate on a technical direction." },
+        { "role": "user", "content": "We had some disagreements sometimes. The team discussed and we figured it out. It went fine." },
+        { "role": "assistant", "content": "What was your personal role and the result?" },
+        { "role": "user", "content": "I just did my part. Everything worked out in the end." }
+      ],
+      "expected": {
+        "readiness": "needs_foundation",
+        "dimensions": { "relevance": [1, 3], "star_completeness": [1, 2], "specificity": [1, 2], "ownership": [1, 2], "impact": [1, 2], "reflection": [1, 2] }
+      }
+    },
+    {
+      "id": "technical-strong-01",
+      "track": "technical",
+      "framework": "technical",
+      "rubricId": "technical-v1",
+      "messages": [
+        { "role": "assistant", "content": "How would you design a rate limiter for a public API?" },
+        { "role": "user", "content": "First I'd clarify scope: per-user vs per-IP, exact vs approximate, and failure mode — fail-open or closed. For most cases I'd use token bucket in Redis with a Lua script for atomicity: O(1) per request. Fixed window is simpler but allows 2x bursts at boundaries; sliding-window log is exact but O(n) memory. I'd pick token bucket, note Redis as a new SPOF, and mitigate with local best-effort fallback plus monitoring on rejection rate." },
+        { "role": "assistant", "content": "What breaks first at 10x traffic?" },
+        { "role": "user", "content": "The single Redis becomes the bottleneck and blast radius. I'd shard by user hash, accept approximate counts across shards, and add jittered client backoff. If Redis is down, fail open for reads with a tight local cap so one outage doesn't take down the API." }
+      ],
+      "expected": {
+        "readiness": "strongly_prepared",
+        "dimensions": { "correctness": [4, 5], "decomposition": [4, 5], "assumptions": [4, 5], "tradeoffs": [4, 5], "depth": [4, 5], "communication": [4, 5] }
+      }
+    },
+    {
+      "id": "technical-weak-01",
+      "track": "technical",
+      "framework": "technical",
+      "rubricId": "technical-v1",
+      "messages": [
+        { "role": "assistant", "content": "How would you design a rate limiter for a public API?" },
+        { "role": "user", "content": "I would use Redis because it is fast. You just count requests and block when there are too many." },
+        { "role": "assistant", "content": "What breaks first at 10x traffic?" },
+        { "role": "user", "content": "Not sure, maybe add more servers." }
+      ],
+      "expected": {
+        "readiness": "needs_foundation",
+        "dimensions": { "correctness": [2, 3], "decomposition": [1, 2], "assumptions": [1, 2], "tradeoffs": [1, 2], "depth": [1, 2], "communication": [2, 3] }
+      }
+    },
+    {
+      "id": "coding-strong-01",
+      "track": "coding",
+      "framework": "technical",
+      "rubricId": "technical-v1",
+      "messages": [
+        { "role": "assistant", "content": "Write a function that returns the k most frequent elements. Walk me through it." },
+        { "role": "user", "content": "I'll use a frequency map then bucket by count: buckets[i] holds elements appearing i times. That's O(n) time and O(n) space. Edge cases: k larger than unique count returns everything; ties broken arbitrarily which I'll state. Alternative is a heap at O(n log k) — worse here. Let me write it: def top_k(nums, k): from collections import Counter; c = Counter(nums); buckets: list[list[int]] = [[] for _ in range(len(nums)+1)];\nfor num, freq in c.items(): buckets[freq].append(num);\nres = [];\nfor i in range(len(buckets)-1, 0, -1):\n for num in buckets[i]:\n  res.append(num);\n  if len(res) == k: return res;\nreturn res" },
+        { "role": "assistant", "content": "Complexity and one test you would add?" },
+        { "role": "user", "content": "Time O(n), space O(n). I'd add a test with k equal to the number of unique elements plus an empty-input test returning []." }
+      ],
+      "expected": {
+        "readiness": "interview_ready",
+        "dimensions": { "correctness": [4, 5], "decomposition": [3, 5], "assumptions": [3, 4], "tradeoffs": [3, 5], "depth": [3, 5], "communication": [4, 5] }
+      }
+    },
+    {
+      "id": "coding-weak-01",
+      "track": "coding",
+      "framework": "technical",
+      "rubricId": "technical-v1",
+      "messages": [
+        { "role": "assistant", "content": "Write a function that returns the k most frequent elements. Walk me through it." },
+        { "role": "user", "content": "I would sort the array and then loop through it counting. Something like sorted then count each one." },
+        { "role": "assistant", "content": "Complexity and one test you would add?" },
+        { "role": "user", "content": "Maybe O(n)? I would test with some numbers." }
+      ],
+      "expected": {
+        "readiness": "needs_foundation",
+        "dimensions": { "correctness": [1, 3], "decomposition": [1, 2], "assumptions": [1, 2], "tradeoffs": [1, 2], "depth": [1, 2], "communication": [2, 3] }
+      }
+    },
+    {
+      "id": "system-design-strong-01",
+      "track": "system-design",
+      "framework": "system-design",
+      "rubricId": "system-design-v1",
+      "messages": [
+        { "role": "assistant", "content": "Design a URL shortener for 100M URLs a month. Start with requirements." },
+        { "role": "user", "content": "Scope: create + redirect, 100M writes/month (~40/s avg, 400/s peak), 10:1 read-write ratio, 5-year retention. Non-goals: custom analytics dashboard. SLO: 99.9% redirect latency under 50ms. Capacity: ~6B URLs over 5 years, ~50 bytes metadata each, so ~300GB plus replicas." },
+        { "role": "assistant", "content": "Sketch the architecture and name your SPOFs." },
+        { "role": "user", "content": "API servers behind a load balancer; app servers generate base62 keys from a ZooKeeper-backed counter range allocator to avoid a DB hotspot. Metadata in Cassandra partitioned by key hash. Hot URLs in Redis with a 24h TTL. SPOFs: the counter allocator (mitigate with pre-allocated ranges per app server), single-region Cassandra (async replica in a second region, RPO minutes). Cache stampede guarded by request coalescing. Monitoring: redirect error rate, p99, cache hit ratio, allocator range exhaustion alerts." }
+      ],
+      "expected": {
+        "readiness": "strongly_prepared",
+        "dimensions": { "clarification": [4, 5], "architecture": [4, 5], "scalability": [4, 5], "reliability": [4, 5], "tradeoffs": [3, 5], "communication": [4, 5] }
+      }
+    },
+    {
+      "id": "system-design-weak-01",
+      "track": "system-design",
+      "framework": "system-design",
+      "rubricId": "system-design-v1",
+      "messages": [
+        { "role": "assistant", "content": "Design a URL shortener for 100M URLs a month. Start with requirements." },
+        { "role": "user", "content": "It should shorten URLs fast and handle lots of users." },
+        { "role": "assistant", "content": "Sketch the architecture and name your SPOFs." },
+        { "role": "user", "content": "A server with a database. Maybe add more servers if it gets slow. I don't know what SPOF means." }
+      ],
+      "expected": {
+        "readiness": "needs_foundation",
+        "dimensions": { "clarification": [1, 2], "architecture": [1, 2], "scalability": [1, 2], "reliability": [1, 2], "tradeoffs": [1, 2], "communication": [1, 3] }
+      }
+    },
+    {
+      "id": "data-ml-strong-01",
+      "track": "data-ml",
+      "framework": "data-ml",
+      "rubricId": "data-ml-v1",
+      "messages": [
+        { "role": "assistant", "content": "How would you build churn prediction for a subscription product?" },
+        { "role": "user", "content": "Frame it as: predict 30-day cancellation probability per account to prioritize save plays. Success metric is uplift in retained revenue on a holdout, with precision@k for the outreach list as the offline proxy. Baseline: logistic regression on tenure + usage features. Data: billing events, product telemetry, support tickets. Leakage guard: features must be knowable at prediction time — no post-cancellation events, no future subscription status. Split by time, not randomly." },
+        { "role": "assistant", "content": "How do you evaluate and ship it?" },
+        { "role": "user", "content": "Offline: precision@k and calibration curves sliced by plan tier and tenure; error analysis on false positives (annoyed healthy users). Then a randomized outreach experiment. Ship behind a flag with shadow scoring first, monitor feature drift and prediction distribution weekly, retrain monthly. Watch for bias: save-play targeting must not correlate with protected attributes — audit slices before launch." }
+      ],
+      "expected": {
+        "readiness": "strongly_prepared",
+        "dimensions": { "framing": [4, 5], "data_assumptions": [4, 5], "modeling": [3, 5], "evaluation": [4, 5], "experimentation": [4, 5], "deployment": [4, 5] }
+      }
+    },
+    {
+      "id": "data-ml-weak-01",
+      "track": "data-ml",
+      "framework": "data-ml",
+      "rubricId": "data-ml-v1",
+      "messages": [
+        { "role": "assistant", "content": "How would you build churn prediction for a subscription product?" },
+        { "role": "user", "content": "I would use a neural network on all the user data to predict who will leave. Deep learning usually gives the best accuracy." },
+        { "role": "assistant", "content": "How do you evaluate and ship it?" },
+        { "role": "user", "content": "Check the accuracy and then deploy it to production." }
+      ],
+      "expected": {
+        "readiness": "needs_foundation",
+        "dimensions": { "framing": [1, 3], "data_assumptions": [1, 2], "modeling": [1, 3], "evaluation": [1, 2], "experimentation": [1, 2], "deployment": [1, 2] }
+      }
+    },
+    {
+      "id": "product-strong-01",
+      "track": "product",
+      "framework": "general",
+      "rubricId": "general-v1",
+      "messages": [
+        { "role": "assistant", "content": "Our activation rate dropped 15% after a redesign. How do you approach it?" },
+        { "role": "user", "content": "First I'd confirm the drop is real: check the funnel definition didn't change with the redesign, segment by platform, cohort, and traffic source to localize it. My hypothesis tree: (1) new users can't find the core action, (2) added friction added steps, (3) performance regression. I'd quantify each with event data, then run one experiment on the highest-leverage cause — e.g. restoring the primary CTA above the fold for 50% — with activation at day 7 as the metric and a 2-week runtime." },
+        { "role": "assistant", "content": "The experiment is flat. Next step?" },
+        { "role": "user", "content": "Slice it: new vs returning, iOS vs Android, paid vs organic. If a segment moved, follow it. If truly flat everywhere, kill it and test hypothesis two. I'd also check guardrails — did support tickets or uninstalls move? A flat primary with worse guardrails still decides against shipping." }
+      ],
+      "expected": {
+        "readiness": "interview_ready",
+        "dimensions": { "relevance": [4, 5], "specificity": [4, 5], "depth": [4, 5], "communication": [4, 5] }
+      }
+    },
+    {
+      "id": "product-weak-01",
+      "track": "product",
+      "framework": "general",
+      "rubricId": "general-v1",
+      "messages": [
+        { "role": "assistant", "content": "Our activation rate dropped 15% after a redesign. How do you approach it?" },
+        { "role": "user", "content": "I would ask users what they think and try to make the design better. Maybe run some surveys." },
+        { "role": "assistant", "content": "The experiment is flat. Next step?" },
+        { "role": "user", "content": "Try a different design until something works." }
+      ],
+      "expected": {
+        "readiness": "needs_foundation",
+        "dimensions": { "relevance": [2, 3], "specificity": [1, 2], "depth": [1, 2], "communication": [2, 4] }
+      }
+    }
+  ]
+}

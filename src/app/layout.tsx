@@ -1,6 +1,19 @@
 import { Providers } from "@/components/providers";
+import { SkipLink } from "@/components/layout/SkipLink";
 import { Toaster } from "sonner";
+import type { Metadata } from "next";
 import "./globals.css";
+
+// Phase 13: document title + description (Lighthouse document-title and
+// meta-description checks; also the browser tab / share baseline).
+export const metadata: Metadata = {
+  title: {
+    default: "Interve AI — AI 面试训练平台",
+    template: "%s · Interve AI",
+  },
+  description:
+    "Evidence-grounded multimodal AI interview practice: adaptive mock interviews, rubric-based feedback, coding and system-design drills.",
+};
 
 export default function RootLayout({
   children,
@@ -10,11 +23,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="min-h-[100dvh] flex flex-col bg-background text-foreground font-sans tracking-tight">
-        <a href="#main-content" className="skip-nav">
-          跳转到主要内容
-        </a>
+        <SkipLink />
         <Providers>
-          <div id="main-content">{children}</div>
+          {/* tabIndex -1: skip-link focus target (not in tab order). */}
+          <div id="main-content" tabIndex={-1} className="outline-none">{children}</div>
         </Providers>
         <Toaster
           position="top-center"

@@ -1,13 +1,29 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { User, Bell, ShieldCheck, LockKey, SignOut, EnvelopeSimple, DeviceMobile } from "@phosphor-icons/react";
+import { User, Bell, ShieldCheck, LockKey, SignOut, EnvelopeSimple, DeviceMobile, GlobeHemisphereWest, PersonArmsSpread } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useAccessibilityStore } from "@/store/useAccessibilityStore";
 
 export default function SettingsPage() {
+  // Phase 6 (V2): preferences wired to real, persisted stores — no
+  // decorative toggles. LanguageContext persists `interve-lang`;
+  // useAccessibilityStore persists `accessibility-storage`.
+  const { lang, setLang, t } = useLanguage();
+  const {
+    isCalmMode,
+    toggleCalmMode,
+    isLiveCaptionsEnabled,
+    toggleLiveCaptions,
+    isDyslexiaMode,
+    toggleDyslexiaMode,
+    showLiveInsights,
+    toggleLiveInsights,
+  } = useAccessibilityStore();
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
       <div>
@@ -21,6 +37,72 @@ export default function SettingsPage() {
         transition={{ duration: 0.4 }}
         className="grid gap-6"
       >
+        {/* Phase 6 (V2): Language + Accessibility — real preferences.
+            Every control below writes to a persisted store on click. */}
+        <Card className="bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
+          <CardHeader className="border-b border-slate-100/50 pb-4">
+            <CardTitle className="text-lg font-serif flex items-center gap-2 text-slate-800">
+              <GlobeHemisphereWest className="w-5 h-5 text-sky-500" />
+              {t.settings.language} · {t.settings.accessibility}
+            </CardTitle>
+            <CardDescription>{t.settings.languageDesc} {t.settings.accessibilityDesc}</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <div className="font-medium text-sm text-slate-800">{t.settings.language}</div>
+                <div className="text-sm text-slate-500">{t.settings.languageDesc}</div>
+              </div>
+              <div className="flex gap-2 shrink-0" role="group" aria-label={t.settings.language}>
+                <Button
+                  variant={lang === "en" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setLang("en")}
+                  aria-pressed={lang === "en"}
+                  className={lang === "en" ? "bg-slate-900 hover:bg-slate-800 text-white" : ""}
+                >
+                  {t.settings.english}
+                </Button>
+                <Button
+                  variant={lang === "zh" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setLang("zh")}
+                  aria-pressed={lang === "zh"}
+                  className={lang === "zh" ? "bg-slate-900 hover:bg-slate-800 text-white" : ""}
+                >
+                  {t.settings.chinese}
+                </Button>
+              </div>
+            </div>
+            {([
+              { key: "calmMode", desc: "calmModeDesc", on: isCalmMode, toggle: toggleCalmMode },
+              { key: "liveCaptions", desc: "liveCaptionsDesc", on: isLiveCaptionsEnabled, toggle: toggleLiveCaptions },
+              { key: "dyslexiaMode", desc: "dyslexiaModeDesc", on: isDyslexiaMode, toggle: toggleDyslexiaMode },
+              { key: "liveInsights", desc: "liveInsightsDesc", on: showLiveInsights, toggle: toggleLiveInsights },
+            ] as const).map(({ key, desc, on, toggle }) => (
+              <div key={key} className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <div className="font-medium text-sm text-slate-800 flex items-center gap-2">
+                    <PersonArmsSpread className="w-4 h-4 text-slate-500" />
+                    {t.settings[key]}
+                  </div>
+                  <div className="text-sm text-slate-500">{t.settings[desc]}</div>
+                </div>
+                <Button
+                  variant={on ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggle}
+                  aria-pressed={on}
+                  aria-label={`${t.settings[key]}: ${on ? t.settings.on : t.settings.off}`}
+                  className={on ? "bg-slate-900 hover:bg-slate-800 text-white min-w-16" : "min-w-16"}
+                >
+                  {on ? t.settings.on : t.settings.off}
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
         {/* Profile Information */}
         <Card className="bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
           <CardHeader className="border-b border-slate-100/50 pb-4">

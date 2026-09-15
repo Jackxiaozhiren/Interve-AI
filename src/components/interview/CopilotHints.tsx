@@ -6,11 +6,12 @@ import { Lightbulb } from "@phosphor-icons/react";
 
 interface CopilotHintsProps {
   wpm: number;
-  visionData: { eyeContact: number; posture: number; expression: number } | null;
   isRecording: boolean;
 }
 
-export const CopilotHints = React.memo(({ wpm, visionData, isRecording }: CopilotHintsProps) => {
+// Phase 3: hints fire on observable pacing (WPM) only. A previous revision
+// also consumed fake eye-contact/posture numbers; that branch is removed.
+export const CopilotHints = React.memo(({ wpm, isRecording }: CopilotHintsProps) => {
   const [activeHint, setActiveHint] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,19 +22,7 @@ export const CopilotHints = React.memo(({ wpm, visionData, isRecording }: Copilo
 
     // Evaluate conditions every few seconds to prevent spam
     const interval = setInterval(() => {
-      // 1. Check Vision Telemetry
-      if (visionData) {
-        if (visionData.eyeContact < 60) {
-          setActiveHint("Tip: Try to look directly at the camera to maintain eye contact.");
-          return;
-        }
-        if (visionData.posture < 60) {
-          setActiveHint("Tip: Sit up straight and maintain an open posture.");
-          return;
-        }
-      }
-
-      // 2. Check WPM
+      // Check WPM (measured from the speech recognizer)
       if (wpm > 160) {
         setActiveHint("Tip: Your pacing is a bit fast. Try to slow down slightly.");
         return;
@@ -48,7 +37,7 @@ export const CopilotHints = React.memo(({ wpm, visionData, isRecording }: Copilo
     }, 3000); // Check every 3 seconds
 
     return () => clearInterval(interval);
-  }, [wpm, visionData, isRecording]);
+  }, [wpm, isRecording]);
 
   // Auto-hide hint after 5 seconds if not updated
   useEffect(() => {

@@ -5,12 +5,12 @@ import {
   expectNoOverflow,
   expectNoWhitescreen,
   mockApi,
-  useMocks,
+  shouldUseMocks,
 } from "./helpers";
 
 for (const route of ROUTES_14) {
   test(`mobile-390 no overflow: ${route}`, async ({ page }) => {
-    test.skip(!useMocks(), "needs E2E_MOCK=1");
+    test.skip(!shouldUseMocks(), "needs E2E_MOCK=1");
     await page.setViewportSize({ width: 390, height: 844 });
     await mockApi(page, "normal");
     await page.goto(route);

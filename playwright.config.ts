@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  // Phase 2: only Playwright specs. vitest owns tests/unit + tests/integration
+  // (*.test.ts) — without this, each runner executes the other's files.
+  testMatch: ['**/*.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -61,5 +64,8 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000,
+    // Phase 14: mock-journey lane. E2E_MOCK=1 boots the SAME dev server
+    // with deterministic AI (AI_MOCK=1); all other suites are unaffected.
+    env: process.env.E2E_MOCK ? { AI_MOCK: '1' } : {},
   },
 });

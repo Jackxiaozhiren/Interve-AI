@@ -16,7 +16,7 @@ export function GlobalShortcutsProvider() {
   const router = useRouter();
 
   // Ctrl/Cmd + K → Focus search input
-  const handleSearch = useCallback((e: KeyboardEvent) => {
+  const handleSearch = useCallback(() => {
     const searchInput = document.querySelector<HTMLInputElement>(
       '[data-shortcut="search"], input[type="search"], input[placeholder*="搜索"], input[placeholder*="search"]'
     );
@@ -28,14 +28,14 @@ export function GlobalShortcutsProvider() {
 
   // Ctrl/Cmd + N → New conversation
   const handleNewChat = useCallback(
-    (e: KeyboardEvent) => {
+    () => {
       router.push("/chat");
     },
     [router]
   );
 
   // Esc → Close modals/drawers
-  const handleEscape = useCallback((e: KeyboardEvent) => {
+  const handleEscape = useCallback(() => {
     // Let Radix/headless UI handle Esc for their portals first
     // Only intercept if no portal overlay is open
     const overlay = document.querySelector(
@@ -50,7 +50,7 @@ export function GlobalShortcutsProvider() {
   }, []);
 
   // Ctrl/Cmd + S → Save (prevent browser save, trigger form submit)
-  const handleSave = useCallback((e: KeyboardEvent) => {
+  const handleSave = useCallback(() => {
     const saveButton = document.querySelector<HTMLButtonElement>(
       'button[type="submit"], button[data-shortcut="save"]'
     );

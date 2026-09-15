@@ -8,6 +8,7 @@ import {
   HeroSection,
   FeaturesSection,
   DemoSection,
+  StatsStrip,
   PricingSection,
   AboutSection,
   CtaSection
@@ -50,6 +51,7 @@ export default function HomePage() {
         <HeroSection />
         <FeaturesSection />
         <DemoSection />
+        <StatsStrip />
         <PricingSection />
         <AboutSection />
         <CtaSection />

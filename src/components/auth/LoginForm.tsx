@@ -41,7 +41,13 @@ export function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    // NOTE (Phase 2): demo auth accepts any non-empty password. Real credential
+    // verification arrives with the Supabase Auth cutover (see STABILIZATION_REPORT).
+    // Requiring a non-empty password is a minimal anti-mistake guard, not security.
+    if (!email || !password) {
+      setError("Please enter your email and password.");
+      return;
+    }
     setError(null);
 
     try {
@@ -51,7 +57,7 @@ export function LoginForm() {
         username: email.split("@")[0],
         email,
       });
-    } catch (_err) {
+    } catch {
       setError("Login failed. Please check your credentials and try again.");
     }
   };
@@ -68,7 +74,7 @@ export function LoginForm() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 1, y: 0 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
       className="w-full max-w-md relative z-10"
@@ -185,8 +191,9 @@ export function LoginForm() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    tabIndex={-1}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded"
+                    aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? (
                       <EyeSlash weight="regular" className="w-5 h-5" />

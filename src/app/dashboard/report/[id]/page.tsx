@@ -5,15 +5,19 @@ import { useParams, useRouter } from "next/navigation";
 import { db, type Interview } from "@/lib/db";
 import { motion } from "framer-motion";
 import { 
-  ArrowLeft, FileText, CheckCircle, XCircle, WarningCircle, 
-  Lightbulb, ShieldCheck, UsersThree, ChartLineUp, Clock, 
+  ArrowLeft, FileText, CheckCircle, XCircle,
+  Lightbulb, ShieldCheck, UsersThree, ChartLineUp, Clock,
   Quotes, Code, Handshake
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/data";
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip as RechartsTooltip } from "recharts";
 import { DynamicLoader } from "@/components/ui/DynamicLoader";
 import { ReplayTimeline } from "@/components/interview/ReplayTimeline";
 import { BookOpen, ChatTeardropText, Compass, Users } from "@phosphor-icons/react";
+import { toEvaluationView } from "@/lib/eval-compat";
+import { retryPracticeHref } from "@/lib/retry-link";
+import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills, DrillPlan } from "@/components/evaluation/EvaluationView";
 
 const renderFlawsWithSTAR = (flawsText: string) => {
   if (!flawsText) return null;
@@ -117,18 +121,20 @@ export default function InterviewReportPage() {
 
   if (error || !interview) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <WarningCircle className="w-12 h-12 text-rose-500" />
-        <h2 className="text-xl font-bold text-slate-800">报告加载失败</h2>
-        <p className="text-slate-500">{error || "未找到对应的面试记录"}</p>
-        <Button onClick={() => router.push("/dashboard")} variant="outline">
-          返回控制台
-        </Button>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4">
+        <ErrorState
+          title="报告加载失败"
+          message={error || "未找到对应的面试记录"}
+          backHref="/dashboard"
+          backLabel="返回控制台"
+        />
       </div>
     );
   }
 
-  const { radarScores, councilDebate, qaReview, hireVerdict, verdictRationale, culturalTraits, timelineEvents, trainingRoadmap, transcript } = interview;
+  const { radarScores, councilDebate, qaReview, verdictRationale, culturalTraits, timelineEvents, trainingRoadmap, transcript } = interview;
+  // Phase 4: single view model over V2 (evidence-grounded) and legacy rows.
+  const view = toEvaluationView(interview);
 
   const timelineDuration = timelineEvents && timelineEvents.length > 0 
     ? timelineEvents[timelineEvents.length - 1].timestamp + 10000 // Add 10s buffer
@@ -143,35 +149,17 @@ export default function InterviewReportPage() {
     }
   };
 
-  const radarData = radarScores ? [
-    { subject: '逻辑思维 (Logic)', A: radarScores.logic || 0, fullMark: 100 },
-    { subject: '表达沟通 (Expression)', A: radarScores.expression || 0, fullMark: 100 },
-    { subject: '专业度 (Professionalism)', A: radarScores.professionalism || 0, fullMark: 100 },
-    { subject: '自信心 (Confidence)', A: radarScores.confidence || 0, fullMark: 100 },
-    { subject: '抗压能力 (Pressure)', A: radarScores.pressure || 0, fullMark: 100 },
-  ] : [];
-
-  const getVerdictStyle = (verdict?: string) => {
-    switch (verdict) {
-      case "strong_hire": return "bg-emerald-500/10 text-emerald-600 border-emerald-200";
-      case "hire": return "bg-emerald-400/10 text-emerald-600 border-emerald-200";
-      case "leaning_hire": return "bg-teal-500/10 text-teal-600 border-teal-200";
-      case "leaning_no_hire": return "bg-amber-500/10 text-amber-600 border-amber-200";
-      case "no_hire": return "bg-rose-500/10 text-rose-600 border-rose-200";
-      default: return "bg-slate-100 text-slate-600 border-slate-200";
-    }
-  };
-
-  const getVerdictLabel = (verdict?: string) => {
-    switch (verdict) {
-      case "strong_hire": return "Strong Hire (强烈推荐)";
-      case "hire": return "Hire (推荐录用)";
-      case "leaning_hire": return "Leaning Hire (倾向录用)";
-      case "leaning_no_hire": return "Leaning No Hire (倾向不录用)";
-      case "no_hire": return "No Hire (不推荐录用)";
-      default: return "Pending (评估中)";
-    }
-  };
+  // Radar: V2 dimensions (up to 6) or legacy 5-subject scores. Historical
+  // bodyLanguage values render if present; nothing new is written (Phase 3).
+  const radarData = view.kind === "v2"
+    ? view.dimensions.slice(0, 6).map((d) => ({ subject: d.name, A: d.score100, fullMark: 100 }))
+    : radarScores ? [
+      { subject: '逻辑思维 (Logic)', A: radarScores.logic || 0, fullMark: 100 },
+      { subject: '表达沟通 (Expression)', A: radarScores.expression || 0, fullMark: 100 },
+      { subject: '专业度 (Professionalism)', A: radarScores.professionalism || 0, fullMark: 100 },
+      { subject: '自信心 (Confidence)', A: radarScores.confidence || 0, fullMark: 100 },
+      { subject: '抗压能力 (Pressure)', A: radarScores.pressure || 0, fullMark: 100 },
+    ] : [];
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-sans selection:bg-indigo-100 selection:text-indigo-900 pb-20">
@@ -194,6 +182,9 @@ export default function InterviewReportPage() {
               <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-4 text-slate-500 hover:text-slate-900 -ml-2">
                 <ArrowLeft className="w-4 h-4 mr-2" /> 返回控制台
               </Button>
+              <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                Step 3 · Review
+              </p>
               <h1 className="text-4xl font-serif font-bold text-slate-900 tracking-tight">面试综合评估报告</h1>
               <p className="text-slate-500 mt-2 flex items-center gap-2">
                 <Clock className="w-4 h-4" /> 
@@ -201,16 +192,10 @@ export default function InterviewReportPage() {
               </p>
             </div>
             
-            <div className={`px-6 py-3 rounded-2xl border flex items-center gap-3 backdrop-blur-md shadow-sm ${getVerdictStyle(hireVerdict)}`}>
-              {hireVerdict?.includes("hire") && !hireVerdict.includes("no") ? (
-                <CheckCircle className="w-6 h-6" weight="fill" />
-              ) : (
-                <XCircle className="w-6 h-6" weight="fill" />
-              )}
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider opacity-80">Final Verdict</p>
-                <p className="text-lg font-bold">{getVerdictLabel(hireVerdict)}</p>
-              </div>
+            {/* Phase 4: readiness for V2 rows, badged legacy verdicts for history. No hire decisions are produced anymore. */}
+            <div>
+              <ReadinessBadge view={view} />
+              {!view.legacy && <ReadinessDisclaimer />}
             </div>
           </motion.div>
 
@@ -242,13 +227,14 @@ export default function InterviewReportPage() {
                 <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
                   <FileText className="w-5 h-5" weight="fill" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">总评分析 (Verdict Rationale)</h2>
+                <h2 className="text-xl font-bold text-slate-800">总评分析 (Readiness Rationale)</h2>
               </div>
+              {view.legacy && <div className="mb-4"><LegacyBanner text={view.disclaimer} /></div>}
               <p className="text-slate-700 leading-relaxed text-lg">
-                {verdictRationale || "暂无总评数据。"}
+                {view.readinessRationale || verdictRationale || "暂无总评数据。"}
               </p>
 
-              <DeliveryCoach stats={interview.deliveryStats} jobTitle={interview.title} />
+              <DeliveryCoach stats={interview.deliveryStats} />
             </motion.div>
 
             <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center">
@@ -279,16 +265,46 @@ export default function InterviewReportPage() {
             </motion.div>
           </motion.div>
 
-          {/* Council Debate */}
-          {councilDebate && (
+          {/* Dimensions (evidence-grounded for V2; transparency notes for legacy) */}
+          <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 bg-violet-50 text-violet-600 rounded-xl">
+                <ChartLineUp className="w-5 h-5" weight="fill" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">能力维度评估 (Rubric Dimensions)</h2>
+                <p className="text-sm text-slate-500">每个分数都附带原文证据与评估置信度</p>
+              </div>
+            </div>
+            {view.dimensions.length > 0 ? (
+              <DimensionsSection view={view} />
+            ) : (
+              <p className="text-slate-400">暂无维度数据。</p>
+            )}
+          </motion.div>
+
+          {/* Strengths / gaps / drills (V2 only) */}
+          {(view.strengths.length > 0 || view.weaknesses.length > 0 || view.nextDrills.length > 0) && (
+            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+              <StrengthsDrills view={view} />
+            </motion.div>
+          )}
+
+          {/* Drill plan from the curated bank (Phase 7 practice loop) */}
+          <motion.div variants={fadeIn}>
+            <DrillPlan view={view} />
+          </motion.div>
+
+          {/* Council Debate (legacy rows only — preserved history, not produced anymore) */}
+          {view.legacy && councilDebate && (
             <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
               <div className="flex items-center gap-3 mb-8">
                 <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-md">
                   <UsersThree className="w-5 h-5" weight="fill" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">招聘委员会决议 (Council Debate)</h2>
-                  <p className="text-sm text-slate-500">多维度AI考官的独立评估意见</p>
+                  <h2 className="text-xl font-bold text-slate-800">招聘委员会决议 (Council Debate) <span className="text-xs font-bold text-slate-400 align-middle">· 历史评估</span></h2>
+                  <p className="text-sm text-slate-500">多维度AI考官的独立评估意见（旧版评估保留，新版已改用证据型维度评估）</p>
                 </div>
               </div>
 
@@ -382,7 +398,7 @@ export default function InterviewReportPage() {
                 <div className="p-2.5 bg-orange-50 text-orange-600 rounded-xl">
                   <ShieldCheck className="w-5 h-5" weight="fill" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">行为与文化契合度 (Cultural Traits)</h2>
+                <h2 className="text-xl font-bold text-slate-800">行为与文化契合度 (Cultural Traits) <span className="text-xs font-bold text-slate-400 align-middle">· 历史评估</span></h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {culturalTraits.map((trait, idx) => (
@@ -416,6 +432,13 @@ export default function InterviewReportPage() {
                   <div className="mb-6">
                     <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg mb-3">Question {index + 1}</span>
                     <h3 className="text-lg font-semibold text-slate-900">{qa.question}</h3>
+                    {/* Phase 7: QA → Retry */}
+                    <a
+                      href={retryPracticeHref(qa.question)}
+                      className="inline-block mt-2 text-xs font-bold text-sky-600 hover:text-sky-500 hover:underline"
+                    >
+                      Retry this question →
+                    </a>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -483,49 +506,44 @@ export default function InterviewReportPage() {
   );
 }
 
-function DeliveryCoach({ stats, jobTitle }: { stats?: { wpm: number; fillerWords: number }, jobTitle?: string }) {
+function DeliveryCoach({ stats }: {
+  stats?: {
+    wpm: number; fillerWords: number; interruptions?: number;
+    avgAnswerSec?: number; avgRoundTripMs?: number; sttAvgConfidence?: number;
+    ttftMs?: number; whisperMs?: number; ttsStartupMs?: number;
+  }
+}) {
   if (!stats) return null;
-  
+
   const wpm = stats.wpm || 0;
   const filler = stats.fillerWords || 0;
-  
-  const isSenior = jobTitle && /(senior|lead|manager|director|principal|高级|专家|主管|总监)/i.test(jobTitle);
 
   const advices = [];
-  
-  // WPM Evaluation
+
+  // Phase 8 (19.3): observable delivery notes only. WPM/filler counts are
+  // measurements against a conventional 100–160 band — never evidence of
+  // nervousness, confidence, or authority.
   if (wpm > 160) {
-    if (isSenior) {
-      advices.push("语速过快：作为资深职位候选人，过快的语速可能会削弱你的权威感和沉稳度。建议在表达战略或关键决策时有意放慢节奏。");
-    } else {
-      advices.push("语速过快：这可能会让听众感到压迫，也容易暴露出紧张情绪。建议在表达关键点时适当停顿。");
-    }
+    advices.push(`语速 ${wpm} WPM，高于 100–160 参考带。关键论点处有意停顿，听众更容易跟上。`);
   } else if (wpm > 0 && wpm < 100) {
-    if (isSenior) {
-      advices.push("语速较慢：虽然沉稳，但过慢的语速可能会导致沟通效率下降。建议在阐述具体执行细节时适当加快节奏。");
-    } else {
-      advices.push("语速较慢：这可能给人缺乏自信或准备不足的印象。建议进行模拟录音训练，适当提升表达流畅度。");
-    }
+    advices.push(`语速 ${wpm} WPM，低于 100–160 参考带。检查是否有过长停顿或断句，必要时做模拟录音对比。`);
   } else if (wpm > 0) {
-    advices.push("语速适中：保持了很好的表达节奏，给考官留下稳健的印象。");
+    advices.push(`语速 ${wpm} WPM，落在 100–160 参考带内，节奏稳定。`);
   }
 
   // Filler Words Evaluation
   if (filler > 10) {
-    if (isSenior) {
-      advices.push(`口头禅过多 (共${filler}次)：对于高级职位而言，过多的“然后”、“就是”会严重影响表达的专业度和说服力。请务必用停顿代替无意识的填充词。`);
-    } else {
-      advices.push("口头禅过多：频繁使用“然后”、“就是”等词语会削弱表达的专业度。建议用短暂的停顿（Silence）来代替无意义的填充词。");
-    }
+    advices.push(`口头禅共 ${filler} 次（参考带 ≤5）。试着用短暂停顿替代无意识的填充词。`);
   } else if (filler > 5) {
-    advices.push("口头禅一般：偶有口头禅，属于正常范围，但仍有精进空间，可尝试更有意识地控制。");
+    advices.push(`口头禅 ${filler} 次，略高于参考带（≤5），仍有精进空间。`);
   } else {
-    advices.push("口头禅控制良好：表达清晰连贯，未出现明显的口语化冗余。");
+    advices.push("口头禅控制在参考带内，表达连贯。");
   }
 
   return (
     <div className="mt-8 pt-6 border-t border-slate-100">
-      <div className="flex gap-8 mb-6">
+      {/* Phase 8 (19.3): measured values only; "—" when unmeasured. */}
+      <div className="flex flex-wrap gap-8 mb-6">
         <div>
           <p className="text-xs text-slate-400 font-bold uppercase mb-1">语速 (WPM)</p>
           <p className="text-2xl font-serif text-slate-800">{wpm}</p>
@@ -533,6 +551,34 @@ function DeliveryCoach({ stats, jobTitle }: { stats?: { wpm: number; fillerWords
         <div>
           <p className="text-xs text-slate-400 font-bold uppercase mb-1">口头禅 (Filler Words)</p>
           <p className="text-2xl font-serif text-slate-800">{filler}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1">打断 (Interruptions)</p>
+          <p className="text-2xl font-serif text-slate-800">{stats.interruptions ?? "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1">平均作答 (Avg Answer)</p>
+          <p className="text-2xl font-serif text-slate-800">{stats.avgAnswerSec !== undefined ? `${stats.avgAnswerSec}s` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1">平均往返 (Round Trip)</p>
+          <p className="text-2xl font-serif text-slate-800">{stats.avgRoundTripMs !== undefined ? `${(stats.avgRoundTripMs / 1000).toFixed(1)}s` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1">STT 置信度</p>
+          <p className="text-2xl font-serif text-slate-800">{stats.sttAvgConfidence !== undefined ? stats.sttAvgConfidence.toFixed(2) : "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1" title="发送到首个 AI 回复耗时">TTFT</p>
+          <p className="text-2xl font-serif text-slate-800">{stats.ttftMs !== undefined ? `${(stats.ttftMs / 1000).toFixed(1)}s` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1" title="本地语音转文字耗时">STT 耗时</p>
+          <p className="text-2xl font-serif text-slate-800">{stats.whisperMs !== undefined ? `${(stats.whisperMs / 1000).toFixed(1)}s` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1" title="语音请求到首次发声耗时">TTS 启动</p>
+          <p className="text-2xl font-serif text-slate-800">{stats.ttsStartupMs !== undefined ? `${(stats.ttsStartupMs / 1000).toFixed(1)}s` : "—"}</p>
         </div>
       </div>
       

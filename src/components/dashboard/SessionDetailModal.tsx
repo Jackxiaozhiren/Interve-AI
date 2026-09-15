@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Play, Timer, ChatCircleDots, ThumbsUp, ThumbsDown, HandHeart, X } from "@phosphor-icons/react";
+import { Play, Timer, ChatCircleDots, X } from "@phosphor-icons/react";
 import { ExportDossierButton } from "@/components/dashboard/ExportDossierButton";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { TextReveal } from "@/components/ui/text-reveal";
@@ -11,17 +11,13 @@ import { InterviewTimeline } from "@/components/interview/InterviewTimeline";
 import { KnowledgeMatchLoader } from "@/components/dashboard/KnowledgeMatchLoader";
 import { useModalState } from "@/app/dashboard/layout";
 import type { Interview } from "@/lib/db";
-
-const VERDICT_STYLES = {
-  strong_hire: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: ThumbsUp, label: 'Strong Hire' },
-  hire: { bg: 'bg-emerald-50/50', border: 'border-emerald-100', text: 'text-emerald-600', icon: ThumbsUp, label: 'Hire' },
-  leaning_hire: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', icon: HandHeart, label: 'Leaning Hire' },
-  leaning_no_hire: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: HandHeart, label: 'Leaning No Hire' },
-  no_hire: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', icon: ThumbsDown, label: 'No Hire' },
-};
+import { toEvaluationView } from "@/lib/eval-compat";
+import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills } from "@/components/evaluation/EvaluationView";
 
 export function SessionDetailModal({ session, onClose }: { session: Interview, onClose: () => void }) {
   const { setIsModalOpen } = useModalState();
+  // Phase 4: single view model over V2 and legacy rows.
+  const view = toEvaluationView(session);
 
   // Lock body scroll when modal is open and trigger layout scale down
   useEffect(() => {
@@ -32,6 +28,17 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
       setIsModalOpen(false);
     };
   }, [setIsModalOpen]);
+
+  // Phase 9: Esc closes; focus moves into the dialog and back on close.
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <motion.div
@@ -72,6 +79,7 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
             </Button>
             <ExportDossierButton session={session} fileName={`Interview_Dossier_${session.id}.pdf`} />
             <button 
+              ref={closeRef}
               onClick={onClose}
               aria-label="Close session details"
               className="w-12 h-12 rounded-full bg-slate-50 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 text-slate-500 flex items-center justify-center transition-colors ml-2"
@@ -84,23 +92,22 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
         {/* Scrollable Content */}
         <div className="overflow-y-auto p-6 md:p-10 pb-20 bg-gradient-to-b from-slate-50/50 to-transparent flex-1 relative custom-scrollbar">
           <div id={`dossier-${session.id}`} className="space-y-16">
-            {/* Verdict Banner */}
-            {session.hireVerdict && VERDICT_STYLES[session.hireVerdict as keyof typeof VERDICT_STYLES] && (
-              <div className={`p-8 rounded-[32px] border ${VERDICT_STYLES[session.hireVerdict as keyof typeof VERDICT_STYLES].bg} ${VERDICT_STYLES[session.hireVerdict as keyof typeof VERDICT_STYLES].border} shadow-sm relative overflow-hidden`}>
+            {/* Readiness Banner (Phase 4: V2 readiness; legacy verdicts badged) */}
+            {view.kind !== "none" && (
+              <div className="p-8 rounded-[32px] border border-slate-100 bg-slate-50/60 shadow-sm relative overflow-hidden">
                 <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start md:items-center">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      {React.createElement(VERDICT_STYLES[session.hireVerdict as keyof typeof VERDICT_STYLES].icon, { 
-                        weight: "duotone", 
-                        className: `w-8 h-8 ${VERDICT_STYLES[session.hireVerdict as keyof typeof VERDICT_STYLES].text}` 
-                      })}
-                      <h3 className={`font-serif text-[2rem] tracking-tight ${VERDICT_STYLES[session.hireVerdict as keyof typeof VERDICT_STYLES].text} leading-none`}>
-                        {VERDICT_STYLES[session.hireVerdict as keyof typeof VERDICT_STYLES].label}
-                      </h3>
-                    </div>
-                    <p className={`text-[1.1rem] leading-relaxed font-medium ${VERDICT_STYLES[session.hireVerdict as keyof typeof VERDICT_STYLES].text} opacity-90`}>
-                      {session.verdictRationale || "Based on your overall interview performance."}
-                    </p>
+                    <ReadinessBadge view={view} />
+                    {!view.legacy ? (
+                      <div className="mt-3 max-w-[60ch]"><ReadinessDisclaimer /></div>
+                    ) : (
+                      <div className="mt-3 max-w-[60ch]"><LegacyBanner text={view.disclaimer} /></div>
+                    )}
+                    {view.readinessRationale && (
+                      <p className="text-[1.05rem] leading-relaxed font-medium text-slate-700 opacity-90 mt-3">
+                        {view.readinessRationale}
+                      </p>
+                    )}
                   </div>
                   
                   {/* Delivery Stats Mini-Cards */}
@@ -126,8 +133,24 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
               </div>
             )}
 
-            {/* Council Debate */}
-            {session.councilDebate && (
+            {/* Dimensions (Phase 4: evidence-grounded; legacy rows show transparency notes) */}
+            {view.dimensions.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <h4 className="text-[1.5rem] font-serif text-[#111111] leading-relaxed">Rubric Dimensions</h4>
+                  <div className="h-px flex-1 bg-slate-100"></div>
+                </div>
+                {view.legacy && <LegacyBanner text={view.disclaimer} />}
+                <DimensionsSection view={view} />
+              </div>
+            )}
+
+            {(view.strengths.length > 0 || view.weaknesses.length > 0 || view.nextDrills.length > 0) && (
+              <StrengthsDrills view={view} />
+            )}
+
+            {/* Council Debate (legacy rows only — preserved history) */}
+            {view.legacy && session.councilDebate && (
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
                   <h4 className="text-[1.5rem] font-serif text-[#111111] leading-relaxed">Hiring Council Debate</h4>
@@ -194,11 +217,11 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
               </div>
             )}
 
-            {/* Cultural Traits */}
+            {/* Cultural Traits (legacy rows only — preserved history) */}
             {session.culturalTraits && session.culturalTraits.length > 0 && (
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                  <h4 className="text-[1.5rem] font-serif text-[#111111] leading-relaxed">Cultural & Behavioral Traits</h4>
+                  <h4 className="text-[1.5rem] font-serif text-[#111111] leading-relaxed">Cultural & Behavioral Traits <span className="text-xs font-sans font-bold text-slate-400">· 历史评估</span></h4>
                   <div className="h-px flex-1 bg-slate-100"></div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

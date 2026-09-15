@@ -1,21 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mic, Send, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Mic, Send, CheckCircle2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { InterviewQuestion } from "@/lib/question-bank";
+import { DRILL_BANK } from "@/ai/drills/bank";
 
 import { db } from "@/lib/db";
+
+interface AttemptRow {
+  score: number;
+  createdAt: Date | string;
+  // §9 persistence: per-attempt grounding (optional — old rows lack it).
+  evidence?: string[];
+  confidence?: "high" | "medium" | "low";
+}
+
+/** Client-side guard (no zod in client bundle): keep string quotes, cap at 5 (schema max), enum-falls-back-to-medium, never throws. */
+export function normalizeAttemptGrounding(input: unknown): { evidence: string[]; confidence: "high" | "medium" | "low" } {
+  if (typeof input !== "object" || input === null) return { evidence: [], confidence: "medium" };
+  const o = input as Record<string, unknown>;
+  const evidence = Array.isArray(o.evidence)
+    ? (o.evidence as unknown[]).filter((q): q is string => typeof q === "string" && q.length > 0).slice(0, 5)
+    : [];
+  const confidence = o.confidence === "high" || o.confidence === "low" ? o.confidence : "medium";
+  return { evidence, confidence };
+}
+
+/** Module-scope fetch so effects only subscribe, never setState synchronously. */
+async function fetchAttempts(questionId: string): Promise<AttemptRow[]> {
+  const rows = await db.practiceSessions.where('questionId').equals(questionId).toArray();
+  return (rows as AttemptRow[]).slice(0, 5).map((r) => ({
+    score: r.score,
+    createdAt: r.createdAt,
+    // Guarded passthrough: old rows without grounding stay score-only.
+    ...(Array.isArray(r.evidence) && r.evidence.length > 0
+      ? { evidence: r.evidence.filter((q): q is string => typeof q === "string" && q.length > 0).slice(0, 5) }
+      : {}),
+    ...(r.confidence === "high" || r.confidence === "low" || r.confidence === "medium"
+      ? { confidence: r.confidence }
+      : {}),
+  }));
+}
 
 export default function PracticeSessionClient({ question }: { question: InterviewQuestion }) {
   const [answer, setAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<null | { score: number, strengths: string[], improvements: string[] }>(null);
+  const [feedback, setFeedback] = useState<null | { score: number, strengths: string[], improvements: string[], evidence?: string[], confidence?: "high" | "medium" | "low", drillIds?: string[] }>(null);
+  // Phase 7: attempt history for Retry → Compare.
+  const [attempts, setAttempts] = useState<AttemptRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAttempts(question.id)
+      .then((rows) => { if (!cancelled) setAttempts(rows); })
+      .catch(() => { /* history is best-effort; practice itself must work */ });
+    return () => { cancelled = true; };
+  }, [question.id]);
 
   const handleSubmit = async () => {
     if (!answer.trim()) return;
@@ -35,6 +81,9 @@ export default function PracticeSessionClient({ question }: { question: Intervie
       const data = await response.json();
       setFeedback(data);
 
+      // §9: persist grounding with the attempt (guarded — old API responses
+      // without an envelope store score-only, exactly as before).
+      const grounding = normalizeAttemptGrounding(data);
       await db.practiceSessions.add({
         questionId: question.id,
         questionTitle: question.title,
@@ -43,8 +92,14 @@ export default function PracticeSessionClient({ question }: { question: Intervie
         score: data.score,
         strengths: data.strengths,
         improvements: data.improvements,
+        ...(grounding.evidence.length > 0 ? { evidence: grounding.evidence, confidence: grounding.confidence } : {}),
         createdAt: new Date(),
       });
+      try {
+        setAttempts(await fetchAttempts(question.id));
+      } catch {
+        // best-effort history refresh
+      }
       
     } catch (e) {
       console.error(e);
@@ -129,7 +184,10 @@ export default function PracticeSessionClient({ question }: { question: Intervie
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-slate-900">Analysis Complete</h2>
-                    <p className="text-sm text-slate-500">Based on standard interview rubrics</p>
+                    <p className="text-sm text-slate-500">
+                      Based on standard interview rubrics
+                      {feedback.confidence ? ` · Evaluator confidence: ${feedback.confidence} (evidence sufficiency)` : ""}
+                    </p>
                   </div>
                   <div className="ml-auto text-3xl font-bold text-emerald-600">
                     {feedback.score}<span className="text-base text-slate-400 font-normal">/100</span>
@@ -173,6 +231,85 @@ export default function PracticeSessionClient({ question }: { question: Intervie
                     Try Again
                   </Button>
                 </div>
+
+                {/* Phase 4: evidence grounding — verbatim quotes behind the score. */}
+                {feedback.evidence && feedback.evidence.length > 0 && (
+                  <div className="mt-2 rounded-xl border border-slate-200/70 bg-white/60 p-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      What earned this score
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {feedback.evidence.map((q: string, i: number) => (
+                        <li key={i} className="text-sm text-slate-600 border-l-2 border-emerald-300 pl-3 italic">
+                          “{q}”
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Phase 5: drill loop — bank tasks for the weak areas, back to the hub. */}
+                {feedback.drillIds && feedback.drillIds.length > 0 && (
+                  <div className="mt-2 rounded-xl border border-indigo-200/60 bg-indigo-50/40 p-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-indigo-500 mb-2">
+                      Recommended drills
+                    </h3>
+                    <ul className="space-y-2">
+                      {feedback.drillIds.map((id: string) => {
+                        const drill = DRILL_BANK.find((d) => d.id === id);
+                        if (!drill) return null;
+                        return (
+                          <li key={id} className="text-sm text-slate-700">
+                            <Link
+                              href={`/practice?q=${encodeURIComponent(drill.title)}`}
+                              className="font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
+                            >
+                              {drill.title}
+                            </Link>
+                            <span className="text-slate-500"> · {drill.titleZh}</span>
+                            <p className="text-[13px] text-slate-600 mt-0.5">{drill.task}</p>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Phase 7: attempt history (Retry → Compare) */}
+                {attempts.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-emerald-100">
+                    <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                      <History className="w-4 h-4 text-slate-400" />
+                      Your attempts on this question
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {attempts.map((a, i) => {
+                        const prev = attempts[i + 1]?.score;
+                        const delta = prev !== undefined ? a.score - prev : null;
+                        // §9: grounding rides in the tooltip — pills render
+                        // exactly as before for old rows without evidence.
+                        const title = new Date(a.createdAt).toLocaleString()
+                          + (a.evidence && a.evidence.length > 0
+                            ? ` · Basis: “${a.evidence[0]}”${a.evidence.length > 1 ? ` (+${a.evidence.length - 1} more)` : ""} · Evaluator confidence: ${a.confidence ?? "medium"}`
+                            : "");
+                        return (
+                          <span
+                            key={i}
+                            title={title}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-600"
+                          >
+                            {a.score}
+                            {delta !== null && delta !== 0 && (
+                              <span className={delta > 0 ? "text-emerald-600" : "text-rose-500"}>
+                                {delta > 0 ? `+${delta}` : delta}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

@@ -1,14 +1,5 @@
-/* eslint-disable */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Phase 2: api-client is an untyped Dexie-compat shim (30 any). Scoped to this rule only; full typed rewrite tracked in MASTER_AUDIT P2-1. */
 import { supabase } from './supabase';
-
-// Type helper to recursively convert snake_case to camelCase
-type SnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
-  ? `${T}${Capitalize<SnakeToCamelCase<U>>}`
-  : S;
-
-type CamelToSnakeCase<S extends string> = S extends `${infer T}${infer U}`
-  ? `${T extends Capitalize<T> ? "_" : ""}${Lowercase<T>}${CamelToSnakeCase<U>}`
-  : S;
 
 // Generic converter functions
 export function toCamelCase(obj: any): any {
@@ -57,6 +48,11 @@ const interviews = {
     const snakeChanges = toSnakeCase(changes);
     snakeChanges.updated_at = new Date().toISOString();
     const { error } = await supabase.from('interviews').update(snakeChanges).eq('id', id);
+    if (error) throw error;
+  },
+  // Phase 10: user-controlled deletion (Privacy Center).
+  async remove(id: number | string): Promise<void> {
+    const { error } = await supabase.from('interviews').delete().eq('id', id);
     if (error) throw error;
   },
   orderBy(field: string) {
@@ -140,6 +136,16 @@ const practiceSessions = {
     const { data: result, error } = await supabase.from('practice_sessions').insert(snakeData).select('id').single();
     if (error) throw error;
     return result.id;
+  },
+  // Phase 10: user-controlled deletion + export (Privacy Center).
+  async remove(id: number | string): Promise<void> {
+    const { error } = await supabase.from('practice_sessions').delete().eq('id', id);
+    if (error) throw error;
+  },
+  async toArray(): Promise<any[]> {
+    const { data, error } = await supabase.from('practice_sessions').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return toCamelCase(data || []);
   },
   where(field: string) {
     const snakeField = field.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
@@ -266,7 +272,7 @@ export const dbClient = {
 
 import { useState, useEffect } from 'react';
 
-export function useLiveQuery<T>(querier: () => Promise<T> | T | undefined, deps: any[] = []): T | undefined {
+export function useLiveQuery<T>(querier: () => Promise<T> | T | undefined, deps: React.DependencyList = []): T | undefined {
   const [data, setData] = useState<T | undefined>(undefined);
 
   useEffect(() => {
@@ -281,6 +287,9 @@ export function useLiveQuery<T>(querier: () => Promise<T> | T | undefined, deps:
     };
     fetchData();
     return () => { isMounted = false; };
+    // `deps` is caller-controlled by design (variable dep list): callers pass
+    // inline closures, so a static list cannot be verified. Tracked debt, see
+    // MASTER_AUDIT P2-3. Do not remove without refactoring all call sites.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 

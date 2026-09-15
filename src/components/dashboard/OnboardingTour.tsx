@@ -40,6 +40,11 @@ export function OnboardingTour() {
     }
   }, []);
 
+  const handleClose = () => {
+    setIsVisible(false);
+    localStorage.setItem("interve_has_seen_onboarding", "true");
+  };
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1);
@@ -48,10 +53,16 @@ export function OnboardingTour() {
     }
   };
 
-  const handleClose = () => {
-    setIsVisible(false);
-    localStorage.setItem("interve_has_seen_onboarding", "true");
-  };
+  // Keyboard parity (WCAG 2.1.1): Esc dismisses like the X button.
+  // SessionModal already sets this precedent.
+  useEffect(() => {
+    if (!isVisible) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
@@ -72,10 +83,14 @@ export function OnboardingTour() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="w-full max-w-md"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="onboarding-tour-title"
             >
               <Card className="bg-white/90 backdrop-blur-2xl border-white/50 shadow-2xl overflow-hidden relative">
                 <button 
                   onClick={handleClose}
+                  aria-label="Close onboarding tour"
                   className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1"
                 >
                   <X className="w-5 h-5" />
@@ -105,7 +120,7 @@ export function OnboardingTour() {
                       transition={{ duration: 0.2 }}
                       className="space-y-3 min-h-[100px]"
                     >
-                      <h3 className="text-xl font-serif font-semibold text-slate-900">
+                      <h3 id="onboarding-tour-title" className="text-xl font-serif font-semibold text-slate-900">
                         {steps[currentStep].title}
                       </h3>
                       <p className="text-sm text-slate-500 leading-relaxed max-w-[300px] mx-auto">

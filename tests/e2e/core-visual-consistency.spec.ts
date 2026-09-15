@@ -1,11 +1,15 @@
 import { test } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { loginAs } from '../helpers';
 
 test.describe('Core Functionality & Visual Consistency', () => {
   test.setTimeout(180000); // 3 minutes per browser-resolution combo
 
   test('run full validation flow', async ({ page }, testInfo) => {
+    // Authenticate first so guarded pages (dashboard/chat/...) render
+    // instead of redirecting to /login.
+    await loginAs(page);
     // Project name is format: browser-1280x720
     const parts = testInfo.project.name.split('-');
     const browserName = parts[0];
@@ -30,8 +34,10 @@ test.describe('Core Functionality & Visual Consistency', () => {
 
     // --- 1. Home Page ---
     await test.step('Home Page Validation', async () => {
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
+      // NOTE: domcontentloaded (not networkidle) — background workers and
+      // telemetry keep connections busy on several pages.
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1500);
       await captureScreenshot('home_initial');
       
       // Scroll down to verify navbar glassmorphism
@@ -47,12 +53,11 @@ test.describe('Core Functionality & Visual Consistency', () => {
 
     // --- 2. Chat Interface ---
     await test.step('Chat Interface Validation', async () => {
-      const response = await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
+      const response = await page.goto('/chat', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1500);
       if (response && response.status() === 404) {
         console.log('[WARN] /chat is 404. Trying /interview instead');
-        await page.goto('/interview');
-        await page.waitForLoadState('networkidle');
+        await page.goto('/interview', { waitUntil: 'domcontentloaded' });
       }
       
       await page.waitForTimeout(1000);
@@ -96,7 +101,7 @@ test.describe('Core Functionality & Visual Consistency', () => {
     for (const p of pages) {
       await test.step(`Auxiliary Page: ${p.name}`, async () => {
         try {
-          await page.goto(p.url, { waitUntil: 'networkidle', timeout: 15000 });
+          await page.goto(p.url, { waitUntil: 'domcontentloaded', timeout: 15000 });
           await page.waitForTimeout(1000);
           await captureScreenshot(`aux_${p.name}`);
         } catch (e) {

@@ -9,16 +9,20 @@ import { buttonVariants } from "@/components/ui/button";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { db, type Interview } from "@/lib/db";
+import { sessionScore, toEvaluationView } from "@/lib/eval-compat";
+import { READINESS_META, type ReadinessLevel } from "@/ai/evaluation-contract";
 import { bentoContainerVariant, bentoCardVariant, fadeUpVariant } from "@/lib/motion";
 
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { EmptyDashboardState } from "@/components/dashboard/EmptyDashboardState";
+import { PageHeader, StatusBadge } from "@/components/data";
 import { SessionDetailModal } from "@/components/dashboard/SessionDetailModal";
 import { ContinuousLearning } from "@/components/dashboard/ContinuousLearning";
 import { AchievementShowcase } from "@/components/dashboard/AchievementShowcase";
 import { GrowthTrendChart, type TrendDataPoint } from "@/components/dashboard/GrowthTrendChart";
 import { SkillBreakdownChart, type RadarDataPoint } from "@/components/dashboard/SkillBreakdownChart";
 import { SystemTelemetry } from "@/components/dashboard/SystemTelemetry";
+import { ProgressInsights } from "@/components/dashboard/ProgressInsights";
 
 import {
   Plus,
@@ -26,7 +30,6 @@ import {
   Trophy,
   ClockCountdown,
   Target,
-  Sparkle,
   TrendUp,
   UserCircle,
   CalendarBlank,
@@ -58,24 +61,16 @@ export default function DashboardPage() {
 
   const completedSessions = sessions.filter(s => s.status === 'completed');
   const totalSessions = sessions.length;
+  // Phase 4: unified score — V2 dimension mean, else legacy radar mean.
   const avgScore = completedSessions.length > 0
-    ? Math.round(completedSessions.reduce((acc, s) => {
-        const scores = s.radarScores;
-        if (!scores) return acc;
-        const vals = [scores.logic, scores.expression, scores.professionalism, scores.confidence, scores.pressure, scores.bodyLanguage].filter(Boolean);
-        return acc + (vals.reduce((a, b) => a + b, 0) / vals.length);
-      }, 0) / completedSessions.length)
+    ? Math.round(completedSessions.reduce((acc, s) => acc + (sessionScore(s) ?? 0), 0) / completedSessions.length)
     : 0;
 
   // Growth trend data
   const trendData: TrendDataPoint[] = completedSessions
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     .map((s, i) => {
-      const scores = s.radarScores;
-      const score = scores
-        ? Math.round([scores.logic, scores.expression, scores.professionalism, scores.confidence, scores.pressure, scores.bodyLanguage].filter(Boolean).reduce((a, b) => a + b, 0) / [scores.logic, scores.expression, scores.professionalism, scores.confidence, scores.pressure, scores.bodyLanguage].filter(Boolean).length)
-        : 0;
-      return { name: `Session ${i + 1}`, score, sessionId: String(s.id) };
+      return { name: `Session ${i + 1}`, score: sessionScore(s) ?? 0, sessionId: String(s.id) };
     });
 
   // Radar data from latest and first session
@@ -86,14 +81,34 @@ export default function DashboardPage() {
     ? completedSessions.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0]
     : null;
 
-  const radarData: RadarDataPoint[] = latestCompleted?.radarScores ? [
-    { subject: 'Logic', A: latestCompleted.radarScores.logic || 0, B: firstCompleted?.radarScores?.logic || 0 },
-    { subject: 'Expression', A: latestCompleted.radarScores.expression || 0, B: firstCompleted?.radarScores?.expression || 0 },
-    { subject: 'Confidence', A: latestCompleted.radarScores.confidence || 0, B: firstCompleted?.radarScores?.confidence || 0 },
-    { subject: 'Pressure', A: latestCompleted.radarScores.pressure || 0, B: firstCompleted?.radarScores?.pressure || 0 },
-    { subject: 'Body Lang', A: latestCompleted.radarScores.bodyLanguage || 0, B: firstCompleted?.radarScores?.bodyLanguage || 0 },
-    { subject: 'Professional', A: latestCompleted.radarScores.professionalism || 0, B: firstCompleted?.radarScores?.professionalism || 0 },
-  ] : [];
+  // Radar data: V2 dimensions when available, else legacy subjects.
+  const latestView = latestCompleted ? toEvaluationView(latestCompleted) : null;
+  const firstView = firstCompleted ? toEvaluationView(firstCompleted) : null;
+  const radarSubjects: { id: string; name: string }[] =
+    latestView && latestView.dimensions.length > 0
+      ? latestView.dimensions.slice(0, 6).map((d) => ({ id: d.id, name: d.name }))
+      : [
+          { id: "logic", name: "Logic" },
+          { id: "expression", name: "Expression" },
+          { id: "confidence", name: "Confidence" },
+          { id: "pressure", name: "Pressure" },
+          { id: "bodyLanguage", name: "Body Lang" },
+          { id: "professionalism", name: "Professional" },
+        ];
+  const radarData: RadarDataPoint[] = latestView && latestView.dimensions.length > 0
+    ? radarSubjects.map(({ id, name }) => ({
+        subject: name,
+        A: latestView.dimensions.find((d) => d.id === id)?.score100 ?? 0,
+        B: firstView?.dimensions.find((d) => d.id === id)?.score100 ?? 0,
+      }))
+    : latestCompleted?.radarScores ? [
+      { subject: 'Logic', A: latestCompleted.radarScores.logic || 0, B: firstCompleted?.radarScores?.logic || 0 },
+      { subject: 'Expression', A: latestCompleted.radarScores.expression || 0, B: firstCompleted?.radarScores?.expression || 0 },
+      { subject: 'Confidence', A: latestCompleted.radarScores.confidence || 0, B: firstCompleted?.radarScores?.confidence || 0 },
+      { subject: 'Pressure', A: latestCompleted.radarScores.pressure || 0, B: firstCompleted?.radarScores?.pressure || 0 },
+      { subject: 'Body Lang', A: latestCompleted.radarScores.bodyLanguage || 0, B: firstCompleted?.radarScores?.bodyLanguage || 0 },
+      { subject: 'Professional', A: latestCompleted.radarScores.professionalism || 0, B: firstCompleted?.radarScores?.professionalism || 0 },
+    ] : [];
 
   const handleStartMock = () => router.push("/setup");
 
@@ -116,28 +131,26 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
       <div className="space-y-12 pb-20">
-        {/* Header */}
+        {/* Header：全站统一 PageHeader（Step 3 · Review 叙事） */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={fadeUpVariant}
-          className="flex items-center justify-between"
         >
-          <div>
-            <h1 className="text-[2.5rem] md:text-[3rem] font-serif tracking-tight text-[#111111] leading-none mb-2">
-              Interve AI 控制台
-            </h1>
-            <p className="text-slate-500 font-medium text-[15px]">
-              你的面试成长仪表盘 · {completedSessions.length} 次已完成面试
-            </p>
-          </div>
-          <Link
-            href="/setup"
-            className={buttonVariants({ variant: "default", className: "rounded-full px-8 h-14 gap-3 font-semibold text-base shadow-[0_8px_24px_rgba(22,93,255,0.2)] bg-[#165DFF] hover:bg-[#4080FF] text-white transition-all active:scale-[0.98] border border-[#165DFF]/20 group" })}
-          >
-            <Plus weight="bold" className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-            New Mock Interview
-          </Link>
+          <PageHeader
+            eyebrow="Step 3 · Review"
+            title="Interve AI 控制台"
+            description={`你的面试成长仪表盘 · ${completedSessions.length} 次已完成面试`}
+            actions={
+              <Link
+                href="/setup"
+                className={buttonVariants({ variant: "default", className: "rounded-full px-8 h-14 gap-3 font-semibold text-base shadow-[0_8px_24px_rgba(22,93,255,0.2)] bg-[#165DFF] hover:bg-[#4080FF] text-white transition-all active:scale-[0.98] border border-[#165DFF]/20 group" })}
+              >
+                <Plus weight="bold" className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                New Mock Interview
+              </Link>
+            }
+          />
         </motion.div>
 
         {/* Stats Bento Grid */}
@@ -213,16 +226,22 @@ export default function DashboardPage() {
               <h4 className="text-lg font-semibold text-[#111111] leading-snug mb-3 line-clamp-2">
                 {sessions[0]?.title || "Untitled Session"}
               </h4>
-              {sessions[0]?.hireVerdict && (
-                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                  sessions[0].hireVerdict.includes('hire') && !sessions[0].hireVerdict.includes('no')
-                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                    : 'bg-amber-100 text-amber-700 border border-amber-200'
-                }`}>
-                  <Sparkle weight="fill" className="w-3 h-3" />
-                  {sessions[0].hireVerdict.replace(/_/g, ' ')}
-                </div>
-              )}
+              {/* Phase 4: readiness (V2) or badged legacy verdict. */}
+              {(() => {
+                const v = sessions[0] ? toEvaluationView(sessions[0]) : null;
+                if (!v || v.kind === "none") return null;
+                const label = v.legacy
+                  ? v.readinessLabel ?? "Legacy"
+                  : v.readinessLabel
+                    ? READINESS_META[v.readinessLabel as ReadinessLevel]?.label ?? v.readinessLabel
+                    : "Pending";
+                return (
+                  <StatusBadge
+                    status={v.legacy ? "legacy" : v.readinessLabel}
+                    label={v.legacy ? label : `${label}${v.readinessLabel && v.readinessLabel in READINESS_META ? ` (${READINESS_META[v.readinessLabel as ReadinessLevel].labelZh})` : ""}`}
+                  />
+                );
+              })()}
             </SpotlightCard>
           </motion.div>
         </motion.div>
@@ -294,6 +313,9 @@ export default function DashboardPage() {
         {/* Delivery Telemetry Trends */}
         <ContinuousLearning />
 
+        {/* Progress Pulse (Phase 7: beyond averages) */}
+        <ProgressInsights sessions={sessions} />
+
         {/* System Telemetry */}
         <SystemTelemetry />
 
@@ -331,22 +353,26 @@ export default function DashboardPage() {
                 key={session.id}
                 variants={bentoCardVariant}
                 onClick={() => setSelectedSession(session)}
-                className="bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/60 hover:border-white rounded-[2.5rem] p-8 shadow-[0_4px_20px_-6px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.1)] transition-all duration-500 ease-out cursor-pointer relative overflow-hidden group hover:-translate-y-1"
+                // Phase 9: keyboard-operable session cards (was mouse-only).
+                role="button"
+                tabIndex={0}
+                aria-label={`查看面试详情：${session.title || "Untitled Session"}`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedSession(session);
+                  }
+                }}
+                className="bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/60 hover:border-white rounded-[2.5rem] p-8 shadow-[0_4px_20px_-6px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.1)] transition-all duration-500 ease-out cursor-pointer relative overflow-hidden group hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-sky-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 <div className="flex items-center gap-8 relative z-10">
-                  {/* Score Circle */}
+                  {/* Score Circle (Phase 4: unified V2/legacy score) */}
                   <div className="shrink-0 w-20 h-20 rounded-full bg-slate-50 border-2 border-slate-100 flex flex-col items-center justify-center group-hover:border-sky-200 group-hover:bg-sky-50/50 transition-colors duration-500">
-                    {session.radarScores ? (
+                    {sessionScore(session) !== null ? (
                       <>
                         <span className="text-2xl font-bold text-[#111111] leading-none">
-                          {Math.round(
-                            [session.radarScores.logic, session.radarScores.expression, session.radarScores.professionalism, session.radarScores.confidence, session.radarScores.pressure, session.radarScores.bodyLanguage]
-                              .filter(Boolean)
-                              .reduce((a, b) => a + b, 0) /
-                            [session.radarScores.logic, session.radarScores.expression, session.radarScores.professionalism, session.radarScores.confidence, session.radarScores.pressure, session.radarScores.bodyLanguage]
-                              .filter(Boolean).length
-                          )}
+                          {sessionScore(session)}
                         </span>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Score</span>
                       </>
@@ -365,25 +391,20 @@ export default function DashboardPage() {
                         <CalendarBlank weight="regular" className="w-4 h-4" />
                         {format(new Date(session.createdAt), "yyyy-MM-dd HH:mm")}
                       </span>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                        session.status === 'completed'
-                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                          : session.status === 'in_progress'
-                          ? 'bg-amber-50 text-amber-600 border border-amber-100'
-                          : 'bg-slate-50 text-slate-500 border border-slate-100'
-                      }`}>
-                        {session.status.replace(/_/g, ' ')}
-                      </span>
-                      {session.hireVerdict && (
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                          session.hireVerdict.includes('hire') && !session.hireVerdict.includes('no')
-                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                            : 'bg-rose-50 text-rose-600 border border-rose-100'
-                        }`}>
-                          <Trophy weight="fill" className="w-3 h-3" />
-                          {session.hireVerdict.replace(/_/g, ' ')}
-                        </span>
-                      )}
+                      <StatusBadge status={session.status} />
+                      {(() => {
+                        const v = toEvaluationView(session);
+                        if (v.kind === "none" || !v.readinessLabel) return null;
+                        const label = v.legacy
+                          ? v.readinessLabel
+                          : READINESS_META[v.readinessLabel as ReadinessLevel]?.label ?? v.readinessLabel;
+                        return (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-50 text-slate-600 border border-slate-200">
+                            <Trophy weight="fill" className="w-3 h-3" />
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
 

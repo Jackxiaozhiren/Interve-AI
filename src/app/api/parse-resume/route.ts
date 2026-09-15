@@ -1,24 +1,75 @@
-import { NextResponse } from "next/server";
+import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
+import { getSessionFromRequest } from "@/lib/api/session";
+import { getRequestId } from "@/lib/api/request-id";
+import { okResponse, errorResponse } from "@/lib/api/errors";
+import { logApi } from "@/lib/api/logging";
+import { zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry";
+import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
+import { buildOcrInstruction } from "@/ai/prompts/resume";
 // @ts-expect-error - Types out of sync with pdf-parse v2
 import { PDFParse } from "pdf-parse";
 
+const ROUTE = "parse-resume";
+// Matches the "5MB" claim already shown in the setup UI.
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const OCR_TEXT_MIN_LENGTH = 50;
+
 export async function POST(req: Request) {
+  const requestId = getRequestId(req);
+  const startTime = performance.now();
+  const done = (status: number, extra?: { reason?: string }) =>
+    logApi(ROUTE, { requestId, status, latencyMs: Math.round(performance.now() - startTime), ...extra });
+
+  // 1. Rate limit (pre-auth).
+  const rl = checkRateLimit(ROUTE, getClientIp(req), { limit: 10, windowMs: 60_000 });
+  if (!rl.allowed) {
+    done(429, { reason: "rate_limited" });
+    return errorResponse("RATE_LIMITED", "Too many requests. Please retry later.", 429, requestId, {
+      "Retry-After": String(Math.max(1, Math.ceil(rl.retryAfterMs / 1000))),
+    });
+  }
+
+  // 2. Session.
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    done(401, { reason: "unauthenticated" });
+    return errorResponse("UNAUTHORIZED", "Authentication required. Please sign in.", 401, requestId);
+  }
+  if (isMockEnabled()) return mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId);
+
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!file || typeof file === "string") {
+      done(400, { reason: "missing_file" });
+      return errorResponse("BAD_REQUEST", "No file provided", 400, requestId);
     }
 
     const isPdf = file.type === "application/pdf";
     const isImage = file.type.startsWith("image/");
 
     if (!isPdf && !isImage) {
-      return NextResponse.json({ error: "Only PDF and image files are supported" }, { status: 400 });
+      done(400, { reason: "unsupported_type" });
+      return errorResponse("BAD_REQUEST", "Only PDF and image files are supported", 400, requestId);
+    }
+
+    // 3. Size cap enforced server-side (previously UI text only).
+    if (typeof file.size === "number" && file.size > MAX_FILE_BYTES) {
+      done(413, { reason: "file_too_large" });
+      return errorResponse("PAYLOAD_TOO_LARGE", "File exceeds 5MB", 413, requestId);
     }
 
     const arrayBuffer = await file.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_FILE_BYTES) {
+      done(413, { reason: "file_too_large" });
+      return errorResponse("PAYLOAD_TOO_LARGE", "File exceeds 5MB", 413, requestId);
+    }
+    // SVG is XML/active content: never send to OCR or parse as document.
+    if (file.type === "image/svg+xml") {
+      done(400, { reason: "unsupported_type" });
+      return errorResponse("BAD_REQUEST", "SVG images are not supported", 400, requestId);
+    }
     const buffer = Buffer.from(arrayBuffer);
 
     let text = "";
@@ -32,50 +83,38 @@ export async function POST(req: Request) {
     }
 
     // Robust Validation
-    if (isImage || text.trim().length < 50 || (text.match(/[a-zA-Z0-9]/g) || []).length / text.length < 0.3) {
-       if (isPdf) {
-         console.log("[parse-resume] pdf-parse failed or returned bad text. Falling back to Zhipu GLM-4V OCR.");
-       } else {
-         console.log("[parse-resume] Image file detected. Using Zhipu GLM-4V OCR.");
-       }
+    if (isImage || text.trim().length < OCR_TEXT_MIN_LENGTH || (text.match(/[a-zA-Z0-9]/g) || []).length / text.length < 0.3) {
        isOcrFallback = true;
        try {
          const { generateText } = await import('ai');
-         const { createOpenAI } = await import('@ai-sdk/openai');
-         
-         const zhipu = createOpenAI({
-  // @ts-expect-error - compatibility flag needed for Zhipu AI provider
-  compatibility: 'compatible',
-           baseURL: process.env.OPENAI_BASE_URL || "https://open.bigmodel.cn/api/paas/v4/",
-           apiKey: process.env.ZHIPU_API_KEY,
-         });
-         
-         // Using Zhipu's multimodal model glm-4v-flash (which is free/cheap on their platform)
+
+         // Using Zhipu's multimodal model (free/cheap tier) for OCR.
          const { text: ocrText } = await generateText({
-           model: zhipu.chat('glm-4v-flash'),
+           model: zhipu().chat(MODEL_IDS.zhipuVisionFlash),
+           maxRetries: FALLBACK_MAX_RETRIES,
            messages: [
              {
                role: 'user',
                content: [
-                 { type: 'text', text: 'Extract all the text from this document accurately. Do not summarize, just extract the raw text.' },
+                 { type: 'text', text: buildOcrInstruction() },
                  { type: 'image', image: buffer },
                ],
              },
            ],
          });
          text = ocrText;
-       } catch (fallbackError) {
-         console.error("[parse-resume] Zhipu GLM OCR fallback failed:", fallbackError);
-         return NextResponse.json(
-          { error: "Failed to extract text even with OCR fallback. This might be a corrupted file.", errorType: "insufficient_text" },
-          { status: 422 }
-        );
-       }
-    }
+        } catch {
+          done(422, { reason: "ocr_failed" });
+          return errorResponse("UPSTREAM_ERROR", "Failed to extract text even with OCR fallback. This might be a corrupted file.", 422, requestId);
+        }
+     }
 
-    return NextResponse.json({ text: text, isOcrFallback });
-  } catch (error) {
-    console.error("Resume parsing error:", error);
-    return NextResponse.json({ error: "Failed to parse resume" }, { status: 500 });
+    // Cap extracted text so one document cannot blow up downstream prompts.
+    if (text.length > 60000) text = text.slice(0, 60000);
+    done(200);
+    return okResponse({ text: text, isOcrFallback }, requestId);
+  } catch {
+    done(500, { reason: "internal" });
+    return errorResponse("INTERNAL", "Failed to parse resume", 500, requestId);
   }
 }

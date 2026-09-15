@@ -1,23 +1,52 @@
 import { Interview } from "@/lib/db";
+import { toEvaluationView } from "@/lib/eval-compat";
+import { READINESS_DISCLAIMER } from "@/ai/evaluation-contract";
 
 export function exportInterviewToMarkdown(interview: Interview): string {
   const lines: string[] = [];
   const dateStr = new Date(interview.createdAt).toLocaleString();
+  // Phase 4: readiness + evidence-grounded dimensions replace hire verdicts
+  // and the hiring council. Legacy rows export with an explicit caveat.
+  const view = toEvaluationView(interview);
 
   // Header
   lines.push(`# Interview Report: ${interview.title}`);
   lines.push(`**Date:** ${dateStr}`);
   lines.push(`**Title:** ${interview.title || "General Interview"}`);
-  lines.push(`**Overall Readiness Score:** ${interview.matchData?.overallScore !== undefined ? interview.matchData.overallScore + "/100" : "N/A"}`);
+  lines.push(`**Overall Readiness Score:** ${view.average !== null ? view.average + "/100" : "N/A"}`);
   lines.push("");
 
-  // Cultural Traits
-  if (interview.culturalTraits && interview.culturalTraits.length > 0) {
-    lines.push("## Cultural & Behavioral Traits");
-    interview.culturalTraits.forEach(trait => {
-      lines.push(`- **${trait.trait}** (${trait.score}/100)`);
-      lines.push(`  *Evidence:* ${trait.evidence}`);
+  // Readiness
+  lines.push(`## Interview Readiness${view.legacy ? " (Legacy Assessment)" : ""}`);
+  lines.push(`**Level:** ${view.readinessLabel ?? "Pending"}`);
+  if (view.readinessRationale) {
+    lines.push(`**Rationale:** ${view.readinessRationale}`);
+  }
+  if (!view.legacy) {
+    lines.push(`*${READINESS_DISCLAIMER}*`);
+  } else if (view.disclaimer) {
+    lines.push(`*${view.disclaimer}*`);
+  }
+  lines.push("");
+
+  // Dimensions with evidence
+  if (view.dimensions.length > 0) {
+    lines.push("## Rubric Dimensions");
+    view.dimensions.forEach(dim => {
+      lines.push(`- **${dim.name}** (${dim.score100}/100, ${dim.confidence} confidence${dim.anchorLevel !== null ? `, anchor L${dim.anchorLevel}/5` : ""})`);
+      lines.push(`  *Rationale:* ${dim.rationale}`);
+      dim.evidence.forEach(q => lines.push(`  *Evidence:* "${q}"`));
+      lines.push(`  *Next drill:* ${dim.improvement}`);
     });
+    lines.push("");
+  }
+
+  // Strengths / gaps / drills (V2)
+  if (view.strengths.length > 0 || view.weaknesses.length > 0 || view.nextDrills.length > 0) {
+    lines.push("## Summary & Next Drills");
+    view.strengths.forEach(s => lines.push(`- Strength: ${s}`));
+    view.weaknesses.forEach(s => lines.push(`- Gap: ${s}`));
+    view.nextDrills.forEach(s => lines.push(`- Drill: ${s}`));
     lines.push("");
   }
 
@@ -34,7 +63,7 @@ export function exportInterviewToMarkdown(interview: Interview): string {
     });
   }
 
-  // Council Debate
+  // Council Debate (legacy rows only — preserved history)
   if (interview.councilDebate) {
     lines.push("## Council Debate & Synthesis");
     if (interview.verdictRationale) {

@@ -1,11 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { loginAs } from './helpers';
 
 test.describe('Replay Page', () => {
   test('should show Interview Not Found for non-existent session', async ({ page }) => {
-    await page.addInitScript(() => {
-      window.localStorage.setItem("interve_auth_user", JSON.stringify({ id: "test", email: "test@example.com", name: "Test User" }));
-      window.localStorage.setItem("interve_has_seen_onboarding", "true");
-    });
+    await loginAs(page);
     // Navigate to a non-existent replay ID
     await page.goto('/dashboard/replay/999999');
     

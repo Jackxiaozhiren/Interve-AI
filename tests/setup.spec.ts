@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Setup and Model Selection', () => {
   test.beforeEach(async ({ page }) => {
-    // Visit the login page and authenticate
+    // Visit the login page and authenticate (English labels match LoginForm)
     await page.goto('/login');
-    await page.getByRole('textbox', { name: '邮箱地址' }).fill('test@example.com');
-    await page.getByRole('textbox', { name: '密码' }).fill('123456');
-    await page.getByRole('button', { name: '登录' }).click();
+    await page.getByLabel('Email address').fill('test@example.com');
+    await page.getByLabel('Password').fill('123456');
+    await page.getByRole('button', { name: 'Sign In' }).click();
     await page.waitForURL('**/dashboard');
     // Set onboarding to true so it doesn't show up
     await page.evaluate(() => {

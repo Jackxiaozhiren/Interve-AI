@@ -18,5 +18,5 @@ export default async function PracticeSessionPage({ params }: { params: Promise<
     notFound();
   }
 
-  return <PracticeSessionClient question={question} />;
+  return <PracticeSessionClient key={question.id} question={question} />;
 }

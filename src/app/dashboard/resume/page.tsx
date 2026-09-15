@@ -2,16 +2,18 @@
 
 import React, { useState } from "react";
 import { InterveButton } from "@/components/interve-ui";
+import { EmptyState, PageHeader } from "@/components/data";
 
 export default function ResumeDashboard() {
   const [isDragging, setIsDragging] = useState(false);
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold text-[var(--interve-text-title)] mb-2">简历分析中心</h1>
-        <p className="text-[var(--interve-text-secondary)]">上传您的简历，获取深度优化建议与岗位匹配度分析。</p>
-      </div>
+      <PageHeader
+        eyebrow="Step 1 · Prepare"
+        title="简历分析中心"
+        description="上传您的简历，获取深度优化建议与岗位匹配度分析。"
+      />
       
       <div 
         className={`w-full max-w-3xl p-12 mt-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center transition-colors duration-200 ${
@@ -34,9 +36,10 @@ export default function ResumeDashboard() {
       <div className="mt-8">
         <h2 className="text-xl font-semibold text-[var(--interve-text-title)] mb-4">已分析简历</h2>
         <div className="interve-glass rounded-xl border border-[var(--interve-border-light)] overflow-hidden">
-          <div className="p-8 text-center text-[var(--interve-text-secondary)]">
-            <p>您还没有上传过简历</p>
-          </div>
+          <EmptyState
+            title="您还没有上传过简历"
+            description="支持 PDF / DOCX / TXT，最大 10MB。上传后将在此生成分析报告。"
+          />
         </div>
       </div>
     </div>

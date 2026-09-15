@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { loginAs } from '../helpers';
 
 test.describe('Interview Interactive Features', () => {
   test('keyboard shortcuts and text selection menu', async ({ page, browserName }) => {
@@ -20,15 +21,16 @@ test.describe('Interview Interactive Features', () => {
       }
     };
 
-    await page.goto('/interview?id=test_id&testMode=true');
-    await page.waitForLoadState('networkidle');
+    await loginAs(page);
+    // NOTE: no `networkidle` wait — model workers keep the network busy.
+    await page.goto('/interview?id=test_id&testMode=true', { waitUntil: 'domcontentloaded' });
     await captureScreenshot('initial_load');
 
     // Bypass Green Room just in case testMode=true didn't work immediately
     const bypassButton = page.getByRole('button', { name: /跳过语音测试|纯文本模式/i }).first();
     if (await bypassButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       await bypassButton.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1000);
       await captureScreenshot('after_greenroom_bypass');
     }
 
