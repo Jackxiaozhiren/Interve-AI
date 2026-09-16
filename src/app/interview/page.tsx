@@ -934,6 +934,18 @@ function InterviewRoomContent() {
               });
             }
           }
+        } else {
+          // Thin-transcript floor (THIN_TRANSCRIPT 422): the model found
+          // nothing quotable in ANY dimension. Tell the candidate to add
+          // specifics and retry instead of landing on an empty report.
+          let thin = res.status === 422;
+          try {
+            const errBody = await res.json() as { error?: { code?: string } };
+            if (errBody?.error?.code === "THIN_TRANSCRIPT") thin = true;
+          } catch { /* non-JSON error — fall through to generic handling */ }
+          if (thin) {
+            toast("回答内容较薄，暂无法生成完整评估", { description: "补充具体做法、数字和结果后重试——最弱的一次也不该只看到报错", duration: 8000 });
+          }
         }
       }
     } catch (e) {

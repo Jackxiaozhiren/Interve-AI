@@ -10,6 +10,7 @@ import { getInterviewType } from "@/ai/interview/types";
 import {
   EVALUATION_VERSION,
   EvaluationV2Schema,
+  isThinEvaluationText,
   repairEvaluationText,
   type EvaluationV2,
 } from "@/ai/evaluation-contract";
@@ -97,7 +98,15 @@ export async function POST(req: Request) {
       },
     });
     return okResponse(outcome.value, requestId, outcome.fallback ? { headers: { "x-fallback": outcome.modelId } } : undefined);
-  } catch {
+  } catch (e) {
+    // Thin transcripts (model found nothing quotable in ANY dimension) get a
+    // distinct 422 so clients can say "add specifics and retry" instead of a
+    // generic failure. Raw text is inspected server-side only, never echoed.
+    const rawText = (e as { text?: unknown })?.text;
+    if (typeof rawText === "string" && isThinEvaluationText(rawText)) {
+      logApi(ROUTE, { requestId, status: 422, latencyMs: Math.round(performance.now() - startTime), reason: "thin_transcript" });
+      return errorResponse("THIN_TRANSCRIPT", "Not enough grounded signal to evaluate — add specifics and retry", 422, requestId);
+    }
     logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
     return errorResponse("UPSTREAM_ERROR", "Failed to analyze interview", 500, requestId);
   }

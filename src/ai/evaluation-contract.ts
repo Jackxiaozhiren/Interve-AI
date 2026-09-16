@@ -150,6 +150,29 @@ export function repairEvaluationText(text: string): string | null {
   return JSON.stringify({ ...obj, dimensions });
 }
 
+/**
+ * Thin-transcript detector (pairs with repairEvaluationText): true when the
+ * text parses to an object with a non-empty dimensions array in which EVERY
+ * dimension lacks non-empty evidence — i.e. repair would drop the whole set
+ * and the caller should answer THIN_TRANSCRIPT (422) instead of a generic
+ * 500. Never throws; unparseable text is NOT thin (unknown failure).
+ */
+export function isThinEvaluationText(text: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
+    const dims = (parsed as Record<string, unknown>).dimensions;
+    if (!Array.isArray(dims) || dims.length === 0) return false;
+    return dims.every((d) => {
+      if (typeof d !== "object" || d === null) return false;
+      const ev = (d as Record<string, unknown>).evidence;
+      return !Array.isArray(ev) || ev.length === 0;
+    });
+  } catch {
+    return false;
+  }
+}
+
 /** UI 0-100 for a dimension (deterministic). */
 export function dimensionScore100(d: Pick<DimensionResult, "score">): number {
   return anchorToScore100(d.score);

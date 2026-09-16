@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "lane": "analyze-star",
+  "note": "Turn-level steering calibration (smoke-grade WIDE bands). The star lane steers follow-ups per turn; these cases pin that a complete STAR turn scores clearly above vague/thin turns, with verbatim evidence. Bands tighten after nightly keyed data. Keyless structural validation in tests/integration/eval-datasets.test.ts; keyed agreement in turn-golden.eval.test.ts (self-skips without ZHIPU_API_KEY).",
+  "cases": [
+    {
+      "id": "turn-star-strong-01",
+      "question": "Tell me about a time you fixed a production incident.",
+      "answer": "Situation: our checkout API started timing out on Black Friday morning. Task: I was the on-call owner and had to restore it fast. Action: I traced the timeouts to a missing index on the orders table, added the index online, and drained the retry queue. Result: p99 latency dropped from 40 seconds to 300 milliseconds and checkout recovered within twenty minutes.",
+      "expected": {
+        "avgProgressBand": [55, 100],
+        "mustQuote": ["checkout API started timing out", "p99 latency dropped"]
+      }
+    },
+    {
+      "id": "turn-star-weak-01",
+      "question": "Tell me about a time you fixed a production incident.",
+      "answer": "We had some production issues sometimes. The team worked together and we fixed things. I think communication is important and we did our best.",
+      "expected": {
+        "avgProgressBand": [0, 55],
+        "mustQuote": ["The team worked together"]
+      }
+    },
+    {
+      "id": "turn-star-thin-01",
+      "question": "Tell me about a time you fixed a production incident.",
+      "answer": "Not sure, I have not handled incidents.",
+      "expected": {
+        "avgProgressBand": [0, 40],
+        "mustQuote": ["have not handled incidents"]
+      }
+    }
+  ]
+}

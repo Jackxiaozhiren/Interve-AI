@@ -74,3 +74,7 @@ __pycache__/
 
 # supabase CLI local state (project-ref, pooler-url, versions) — never commit
 /supabase/.temp/
+
+# rater-pack generator output (synthetic blind packs + human score sheets)
+# Regenerate with: node scripts/rater-pack.mjs (see EVAL_REPORT §6)
+/rater-pack/

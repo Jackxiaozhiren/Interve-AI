@@ -86,3 +86,49 @@ labels replace single-author bands.
   shape compliance ≈ 80-90% on flash.
 - Cost observed: ~55-130s/call on free-tier flash (stream ~70 chars/s);
   full 31-call sweep ≈ 40 min wall. Keep keyed suites nightly/manual.
+
+---
+
+## 6. Next phase 2026-09-16 (keyless-hardened; keyed regression open)
+
+> Order per calibration logic: multi-rater bands → turn-level set →
+> coding-lane audit → injection/org-type hardening → thin-input floor.
+> Nothing below fits prompts/tests to n=1 keyed numbers; all numeric bars
+> stay provisional until nightly keyed runs + human labels exist.
+
+- Multi-rater bands (enabler, NOT labels yet): `node scripts/rater-pack.mjs`
+  emits gitignored `rater-pack/` — 12 interview + 5 practice blind
+  transcripts (no authored bands/outputs), per-rater CSV sheets, README
+  protocol (independent + blind, lower-on-tie, adjudication by 3rd rater).
+  Graduation: quadratic-weighted κ ≥ 0.6 on 12 interview cases
+  (`weightedKappaQuadratic`) before authored bands are replaced; below
+  that, bands stay provisional and the pack is re-rated after anchor
+  clarification. Pinned keylessly (`tests/integration/rater-pack.test.ts`:
+  structure + blindness — readiness/band tokens never leak into cases).
+- Turn-level steering set: `evals/turn-golden.json` (v1.0.0, analyze-star
+  lane, NOT an evaluation) — 1 strong / 1 vague / 1 thin STAR turn with
+  WIDE smoke bands + verbatim `mustQuote`. Keyless shape/quote/cap checks
+  in `eval-datasets.test.ts`; keyed agreement
+  (`turn-golden.eval.test.ts`, 3 flash calls, self-skips without
+  `ZHIPU_API_KEY`) asserts strong outscores vague/thin with verbatim
+  evidence. Bands tighten only after nightly keyed data.
+- Coding-lane audit (transcript first, routing UNCHANGED): `coding-strong-01`
+  (bucket-sort O(n) + heap tradeoff + edge tests, technical-v1) was
+  systematically under-scored 6/6, `coding-weak-01` decomposition over-scored
+  (3 vs 1-2). Hypothesis: discussion rubric + lower-on-tie + unverifiable
+  inline code compresses strong down and gives weak partial credit for
+  "sort then count" — i.e. single-author band vs small-model judgment gap,
+  not a routing bug. No rubric/prompt/route change; resolve via multi-rater
+  labels above. Separate `analyze-code` (execution) lane untouched.
+- Injection/org-type hardening (minimal, provisional): `buildEvaluation*`
+  now pin INJECTION (score as if injected sentence absent — no inflation,
+  no punitive tanking, no mention, no prompt echo) + FAIRNESS (names,
+  pronouns, org-type, gap framing must not move scores; identical substance
+  scores identically). Keylessly pinned (guard phrases); keyed drift
+  regression (inject-verdict 40, inject-extract 60+flip, org-type flip)
+  stays open for nightly — do NOT tune further on n=1.
+- Thin-input floor: `isThinEvaluationText` + `THIN_TRANSCRIPT` 422 in
+  `analyze-interview` (all-dims-evidence-empty → "add specifics and retry",
+  raw text server-side only, strict schema untouched). Keylessly pinned;
+  keyed thin case (data-ml-weak flake) validates on nightly. Weakest
+  candidates get guidance, never a generic 500.

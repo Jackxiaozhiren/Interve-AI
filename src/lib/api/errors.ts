@@ -13,6 +13,11 @@ export const ERROR_CODES = {
   UPSTREAM_ERROR: "UPSTREAM_ERROR",
   INTERNAL: "INTERNAL",
   CONFIG_MISCONFIGURED: "CONFIG_MISCONFIGURED",
+  // Phase 9: model returned shape-valid JSON with zero evidence-grounded
+  // dimensions (thin transcript — repair dropped everything). Distinct from
+  // UPSTREAM_ERROR so clients/metrics can tell "add signal and retry" (422)
+  // apart from "provider failed, retry as-is" (500).
+  THIN_TRANSCRIPT: "THIN_TRANSCRIPT",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

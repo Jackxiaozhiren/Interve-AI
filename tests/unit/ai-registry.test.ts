@@ -234,7 +234,8 @@ describe("strict-JSON key pinning (free glm-4-flash follows prose, not schema)",
   });
 });
 
-describe("registry files exist", () => {  it("all prompt modules + providers present", () => {
+describe("registry files exist", () => {
+  it("all prompt modules + providers present", () => {
     for (const f of ["interview", "star", "behavior", "chunk", "code", "practice", "alignment", "match", "jd", "context", "copilot", "hint", "vision", "trends", "resume"]) {
       expect(exists(`src/ai/prompts/${f}.ts`), f).toBe(true);
     }

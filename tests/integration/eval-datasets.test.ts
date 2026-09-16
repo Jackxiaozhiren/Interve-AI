@@ -107,3 +107,39 @@ describe("practice-golden.json (Phase 4)", () => {
     }
   });
 });
+
+describe("turn-golden.json (Phase 9 turn-level steering)", () => {
+  it("cases are well-formed with in-range bands and transcript-grounded quotes", () => {
+    const g = load("evals/turn-golden.json") as {
+      version: string;
+      lane: string;
+      cases: {
+        id: string;
+        question: string;
+        answer: string;
+        expected: { avgProgressBand: [number, number]; mustQuote: string[] };
+      }[];
+    };
+    expect(g.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(g.lane).toBe("analyze-star");
+    const ids = g.cases.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(g.cases.length).toBeGreaterThanOrEqual(3);
+    for (const c of g.cases) {
+      expect(c.question.length, `${c.id}: question`).toBeGreaterThan(0);
+      expect(c.answer.length, `${c.id}: answer non-empty`).toBeGreaterThan(0);
+      const transcript = `Q: ${c.question}\nA: ${c.answer}`;
+      expect(transcript.length, `${c.id}: within route cap`).toBeLessThanOrEqual(120000);
+      const [lo, hi] = c.expected.avgProgressBand;
+      expect(lo, `${c.id}: band`).toBeGreaterThanOrEqual(0);
+      expect(hi, `${c.id}: band`).toBeLessThanOrEqual(100);
+      expect(lo, `${c.id}: band ordered`).toBeLessThanOrEqual(hi);
+      // Self-consistency mirrors practice-golden: quotes must occur verbatim
+      // in the serialized transcript the keyed suite actually sends.
+      expect(c.expected.mustQuote.length, `${c.id}: quotes`).toBeGreaterThan(0);
+      for (const q of c.expected.mustQuote) {
+        expect(transcript, `${c.id}: quote "${q}" in transcript`).toContain(q);
+      }
+    }
+  });
+});
