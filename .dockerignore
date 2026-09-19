@@ -10,3 +10,9 @@ README.md
 tests
 playwright-report
 test-results
+# Phase G2: NEVER bake secrets into image layers (builder does COPY . .).
+# .env.example holds placeholders only and stays for documentation.
+.env*
+!.env.example
+.rater-pack
+.quota-ledger.json

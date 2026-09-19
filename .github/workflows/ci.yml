@@ -32,6 +32,26 @@ jobs:
         env:
           CI: true
       - run: npm audit --audit-level=critical
+      # Phase G2: deploy-surface consistency (Vercel uses `next build` with
+      # output:standalone; Docker must ship the same node major + no secrets).
+      - name: deploy consistency (vercel.json / standalone / docker / engines)
+        run: >
+          node -e "
+          const fs = require('fs');
+          const fail = (m) => { console.error('DEPLOY-DRIFT: ' + m); process.exit(1); };
+          if (!fs.readFileSync('next.config.ts', 'utf8').includes(\"output: 'standalone'\"))
+            fail('next.config.ts lost output:standalone (Docker + Vercel depend on it)');
+          const docker = fs.readFileSync('Dockerfile', 'utf8');
+          if (!docker.includes('FROM node:20')) fail('Dockerfile drifted off node:20');
+          const engines = JSON.parse(fs.readFileSync('package.json', 'utf8')).engines || {};
+          if (!String(engines.node || '').startsWith('20')) fail('package.json engines.node drifted off 20.x');
+          if (fs.readFileSync('.dockerignore', 'utf8').split('\n').every((l) => l.trim() !== '.env*'))
+            fail('.dockerignore lost the .env* rule (secrets would bake into layers)');
+          const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+          if (vercel.buildCommand || vercel.outputDirectory || vercel.framework)
+            fail('vercel.json overrides build/output — keep default next build for parity');
+          console.log('deploy consistency OK (standalone + node20 + no-secret-layers + default vercel build)');
+          "
 
   # FREE-tier live AI smoke (≤3 flash calls). Runs only when a free Zhipu key
   # is configured as a repo secret; forks without secrets skip safely.

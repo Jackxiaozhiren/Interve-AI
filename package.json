@@ -2,6 +2,10 @@
   "name": "interve-ai",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "20.x",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -16,6 +20,7 @@
     "test:eval": "vitest run --config vitest.eval.config.ts",
     "test:eval:free": "vitest run --config vitest.eval.config.ts evals/free.eval.test.ts",
     "verify:supabase-free": "node scripts/verify-supabase-free.mjs",
+    "quota": "node scripts/quota-ledger.mjs status",
     "test:e2e:smoke": "playwright test --project=chrome-1280x720 tests/landing.spec.ts tests/setup.spec.ts tests/interview.spec.ts tests/interview-flow.spec.ts tests/dashboard.spec.ts tests/replay.spec.ts tests/settings.spec.ts tests/accessibility.spec.ts tests/chat.spec.ts",
     "test:a11y": "playwright test --project=chrome-1280x720 tests/accessibility.spec.ts",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
@@ -47,7 +52,7 @@
     "kokoro-js": "^1.2.1",
     "lucide-react": "^1.8.0",
     "mermaid": "^11.14.0",
-    "next": "16.2.4",
+    "next": "16.3.5",
     "next-themes": "^0.4.6",
     "pdf-parse": "^2.4.5",
     "react": "19.2.4",
@@ -70,7 +75,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "16.3.5",
     "playwright": "^1.59.1",
     "tailwindcss": "^4",
     "typescript": "^5",

@@ -78,3 +78,7 @@ __pycache__/
 # rater-pack generator output (synthetic blind packs + human score sheets)
 # Regenerate with: node scripts/rater-pack.mjs (see EVAL_REPORT §6)
 /rater-pack/
+
+# Phase C1 quota ledger (local per-machine call counts, zero secrets).
+# Regenerated automatically; inspect with: npm run quota
+/.quota-ledger.json

@@ -1,0 +1,118 @@
+# Phase A2: nightly keyed-eval常态化 (FREE tier, provisional bars).
+#
+# What: practice 5 + free smoke 3 + turn 3 + full 31-call sweep, SERIAL,
+# cheapest signals first. Product: a trend JSON artifact per run (NOT a
+# commit — no bot writes to the tree).
+#
+# Cost math (free-tier RPD, provisional budgets from C1):
+#   zhipu: 3 (smoke) + 12 (golden) + 19 (stability/injection/fairness) + 3 (turn) = 37 ≤ 50
+#   gemini: 5 (practice) ≤ 20
+# RPD windows reset at PT midnight = 15:00 Beijing; the 08:00 UTC cron
+# (16:00 Beijing) runs after the reset + dashboard delay. Fresh CI machines
+# start with an empty quota ledger (full budget assumed) — safe because the
+# lane totals above are fixed caps, and the ledger still guards each lane
+# against same-machine double runs.
+#
+# Discipline: NEVER per-PR/per-push (31-call sweep ≈ 40 min wall on free
+# flash). Failures never block merges (scheduled workflow) and never fail
+# the job loudly during the provisional period — they are recorded in the
+# trend artifact for §6 review. Forks without secrets skip with a log line.
+name: nightly-eval
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # 08:00 UTC = 16:00 Beijing, post RPD-reset
+  workflow_dispatch: {} # manual lane (same caps, same trend artifact)
+
+concurrency:
+  group: nightly-eval
+  cancel-in-progress: true # overlapping runs would double-burn free quota
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Secret-gated AND fork-safe: no key => skip with exit 0, never red.
+    if: ${{ secrets.ZHIPU_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: quota baseline (counts only, never secrets)
+        run: npm run quota
+
+      - name: lane 1/4 free smoke (zhipu ≤3 calls)
+        id: smoke
+        continue-on-error: true
+        run: npm run test:eval:free
+        env:
+          CI: true
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+
+      - name: lane 2/4 practice golden (gemini 5 calls)
+        id: practice
+        continue-on-error: true
+        # Secret-gated per lane: runs only when a Gemini key is configured.
+        if: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY != '' }}
+        run: npx vitest run --config vitest.eval.config.ts evals/practice-golden.eval.test.ts
+        env:
+          CI: true
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+
+      - name: lane 3/4 turn golden (zhipu 3 calls)
+        id: turn
+        continue-on-error: true
+        run: npx vitest run --config vitest.eval.config.ts evals/turn-golden.eval.test.ts
+        env:
+          CI: true
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+
+      - name: lane 4/4 full sweep (zhipu 31 calls, nightly only)
+        id: full
+        continue-on-error: true
+        run: npm run test:eval
+        env:
+          CI: true
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+
+      - name: quota after (counts only)
+        if: always()
+        run: npm run quota
+
+      - name: record trend JSON (always runs, never fails the job)
+        if: always()
+        run: >
+          node -e "
+          const fs = require('fs');
+          const trend = {
+            date: new Date().toISOString().slice(0, 10),
+            run_id: process.env.GITHUB_RUN_ID || 'manual',
+            quota_budgets: { zhipu_rpd: 50, gemini_rpd: 20 },
+            lanes: {
+              smoke: '${{ steps.smoke.outcome }}',
+              practice: '${{ steps.practice.outcome }}',
+              turn: '${{ steps.turn.outcome }}',
+              full: '${{ steps.full.outcome }}'
+            },
+            note: 'provisional bars; breach = human review per EVAL_REPORT §2'
+          };
+          fs.writeFileSync('nightly-trend.json', JSON.stringify(trend, null, 2) + '\n');
+          console.log(JSON.stringify(trend));
+          "
+
+      - name: upload trend artifact (90d retention for graduation review)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-trend-${{ github.run_id }}
+          path: nightly-trend.json
+          retention-days: 90

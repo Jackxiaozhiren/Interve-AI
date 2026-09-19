@@ -4,6 +4,11 @@ import withPWAInit from "@ducanh2912/next-pwa";
 const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
+  // Phase D2 verdict (2026-09-17): runtimeCaching/offline work was reverted —
+  // production builds run on Turbopack, under which this webpack-based plugin
+  // emits NO service worker at all (verified: no public/sw.js across builds,
+  // never tracked in git). Dead config pretends; see PERF_REPORT §5 for the
+  // unblock conditions (webpack builds or a Turbopack-native SW pipeline).
 });
 
 const nextConfig: NextConfig = {

@@ -1,0 +1,33 @@
+# H4.5: Dependabot (npm, weekly, $0 lane)
+# Grouped minor/patch updates to keep PR noise low; major bumps stay
+# individual so breaking changes never hide in a bundle. Merging any
+# Dependabot PR still requires the verify chain (lint/tsc/315+ tests/build).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    groups:
+      minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
