@@ -11,6 +11,7 @@
 // (evals/free.eval.test.ts, ≤3 flash-routed calls) or keyless skip.
 
 import { signSession } from "../src/lib/api/session";
+import { quotaCheck, quotaRecord } from "../scripts/quota-ledger.mjs";
 
 export interface TurnMessage {
   role: string;
@@ -23,9 +24,16 @@ export interface CaseEvaluation {
   rawText: string;
 }
 
-export function evalEnv(): { ready: boolean; reason: string } {
+export function evalEnv(need = 3): { ready: boolean; reason: string } {
   if (!process.env.ZHIPU_API_KEY) {
     return { ready: false, reason: "ZHIPU_API_KEY not set — live evals skipped (harness + datasets still validated keylessly)." };
+  }
+  // Phase C1: check the quota ledger BEFORE burning calls — no quota left
+  // means self-skip (exit 0), never a surprise 429. Recorded per HTTP 200
+  // in evaluateTranscript below (1 per successful call).
+  const q = quotaCheck("zhipu", need);
+  if (!q.ok) {
+    return { ready: false, reason: `quota ledger: zhipu ${q.used}/${q.budget} used in PT window ${q.window} — need ${q.need}, ${q.remaining} left — live evals skipped (exit 0).` };
   }
   if (!process.env.SESSION_SECRET) process.env.SESSION_SECRET = "eval-secret-0123456789abcdef";
   return { ready: true, reason: "" };
@@ -61,6 +69,7 @@ export async function evaluateTranscript(
   if (res.status !== 200) {
     throw new Error(`eval call failed (${res.status}): ${rawText.slice(0, 300)}`);
   }
+  quotaRecord("zhipu", 1); // HTTP 200 only: 429s/500s never consume quota
   const body = JSON.parse(rawText) as {
     readiness: string;
     dimensions: { id: string; score: number; evidence: string[]; confidence: string }[];

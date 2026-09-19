@@ -11,16 +11,22 @@
 import { describe, it, expect } from "vitest";
 import practiceGolden from "./practice-golden.json";
 import { signSession } from "../src/lib/api/session";
+import { quotaCheck, quotaRecord } from "../scripts/quota-ledger.mjs";
 
-function practiceEnv(): { ready: boolean; reason: string } {
+function practiceEnv(need = 5): { ready: boolean; reason: string } {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { ready: false, reason: "GOOGLE_GENERATIVE_AI_API_KEY not set — practice golden skipped (dataset still validated keylessly)." };
+  }
+  // Phase C1: ledger first — 5 cases × 1 Gemini flash call per run.
+  const q = quotaCheck("gemini", need);
+  if (!q.ok) {
+    return { ready: false, reason: `quota ledger: gemini ${q.used}/${q.budget} used in PT window ${q.window} — need ${q.need}, ${q.remaining} left — practice golden skipped (exit 0).` };
   }
   if (!process.env.SESSION_SECRET) process.env.SESSION_SECRET = "eval-secret-0123456789abcdef";
   return { ready: true, reason: "" };
 }
 
-const env = practiceEnv();
+const env = practiceEnv(5);
 const suite = env.ready ? describe : describe.skip;
 
 interface PracticeCase {
@@ -58,6 +64,7 @@ async function evaluatePracticeAnswer(
   if (res.status !== 200) {
     throw new Error(`eval call failed (${res.status}): ${rawText.slice(0, 300)}`);
   }
+  quotaRecord("gemini", 1); // HTTP 200 only: 429s/500s never consume quota
   return JSON.parse(rawText) as { score: number; evidence: string[]; confidence: string; rawText: string };
 }
 

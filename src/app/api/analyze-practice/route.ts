@@ -1,8 +1,9 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
-import { logApi } from "@/lib/api/logging";
-import { google, MODEL_IDS, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
+import { logApi, usageOf } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
+import { resolvePracticeModel, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildPracticeSystem, buildPracticePrompt } from "@/ai/prompts/practice";
 import { DRILL_BANK } from "@/ai/drills/bank";
@@ -34,6 +35,10 @@ const BodySchema = z.object({
     category: z.string().max(256).optional(),
   }),
   answer: z.string().min(1).max(20000),
+  // Opt-in model override (max 64 chars, unknown values fall through to the
+  // validated default). Only "openrouter-structured" diverts — same pattern
+  // as interview-chat's `model` field.
+  model: z.string().max(64).optional(),
 });
 
 const KNOWN_DRILL_IDS = new Set(DRILL_BANK.map((d) => d.id));
@@ -60,13 +65,16 @@ export async function POST(req: Request) {
   });
   if (!gate.ok) return gate.response;
   const { requestId, data, signal } = gate.ctx;
-  const { question, answer } = data;
+  const { question, answer, model: modelSpec } = data;
   if (isMockEnabled()) return mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId);
   const startTime = performance.now();
 
   try {
-    const { object } = await generateObject({
-      model: google()(MODEL_IDS.geminiFlash), // Fast model
+    // Model selection centralized in providers/registry; default stays the
+    // validated Gemini flash lane, unknown specs fall through to it.
+    const { model: selectedModel, modelId } = resolvePracticeModel(modelSpec);
+    const { object, usage } = await generateObject({
+      model: selectedModel, // Fast model
       maxRetries: DEFAULT_MAX_RETRIES,
       system: buildPracticeSystem(),
       schema: PracticeOutputSchema,
@@ -74,11 +82,11 @@ export async function POST(req: Request) {
       abortSignal: signal,
     });
 
-    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.geminiFlash });
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId, ...usageOf(usage) });
     return okResponse({ ...object, drillIds: normalizePracticeDrills(object.drillIds) }, requestId);
 
-  } catch {
-    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+  } catch (e) {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to analyze practice answer", 500, requestId);
   }
 }

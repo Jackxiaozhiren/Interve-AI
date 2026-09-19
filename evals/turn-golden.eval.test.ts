@@ -10,16 +10,22 @@
 import { describe, it, expect } from "vitest";
 import turnGolden from "./turn-golden.json";
 import { signSession } from "../src/lib/api/session";
+import { quotaCheck, quotaRecord } from "../scripts/quota-ledger.mjs";
 
-function turnEnv(): { ready: boolean; reason: string } {
+function turnEnv(need = 3): { ready: boolean; reason: string } {
   if (!process.env.ZHIPU_API_KEY) {
     return { ready: false, reason: "ZHIPU_API_KEY not set — turn golden skipped (dataset still validated keylessly)." };
+  }
+  // Phase C1: ledger first — 3 cases × 1 flash call per run.
+  const q = quotaCheck("zhipu", need);
+  if (!q.ok) {
+    return { ready: false, reason: `quota ledger: zhipu ${q.used}/${q.budget} used in PT window ${q.window} — need ${q.need}, ${q.remaining} left — turn golden skipped (exit 0).` };
   }
   if (!process.env.SESSION_SECRET) process.env.SESSION_SECRET = "eval-secret-0123456789abcdef";
   return { ready: true, reason: "" };
 }
 
-const env = turnEnv();
+const env = turnEnv(3);
 const suite = env.ready ? describe : describe.skip;
 
 interface TurnCase {
@@ -57,6 +63,7 @@ async function evaluateStarTurn(question: string, answer: string): Promise<{
   if (res.status !== 200) {
     throw new Error(`eval call failed (${res.status}): ${rawText.slice(0, 300)}`);
   }
+  quotaRecord("zhipu", 1); // HTTP 200 only: 429s/500s never consume quota
   return JSON.parse(rawText) as {
     s: { progress: number }; t: { progress: number }; a: { progress: number }; r: { progress: number };
     evidence: string[]; confidence: string;

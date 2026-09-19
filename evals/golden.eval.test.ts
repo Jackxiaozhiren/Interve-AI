@@ -4,7 +4,7 @@ import golden from "./golden.json";
 import { evalEnv, evaluateTranscript } from "./runner";
 import { weightedKappaQuadratic, spearman, mae, exactAdjacentAgreement } from "../src/ai/evals/metrics";
 
-const env = evalEnv();
+const env = evalEnv(12); // Phase C1: 12 golden cases × 1 call per run
 const suite = env.ready ? describe : describe.skip;
 
 interface GoldenCase {

@@ -1,7 +1,10 @@
 // Phase 5 prompt registry: JD question-bank generator.
 export const JD_PROMPT_ID = "parse-jd";
 // 1.0.1: untrusted-content fences (Phase 3 truthfulness).
-export const JD_PROMPT_VERSION = "1.0.1";
+// 1.0.2: STRICT_JSON_SUFFIX (Phase B1 — format-only, no rubric change).
+export const JD_PROMPT_VERSION = "1.0.2";
+
+import { STRICT_JSON_SUFFIX } from "./strict-json";
 
 export interface JdPromptParams {
   jobDescription: string;
@@ -25,5 +28,7 @@ export function buildJdPrompt(jobDescription: string): string {
 ${jobDescription}
 ### UNTRUSTED JOB DESCRIPTION END ###
 
-Parse the Job Description above and generate interview questions.`;
+Parse the Job Description above and generate interview questions.
+
+${STRICT_JSON_SUFFIX}`;
 }

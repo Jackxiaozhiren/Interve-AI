@@ -191,6 +191,54 @@ describe("untrusted-content fences (Phase 12 injection hardening)", () => {
     // No builder may instruct the model to treat fenced content as instructions.
     expect(buildChunkSystem({ role: "R", level: "L" })).toContain("do NOT infer emotions");
   });
+
+  it("Phase B1: all 10 generateObject lanes carry STRICT_JSON_SUFFIX (format-only)", async () => {
+    const { buildEvaluationUserPrompt } = await import("../../src/ai/prompts/evaluation");
+    // Convention: suffix lives in the system prompt where one exists,
+    // else in the single user prompt. Assert per-lane (system + user).
+    const lane = (sys: string, user: string) => `${sys}\n${user}`;
+    expect(lane(buildBehaviorSystem(), buildBehaviorPrompt("B"))).toContain("STRICT OUTPUT CONTRACT");
+    expect(lane(buildStarSystem(), buildStarPrompt({ transcript: "T" }))).toContain("STRICT OUTPUT CONTRACT");
+    expect(lane(buildPracticeSystem(), buildPracticePrompt({ title: "T", answer: "A" }))).toContain("STRICT OUTPUT CONTRACT");
+    expect(lane(buildContextSystem(), buildContextPrompt({ jobDescription: "J", resumeContext: "R" }))).toContain("STRICT OUTPUT CONTRACT");
+    expect(lane(buildChunkSystem({ role: "R", level: "L" }), buildChunkPrompt("C"))).toContain("STRICT OUTPUT CONTRACT");
+    expect(buildMatchPrompt({ resumeText: "R", jobDescription: "J" })).toContain("STRICT OUTPUT CONTRACT");
+    // Newly suffixed in B1 (4): evaluation/code/jd/alignment.
+    expect(buildEvaluationUserPrompt([{ role: "user", content: "x" }])).toContain("STRICT OUTPUT CONTRACT");
+    expect(buildCodePrompt({ code: "C", language: "ts", problemStatement: "P" })).toContain("STRICT OUTPUT CONTRACT");
+    expect(buildJdPrompt("J")).toContain("STRICT OUTPUT CONTRACT");
+    expect(buildAlignmentPrompt({ resumeText: "R", jobDescription: "J" })).toContain("STRICT OUTPUT CONTRACT");
+    // Suffix constrains FORMAT only (fences/keys) — scoring prose untouched.
+    expect(buildEvaluationUserPrompt([{ role: "user", content: "x" }])).toContain("UNTRUSTED TRANSCRIPT");
+  });
+});
+
+describe("openrouter opt-in (free third lane, explicit only)", () => {
+  it("resolves openrouter specs without touching defaults", async () => {
+    const { resolveChatModel, resolvePracticeModel, resetProviderClients } = await import("../../src/ai/providers/registry");
+    resetProviderClients();
+    expect(resolveChatModel("openrouter").modelId).toBe(MODEL_IDS.openrouterChat);
+    expect(resolveChatModel("openrouter-structured").modelId).toBe(MODEL_IDS.openrouterStructured);
+    // Unknown specs still fall through to the Zhipu default.
+    expect(resolveChatModel("nope").modelId).toBe(MODEL_IDS.zhipuThinking);
+    expect(resolveChatModel(undefined).modelId).toBe(MODEL_IDS.zhipuThinking);
+    // Practice lane: default stays validated Gemini flash; only the
+    // structured opt-in diverts.
+    expect(resolvePracticeModel("openrouter-structured").modelId).toBe(MODEL_IDS.openrouterStructured);
+    expect(resolvePracticeModel(undefined).modelId).toBe(MODEL_IDS.geminiFlash);
+    expect(resolvePracticeModel("nope").modelId).toBe(MODEL_IDS.geminiFlash);
+    expect(resolvePracticeModel("openrouter").modelId).toBe(MODEL_IDS.geminiFlash);
+    resetProviderClients();
+  });
+
+  it("registry constructs openrouter via OpenAI-compatible baseURL", () => {
+    const src = read("src/ai/providers/registry.ts");
+    expect(src).toContain("https://openrouter.ai/api/v1");
+    expect(src).toContain("OPENROUTER_API_KEY");
+    // Must use .chat() — same Responses-API 404 trap as Zhipu.
+    expect(src).toContain("openrouter().chat(");
+    expect(src).not.toMatch(/openrouter\(\)\(/);
+  });
 });
 
 describe("stripJsonFences (Zhipu fence repair, live-shaped fixtures)", () => {

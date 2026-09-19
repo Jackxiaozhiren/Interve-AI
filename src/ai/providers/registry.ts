@@ -22,6 +22,14 @@ export const MODEL_IDS = {
   geminiFlash15: "gemini-1.5-flash",
   gpt4oMini: "gpt-4o-mini",
   gpt4o: "gpt-4o",
+  // OpenRouter free tier (OpenAI-compatible, $0). Opt-in only via
+  // `?model=openrouter` — never the default (free models rotate + rate-limit).
+  // Verified 2026-09-19 against https://openrouter.ai/api/v1/models:
+  // ultra = text-only free-form chat (NO vision, NO response_format — do NOT
+  // use for generateObject eval lanes); deepseek = structured-output candidate
+  // (supports response_format + structured_outputs, 1M ctx).
+  openrouterChat: "nvidia/nemotron-3-ultra-550b-a55b:free",
+  openrouterStructured: "deepseek/deepseek-v4-flash-0731:free",
 } as const;
 
 export const DEFAULT_MAX_RETRIES = 2;
@@ -79,11 +87,36 @@ export function openai(): OpenAIProvider {
   return openaiClient;
 }
 
+let openrouterClient: OpenAIProvider | null = null;
+/**
+ * Singleton OpenRouter (OpenAI-compatible) client. Server-only key
+ * (`OPENROUTER_API_KEY`, never `NEXT_PUBLIC_*`). Without it, only the
+ * explicit `?model=openrouter*` opt-in fails closed at call time — keyless
+ * CI/build never touches the network. NOTE: must use `.chat()` — the
+ * callable default is the Responses API (/responses), which OpenRouter's
+ * OpenAI-compatible endpoint does not serve for these models.
+ */
+export function openrouter(): OpenAIProvider {
+  if (!openrouterClient) {
+    openrouterClient = createOpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPENROUTER_API_KEY,
+      headers: {
+        "HTTP-Referer":
+          process.env.OPENROUTER_SITE_URL ?? "https://github.com/Jackxiaozhiren/Interve-AI",
+        "X-Title": "Interve AI",
+      },
+    });
+  }
+  return openrouterClient;
+}
+
 /** Test hook: drops singletons so env changes take effect. */
 export function resetProviderClients(): void {
   zhipuClient = null;
   googleClient = null;
   openaiClient = null;
+  openrouterClient = null;
 }
 
 export type ChatModelSpec = "openai" | "gemini" | string | undefined;
@@ -92,6 +125,12 @@ export type ChatModelSpec = "openai" | "gemini" | string | undefined;
  * Centralized chat-model resolution (previously duplicated in
  * interview-chat + copilot with drift). Unknown specs fall through to the
  * Zhipu default — same behavior as before, without unbounded input.
+ *
+ * OpenRouter opt-ins (free tier, explicit only):
+ * - "openrouter" → Nemotron Ultra free-form chat (interview-chat/copilot).
+ *   Text-only + no response_format: never use for generateObject eval lanes.
+ * - "openrouter-structured" → DeepSeek structured-output candidate for
+ *   future eval-lane trials (supports response_format + structured_outputs).
  */
 export function resolveChatModel(spec: ChatModelSpec): { model: LanguageModel; modelId: string } {
   if (spec === "openai") {
@@ -102,6 +141,12 @@ export function resolveChatModel(spec: ChatModelSpec): { model: LanguageModel; m
     // copilot used gemini-1.5-flash. Callers now pass the variant they need
     // via resolveChatModelVariant(); this default preserves interview-chat.
     return { model: google()(MODEL_IDS.geminiPro15), modelId: MODEL_IDS.geminiPro15 };
+  }
+  if (spec === "openrouter") {
+    return { model: openrouter().chat(MODEL_IDS.openrouterChat), modelId: MODEL_IDS.openrouterChat };
+  }
+  if (spec === "openrouter-structured") {
+    return { model: openrouter().chat(MODEL_IDS.openrouterStructured), modelId: MODEL_IDS.openrouterStructured };
   }
   return { model: zhipu().chat(MODEL_IDS.zhipuThinking), modelId: MODEL_IDS.zhipuThinking };
 }
@@ -115,6 +160,20 @@ export function resolveCopilotModel(spec: ChatModelSpec): { model: LanguageModel
     return { model: google()(MODEL_IDS.geminiFlash15), modelId: MODEL_IDS.geminiFlash15 };
   }
   return { model: zhipu().chat(MODEL_IDS.zhipuFlash), modelId: MODEL_IDS.zhipuFlash };
+}
+
+/**
+ * Practice-eval model resolution. Default stays Gemini flash (validated
+ * lane — practice 5/5 green on EVAL_REPORT §5/§5.1). Explicit
+ * "openrouter-structured" opts into the DeepSeek free structured-output
+ * candidate for MVVP trials only — never default (free rotation +
+ * rate-limit + third-party routing). Unknown specs fall through to default.
+ */
+export function resolvePracticeModel(spec: ChatModelSpec): { model: LanguageModel; modelId: string } {
+  if (spec === "openrouter-structured") {
+    return { model: openrouter().chat(MODEL_IDS.openrouterStructured), modelId: MODEL_IDS.openrouterStructured };
+  }
+  return { model: google()(MODEL_IDS.geminiFlash), modelId: MODEL_IDS.geminiFlash };
 }
 
 /** Cost-aware Zhipu routing (previously triplicated with drift). */

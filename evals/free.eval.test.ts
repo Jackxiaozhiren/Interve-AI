@@ -16,7 +16,7 @@ import goldenRaw from "./golden.json";
 import injectionRaw from "./injection-cases.json";
 import { evalEnv, evaluateTranscript, drift } from "./runner";
 
-const env = evalEnv();
+const env = evalEnv(3); // Phase C1: this smoke burns at most 3 flash calls
 const suite = env.ready ? describe : describe.skip;
 
 interface MiniMsg {

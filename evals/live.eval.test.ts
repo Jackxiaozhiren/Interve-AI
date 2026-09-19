@@ -6,7 +6,7 @@ import fairnessRaw from "./fairness-pairs.json";
 import { evalEnv, evaluateTranscript, drift } from "./runner";
 import { stdev } from "../src/ai/evals/metrics";
 
-const env = evalEnv();
+const env = evalEnv(19); // Phase C1: 3 stability + 8 injection + 8 fairness per run
 const suite = env.ready ? describe : describe.skip;
 
 interface MiniMsg { role: string; content: string }
