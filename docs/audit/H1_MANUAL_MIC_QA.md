@@ -65,13 +65,15 @@
 | M5 | 环境噪声（audio） | `src/hooks/useAmbientNoise.ts:46` | `:26/:48` stop、`:30` close | 只做电平，不管独占（T2.2 覆盖） |
 | M6 | 自画面（video-only） | `src/components/interview/CameraSelfView.tsx:27` | `:29/:47` stop | 不争 audio，但占摄像头（移动端与 M1 video 互斥注意） |
 
-### 新增 P1 探针（并入 T2 执行）
-
-| # | 步骤 | 预期 | 锚点 |
+### 新增 P1 探针（并入 T2 执行）| # | 步骤 | 预期 | 锚点 |
 |---|---|---|---|
 | T2.5 | GreenRoom 点“进入”→interview 开始录音，全程 DevTools 查 `navigator.mediaDevices` 活跃流数 | 同一时刻仅 1 条 live audio track（M2 已释、M3 持有；M4/M5 若同持则记为争抢红） | M2→M3 交接 |
 | T2.6 | setup 页做完设备检查后点“开始”（不刷新）进 interview | 无“设备忙/Device in use”异常；旧流已释（M1 释放先行） | M1→M3 交接 |
 | T2.7 | 录音中开第二 tab 同站再进 interview（或点浏览器 mic 图标看持有数） | 老 tab 收到 `ended`/明确提示，不双活静默录音 | 多实例争抢 P1 主项 |
+
+> F3-split-3 close-out（签字后结构收敛）：M1（setup）与 M3（recorder）补
+> late-stream 守卫（与 M4/M5 同形；M2 GreenRoom 原已有 `active` 守卫）。
+> 签字为绿，守卫为无行为变化的硬化；mock e2e 全程绿。
 
 ## 记录表（签字即 H1.3 入口具备）
 
