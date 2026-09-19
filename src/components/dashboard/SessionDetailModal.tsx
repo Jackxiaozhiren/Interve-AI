@@ -9,7 +9,7 @@ import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { TextReveal } from "@/components/ui/text-reveal";
 import { InterviewTimeline } from "@/components/interview/InterviewTimeline";
 import { KnowledgeMatchLoader } from "@/components/dashboard/KnowledgeMatchLoader";
-import { useModalState } from "@/app/dashboard/layout";
+import { useModalState } from "@/app/dashboard/dashboard-shell";
 import type { Interview } from "@/lib/db";
 import { toEvaluationView } from "@/lib/eval-compat";
 import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills } from "@/components/evaluation/EvaluationView";

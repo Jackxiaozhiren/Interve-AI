@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { escapeHtml } from "@/lib/message-text";
 import { InterveDotsLoader } from "../loading";
 
 /* ═══════════════════════════════════════
@@ -134,6 +135,11 @@ export function InterveAIResponse({
   actions,
   className,
 }: InterveAIResponseProps) {
+  // Phase B2 (LLM05): content is LLM/echoed-user text, NOT trusted HTML.
+  // Escape at the sink so <script>/<img onerror>/event-handler payloads
+  // render as inert text even if this (currently uncalled) component is
+  // wired to model output later. No markdown pipeline exists in src/, so
+  // nothing legitimate needs raw HTML here.
   return (
     <InterveMessageCard
       role="assistant"
@@ -144,7 +150,7 @@ export function InterveAIResponse({
       content={
         <div
           className="interve-ai-prose [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:bg-[var(--interve-bg-accent)] [&_code]:rounded-[4px] [&_code]:text-[13px] [&_code]:font-mono [&_strong]:font-semibold"
-          dangerouslySetInnerHTML={{ __html: content }}
+          dangerouslySetInnerHTML={{ __html: escapeHtml(content) }}
         />
       }
     />

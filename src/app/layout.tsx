@@ -6,6 +6,8 @@ import "./globals.css";
 
 // Phase 13: document title + description (Lighthouse document-title and
 // meta-description checks; also the browser tab / share baseline).
+// Phase F4: OG + twitter cards (no url/images — no prod domain configured;
+// adding metadataBase/sitemap waits for NEXT_PUBLIC_SITE_URL, see robots.ts).
 export const metadata: Metadata = {
   title: {
     default: "Interve AI — AI 面试训练平台",
@@ -13,6 +15,20 @@ export const metadata: Metadata = {
   },
   description:
     "Evidence-grounded multimodal AI interview practice: adaptive mock interviews, rubric-based feedback, coding and system-design drills.",
+  openGraph: {
+    title: "Interve AI — AI 面试训练平台",
+    description:
+      "Evidence-grounded multimodal AI interview practice: adaptive mock interviews, rubric-based feedback, coding and system-design drills.",
+    type: "website",
+    locale: "zh_CN",
+    alternateLocale: ["en_US"],
+  },
+  twitter: {
+    card: "summary",
+    title: "Interve AI — AI 面试训练平台",
+    description:
+      "Evidence-grounded multimodal AI interview practice: adaptive mock interviews, rubric-based feedback, coding and system-design drills.",
+  },
 };
 
 export default function RootLayout({

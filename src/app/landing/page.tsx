@@ -1,5 +1,5 @@
-"use client";
-
+// H1.1 Server-first: fully static route — no hooks/handlers. Interactive
+// islands (InterveTopNav/NavLink/Button/MessageCard) are all "use client".
 import React from "react";
 import Link from "next/link";
 import { InterveTopNav, InterveNavLink, InterveButton } from "@/components/interve-ui";

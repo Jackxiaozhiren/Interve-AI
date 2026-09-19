@@ -193,7 +193,8 @@ export const SystemDesignBoard = React.memo(function SystemDesignBoard({ isOpen,
           {/* Main Whiteboard Content */}
           <div className="flex-1 w-full relative">
             <div className="absolute inset-0" style={{ pointerEvents: 'auto' }}>
-              <Tldraw persistenceKey="interve-system-design" autoFocus>
+              {/* H1.5: no autoFocus — drawer open must not yank focus into canvas; user focuses on intent. */}
+              <Tldraw persistenceKey="interve-system-design">
                 <TldrawListener onTextUpdate={handleTextUpdate} onEditorMount={setEditor} />
               </Tldraw>
             </div>

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { KnowledgeMatchGraph } from "./KnowledgeMatchGraph";
 import { Shimmer } from "@/components/ui/shimmer";

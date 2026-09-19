@@ -2,14 +2,19 @@ import { useEffect, useRef, useCallback } from "react";
 import {
   vadStep,
   averageSpectrum,
-  micConstraints,
   VAD_DEFAULTS,
 } from "@/lib/audio/vad";
+import { createMicAnalyser, type MicAnalyser } from "@/lib/audio/mic-analyser";
 
 /**
  * A hook that listens to the microphone when the AI is speaking,
  * and triggers an interruption callback if the user speaks loudly enough
  * for a sustained period.
+ *
+ * F3-split-2: acquisition + analyser graph + disposal live in
+ * `createMicAnalyser`; this hook keeps its rAF loop, generation
+ * (late-stream) guard, vadStep state machine and callback ref
+ * (behavior unchanged).
  */
 export function useVADInterruption(
   isAiSpeaking: boolean,
@@ -18,8 +23,7 @@ export function useVADInterruption(
   consecutiveFramesRequired = VAD_DEFAULTS.consecutiveFramesRequired,
   deviceId?: string | null
 ) {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const analyserRef = useRef<MicAnalyser | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const onInterruptRef = useRef(onInterrupt);
 
@@ -28,13 +32,9 @@ export function useVADInterruption(
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-      audioContextRef.current.close().catch(() => {});
-      audioContextRef.current = null;
+    if (analyserRef.current) {
+      analyserRef.current.dispose();
+      analyserRef.current = null;
     }
   }, []);
 
@@ -56,24 +56,18 @@ export function useVADInterruption(
 
     const startVAD = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(deviceId ?? undefined) });
+        // smoothing 0.4: barge-in wants fast attack (ambient uses 0.9).
+        const mic = await createMicAnalyser({
+          deviceId: deviceId ?? undefined,
+          smoothingTimeConstant: 0.4,
+        });
         if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
+          mic.dispose();
           return;
         }
-        streamRef.current = stream;
+        analyserRef.current = mic;
 
-        const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-        audioContextRef.current = ctx;
-
-        const source = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.4;
-
-        source.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const { analyser, dataArray } = mic;
         let consecutiveHighVolume = 0;
 
         const checkVolume = () => {

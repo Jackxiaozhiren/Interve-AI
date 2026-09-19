@@ -8,7 +8,9 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import { format } from "date-fns";
 
 export function SystemTelemetry() {
-  const telemetryData = useLiveQuery(() => db.telemetry.orderBy('timestamp').toArray()) || [];
+  // D3: newest-500 window bounds transfer (aggregates are order-insensitive;
+  // chart takes the head). Full-table user exports (privacy) stay uncapped.
+  const telemetryData = useLiveQuery(() => db.telemetry.orderBy('timestamp').reverse().limit(500).toArray()) || [];
 
   const avgLatency = telemetryData.length 
     ? Math.round(telemetryData.reduce((acc, curr) => acc + curr.latencyMs, 0) / telemetryData.length) 
@@ -19,8 +21,8 @@ export function SystemTelemetry() {
     ? Math.round((successCount / telemetryData.length) * 100) 
     : 100;
 
-  // Format data for chart
-  const chartData = telemetryData.slice(-20).map(d => ({
+  // Format data for chart (newest 20, chronological left-to-right)
+  const chartData = telemetryData.slice(0, 20).reverse().map(d => ({
     time: format(new Date(d.timestamp), 'HH:mm:ss'),
     latency: d.latencyMs,
     endpoint: d.endpoint

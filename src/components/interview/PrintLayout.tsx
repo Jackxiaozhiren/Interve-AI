@@ -64,7 +64,7 @@ export function PrintLayout({ interview }: { interview: Interview }) {
       {/* Cultural Traits (legacy rows only) */}
       {interview.culturalTraits && interview.culturalTraits.length > 0 && (
         <div className="mb-8 break-inside-avoid">
-          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Cultural & Behavioral Traits (Legacy)</h2>
+          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Cultural & Behavioral Traits (Legacy · 历史评估)</h2>
           <div className="space-y-4">
             {interview.culturalTraits.map((trait, idx) => (
               <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -82,7 +82,7 @@ export function PrintLayout({ interview }: { interview: Interview }) {
       {/* Council Debate (legacy rows only) */}
       {interview.councilDebate && (
         <div className="mb-8 break-inside-avoid">
-          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Council Debate & Synthesis (Legacy)</h2>
+          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Council Debate & Synthesis (Legacy · 历史评估)</h2>
           
           {interview.verdictRationale && (
             <div className="mb-4 p-4 bg-gray-100 rounded-lg border border-gray-300">

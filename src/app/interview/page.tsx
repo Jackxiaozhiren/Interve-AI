@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useChat, type UIMessage } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -73,7 +73,10 @@ import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useVADInterruption } from "@/hooks/useVADInterruption";
 import { createSttSession } from "@/lib/audio/stt";
-import { summarizeDelivery, avgLatencyMs } from "@/lib/audio/delivery";
+// Phase E1: pure slices extracted from this God component (unit-tested).
+import { computeWpm, countFillers, shouldRunAnalysis } from "@/lib/interview/delivery-metrics";
+import { saveSession, loadSession, clearSession } from "@/lib/interview/session-persistence";
+import { useInterviewSettlement } from "@/components/interview/useInterviewSettlement";
 import { micConstraints, getPreferredMicDevice } from "@/lib/audio/vad";
 import { FlowMap } from "@/components/interview/FlowMap";
 import { PinnedQuestion } from "@/components/interview/PinnedQuestion";
@@ -107,7 +110,6 @@ function InterviewRoomContent() {
   const [activeContext, setActiveContext] = useState("");
   const [activeCodeContext, setActiveCodeContext] = useState("");
   const [activeSystemDesignContext, setActiveSystemDesignContext] = useState("");
-  const [isEnding, setIsEnding] = useState(false);
   const [resumeText, setResumeText] = useState("");
   const [problemStatement, setProblemStatement] = useState("");
   const [isRequestingHint, setIsRequestingHint] = useState(false);
@@ -516,54 +518,39 @@ function InterviewRoomContent() {
   }, []);
 
   // Phase 26: Session Persistence (+ Phase 10: 30-day local retention)
+  // E1: storage mechanics live in session-persistence.ts (unit-tested);
+  // the component keeps only the restore-prompt UI.
   useEffect(() => {
     const interviewId = searchParams?.get('id');
     if (!interviewId || messages.length === 0) return;
-    try {
-      localStorage.setItem(`interve_session_${interviewId}`, JSON.stringify({
-        messages,
-        wpm,
-        fillerWordsCount,
-        savedAt: Date.now(),
-      }));
-    } catch {}
+    saveSession(localStorage, interviewId, { messages, wpm, fillerWordsCount });
   }, [messages, wpm, fillerWordsCount, searchParams]);
 
   useEffect(() => {
     const interviewId = searchParams?.get('id');
     if (!interviewId) return;
-    try {
-      const saved = localStorage.getItem(`interve_session_${interviewId}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Phase 10: local snapshots expire after 30 days (Privacy Center).
-        if (parsed && typeof parsed.savedAt === "number" && Date.now() - parsed.savedAt > 30 * 24 * 3600 * 1000) {
-          localStorage.removeItem(`interve_session_${interviewId}`);
-          return;
+    const loaded = loadSession(localStorage, interviewId);
+    if (loaded.status !== "found") return;
+    const snapshot = loaded.snapshot;
+    toast("发现未完成的面试记录", {
+      description: "是否恢复之前的对话和状态？",
+      action: {
+        label: "恢复",
+        onClick: () => {
+          setMessages(snapshot.messages as never[]);
+          if (snapshot.wpm) setWpm(snapshot.wpm);
+          if (snapshot.fillerWordsCount) setFillerWordsCount(snapshot.fillerWordsCount);
+          toast.success("已恢复对话记录");
         }
-        if (parsed && parsed.messages && parsed.messages.length > 0) {
-          toast("发现未完成的面试记录", {
-            description: "是否恢复之前的对话和状态？",
-            action: {
-              label: "恢复",
-              onClick: () => {
-                setMessages(parsed.messages);
-                if (parsed.wpm) setWpm(parsed.wpm);
-                if (parsed.fillerWordsCount) setFillerWordsCount(parsed.fillerWordsCount);
-                toast.success("已恢复对话记录");
-              }
-            },
-            cancel: {
-              label: "清除",
-              onClick: () => {
-                localStorage.removeItem(`interve_session_${interviewId}`);
-              }
-            },
-            duration: 15000,
-          });
+      },
+      cancel: {
+        label: "清除",
+        onClick: () => {
+          clearSession(localStorage, interviewId);
         }
-      }
-    } catch {}
+      },
+      duration: 15000,
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -608,21 +595,17 @@ function InterviewRoomContent() {
         }
         setModelStatus("");
         
-        // Delivery Analysis Logic
+        // Delivery Analysis Logic (E1: pure helpers, behavior-identical)
         if (recordingStartTimeRef.current) {
            const durationMinutes = (Date.now() - recordingStartTimeRef.current) / 60000;
-           if (durationMinutes > 0.05) { // Ensure at least 3 seconds to calculate meaningful WPM
-             const words = text.trim().split(/\s+/).length;
-             const currentWpm = Math.round(words / durationMinutes);
-             setWpm(currentWpm);
-           }
+           const currentWpm = computeWpm(text, durationMinutes);
+           if (currentWpm !== null) setWpm(currentWpm);
            recordingStartTimeRef.current = null;
         }
 
-        // Expanded filler words to include Chinese and common English fillers
-        const fillerMatches = text.match(/\b(um|uh|like|you know|basically|so|i mean|ah|那个|就是|然后|嗯|啊|额)\b/gi);
-        if (fillerMatches) {
-           const finalCount = totalFillerWordsRef.current + fillerMatches.length;
+        const newFillers = countFillers(text);
+        if (newFillers > 0) {
+           const finalCount = totalFillerWordsRef.current + newFillers;
            setFillerWordsCount(finalCount);
            totalFillerWordsRef.current = finalCount;
         }
@@ -634,13 +617,17 @@ function InterviewRoomContent() {
 
         const trimmedText = text.trim();
         const now = Date.now();
-        const timeSinceLastAnalysis = now - lastAnalysisTimeRef.current;
-        
+
         // Only trigger heavy STAR and Behavioral analysis if the utterance is substantial and sufficient time has passed (Throttle)
         // This acts as a cooling mechanism to save API calls and prevent backend congestion from rapid rapid stop-start recordings.
-        if ((trimmedText.length >= 10 && timeSinceLastAnalysis > 15000) || 
-            (activeCodeContextRef.current && timeSinceLastAnalysis > 20000) || 
-            (activeSystemDesignContextRef.current && timeSinceLastAnalysis > 20000)) {
+        // E1: gate ported verbatim to shouldRunAnalysis (unit-tested).
+        if (shouldRunAnalysis({
+          textLen: trimmedText.length,
+          nowMs: now,
+          lastMs: lastAnalysisTimeRef.current,
+          hasCodeCtx: Boolean(activeCodeContextRef.current),
+          hasDesignCtx: Boolean(activeSystemDesignContextRef.current),
+        })) {
           
           lastAnalysisTimeRef.current = now;
 
@@ -834,127 +821,27 @@ function InterviewRoomContent() {
     };
   }, []);
 
-  const handleEndCall = async () => {
-    if (isEnding) return;
-    setIsEnding(true);
-    stopAiPlayback();
-    setActiveStream(null);
-    
-    // Stop recording if active
-    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
-      mediaRecorder.current.stop();
-    }
-    
-    import('canvas-confetti').then((confetti) => {
-      confetti.default({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#6366f1', '#a855f7', '#ec4899', '#14b8a6', '#f59e0b']
-      });
-    });
-    
-    toast("面试结束", { description: "正在生成您的详细分析报告...", duration: 5000 });
-    
-    try {
-      const interviewId = searchParams?.get('id');
-      
-      if (messages.length > 0 && interviewId) {
-        // Fetch analysis
-        const res = await fetch("/api/analyze-interview", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages, framework, interviewType: searchParams?.get('interviewType') || undefined })
-        });
-        
-        if (res.ok) {
-          // Phase 4: evidence-grounded evaluation (rubric-anchored dimensions
-          // + readiness). Legacy radarScores/hireVerdict are no longer
-          // produced; historical rows keep rendering via the eval-compat
-          // adapter. See EVALUATION_V2_REPORT.
-          const evaluationV2 = await res.json();
-          const { qaReview } = evaluationV2 as { qaReview?: { question: string; userAnswer: string; flaws: string; perfectRewrite: string }[] };
-          
-          // Phase 3 (Truthfulness Reset): no visual metrics are collected
-          // anymore (CameraSelfView performs zero analysis), so nothing
-          // vision-derived is persisted.
-          const id = parseInt(interviewId, 10);
-          // Phase 8 (19.3): observable delivery analytics only.
-          // Phase 13 (31): latency breakdown averages (undefined when unmeasured).
-          const stt = sttSessionRef.current.stats();
-          const delivery = summarizeDelivery({
-            wpm: wpm || 0,
-            fillerWords: fillerWordsCount || 0,
-            answerSegments: answerSegmentsRef.current,
-            interruptions: interruptionsRef.current,
-            roundTripsMs: roundTripsRef.current,
-            sttAvgConfidence: stt.avgConfidence,
-            sttFinals: stt.finals,
-            sttReconnects: stt.reconnects,
-          });
-          await db.interviews.update(id, {
-            status: 'completed',
-            evaluationV2,
-            qaReview,
-            transcript: messages.map((m: UIMessage & { content?: string; parts?: unknown[]; createdAt?: Date }) => ({
-              id: m.id,
-              role: m.role,
-              // Phase 14: persist rendered text (v6 parts-first).
-              content: getMessageText(m as { parts?: unknown; content?: unknown; text?: unknown }),
-              createdAt: m.createdAt || new Date()
-            })),
-            deliveryStats: {
-              wpm: delivery.wpm,
-              fillerWords: delivery.fillerWords,
-              interruptions: delivery.interruptions,
-              avgAnswerSec: delivery.avgAnswerSec ?? undefined,
-              avgRoundTripMs: delivery.avgRoundTripMs ?? undefined,
-              sttAvgConfidence: delivery.sttAvgConfidence ?? undefined,
-              sttFinals: delivery.sttFinals,
-              sttReconnects: delivery.sttReconnects,
-              ttftMs: avgLatencyMs(ttftSamplesRef.current),
-              whisperMs: avgLatencyMs(whisperTurnaroundsRef.current),
-              ttsStartupMs: avgLatencyMs(ttsStartupSamplesRef.current),
-            },
-            updatedAt: new Date()
-          });
-
-          // Phase 24: Check and unlock achievements
-          const updatedInterview = await db.interviews.get(id);
-          if (updatedInterview) {
-            const { checkAndUnlockAchievements } = await import("@/lib/achievements");
-            const newAchievements = await checkAndUnlockAchievements(updatedInterview);
-            if (newAchievements.length > 0) {
-              newAchievements.forEach(ach => {
-                toast.success(`🏆 Achievement Unlocked: ${ach.icon} ${ach.title}`, {
-                  description: ach.description,
-                  duration: 8000,
-                  position: "top-center"
-                });
-              });
-            }
-          }
-        } else {
-          // Thin-transcript floor (THIN_TRANSCRIPT 422): the model found
-          // nothing quotable in ANY dimension. Tell the candidate to add
-          // specifics and retry instead of landing on an empty report.
-          let thin = res.status === 422;
-          try {
-            const errBody = await res.json() as { error?: { code?: string } };
-            if (errBody?.error?.code === "THIN_TRANSCRIPT") thin = true;
-          } catch { /* non-JSON error — fall through to generic handling */ }
-          if (thin) {
-            toast("回答内容较薄，暂无法生成完整评估", { description: "补充具体做法、数字和结果后重试——最弱的一次也不该只看到报错", duration: 8000 });
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Error analyzing interview:", e);
-      toast.error("生成报告时出错", { description: "我们将保留部分数据" });
-    }
-    
-    window.location.href = searchParams?.get('id') ? `/dashboard/report/${searchParams.get('id')}` : "/dashboard";
-  };
+  // Phase E1: settlement slice (useInterviewSettlement) — behavior-verbatim.
+  const { isEnding, handleEndCall } = useInterviewSettlement({
+    messages,
+    framework,
+    interviewType: searchParams?.get("interviewType") || undefined,
+    wpm,
+    fillerWordsCount,
+    searchParams,
+    stopAiPlayback,
+    setActiveStream,
+    refs: {
+      sttSession: sttSessionRef,
+      answerSegments: answerSegmentsRef,
+      interruptions: interruptionsRef,
+      roundTrips: roundTripsRef,
+      ttftSamples: ttftSamplesRef,
+      whisperTurnarounds: whisperTurnaroundsRef,
+      ttsStartupSamples: ttsStartupSamplesRef,
+      mediaRecorder,
+    },
+  });
 
 
   async function startRecording() {
@@ -1004,27 +891,24 @@ function InterviewRoomContent() {
             lastSpeechTimeRef.current = Date.now();
             setCognitiveLoad(prev => Math.max(0, prev - 1)); // Active speaking slightly reduces load
             
-            // Calculate WPM
+            // Calculate WPM (E1: pure helper)
             if (recordingStartTimeRef.current) {
                const durationMinutes = (Date.now() - recordingStartTimeRef.current) / 60000;
-               if (durationMinutes > 0.05) {
-                  const words = currentDraft.trim().split(/\s+/).length;
-                  const currentWpm = Math.round(words / durationMinutes);
-                  setWpm(currentWpm);
-               }
+               const currentWpm = computeWpm(currentDraft, durationMinutes);
+               if (currentWpm !== null) setWpm(currentWpm);
             }
             setActiveUserTranscript(currentDraft);
-            
-            // Filler words check (hesitation tracking)
-            const fillerMatches = currentDraft.match(/\b(um|uh|like|you know|basically|so|i mean|ah|那个|就是|然后|嗯|啊|额)\b/gi);
-            if (fillerMatches) {
-               setFillerWordsCount(totalFillerWordsRef.current + fillerMatches.length);
-               const newFillers = fillerMatches.length - localFillerCount;
+
+            // Filler words check (hesitation tracking, E1: pure helper)
+            const fillerMatches = countFillers(currentDraft);
+            if (fillerMatches > 0) {
+               setFillerWordsCount(totalFillerWordsRef.current + fillerMatches);
+               const newFillers = fillerMatches - localFillerCount;
                if (newFillers > 0) {
                   // Phase 2: Voice Pattern Extraction (Hesitation)
                   // Increase cognitive load significantly for repeated hesitation
                   setCognitiveLoad(prev => Math.min(100, prev + newFillers * 5));
-                  localFillerCount = fillerMatches.length;
+                  localFillerCount = fillerMatches;
                }
             }
             

@@ -91,7 +91,7 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
       {/* Council Debate (legacy rows only) */}
       {view.legacy && session.councilDebate && (
         <div className="mb-10 page-break-inside-avoid">
-          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Hiring Council Evaluation</div>
+          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Hiring Council Evaluation (Legacy · 历史评估)</div>
           <div className="grid grid-cols-3 gap-6">
             <div className="bg-sky-50/30 border border-sky-100 p-5 rounded-2xl">
               <div className="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2">Technical</div>
@@ -115,7 +115,7 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
       {/* Cultural Traits (legacy rows only) */}
       {session.culturalTraits && session.culturalTraits.length > 0 && (
         <div className="mb-10 page-break-inside-avoid">
-          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Cultural & Behavioral Traits (Legacy Assessment)</div>
+          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Cultural & Behavioral Traits (Legacy Assessment · 历史评估)</div>
           <div className="grid grid-cols-2 gap-6">
             {session.culturalTraits.map((trait, idx: number) => (
               <div key={idx} className="bg-slate-50 border border-slate-200 p-5 rounded-2xl">

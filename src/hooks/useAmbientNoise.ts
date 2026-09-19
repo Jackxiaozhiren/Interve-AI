@@ -1,18 +1,22 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { averageSpectrum, micConstraints } from "@/lib/audio/vad";
+import { averageSpectrum } from "@/lib/audio/vad";
+import { createMicAnalyser, type MicAnalyser } from "@/lib/audio/mic-analyser";
 
 /**
  * A hook that monitors background noise levels and warns the user if it's too high.
  * Best used when the user is not actively speaking to detect ambient baseline noise.
+ *
+ * F3-split-1: acquisition + analyser graph + disposal live in
+ * `createMicAnalyser`; this hook keeps its rAF loop, late-stream guard,
+ * threshold and toast (behavior unchanged).
  */
 export function useAmbientNoise(
   isActive: boolean,
   threshold = 15,
   consecutiveFramesRequired = 180 // ~3 seconds at 60fps
 ) {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const analyserRef = useRef<MicAnalyser | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const hasWarnedRef = useRef(false);
 
@@ -22,13 +26,9 @@ export function useAmbientNoise(
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        audioContextRef.current.close().catch(() => {});
-        audioContextRef.current = null;
+      if (analyserRef.current) {
+        analyserRef.current.dispose();
+        analyserRef.current = null;
       }
     };
 
@@ -43,25 +43,15 @@ export function useAmbientNoise(
 
     const startMonitoring = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
+        // High smoothing to detect sustained ambient noise rather than sharp peaks
+        const mic = await createMicAnalyser({ smoothingTimeConstant: 0.9 });
         if (!isMonitoring) {
-          stream.getTracks().forEach(t => t.stop());
+          mic.dispose();
           return;
         }
-        streamRef.current = stream;
+        analyserRef.current = mic;
 
-        const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-        audioContextRef.current = ctx;
-
-        const source = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
-        // High smoothing to detect sustained ambient noise rather than sharp peaks
-        analyser.smoothingTimeConstant = 0.9;
-
-        source.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const { analyser, dataArray } = mic;
         let consecutiveHighVolume = 0;
 
         const checkVolume = () => {

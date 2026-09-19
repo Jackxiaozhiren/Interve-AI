@@ -106,7 +106,8 @@ export function InterveSelect({
           <div className="absolute top-full left-0 right-0 mt-1 z-50 interve-glass-heavy rounded-[var(--radius-md)] shadow-[var(--interve-shadow-hover)] max-h-[240px] overflow-y-auto animate-[interve-fade-slide-up_var(--motion-fast)_var(--ease-primary)]">
             {searchable && (
               <div className="p-2 border-b border-[var(--interve-divider)]">
-                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." autoFocus className="w-full h-8 px-3 text-[13px] bg-[var(--interve-bg-secondary)] border border-[var(--interve-border)] rounded-[var(--radius-sm)] outline-none focus:border-[var(--interve-border-focus)] placeholder:text-[var(--interve-text-placeholder)]" />
+                {/* H1.5: open-triggered focus (not page-load autofocus) — ref replaces banned autoFocus prop. */}
+                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." ref={(el) => { el?.focus(); }} className="w-full h-8 px-3 text-[13px] bg-[var(--interve-bg-secondary)] border border-[var(--interve-border)] rounded-[var(--radius-sm)] outline-none focus:border-[var(--interve-border-focus)] placeholder:text-[var(--interve-text-placeholder)]" />
               </div>
             )}
             <div className="p-1">

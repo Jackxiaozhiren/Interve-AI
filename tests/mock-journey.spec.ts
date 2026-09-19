@@ -93,7 +93,13 @@ test.describe('Mock full journey (no keys, no DB)', () => {
   test.setTimeout(180000);
 
   test('signup → setup → interview → analysis → replay → retry → export → delete', async ({ page }) => {
-    await page.route('https://placeholder.supabase.co/rest/v1/*', createPostgrestStub());
+    // Host-agnostic PostgREST stub: the app client defaults to the
+    // placeholder host, but a linked .env.local serves the REAL project URL
+    // to the dev server. Matching only the placeholder let real traffic
+    // escape → setup fell back to `local-<uuid>` → report id NaN →
+    // 报告加载失败. The mock lane is documented as no-DB, so intercept
+    // every /rest/v1/* host.
+    await page.route('**/rest/v1/*', createPostgrestStub());
 
     // 1. Signup (mock auth accepts anything) → dashboard.
     // NOTE: signup does not auto-redirect (tracked UX debt) — navigate on.
@@ -137,8 +143,18 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     const startLink = page.getByRole('link', { name: /New Mock Interview/i });
     const startBtn = page.getByRole('button', { name: /Start Your First Mock Interview/i });
     await expect(startLink.or(startBtn)).toBeVisible();
-    if (await startLink.isVisible()) await startLink.click();
-    else await startBtn.click();
+    // Late-tour backstop: on a cold dev server hydration (and the tour's
+    // 1s-post-hydration timer) can land AFTER the windows above — the
+    // failure mode is the step-1 dialog blocking this click for the full
+    // test timeout. Escape is a no-op without the tour and dismisses it
+    // via the pinned WCAG path when present, so re-guard every attempt.
+    let onSetup = false;
+    for (let attempt = 0; attempt < 4 && !onSetup; attempt++) {
+      await page.keyboard.press('Escape');
+      if (await startLink.isVisible()) await startLink.click({ timeout: 20000 }).catch(() => {});
+      else await startBtn.click({ timeout: 20000 }).catch(() => {});
+      onSetup = await page.waitForURL(/.*\/setup/, { timeout: 5000 }).then(() => true).catch(() => false);
+    }
     await expect(page).toHaveURL(/.*\/setup/);
 
     await page.getByText('Frontend Engineer').click();
@@ -195,16 +211,18 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     const reportId = page.url().match(/report\/(\d+)/)?.[1];
     expect(reportId).toBeTruthy();
 
-    // 9. Replay renders transcript + dimensions.
+    // 9. Replay renders transcript + dimensions (scoped to the tabpanel:
+    // the same dimension id also renders in a section header outside it,
+    // so an unscoped getByText is ambiguous, not a missing render).
     await page.goto(`/dashboard/replay/${reportId}`);
     await expect(page.getByRole('tab', { name: /Dimensions/i })).toBeVisible({ timeout: 30000 });
     await page.getByRole('tab', { name: /Dimensions/i }).click();
-    await expect(page.getByText(/relevance/i)).toBeVisible();
+    await expect(page.getByRole('tabpanel', { name: /Dimensions/i }).getByText(/relevance/i)).toBeVisible();
 
     // 10. Retry drill → custom practice → mock-graded feedback + compare.
     const retryQ = 'What was the measurable impact?';
     await page.goto(`/practice?retry=${Buffer.from(retryQ).toString('base64url')}`);
-    await expect(page.getByText('Retry drill')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Retry drill — your previous question/)).toBeVisible({ timeout: 30000 });
     await page.getByPlaceholder(/Type your answer/).fill('We cut latency 40 percent over six weeks.');
     await page.getByRole('button', { name: /Submit for Feedback/i }).click();
     await expect(page.getByText(/Analysis Complete/)).toBeVisible({ timeout: 60000 });
@@ -222,6 +240,6 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     await expect(rows.first()).toBeVisible({ timeout: 30000 });
     await rows.first().getByRole('button', { name: /删除/ }).click();
     await page.getByRole('button', { name: /确认删除/ }).click();
-    await expect(page.getByText(/已删除/)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText('已删除', { exact: true })).toBeVisible({ timeout: 30000 });
   });
 });

@@ -34,7 +34,8 @@ export function StatCard({ label, value, hint, icon, progress, className }: Stat
             {icon}
           </span>
         )}
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+        {/* F5: label slate-500 (4.8:1 on white) — slate-400 eyebrow failed axe color-contrast. */}
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{label}</p>
       </div>
       <p className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">{value}</p>
       {typeof progress === "number" && (
