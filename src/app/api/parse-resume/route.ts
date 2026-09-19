@@ -2,7 +2,7 @@ import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
 import { getSessionFromRequest } from "@/lib/api/session";
 import { getRequestId } from "@/lib/api/request-id";
 import { okResponse, errorResponse } from "@/lib/api/errors";
-import { logApi } from "@/lib/api/logging";
+import { logApi, usageOf } from "@/lib/api/logging";
 import { zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildOcrInstruction } from "@/ai/prompts/resume";
@@ -17,7 +17,7 @@ const OCR_TEXT_MIN_LENGTH = 50;
 export async function POST(req: Request) {
   const requestId = getRequestId(req);
   const startTime = performance.now();
-  const done = (status: number, extra?: { reason?: string }) =>
+  const done = (status: number, extra?: { reason?: string; model?: string; inputTokens?: number; outputTokens?: number }) =>
     logApi(ROUTE, { requestId, status, latencyMs: Math.round(performance.now() - startTime), ...extra });
 
   // 1. Rate limit (pre-auth).
@@ -74,6 +74,8 @@ export async function POST(req: Request) {
 
     let text = "";
     let isOcrFallback = false;
+    // H3.2: OCR token accounting rides the single terminal done(200) line.
+    let ocrExtra: { model?: string; inputTokens?: number; outputTokens?: number } = {};
 
     if (isPdf) {
       const parser = new PDFParse({ data: buffer });
@@ -89,7 +91,7 @@ export async function POST(req: Request) {
          const { generateText } = await import('ai');
 
          // Using Zhipu's multimodal model (free/cheap tier) for OCR.
-         const { text: ocrText } = await generateText({
+          const { text: ocrText, usage: ocrUsage } = await generateText({
            model: zhipu().chat(MODEL_IDS.zhipuVisionFlash),
            maxRetries: FALLBACK_MAX_RETRIES,
            messages: [
@@ -102,7 +104,8 @@ export async function POST(req: Request) {
              },
            ],
          });
-         text = ocrText;
+          text = ocrText;
+          ocrExtra = { model: MODEL_IDS.zhipuVisionFlash, ...usageOf(ocrUsage) };
         } catch {
           done(422, { reason: "ocr_failed" });
           return errorResponse("UPSTREAM_ERROR", "Failed to extract text even with OCR fallback. This might be a corrupted file.", 422, requestId);
@@ -111,7 +114,7 @@ export async function POST(req: Request) {
 
     // Cap extracted text so one document cannot blow up downstream prompts.
     if (text.length > 60000) text = text.slice(0, 60000);
-    done(200);
+    done(200, ocrExtra);
     return okResponse({ text: text, isOcrFallback }, requestId);
   } catch {
     done(500, { reason: "internal" });

@@ -1,7 +1,8 @@
 import { generateText } from "ai";
 import { z } from "zod";
 import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
-import { logApi } from "@/lib/api/logging";
+import { logApi, usageOf } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { resolveCopilotModel, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildCopilotSystem } from "@/ai/prompts/copilot";
@@ -64,10 +65,10 @@ export async function POST(req: Request) {
       hints = result.text.split('\n').filter(l => l.trim().length > 0).map(l => l.replace(/^[-*•]\s*/, '').replace(/^"|"$/g, ''));
     }
 
-    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId });
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId, ...usageOf(result.usage) });
     return okResponse({ hints }, requestId);
-  } catch {
-    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+  } catch (e) {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to generate copilot hints", 500, requestId);
   }
 }

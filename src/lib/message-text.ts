@@ -30,3 +30,21 @@ export function getMessageText(msg: MaybeMessage | null | undefined): string {
   if (typeof msg.text === "string" && msg.text) return msg.text;
   return "";
 }
+
+/**
+ * Phase B2 (LLM05): deterministic HTML escaping for the message-card sink.
+ *
+ * `InterveAIResponse` renders via dangerouslySetInnerHTML (currently zero
+ * call sites). Any future caller wiring LLM/echoed-user text here gets
+ * escaped text, never executable markup — structure guarantees it, no
+ * model or allowlist needed. Escapes &, <, >, ", ' (covers elements,
+ * attributes, and script/style contexts for text-node injection).
+ */
+export function escapeHtml(raw: string): string {
+  return raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}

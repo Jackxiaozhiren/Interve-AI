@@ -1,7 +1,8 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
-import { logApi } from "@/lib/api/logging";
+import { logApi, usageOf } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { resolveCostAwareModel, FALLBACK_MAX_RETRIES, repairZhipuJson } from "@/ai/providers/registry";
 import { isMockEnabled, mockTextStream, MOCK_STREAMS } from "@/ai/providers/mock";
 import { buildContextSystem, buildContextPrompt } from "@/ai/prompts/context";
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
     // the text stream it did emit is unparseable by chat transports — the
     // same P0 class fixed in interview-chat. No callers exist (verified),
     // so the complete-object shape is strictly more usable.
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model,
       schema: InitContextOutputSchema,
       experimental_repairText: repairZhipuJson,
@@ -66,10 +67,10 @@ export async function POST(req: Request) {
       abortSignal: signal,
     });
 
-    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId });
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId, ...usageOf(usage) });
     return okResponse(object, requestId);
-  } catch {
-    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+  } catch (e) {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to generate context", 500, requestId);
   }
 }

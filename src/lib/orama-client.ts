@@ -8,6 +8,37 @@ export interface ChunkDocument {
 
 let oramaInstance: AnyOrama | null = null;
 
+const LEGACY_HUB_ID = 'resume-index';
+
+/**
+ * Phase B4-fix (E-phase correction): the Supabase `orama_index` table is
+ * LIVE behind this module (via dbClient) with anon-bridge-readable legacy
+ * rows — a single global id leaks every user's resume chunks to any anon
+ * client. Partition by local user id; stamp `user_id` so rows leave the
+ * NULL bridge. Anon-key writes with user_id set are DENIED by the 003
+ * policies — the existing try/catch degrades to memory-only indexing,
+ * which is correct (no new unowned PII rows, session still works).
+ */
+export function localHubUserId(): string | null {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    const raw = window.localStorage.getItem("interveai_user");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { id?: unknown };
+    return typeof parsed.id === "string" && parsed.id.length > 0 ? parsed.id : null;
+  } catch {
+    return null;
+  }
+}
+
+export function hubIdForUser(userId: string | null): string {
+  return userId ? `${LEGACY_HUB_ID}:${userId}` : LEGACY_HUB_ID;
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
 /**
  * Splits text into chunks.
  * Uses a basic sliding window / chunking approach.
@@ -37,9 +68,14 @@ function chunkText(text: string, chunkSize = 500, overlap = 50): string[] {
  * Attempts to restore the Orama in-memory index from Dexie.
  * Returns true if successful, false otherwise.
  */
-export async function restoreKnowledgeHub(): Promise<boolean> {
+export async function restoreKnowledgeHub(userId: string | null = localHubUserId()): Promise<boolean> {
   try {
-    const record = await db.oramaIndex.get('resume-index');
+    const hubId = hubIdForUser(userId);
+    let record = await db.oramaIndex.get(hubId);
+    if (!record && hubId !== LEGACY_HUB_ID) {
+      // Transition fallback: pre-partition rows live under the legacy id.
+      record = await db.oramaIndex.get(LEGACY_HUB_ID);
+    }
     if (record && record.data) {
       oramaInstance = await create({
         schema: {
@@ -58,7 +94,7 @@ export async function restoreKnowledgeHub(): Promise<boolean> {
 /**
  * Initializes the Orama in-memory index with the provided resume text and persists it.
  */
-export async function initializeKnowledgeHub(resumeText: string): Promise<void> {
+export async function initializeKnowledgeHub(resumeText: string, userId: string | null = localHubUserId()): Promise<void> {
   oramaInstance = await create({
     schema: {
       text: 'string',
@@ -73,16 +109,20 @@ export async function initializeKnowledgeHub(resumeText: string): Promise<void> 
 
   await insertMultiple(oramaInstance, docs);
 
-  // Persist the built index to Dexie
+  // Persist the built index remotely (user-partitioned; anon-denied writes
+  // degrade to memory-only via the catch below — never a crash).
   try {
     const data = await save(oramaInstance);
     await db.oramaIndex.put({
-      id: 'resume-index',
+      id: hubIdForUser(userId),
+      // UUID session ids leave the anon NULL bridge via user_id; anon-key
+      // writes then fail closed (003) and the catch degrades gracefully.
+      ...(userId && isUuid(userId) ? { user_id: userId } : {}),
       data,
       updatedAt: new Date(),
     });
   } catch (error) {
-    console.error('Failed to persist Orama index to Dexie:', error);
+    console.error('Failed to persist Orama index remotely:', error);
   }
 }
 

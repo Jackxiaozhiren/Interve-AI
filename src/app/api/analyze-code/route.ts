@@ -1,7 +1,8 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
-import { logApi } from "@/lib/api/logging";
+import { logApi, usageOf } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { google, MODEL_IDS, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildCodePrompt } from "@/ai/prompts/code";
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
       }, requestId);
     }
 
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: google()(MODEL_IDS.geminiFlash),
       schema: AnalyzeCodeSchema,
       prompt: buildCodePrompt({ code, language, problemStatement }),
@@ -57,14 +58,14 @@ export async function POST(req: Request) {
       abortSignal: signal,
     });
 
-    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.geminiFlash });
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.geminiFlash, ...usageOf(usage) });
     return okResponse(object, requestId, {
       headers: {
         "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
       },
     });
-  } catch {
-    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+  } catch (e) {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to analyze code.", 500, requestId);
   }
 }

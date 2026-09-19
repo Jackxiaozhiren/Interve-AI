@@ -1,5 +1,5 @@
 // Phase 14: api-client converter + fallback helper unit tests.
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { toCamelCase, toSnakeCase } from "../../src/lib/api-client";
 import { withModelFallback } from "../../src/ai/providers/fallback";
 import { MODEL_IDS } from "../../src/ai/providers/registry";
@@ -71,5 +71,45 @@ describe("withModelFallback", () => {
         },
       })
     ).rejects.toThrow("down");
+  });
+
+  it("propagates reported usage into its log line (H3.2)", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      await withModelFallback({
+        route: "t-usage",
+        requestId: "r",
+        startTime: performance.now(),
+        primaryModel: { id: "p" } as never,
+        primaryModelId: "primary-x",
+        run: async (_model, reportUsage) => {
+          reportUsage?.({ inputTokens: 1000, outputTokens: 200 });
+          return "ok";
+        },
+      });
+      const line = JSON.parse(spy.mock.calls[0][0] as string);
+      expect(line.inputTokens).toBe(1000);
+      expect(line.outputTokens).toBe(200);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("omits token keys when run never reports (old callers clean)", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      await withModelFallback({
+        route: "t-nousage",
+        requestId: "r",
+        startTime: performance.now(),
+        primaryModel: { id: "p" } as never,
+        primaryModelId: "primary-x",
+        run: async () => "ok",
+      });
+      const line = JSON.parse(spy.mock.calls[0][0] as string);
+      expect("inputTokens" in line).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

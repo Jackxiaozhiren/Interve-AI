@@ -147,9 +147,13 @@ describe("isThinEvaluationText + THIN_TRANSCRIPT wiring", () => {
 
   it("interview end-call surfaces thin-transcript guidance (static pin)", async () => {
     const { readFileSync } = await import("node:fs");
+    // Phase E1: settlement lives in useInterviewSettlement.ts; the page
+    // renders its isEnding/handleEndCall. Pin the slice, not the file.
+    const slice = readFileSync(new URL("../../src/components/interview/useInterviewSettlement.ts", import.meta.url), "utf8");
+    expect(slice).toContain("THIN_TRANSCRIPT");
+    expect(slice).toContain("回答内容较薄");
     const page = readFileSync(new URL("../../src/app/interview/page.tsx", import.meta.url), "utf8");
-    expect(page).toContain("THIN_TRANSCRIPT");
-    expect(page).toContain("回答内容较薄");
+    expect(page).toContain("useInterviewSettlement");
   });
 });
 

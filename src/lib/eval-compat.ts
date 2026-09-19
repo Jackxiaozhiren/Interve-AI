@@ -4,6 +4,18 @@
 // schema (council/hireVerdict/culturalTraits/radarScores). This adapter lets
 // every consumer render EITHER shape through one view model, with legacy
 // rows explicitly badged — history is preserved, never rewritten.
+//
+// Phase F1 legacy sunset roadmap (read-only residue, per-file销账):
+//   [x] report/[id]/page.tsx — LegacyBanner + · 历史评估 (V2 rows: ReadinessDisclaimer)
+//   [x] SessionDetailModal.tsx — same banner pattern
+//   [x] PrintableDossier.tsx — bilingual legacy headings (F1)
+//   [x] PrintLayout.tsx — bilingual legacy headings (F1)
+//   [x] achievements.ts — codes kept for stored unlocks, titles rewritten to readiness language
+//   [x] analyze-trends/route.ts — legacy fields as model INPUT only, fallback has no verdicts
+//   [x] eval-compat.ts (this file) — single choke point; UI must badge when view.legacy
+// Sunset: generation is already gone (Phase 4). Display removal waits for
+// (a) privacy retention expiry of pre-V2 rows, then (b) deleting the legacy
+// branches file by file with mock-e2e green. No new hire/culture verdicts, ever.
 import type { Interview } from "@/lib/db";
 import {
   evaluationAverage,

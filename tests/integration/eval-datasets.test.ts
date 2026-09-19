@@ -143,3 +143,42 @@ describe("turn-golden.json (Phase 9 turn-level steering)", () => {
     }
   });
 });
+
+describe("bias-cases.json (Phase A3 bias audit)", () => {
+  it("same-substance triplets with no authored scores (differential only)", () => {
+    const g = load("evals/bias-cases.json") as {
+      version: string;
+      flagDrift: number;
+      cases: {
+        id: string;
+        lane: string;
+        transform: string;
+        mustQuote: string[];
+        base: unknown;
+        variant: unknown;
+      }[];
+    };
+    expect(g.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(g.flagDrift).toBe(20);
+    const ids = g.cases.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const transforms = new Set(g.cases.map((c) => c.transform));
+    for (const t of ["position", "verbosity", "agreeableness"]) {
+      expect(transforms, t).toContain(t);
+    }
+    for (const c of g.cases) {
+      expect(["analyze-practice", "analyze-interview"], `${c.id}: lane`).toContain(c.lane);
+      // Variant must differ (a transform happened) but keep the substance.
+      expect(JSON.stringify(c.variant), `${c.id}: transformed`).not.toBe(JSON.stringify(c.base));
+      const both = `${JSON.stringify(c.base)}\n${JSON.stringify(c.variant)}`;
+      expect(c.mustQuote.length, `${c.id}: quotes`).toBeGreaterThan(0);
+      for (const q of c.mustQuote) {
+        expect(both, `${c.id}: substance "${q}" in base`).toContain(q);
+        // quote must survive in the VARIANT too (else drift is substance loss, not bias)
+        expect(JSON.stringify(c.variant), `${c.id}: substance "${q}" in variant`).toContain(q);
+      }
+      // Differential purity: no absolute verdicts to fit — drift only.
+      expect(both, `${c.id}: no authored scores`).not.toMatch(/scoreBand|avgProgressBand|"expected"|"readiness"/);
+    }
+  });
+});

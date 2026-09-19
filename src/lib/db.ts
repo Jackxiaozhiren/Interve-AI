@@ -116,6 +116,8 @@ export interface OramaIndexData {
   id: string;
   data: unknown;
   updatedAt: Date;
+  /** Phase B4-fix: owner partition column (UUID session id; absent = legacy global row). */
+  user_id?: string;
 }
 
 export interface PracticeSession {

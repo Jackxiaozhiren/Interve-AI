@@ -12,6 +12,7 @@ import { z } from "zod";
 import { getRequestId } from "./request-id";
 import { errorResponse, okResponse, type ErrorCode } from "./errors";
 import { checkRateLimit, getClientIp, type RateLimitRule } from "./rate-limit";
+import { checkUserBudget, defaultUserBudget } from "./user-budget";
 import { readJsonBody } from "./validate";
 import { getSessionFromRequest, type SessionPayload } from "./session";
 import { logApi } from "./logging";
@@ -26,6 +27,9 @@ export interface GuardOptions<T> {
   requireSession?: boolean;
   /** Upstream timeout budget in ms (combined with client abort). */
   timeoutMs?: number;
+  /** Phase B6: per-user daily AI-call budget. Default ON (env USER_AI_BUDGET_RPD,
+   *  default 200) for every authenticated call; set false to opt a route out. */
+  userBudget?: { limit?: number } | false;
 }
 
 export interface GuardContext<T> {
@@ -98,6 +102,25 @@ export async function guardRequest<T>(
       ok: false,
       response: errorResponse(body.error.code as ErrorCode, body.error.message, body.error.status, requestId),
     };
+  }
+
+  // 5. Phase B6: per-user daily budget (Unbounded Consumption fuse). Only
+  // validated, authenticated calls consume budget; malformed/anonymous
+  // traffic never does. Over-budget is 429 with Retry-After till PT-midnight
+  // rollover — same code clients already handle for IP rate limits.
+  if (opts.userBudget !== false && session.id) {
+    const limit = opts.userBudget?.limit ?? defaultUserBudget();
+    const budget = checkUserBudget(opts.route, session.id, limit);
+    if (!budget.allowed) {
+      done(429, { reason: "user_budget_exceeded" });
+      return {
+        ok: false,
+        response: errorResponse("RATE_LIMITED", "Daily AI budget exceeded. Please retry tomorrow.", 429, requestId, {
+          "Retry-After": String(Math.max(1, Math.ceil(budget.resetMs / 1000))),
+          ...rateLimitHeaders(budget.remaining, budget.resetMs),
+        }),
+      };
+    }
   }
 
   return {

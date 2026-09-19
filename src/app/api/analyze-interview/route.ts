@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
 import { logApi } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { resolveInterviewModel, FALLBACK_MAX_RETRIES, repairZhipuJson } from "@/ai/providers/registry";
 import { withModelFallback } from "@/ai/providers/fallback";
 import { isMockEnabled, mockJson, mockV2Evaluation } from "@/ai/providers/mock";
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
       startTime,
       primaryModel,
       primaryModelId: modelId,
-      run: async (model) => {
+      run: async (model, reportUsage) => {
         const result = await generateObject({
           model,
           maxRetries: FALLBACK_MAX_RETRIES,
@@ -94,6 +95,8 @@ export async function POST(req: Request) {
           system: systemPrompt,
           prompt,
         });
+        // H3.2: flagship-lane token accounting via the helper's log lines.
+        reportUsage?.(result.usage);
         return normalizeEvaluation(result.object, rubric.id);
       },
     });
@@ -107,7 +110,7 @@ export async function POST(req: Request) {
       logApi(ROUTE, { requestId, status: 422, latencyMs: Math.round(performance.now() - startTime), reason: "thin_transcript" });
       return errorResponse("THIN_TRANSCRIPT", "Not enough grounded signal to evaluate — add specifics and retry", 422, requestId);
     }
-    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to analyze interview", 500, requestId);
   }
 }

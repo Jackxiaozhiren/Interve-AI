@@ -1,7 +1,8 @@
 import { streamText, type ModelMessage } from "ai";
 import { z } from "zod";
 import { guardRequest, errorResponse } from "@/lib/api/guard";
-import { logApi } from "@/lib/api/logging";
+import { logApi, logStreamUsage } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { resolveChatModel, zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockTextStream, MOCK_STREAMS } from "@/ai/providers/mock";
 import { buildInterviewSystemPrompt } from "@/ai/prompts/interview";
@@ -160,6 +161,8 @@ export async function POST(req: Request) {
       const response = result.toUIMessageStreamResponse();
       const endTime = performance.now();
       logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(endTime - startTime), model: model || 'zhipu' });
+      // H3.2: stream usage resolves post-consumption — deferred line, never blocks.
+      logStreamUsage(ROUTE, requestId, model || 'zhipu', result.usage, { started: startTime });
       
       response.headers.set('X-Response-Time', `${(endTime - startTime).toFixed(2)}ms`);
       response.headers.set('x-request-id', requestId);
@@ -178,13 +181,14 @@ export async function POST(req: Request) {
       const response = fallbackResult.toUIMessageStreamResponse();
       const fallbackEndTime = performance.now();
       logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(fallbackEndTime - fallbackStartTime), model: MODEL_IDS.zhipuFlash, fallback: true });
+      logStreamUsage(ROUTE, requestId, MODEL_IDS.zhipuFlash, fallbackResult.usage, { fallback: true, started: fallbackStartTime });
       response.headers.set('X-Response-Time', `${(fallbackEndTime - fallbackStartTime).toFixed(2)}ms`);
       response.headers.set('x-request-id', requestId);
       response.headers.set('x-fallback', MODEL_IDS.zhipuFlash);
       return response;
     }
-  } catch {
-    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+  } catch (e) {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to generate interview chat", 500, requestId);
   }
 }

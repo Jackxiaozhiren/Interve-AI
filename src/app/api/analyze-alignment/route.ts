@@ -1,7 +1,8 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
-import { logApi } from "@/lib/api/logging";
+import { logApi, usageOf } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { google, MODEL_IDS, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildAlignmentPrompt } from "@/ai/prompts/alignment";
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
   const startTime = performance.now();
 
   try {
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: google()(MODEL_IDS.geminiFlash),
       maxRetries: DEFAULT_MAX_RETRIES,
       schema: AlignmentOutputSchema,
@@ -50,11 +51,11 @@ export async function POST(req: Request) {
       abortSignal: signal,
     });
     const endTime = performance.now();
-    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(endTime - startTime), model: MODEL_IDS.geminiFlash });
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(endTime - startTime), model: MODEL_IDS.geminiFlash, ...usageOf(usage) });
 
     return okResponse(object, requestId);
-  } catch {
-    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+  } catch (e) {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to analyze alignment", 500, requestId);
   }
 }

@@ -1,7 +1,7 @@
 import { generateText } from "ai";
 import { z } from "zod";
 import { guardRequest, okResponse } from "@/lib/api/guard";
-import { logApi } from "@/lib/api/logging";
+import { logApi, usageOf } from "@/lib/api/logging";
 import { zhipu, MODEL_IDS, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildTrendsPrompt } from "@/ai/prompts/trends";
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
       }
 
       const latency = (performance.now() - startTime).toFixed(2);
-      logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash });
+      logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash, ...usageOf(result.usage) });
 
       return okResponse(body, requestId, {
         headers: { "X-Response-Time": `${latency}ms` },

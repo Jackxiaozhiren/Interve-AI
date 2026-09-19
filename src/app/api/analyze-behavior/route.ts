@@ -1,7 +1,8 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
-import { logApi } from "@/lib/api/logging";
+import { logApi, usageOf } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { zhipu, MODEL_IDS, DEFAULT_MAX_RETRIES, repairZhipuJson } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildBehaviorSystem, buildBehaviorPrompt } from "@/ai/prompts/behavior";
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
   const startTime = performance.now();
 
   try {
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: zhipu().chat(MODEL_IDS.zhipuFlash), // Use flash model for fast analysis
       maxRetries: DEFAULT_MAX_RETRIES,
       experimental_repairText: repairZhipuJson,
@@ -53,10 +54,10 @@ export async function POST(req: Request) {
       abortSignal: signal,
     });
 
-    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash });
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash, ...usageOf(usage) });
     return okResponse(object, requestId);
-  } catch {
-    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: "upstream_error" });
+  } catch (e) {
+    logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to analyze behavioral traits", 500, requestId);
   }
 }

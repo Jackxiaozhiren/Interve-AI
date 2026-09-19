@@ -15,6 +15,55 @@
 // Free project setup (all free): supabase.com → New project (Free plan) →
 // SQL Editor → paste supabase/migrations/001_init_schema.sql then
 // 002_session_ownership.sql → Project Settings → API → copy URL + anon key.
+//
+// NOTE (Phase C3): plain `node` does NOT load `.env.local` (only `next`
+// does), so without the loader below a locally linked project always
+// reported "skipped" (false-skip). We fill missing vars from `.env.local`
+// with zero dependencies; explicit env (e.g. CI secrets) always wins.
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+function loadDotEnvLocal() {
+  const candidates = [
+    path.join(process.cwd(), ".env.local"),
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env.local"),
+  ];
+  const seen = new Set();
+  for (const file of candidates) {
+    if (seen.has(file)) continue;
+    seen.add(file);
+    let text;
+    try {
+      text = fs.readFileSync(file, "utf8");
+    } catch {
+      continue; // missing file: stay keyless, keep exit-0 skip below
+    }
+    let filled = 0;
+    for (const rawLine of text.split("\n")) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      const body = line.startsWith("export ") ? line.slice(7).trim() : line;
+      const eq = body.indexOf("=");
+      if (eq <= 0) continue;
+      const key = body.slice(0, eq).trim();
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+      if (process.env[key] !== undefined && process.env[key] !== "") continue; // explicit env wins
+      let value = body.slice(eq + 1).trim();
+      const quote = value[0];
+      if (value.length >= 2 && (quote === '"' || quote === "'" || quote === "`") && value.endsWith(quote)) {
+        value = value.slice(1, -1);
+      }
+      process.env[key] = value;
+      filled += 1;
+    }
+    console.log(`[supabase-free] loaded ${path.basename(file)} (${filled} missing var(s) filled; explicit env takes precedence).`);
+    return; // first found file wins (cwd before repo root)
+  }
+}
+
+loadDotEnvLocal();
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

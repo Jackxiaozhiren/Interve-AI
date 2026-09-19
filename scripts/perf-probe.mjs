@@ -22,10 +22,21 @@ async function seedLocal(page) {
   });
 }
 
+// H1.4: mobile 4x 节流常态化 — `node scripts/perf-probe.mjs [baseURL] --mobile`
+// 4x CPU throttle (CDP Emulation.setCPUThrottlingRate) + 390x844 viewport.
+// 默认桌面档（行为不变）；--mobile 只影响本探针，不碰业务代码。
+const MOBILE = process.argv.includes("--mobile");
+
 async function measure(browser, path) {
-  const context = await browser.newContext();
+  const context = await browser.newContext(
+    MOBILE ? { viewport: { width: 390, height: 844 }, isMobile: true } : {}
+  );
   await login(context);
   const page = await context.newPage();
+  if (MOBILE) {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+  }
   await seedLocal(page);
   await page.goto(BASE + path, { waitUntil: "domcontentloaded" });
   // Let LCP/CLS settle; animations keep running but entries stabilize.

@@ -93,6 +93,25 @@ function afterAuth(request: NextRequest, pathname: string, searchParams: URLSear
   `.replace(/\s{2,}/g, ' ').trim();
 
   response.headers.set('Content-Security-Policy', cspHeader);
+  // Phase B5: strict policy in REPORT-ONLY first (V3: never unsafe-inline
+  // cutover blind). Zero breakage risk: violations are reported to
+  // /api/csp-report, nothing is blocked. Converge the enforcing header
+  // only after the report stream is clean for real traffic.
+  const cspReportOnly = `
+    default-src 'self';
+    script-src 'self';
+    style-src 'self' https://fonts.googleapis.com;
+    img-src 'self' blob: data: https:;
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https: blob: data: wss:;
+    worker-src 'self' blob:;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    media-src 'self' blob: data:;
+    report-uri /api/csp-report;
+  `.replace(/\s{2,}/g, ' ').trim();
+  response.headers.set('Content-Security-Policy-Report-Only', cspReportOnly);
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');

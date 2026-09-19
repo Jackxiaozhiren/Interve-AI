@@ -26,6 +26,13 @@ describe("migration history", () => {
     expect(existsSync(new URL("supabase/migrations/001_init_schema.sql", ROOT))).toBe(true);
     expect(existsSync(new URL("supabase/migrations/002_session_ownership.sql", ROOT))).toBe(true);
   });
+
+  // H2.1: 003/004 are part of the pinned history (cutover 005 stays
+  // ungenerated until live dual-user denial exists — see phase report).
+  it("pins 003/004 presence (additive chain unbroken)", () => {
+    expect(existsSync(new URL("supabase/migrations/003_per_operation_policies.sql", ROOT))).toBe(true);
+    expect(existsSync(new URL("supabase/migrations/004_practice_evidence.sql", ROOT))).toBe(true);
+  });
 });
 
 describe("002_session_ownership.sql", () => {
@@ -110,5 +117,24 @@ describe("003_per_operation_policies.sql", () => {
     expect(anonInserts.length).toBe(7);
     expect(anonUpdates.length).toBe(7);
     expect(anonDeletes.length).toBe(7);
+  });
+});
+
+// H2.1: 004 pins the additive-only discipline for evidence columns —
+// nullable ADD COLUMNs, no policy surgery, no open predicates.
+describe("004_practice_evidence.sql", () => {
+  const sql = read("supabase/migrations/004_practice_evidence.sql");
+
+  it("only adds nullable evidence/confidence columns to practice_sessions", () => {
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS evidence/);
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS confidence/);
+    expect(sql).not.toMatch(/DROP POLICY/);
+    expect(sql).not.toMatch(/CREATE POLICY/);
+    expect(sql).not.toMatch(/USING\s*\(\s*true\s*\)/);
+  });
+
+  it("keeps history renderable (defaults preserve score-only rows)", () => {
+    expect(sql).toMatch(/DEFAULT '\{\}'/);
+    expect(sql).toMatch(/DEFAULT 'medium'/);
   });
 });
