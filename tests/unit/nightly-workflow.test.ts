@@ -17,8 +17,13 @@ describe("nightly-eval.yml wiring", () => {
   });
 
   it("is secret-gated and fork-safe (skips green without keys)", () => {
-    expect(yml).toContain("secrets.ZHIPU_API_KEY != ''");
-    expect(yml).toContain("secrets.GOOGLE_GENERATIVE_AI_API_KEY != ''");
+    // CI-01: job/step-level `if:` cannot read `secrets` (it invalidates the
+    // whole file) — keys are mapped to env and gated per step instead.
+    expect(yml).not.toMatch(/if:\s*\$\{\{\s*secrets\./);
+    expect(yml).toContain("ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}");
+    expect(yml).toContain("GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}");
+    expect(yml).toContain("env.ZHIPU_API_KEY != ''");
+    expect(yml).toContain("env.GOOGLE_GENERATIVE_AI_API_KEY != ''");
   });
 
   it("runs all four lanes serial with fixed call caps", () => {
@@ -39,5 +44,23 @@ describe("nightly-eval.yml wiring", () => {
   it("documents the free-tier cost math in-file", () => {
     expect(yml).toContain("37");
     expect(yml).toContain("08:00 UTC");
+  });
+});
+
+// CI-01: same secrets-in-`if:` ban for ci.yml (its free-eval-smoke job had
+// the identical file-invalidating pattern). Kept here with the other
+// workflow-wiring pins.
+describe("ci.yml wiring", () => {
+  const ci = readFileSync(new URL("../../.github/workflows/ci.yml", import.meta.url), "utf8");
+
+  it("never reads secrets in job/step `if:` (env-indirection instead)", () => {
+    expect(ci).not.toMatch(/if:\s*\$\{\{\s*secrets\./);
+    expect(ci).toContain("ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}");
+    expect(ci).toContain("env.ZHIPU_API_KEY != ''");
+  });
+
+  it("keeps the perf transfer gate wired", () => {
+    expect(ci).toContain("perf transfer budgets");
+    expect(ci).toContain("perf:assert");
   });
 });
