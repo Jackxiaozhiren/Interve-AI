@@ -16,11 +16,32 @@ const ROUTE = "health";
 
 type DbState = "ok" | "degraded";
 
-export function buildHealthBody(db: DbState, dbLatencyMs: number) {
+export function buildHealthBody(db: DbState, dbLatencyMs: number, practice: DbState, practiceLatencyMs: number) {
   return {
-    status: db === "ok" ? "ok" : "degraded",
-    checks: { db, dbLatencyMs },
+    status: db === "ok" && practice === "ok" ? "ok" : "degraded",
+    checks: { db, dbLatencyMs, practice, practiceLatencyMs },
   };
+}
+
+type ProbeTable = "interviews" | "practice_sessions";
+
+// P1-07: one statement, zero rows per probe (exact count over the smallest
+// user tables). Storage/auth probes deliberately excluded: src/ has zero
+// supabase.storage usage (a storage probe would report degraded forever)
+// and server-side auth checks need service_role (never leaves the vault).
+async function probe(table: ProbeTable): Promise<{ state: DbState; latencyMs: number }> {
+  const started = performance.now();
+  try {
+    const res = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .abortSignal(AbortSignal.timeout(5000))
+      .limit(1);
+    if (!res.error) return { state: "ok", latencyMs: Math.round(performance.now() - started) };
+  } catch {
+    // network/timeout/abort — class only, never error text
+  }
+  return { state: "degraded", latencyMs: Math.round(performance.now() - started) };
 }
 
 export async function GET(req: Request) {
@@ -33,25 +54,17 @@ export async function GET(req: Request) {
     return new NextResponse(null, { status: 429, headers: withRequestId(new Headers(), requestId) });
   }
 
-  // One statement, zero rows: exact count over the smallest user table.
-  let db: DbState = "degraded";
-  try {
-    const probe = await supabase
-      .from("interviews")
-      .select("id", { count: "exact", head: true })
-      .abortSignal(AbortSignal.timeout(5000))
-      .limit(1);
-    if (!probe.error) db = "ok";
-  } catch {
-    db = "degraded"; // network/timeout/abort — class only, never error text
-  }
+  // One statement, zero rows per probe: exact counts over the smallest user tables.
+  const [dbProbe, practiceProbe] = await Promise.all([probe("interviews"), probe("practice_sessions")]);
   const latencyMs = Math.round(performance.now() - started);
-  const body = buildHealthBody(db, latencyMs);
+  const body = buildHealthBody(dbProbe.state, dbProbe.latencyMs, practiceProbe.state, practiceProbe.latencyMs);
   logApi(ROUTE, {
     requestId,
     status: 200,
     latencyMs,
-    ...(db === "ok" ? {} : { reason: "db_degraded" }),
+    ...(body.status === "ok"
+      ? {}
+      : { reason: dbProbe.state === "ok" ? "practice_degraded" : "db_degraded" }),
   });
   return done(body);
 }
