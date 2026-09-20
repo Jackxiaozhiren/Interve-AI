@@ -32,8 +32,13 @@ jobs:
   nightly:
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    # Secret-gated AND fork-safe: no key => skip with exit 0, never red.
-    if: ${{ secrets.ZHIPU_API_KEY != '' }}
+    # Secret-gated AND fork-safe: no key => keyed lanes skip, exit 0, never
+    # red. NOTE: job-level `if:` cannot read `secrets` (it invalidates the
+    # whole workflow file) — keys are mapped to env and gated per step.
+    env:
+      ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,6 +53,7 @@ jobs:
       - name: lane 1/4 free smoke (zhipu ≤3 calls)
         id: smoke
         continue-on-error: true
+        if: ${{ env.ZHIPU_API_KEY != '' }}
         run: npm run test:eval:free
         env:
           CI: true
@@ -58,7 +64,7 @@ jobs:
         id: practice
         continue-on-error: true
         # Secret-gated per lane: runs only when a Gemini key is configured.
-        if: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY != '' }}
+        if: ${{ env.GOOGLE_GENERATIVE_AI_API_KEY != '' }}
         run: npx vitest run --config vitest.eval.config.ts evals/practice-golden.eval.test.ts
         env:
           CI: true
@@ -68,6 +74,7 @@ jobs:
       - name: lane 3/4 turn golden (zhipu 3 calls)
         id: turn
         continue-on-error: true
+        if: ${{ env.ZHIPU_API_KEY != '' }}
         run: npx vitest run --config vitest.eval.config.ts evals/turn-golden.eval.test.ts
         env:
           CI: true
@@ -77,6 +84,7 @@ jobs:
       - name: lane 4/4 full sweep (zhipu 31 calls, nightly only)
         id: full
         continue-on-error: true
+        if: ${{ env.ZHIPU_API_KEY != '' }}
         run: npm run test:eval
         env:
           CI: true

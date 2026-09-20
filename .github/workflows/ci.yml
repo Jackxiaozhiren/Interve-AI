@@ -64,13 +64,15 @@ jobs:
           console.log('deploy consistency OK (standalone + node20 + no-secret-layers + default vercel build)');
           "
 
-  # FREE-tier live AI smoke (≤3 flash calls). Runs only when a free Zhipu key
-  # is configured as a repo secret; forks without secrets skip safely.
+  # FREE-tier live AI smoke (≤3 flash calls). Skips safely when no free Zhipu
+  # key is configured (job-level `if:` cannot read `secrets` — it invalidates
+  # the whole file — so the key is mapped to env and gated per step).
   # Full 31-call suites stay manual/nightly (see docs/AI_EVALUATION.md).
   free-eval-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ secrets.ZHIPU_API_KEY != '' }}
+    env:
+      ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -79,6 +81,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:eval:free
+        if: ${{ env.ZHIPU_API_KEY != '' }}
         env:
           CI: true
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
