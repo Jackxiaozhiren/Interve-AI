@@ -23,6 +23,7 @@
     "quota": "node scripts/quota-ledger.mjs status",
     "test:e2e:smoke": "playwright test --project=chrome-1280x720 tests/landing.spec.ts tests/setup.spec.ts tests/interview.spec.ts tests/interview-flow.spec.ts tests/dashboard.spec.ts tests/replay.spec.ts tests/settings.spec.ts tests/accessibility.spec.ts tests/chat.spec.ts",
     "test:a11y": "playwright test --project=chrome-1280x720 tests/accessibility.spec.ts",
+    "perf:assert": "node scripts/perf-probe.mjs --assert",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

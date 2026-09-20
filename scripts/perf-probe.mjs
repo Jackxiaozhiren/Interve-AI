@@ -71,12 +71,34 @@ async function measure(browser, path) {
 }
 
 const browser = await chromium.launch();
+// Transfer budgets (KB, desktop prod). Policy: ~10% headroom over the
+// 2026-09-19 measured baselines (setup 391 / dashboard 720 / interview 1033 /
+// practice 474). The 1032KB interview line (PERF_REPORT) lives inside the
+// 1150 budget — headroom absorbs font/CDN/headless variance, the budget
+// catches real bloat (e.g. an ungated heavy import). Tighten only from fresh
+// baselines, never blind. Enforced with --assert (CI); plain runs print only.
+const TRANSFER_BUDGETS = {
+  "/setup": 450,
+  "/dashboard": 800,
+  "/interview?id=perf-probe&testMode=true": 1150,
+  "/practice": 550,
+};
+const ASSERT = process.argv.includes("--assert");
 try {
-  for (const path of ["/setup", "/dashboard", "/interview?id=perf-probe&testMode=true", "/practice"]) {
+  for (const path of Object.keys(TRANSFER_BUDGETS)) {
     try {
-      console.log(path, JSON.stringify(await measure(browser, path)));
+      const m = await measure(browser, path);
+      console.log(path, JSON.stringify(m));
+      if (ASSERT && m.transferKB > TRANSFER_BUDGETS[path]) {
+        console.error(`TRANSFER-BUDGET: ${path} ${m.transferKB}KB > ${TRANSFER_BUDGETS[path]}KB`);
+        process.exitCode = 1;
+      }
     } catch (e) {
       console.log(path, JSON.stringify({ error: String(e).slice(0, 160) }));
+      if (ASSERT) {
+        console.error(`TRANSFER-BUDGET: ${path} probe failed`);
+        process.exitCode = 1;
+      }
     }
   }
 } finally {

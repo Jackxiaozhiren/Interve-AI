@@ -31,6 +31,17 @@ jobs:
       - run: npm run test:e2e:smoke
         env:
           CI: true
+      # Transfer budgets (P2-02 follow-up): prod server + probe --assert.
+      # Budgets live in scripts/perf-probe.mjs (policy + headroom documented
+      # there); breach or probe failure fails the gate. Plain probe runs
+      # (no --assert) stay print-only for local use.
+      - name: perf transfer budgets
+        run: |
+          (npx next start -p 3100 >/tmp/next-start.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf http://localhost:3100/ >/dev/null && break || sleep 2; done
+          npm run perf:assert; status=$?
+          pkill -f "next start -p 3100" || true
+          exit $status
       - run: npm audit --audit-level=critical
       # Phase G2: deploy-surface consistency (Vercel uses `next build` with
       # output:standalone; Docker must ship the same node major + no secrets).
