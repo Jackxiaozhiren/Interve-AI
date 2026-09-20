@@ -90,6 +90,11 @@ function createPostgrestStub() {
 }
 
 test.describe('Mock full journey (no keys, no DB)', () => {
+  // P2-07-dup (BUG-R-e2e-mock-flake): one scoped retry absorbs the
+  // historical setup-leg timing flake (V7 实测史 3F/4P at the
+  // `:176 chars extracted` 30s step; stash A/B proved unrelated to mic
+  // changes). Playwright-native, test-only, zero product risk.
+  test.describe.configure({ retries: 1 });
   test.setTimeout(180000);
 
   test('signup → setup → interview → analysis → replay → retry → export → delete', async ({ page }) => {
