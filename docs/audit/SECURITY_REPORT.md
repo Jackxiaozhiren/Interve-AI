@@ -349,3 +349,43 @@
 - XSS/upload/SSRF lanes: covered by the same green suites; no new
   sinks added this session (verified: only 2 `dangerouslySetInnerHTML`
   sites, both audited in F4 — escaped sink + static CSS literal).
+
+## 10. V6-Third S1 delta re-verification (2026-09-19, $0; static + keyless gates)
+
+> Scope: §9 ten items re-checked against today's tree (HEAD `aece034` +
+> own session's 13 uncommitted files; parallel V7 session's files untouched).
+> Method: fresh greps below + full gates (`lint 0 err / tsc 0 /
+> test 50-367 / build 0 / mock-e2e 1 / audit-critical 0`). Zero keyed calls.
+
+- Fresh pins (2026-09-19 re-run): `UNTRUSTED` fences 15/19 prompts · zero
+  `tools:/toolChoice/maxSteps/stopWhen/prepareStep/activeTools` in
+  `src/app/api/*/route.ts` · `evidenceField` in 6 verdict routes ·
+  `dangerouslySetInnerHTML` in exactly 3 files (2 render + 1 comment-only) ·
+  secret grep clean (sole `service_role` hit is a code comment stating it
+  never leaves the vault, `health/route.ts:31`).
+- LLM01 → standing, no change. LLM02 → standing (RAG partition + PII-free
+  logs + generic errors untouched). LLM03 → standing (zero-tool pin green,
+  now 11/11 in `security-surface.test.ts`).
+- LLM04 → PARTIAL standing + 1 accept: tiptap HIGH×2 unfixable inside
+  tldraw 4.5.10 peer pins (`audit fix --dry-run` proves it); declined,
+  Dependabot-weekly owns the fix (PAIN P2-04). Totals frozen at 37
+  (1/31/5/0). CI audit + Dependabot rhythm re-verified present.
+  收敛（并行 session，正交零冲突）：`parse-resume:9` 的 `@ts-expect-error`
+  已被根治（`src/types/pdf-parse.d.ts` 重写为 v2 ambient 形状，指令同步
+  删除）；B1 扫描出的 `any`（GrowthTrend/SkillBreakdown）正被类型化。
+  全树复核 lint 0 err / tsc 0（2026-09-19 末）。
+- LLM05 → standing (chunk provenance + partition untouched).
+- LLM06 → STRENGTHENED: `combineSignal` hand-rolled (no `AbortSignal.any`
+  dep — timeout budget now enforced on edge) + practice lane 25s→45s
+  (`PRACTICE_TIMEOUT_MS`, `analyze-practice/route.ts:59`); `guard-timeout`
+  3/3 pins. Fuse still tracked (A3 numbers external).
+- LLM07 → standing (envelope + disclaimer + legacy captions untouched).
+- LLM08 → standing (surface pins green).
+- LLM09 → STRENGTHENED: abuse-boundary pins added
+  (`orama-abuse.test.ts` 4/4 — anon-legacy-only, no cross-namespace
+  restore, no stamp impersonation, injection-prompt self-chunks-only).
+- LLM10 → STRENGTHENED: sink-inventory pin added (11th test in
+  `security-surface.test.ts`); chat `role`→`sender` rename kills the
+  ARIA-role confusion class; 4 a11y lint rules hardened (F1-01).
+- Deferred (unchanged, not claimed): CodeQL/Semgrep lane · H4.3/H4.4 keyed
+  halves · E4 `generateObject` migration (10 routes, keyed MVVP gated).
