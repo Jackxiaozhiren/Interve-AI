@@ -120,7 +120,7 @@ describe("LLM08 Hidden Context Exposure (2026): prompt + RAG + logs + errors", (
   });
 });
 
-describe("LLM09 Misinformation (2026): verdicts ride verbatim evidence + disclaimer", () => {
+describe("LLM07 Misinformation (2026): verdicts ride verbatim evidence + disclaimer", () => {
   // Keyless half of H4.3 (nightly quote-trace sampling is the keyed half):
   // every evaluative output schema carries verbatim evidence + evaluator
   // confidence, dimensions require >=1 quote, and the practice-only
@@ -161,7 +161,41 @@ describe("LLM09 Misinformation (2026): verdicts ride verbatim evidence + disclai
   });
 });
 
-describe("LLM10 Unbounded Consumption (2026): every AI call is metered", () => {
+describe("LLM10 Output Handling (2026): no raw-HTML sinks for model/user text", () => {
+  // P1-08 audit verdict (2026-09-19): exactly two render sites + one
+  // comment-only mention. message-card escapes at the sink (escapeHtml,
+  // unit-pinned in message-text.test.ts); chat-background injects a static
+  // keyframes literal with zero interpolation. Any new sink fails loudly.
+  it("sink inventory is closed: escaped component sink + static CSS only", () => {
+    const hits: string[] = [];
+    for (const f of [
+      ...walkTs(join(rootPath, "src/components")),
+      ...walkTs(join(rootPath, "src/app")),
+      ...walkTs(join(rootPath, "src/lib")),
+    ]) {
+      if (readFileSync(f, "utf8").includes("dangerouslySetInnerHTML")) hits.push(f);
+    }
+    const rel = hits.map((f) => f.replace(rootPath, "")).sort();
+    expect(rel).toEqual(
+      [
+        "src/components/interve-ui/backgrounds/chat-background.tsx",
+        "src/components/interve-ui/chat/message-card.tsx",
+        "src/lib/message-text.ts",
+      ].sort()
+    );
+    const card = readFileSync(join(rootPath, "src/components/interve-ui/chat/message-card.tsx"), "utf8");
+    expect(card, "component sink escapes at the sink").toContain("escapeHtml(content)");
+    const bg = readFileSync(
+      join(rootPath, "src/components/interve-ui/backgrounds/chat-background.tsx"),
+      "utf8"
+    );
+    expect(bg, "CSS sink is a static literal (no interpolation)").not.toMatch(/\$\{/);
+    const helper = readFileSync(join(rootPath, "src/lib/message-text.ts"), "utf8");
+    expect(helper, "helper only documents the sink (renders nothing itself)").not.toContain("__html");
+  });
+});
+
+describe("LLM06 Unbounded Consumption (2026): every AI call is metered", () => {
   // Keyless half of H4.4 (token fuse levels wait for H3.2 measured numbers):
   // all 15 AI routes flow token counts into logApi (sync usageOf, deferred
   // logStreamUsage, or reportUsage via the fallback helper) so the fuse has
