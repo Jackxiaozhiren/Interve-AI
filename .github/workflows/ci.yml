@@ -36,6 +36,10 @@ jobs:
       # there); breach or probe failure fails the gate. Plain probe runs
       # (no --assert) stay print-only for local use.
       - name: perf transfer budgets
+        # Ephemeral CI-only signing secret (the throwaway prod server must
+        # issue its own probe sessions; dev-fallback is dev-only by design).
+        env:
+          SESSION_SECRET: perf-smoke-${{ github.run_id }}
         run: |
           (npx next start -p 3100 >/tmp/next-start.log 2>&1 &)
           for i in $(seq 1 30); do curl -sf http://localhost:3100/ >/dev/null && break || sleep 2; done
