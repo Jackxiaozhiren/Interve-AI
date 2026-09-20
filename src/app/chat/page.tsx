@@ -185,7 +185,7 @@ export default function ChatPage() {
                   className={index === 0 ? "" : isSameSender ? "mt-4" : "mt-10"}
                 >
                   <InterveMessageCard
-                    role={msg.role as 'user' | 'assistant'}
+                    sender={msg.role as 'user' | 'assistant'}
                     // Phase 14: v6 messages carry parts[], not .content.
                     content={getMessageText(msg as { parts?: unknown; content?: unknown; text?: unknown })}
                     timestamp={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -205,7 +205,7 @@ export default function ChatPage() {
                   className="mt-10"
                 >
                   <InterveMessageCard
-                    role="assistant"
+                    sender="assistant"
                     content=""
                     streaming={true}
                     className="!animate-none"

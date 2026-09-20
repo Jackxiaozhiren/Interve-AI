@@ -4,7 +4,7 @@
    ═══════════════════════════════════════ */
 
 export { InterveMessageCard, InterveAIResponse } from "./message-card";
-export type { InterveMessageCardProps, InterveAIResponseProps, MessageRole, MessageAction } from "./message-card";
+export type { InterveMessageCardProps, InterveAIResponseProps, MessageSender, MessageAction } from "./message-card";
 
 export { IntervePromptInput } from "./prompt-input";
 export type { IntervePromptInputProps } from "./prompt-input";

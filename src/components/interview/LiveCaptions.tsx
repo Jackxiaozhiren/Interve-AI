@@ -37,6 +37,7 @@ export function LiveCaptions({ isVisible, speaker, text }: LiveCaptionsProps) {
           {/* Phase 9: keyboard-scrollable history. No live region here by
               design — screen-reader announcement is owned by the transcript
               panel (role=log); this visual caption avoids double-speaking. */}
+          {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- intentionally keyboard-scrollable log history (focus-visible styled); SR announcement stays with the transcript panel to avoid double-speaking. */}
           <div
             ref={containerRef}
             tabIndex={0}
@@ -47,6 +48,7 @@ export function LiveCaptions({ isVisible, speaker, text }: LiveCaptionsProps) {
           >
             {text}
           </div>
+          {/* eslint-enable jsx-a11y/no-noninteractive-tabindex */}
         </div>
       </motion.div>
     </AnimatePresence>

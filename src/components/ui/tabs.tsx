@@ -58,6 +58,7 @@ export function TabsList({ children, className, ...props }: React.ComponentProps
     <div
       role="tablist"
       aria-orientation="horizontal"
+      tabIndex={0}
       className={cn(
         "inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1",
         className
@@ -124,6 +125,7 @@ export function TabsContent({
   const { value: current, idPrefix } = useTabs();
   if (current !== value) return null;
   return (
+    /* eslint-disable jsx-a11y/no-noninteractive-tabindex -- WAI-APG tabpanel pattern: focusable panel keeps keyboard scroll available; tablist arrow-key handling is untouched. */
     <div
       id={`${idPrefix}-panel-${value}`}
       role="tabpanel"
@@ -134,5 +136,6 @@ export function TabsContent({
     >
       {children}
     </div>
+    /* eslint-enable jsx-a11y/no-noninteractive-tabindex */
   );
 }

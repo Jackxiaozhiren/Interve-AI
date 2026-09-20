@@ -11,7 +11,7 @@ import { InterveDotsLoader } from "../loading";
    Luminous Light Design System v1.0
    ═══════════════════════════════════════ */
 
-export type MessageRole = "user" | "assistant";
+export type MessageSender = "user" | "assistant";
 
 export interface MessageAction {
   icon: React.ReactNode;
@@ -20,7 +20,7 @@ export interface MessageAction {
 }
 
 export interface InterveMessageCardProps {
-  role: MessageRole;
+  sender: MessageSender;
   content: React.ReactNode;
   timestamp?: string;
   streaming?: boolean;
@@ -29,7 +29,7 @@ export interface InterveMessageCardProps {
 }
 
 export function InterveMessageCard({
-  role,
+  sender,
   content,
   timestamp,
   streaming = false,
@@ -37,7 +37,9 @@ export function InterveMessageCard({
   className,
 }: InterveMessageCardProps) {
   const [showActions, setShowActions] = React.useState(false);
-  const isUser = role === "user";
+  // NOTE: prop is `sender`, not ARIA `role` — chat participant is styling
+  // input only and never reaches the DOM (jsx-a11y/aria-role clean).
+  const isUser = sender === "user";
 
   return (
     <div
@@ -142,7 +144,7 @@ export function InterveAIResponse({
   // nothing legitimate needs raw HTML here.
   return (
     <InterveMessageCard
-      role="assistant"
+      sender="assistant"
       streaming={streaming}
       timestamp={timestamp}
       actions={actions}

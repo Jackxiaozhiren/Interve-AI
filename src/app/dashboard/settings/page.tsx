@@ -159,8 +159,8 @@ export default function SettingsPage() {
                 </div>
                 <div className="text-sm text-slate-500">Receive weekly summaries and interview transcripts.</div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
+              <label htmlFor="emailNotifications" aria-label="Email Notifications" className="relative inline-flex items-center cursor-pointer">
+                <input id="emailNotifications" type="checkbox" defaultChecked className="sr-only peer" />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
             </div>
@@ -172,8 +172,8 @@ export default function SettingsPage() {
                 </div>
                 <div className="text-sm text-slate-500">Get text message alerts 30 minutes before scheduled mock interviews.</div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" />
+              <label htmlFor="smsReminders" aria-label="SMS Reminders" className="relative inline-flex items-center cursor-pointer">
+                <input id="smsReminders" type="checkbox" className="sr-only peer" />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
             </div>
