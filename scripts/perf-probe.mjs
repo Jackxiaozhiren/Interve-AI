@@ -3,7 +3,11 @@
 // reach without a login flow. Run: `node scripts/perf-probe.mjs [baseURL]`.
 import { chromium } from "playwright";
 
-const BASE = process.argv[2] || "http://localhost:3100";
+const ARGS = process.argv.slice(2);
+// NOTE: flags must be filtered out of the positional BASE — `npm run
+// perf:assert` passes `--assert` as argv[2], which is not a URL.
+const ASSERT = ARGS.includes("--assert");
+const BASE = ARGS.find((a) => !a.startsWith("-")) || "http://localhost:3100";
 
 const now = Date.now();
 const uid = `00000000-0000-4000-8000-${String(now).slice(-12).padStart(12, "0")}`;
@@ -83,7 +87,6 @@ const TRANSFER_BUDGETS = {
   "/interview?id=perf-probe&testMode=true": 1150,
   "/practice": 550,
 };
-const ASSERT = process.argv.includes("--assert");
 try {
   for (const path of Object.keys(TRANSFER_BUDGETS)) {
     try {
