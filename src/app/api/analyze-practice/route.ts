@@ -56,12 +56,16 @@ export function normalizePracticeDrills(ids: unknown): string[] {
   return out;
 }
 
+/** P1-01 lane 预算：practice 结构化 lane 默认 45s（< maxDuration 60s；默认 25s 会误杀 deepseek 中位数 ~26s 的正常慢调用）。 */
+export const PRACTICE_TIMEOUT_MS = 45_000;
+
 export async function POST(req: Request) {
   const gate = await guardRequest(req, {
     route: ROUTE,
     schema: BodySchema,
     maxBytes: 128 * 1024,
     rateLimit: { limit: 30, windowMs: 60_000 },
+    timeoutMs: PRACTICE_TIMEOUT_MS,
   });
   if (!gate.ok) return gate.response;
   const { requestId, data, signal } = gate.ctx;

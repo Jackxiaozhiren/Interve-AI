@@ -41,12 +41,25 @@ export interface GuardContext<T> {
 }
 
 function combineSignal(req: Request, timeoutMs: number): AbortSignal {
-  const timer = AbortSignal.timeout(timeoutMs);
+  // P1-01 (BUG-R-guard-timeout): 手写双信号合成，不依赖 AbortSignal.any。
+  // 背景：edge 下 AbortSignal.any 缺失时旧回落直接返回 client 信号，
+  // 超时预算被静默丢弃。合成信号 = client 中断 ∪ 超时到期，先到先生效。
+  const controller = new AbortController();
+  const onAbort = () => {
+    clearTimeout(timer);
+    controller.abort();
+  };
+  const timer = setTimeout(onAbort, timeoutMs);
+  // 服务端 timer 不得拖住进程退出（edge 无 unref，守卫式调用）。
+  const maybeUnref = timer as unknown as { unref?: () => void };
+  if (typeof maybeUnref.unref === "function") maybeUnref.unref();
   const client = req.signal;
-  if (typeof AbortSignal.any === "function") {
-    return AbortSignal.any([client, timer]);
+  if (client.aborted) {
+    onAbort();
+  } else {
+    client.addEventListener("abort", onAbort, { once: true });
   }
-  return client;
+  return controller.signal;
 }
 
 export function rateLimitHeaders(remaining: number, resetMs: number): Record<string, string> {
