@@ -38,7 +38,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-6 text-[#0f172a] selection:bg-sky-500/20">
+    <main className="min-h-screen relative flex items-center justify-center p-6 text-[#0f172a] selection:bg-sky-500/20">
       <GlobalBackground />
       
       <motion.div
@@ -143,6 +143,6 @@ export default function SignupPage() {
           </Link>
         </p>
       </motion.div>
-    </div>
+    </main>
   );
 }
