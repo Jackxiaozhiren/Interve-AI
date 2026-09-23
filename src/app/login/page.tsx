@@ -6,7 +6,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-6 text-[#0f172a] selection:bg-sky-500/20">
+    <main className="min-h-screen relative flex items-center justify-center p-6 text-[#0f172a] selection:bg-sky-500/20">
       <GlobalBackground />
       <Suspense
         fallback={
@@ -17,6 +17,6 @@ export default function LoginPage() {
       >
         <LoginForm />
       </Suspense>
-    </div>
+    </main>
   );
 }
