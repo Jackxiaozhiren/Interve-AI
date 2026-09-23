@@ -32,7 +32,7 @@ export function getMessageText(msg: MaybeMessage | null | undefined): string {
 }
 
 /**
- * Phase B2 (LLM05): deterministic HTML escaping for the message-card sink.
+ * Phase B2 (LLM10): deterministic HTML escaping for the message-card sink.
  *
  * `InterveAIResponse` renders via dangerouslySetInnerHTML (currently zero
  * call sites). Any future caller wiring LLM/echoed-user text here gets

@@ -9,13 +9,16 @@
 |---|---|---|
 | LLM01 注入 | 守住。vision 仍仅 `data:image/*`；注入条款＋fixtures 未动 | `analyze-vision/route.ts:22`（静态） |
 | LLM02 披露 | 守住。health 双探针后仍只记 class（`db_degraded`），无 error 文本；csp-report 恒 204 面未动 | `health/route.ts:61-68`（实测读码） |
-| LLM03/06 Agency/Unbounded | 增强且 sound。手写 `combineSignal`：clearTimeout＋unref 守卫＋`once:true`＋预 abort 处理，无泄漏向量；practice 45s 预算在位 | `guard.ts:43-63,145`（实测读码） |
+| LLM03 过度代理 | 增强且 sound。手写 `combineSignal`：clearTimeout＋unref 守卫＋`once:true`＋预 abort 处理，无泄漏向量 | `guard.ts:43-63`（实测读码） |
+| LLM06 无界消耗 | practice 45s 预算在位（`maxDuration=60` 内）；per-user 预算＋429 沿用 | `analyze-practice/route.ts`＋`guard.ts:145`（静态） |
 | LLM04 供应链 | 零漂移。audit 37（1 low/31 mod/5 high，0 critical），`--audit-level=critical exit 0`；tiptap HIGH×2 仍为 P2-04 接受态；DOMPurify advisory 为传递依赖，`src/` 零引用 | `npm audit` 实测＋`grep dompurify` 零命中（静态） |
 | LLM05 投毒 | 未动（白名单 `normalizePracticeDrills` 沿用 V6，传闻） | — |
 | LLM07 误导 | 未动（evidence 信封沿用，传闻） | — |
 | LLM08 隐藏上下文 | 未动；其在制品 `parse-resume` diff 经只读审查仅为类型声明改写（`@ts-expect-error` 删除＋v2 形 `PDFParse` 类），5MB 门＋SVG 拒＋白名单逻辑零触及 | `git diff -- parse-resume/route.ts pdf-parse.d.ts`（实测） |
 | LLM09 向量 | pin 常绿（abuse＋isolation 8/8，§4-4 子集内） | 实测 |
 | LLM10 输出处理 | 槽位仍 2＋1（escape-at-sink＋纯静态＋注释）；**新增观察见 P3-04** | `message-card.tsx:155` 等（静态） |
+
+> 对版（P2-08）：正典 `GenAI-LLM-Top10/2026/final/LLM*.md`；本表 LLM01/02/04/05/07/08/09/10 原即合规，仅 LLM03/06 拆行。
 
 ## 前端 spec 规则抽查
 

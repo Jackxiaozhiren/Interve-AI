@@ -137,7 +137,7 @@ export function InterveAIResponse({
   actions,
   className,
 }: InterveAIResponseProps) {
-  // Phase B2 (LLM05): content is LLM/echoed-user text, NOT trusted HTML.
+  // Phase B2 (LLM10): content is LLM/echoed-user text, NOT trusted HTML.
   // Escape at the sink so <script>/<img onerror>/event-handler payloads
   // render as inert text even if this (currently uncalled) component is
   // wired to model output later. No markdown pipeline exists in src/, so
