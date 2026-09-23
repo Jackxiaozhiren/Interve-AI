@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       model: zhipu().chat(MODEL_IDS.zhipuFlash),
       maxRetries: DEFAULT_MAX_RETRIES,
       abortSignal: signal,
-      system: buildHintSystem({ problemTitle, problemDescription, currentCode }),
+      instructions: buildHintSystem({ problemTitle, problemDescription, currentCode }),
       prompt: buildHintPrompt(chatHistory)
     });
 

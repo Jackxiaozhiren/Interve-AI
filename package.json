@@ -27,9 +27,9 @@
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.64",
-    "@ai-sdk/openai": "^3.0.53",
-    "@ai-sdk/react": "^3.0.170",
+    "@ai-sdk/google": "^4.0.77",
+    "@ai-sdk/openai": "^4.0.72",
+    "@ai-sdk/react": "^4.0.114",
     "@base-ui/react": "^1.4.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@huggingface/transformers": "^4.1.0",
@@ -39,7 +39,7 @@
     "@supabase/supabase-js": "^2.104.1",
     "@tldraw/tldraw": "^4.5.10",
     "@types/canvas-confetti": "^1.9.0",
-    "ai": "^6.0.168",
+    "ai": "^7.0.111",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

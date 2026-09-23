@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       model,
       schema: InitContextOutputSchema,
       experimental_repairText: repairZhipuJson,
-      system: buildContextSystem(),
+      instructions: buildContextSystem(),
       prompt: buildContextPrompt({ jobDescription, resumeContext }),
       temperature: 1.0,
       maxRetries: FALLBACK_MAX_RETRIES,

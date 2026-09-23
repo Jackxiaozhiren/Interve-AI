@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       model: zhipu().chat(MODEL_IDS.zhipuFlash), // Use flash model for fast analysis
       maxRetries: DEFAULT_MAX_RETRIES,
       experimental_repairText: repairZhipuJson,
-      system: buildStarSystem(),
+      instructions: buildStarSystem(),
       prompt: buildStarPrompt({ transcript, codeContext, systemDesignContext }),
       schema: StarOutputSchema,
       abortSignal: signal,

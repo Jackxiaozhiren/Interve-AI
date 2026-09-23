@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     const { object, usage } = await generateObject({
       model: google()(MODEL_IDS.geminiFlash),
       maxRetries: DEFAULT_MAX_RETRIES,
-      system: buildJdSystem({ jobDescription, questionCount }),
+      instructions: buildJdSystem({ jobDescription, questionCount }),
       schema: ParseJdOutputSchema,
       prompt: buildJdPrompt(jobDescription),
       abortSignal: signal,

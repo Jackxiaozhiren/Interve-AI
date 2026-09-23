@@ -92,7 +92,7 @@ export async function POST(req: Request) {
             const base = stripped ?? text;
             return repairEvaluationText(base) ?? stripped;
           },
-          system: systemPrompt,
+          instructions: systemPrompt,
           prompt,
         });
         // H3.2: flagship-lane token accounting via the helper's log lines.

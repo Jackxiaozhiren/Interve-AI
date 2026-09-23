@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       model: selectedModel,
       maxRetries: DEFAULT_MAX_RETRIES,
       abortSignal: signal,
-      system: buildCopilotSystem({ question, resumeSnippets }),
+      instructions: buildCopilotSystem({ question, resumeSnippets }),
       prompt: "Generate the JSON array of hints."
     });
 

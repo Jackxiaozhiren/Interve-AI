@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       model: zhipu().chat(MODEL_IDS.zhipuFlash), // Fast model for real-time analysis
       maxRetries: DEFAULT_MAX_RETRIES,
       experimental_repairText: repairZhipuJson,
-      system: buildChunkSystem({ context, role, level }),
+      instructions: buildChunkSystem({ context, role, level }),
       schema: ChunkOutputSchema,
       prompt: buildChunkPrompt(text),
       abortSignal: signal,

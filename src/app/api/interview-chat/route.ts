@@ -153,7 +153,7 @@ export async function POST(req: Request) {
       const result = await streamText({
         model: selectedModel,
         maxRetries: FALLBACK_MAX_RETRIES, // single manual fallback below; keep total attempts bounded
-        system: systemPrompt,
+        instructions: systemPrompt,
         messages: recentMessages,
         abortSignal: signal,
       });
@@ -174,7 +174,7 @@ export async function POST(req: Request) {
       const fallbackResult = await streamText({
         model: zhipu().chat(MODEL_IDS.zhipuFlash),
         maxRetries: FALLBACK_MAX_RETRIES,
-        system: systemPrompt,
+        instructions: systemPrompt,
         messages: recentMessages,
         abortSignal: signal,
       });

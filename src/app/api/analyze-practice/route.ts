@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     const { object, usage } = await generateObject({
       model: selectedModel, // Fast model
       maxRetries: DEFAULT_MAX_RETRIES,
-      system: buildPracticeSystem(),
+      instructions: buildPracticeSystem(),
       schema: PracticeOutputSchema,
       prompt: buildPracticePrompt({ title: question.title, description: question.description, category: question.category, answer }),
       abortSignal: signal,
