@@ -10,7 +10,7 @@ services:
       retries: 5
 
   dsa-web:
-    image: node:20-slim
+    image: node:24-slim
     working_dir: /srv/web
     volumes:
       - ./apps/dsa-web:/srv/web

@@ -19,11 +19,11 @@ describe("deploy consistency (G1)", () => {
     expect(root("next.config.ts"), "standalone").toContain("output: 'standalone'");
   });
 
-  it("Dockerfile base tracks engines.node (20)", () => {
+  it("Dockerfile base tracks engines.node (24)", () => {
     const docker = root("Dockerfile");
     const pkg = JSON.parse(root("package.json")) as { engines: { node: string } };
-    expect(pkg.engines.node).toContain("20");
-    expect(docker.split("\n")[0]).toMatch(/^FROM node:20/);
+    expect(pkg.engines.node).toContain("24");
+    expect(docker.split("\n")[0]).toMatch(/^FROM node:24/);
     expect(docker, "non-root").toContain("USER nextjs");
   });
 
