@@ -29,7 +29,7 @@ Setup → interviews (Supabase) → Interview room (useChat stream + Whisper/Kok
 
 ## Stack
 
-`Next 16.2.4 / React 19.2.4 / TS strict / AI SDK v6 (ai@6.0.168) / Zhipu GLM (OpenAI-compat) + Gemini + optional OpenAI / Supabase Postgres / zustand + Context + Orama / next-pwa / MediaRecorder + SpeechRecognition + Whisper (transformers.js) + Kokoro-82M (kokoro-js) + energy VAD / Monaco / tldraw / recharts`. Node>=20.9.
+`Next 16.3.5 / React 19.3.0 / TS strict / AI SDK v7 (ai@7.0.111, @ai-sdk/* 4.x) / Zhipu GLM (OpenAI-compat) + Gemini + optional OpenAI / Supabase Postgres / zustand + Context + Orama / next-pwa / MediaRecorder + SpeechRecognition + Whisper (transformers.js) + Kokoro-82M (kokoro-js) + energy VAD / Monaco / tldraw / recharts`. Node 24.x (`engines`, Docker `node:24-alpine`, CI `node-version: 24`).
 
 ## Quickstart (clean room)
 
@@ -38,7 +38,7 @@ git clone https://github.com/Jackxiaozhiren/Interve-AI.git
 cd Interve-AI
 npm ci
 cp .env.example .env.local   # fill ZHIPU_API_KEY; generate SESSION_SECRET below
-npm run verify               # lint + typecheck + 196 tests + build (keyless)
+npm run verify               # lint + typecheck + 369 tests (50 files) + build (keyless)
 npm run dev                  # http://localhost:3000
 ```
 
@@ -56,7 +56,7 @@ Generate the session secret: `node -e "console.log(require('crypto').randomBytes
 
 ## AI
 
-Central registry `src/ai/providers/registry.ts` (ONE construction site/vendor, ONE model table, ONE retry policy; `AI_MOCK=1` handler tests). Versioned prompts `src/ai/prompts/` (17 entries). Model ids: `glm-4-flash` (default), `glm-4.7-flash` (thinking, `thinking:{type:enabled}` + 65k cap server-side), `glm-4v-plus/flash` (diagrams/docs, `data:image/*` only), `gemini-2.5-flash/1.5-pro/1.5-flash`, `gpt-4o/mini` (optional). OpenRouter free third lane (opt-in only, never default): `?model=openrouter` → `nvidia/nemotron-3-ultra-550b-a55b:free` (free-form chat, text-only, no structured output), `?model=openrouter-structured` → `deepseek/deepseek-v4-flash-0731:free` (structured-output candidate). Needs server-only `OPENROUTER_API_KEY`; free models rotate + rate-limit, so Zhipu/Gemini stay primary. `generateObject` (10 routes) is deprecated-but-working in AI SDK v6 — new code uses `generateText`+`Output.object`; mass migration via `npx @ai-sdk/codemod v6 --dry` + keyed regression (tracked). Untrusted resume/JD/answers are fenced as data (`UNTRUSTED` + ignore-instruction hardening on top-5 prompts).
+Central registry `src/ai/providers/registry.ts` (ONE construction site/vendor, ONE model table, ONE retry policy; `AI_MOCK=1` handler tests). Versioned prompts `src/ai/prompts/` (19 entries). Model ids: `glm-4-flash` (default), `glm-4.7-flash` (thinking, `thinking:{type:enabled}` + 65k cap server-side), `glm-4v-plus/flash` (diagrams/docs, `data:image/*` only), `gemini-2.5-flash/1.5-pro/1.5-flash`, `gpt-4o/mini` (optional). OpenRouter free third lane (opt-in only, never default): `?model=openrouter` → `nvidia/nemotron-3-ultra-550b-a55b:free` (free-form chat, text-only, no structured output), `?model=openrouter-structured` → `deepseek/deepseek-v4-flash-0731:free` (structured-output candidate). Needs server-only `OPENROUTER_API_KEY`; free models rotate + rate-limit, so Zhipu/Gemini stay primary. `generateObject` (10 routes, R3-frozen) still works in AI SDK v7 — `system:`→`instructions:` migrated 11/11; new code uses `generateText`+`Output.object`; per-route migration pending keyed MVVP (`npx @ai-sdk/codemod v7 --dry` proposes zero). Untrusted resume/JD/answers are fenced as data (`UNTRUSTED` + ignore-instruction hardening on top-5 prompts).
 
 ## Supabase / migrations
 
@@ -66,7 +66,7 @@ Central registry `src/ai/providers/registry.ts` (ONE construction site/vendor, O
 
 | Lane | Command |
 |---|---|
-| All keyless ($0) | `npm run verify` (lint 0/0 + typecheck + 196 vitest + build 37 routes) |
+| All keyless ($0) | `npm run verify` (lint 0 errors + typecheck + 369 vitest (50 files) + build 44/44) |
 | Unit / integration | `npm run test:unit`, `npm run test:integration` |
 | AI eval keyless | `npm run test:eval` (all suites self-skip, exit 0 — harness + datasets still validated) |
 | AI eval free live (≤3 flash calls) | `npm run test:eval:free` (needs free `ZHIPU_API_KEY`; golden weak-case + smallest injection vector; CI runs it only when the secret exists) |
@@ -75,18 +75,18 @@ Central registry `src/ai/providers/registry.ts` (ONE construction site/vendor, O
 | E2E smoke / full / a11y | `npm run test:e2e:smoke`, `npm run test:e2e`, `npm run test:a11y` |
 | E2E journey | `Landing→Signup→Setup→resume+JD→Preflight→answer→complete→analysis→Replay→Drill→delete` (Playwright `chrome-1280x720` + 12-project matrix in CI) |
 
-CI (`.github/workflows/ci.yml`, all free): install → lint → typecheck → unit+integration → build → eval keyless → supabase-free (skips without secrets) → Playwright chromium smoke → `npm audit --audit-level=critical`, plus a secret-gated `free-eval-smoke` job (≤3 calls, skips on forks). PR red blocks merge.
+CI (`.github/workflows/ci.yml`, all free): install → lint → typecheck → unit+integration → build → eval keyless → supabase-free (skips without secrets) → Playwright chromium smoke → `npm audit --audit-level=critical`, plus a secret-gated `free-eval-smoke` job (≤3 calls, skips on forks). CodeQL SAST (`.github/workflows/codeql.yml`): push + PR + weekly. PR red blocks merge.
 
 ## Security & privacy / Responsible AI
 
 - Every AI route: session-required (401) + Zod I/O (400) + byte caps 128KB-8MB (413) + per-IP limits + `Retry-After`/`RateLimit-*` (429) + client+server abort + explicit retries + `x-request-id` + PII-free JSON logs. Uploads: 5MB/60k-char caps, SVG refusal, MIME+size double-check. `proxy.ts` (named `export function proxy`, nodejs-only) guards app pages + headers (CSP tightening tracked).
-- XSS: LLM markdown via safe rendering path (strict allowlist tracked); secrets: 0 hits scan; deps: `npm audit` 39 (1L/30M/8H/0C) triaged non-reachable + upgrade lane.
+- XSS: LLM markdown via safe rendering path (strict allowlist tracked); secrets: 0 hits scan; deps: `npm audit` 37 (1L/31M/5H/0C) triaged non-reachable + upgrade lane.
 - Responsible AI: readiness (`Needs Foundation/Developing/Interview Ready/Strongly Prepared`) + training-estimate disclaimer, never hire verdicts; role-relevant competency alignment only (JD-explicit items); banned list enforced by tests (`tests/integration/prohibitions.test.ts` + `truthfulness.test.ts`): no face/voice→emotion/personality/honesty/intelligence/hireability/culture-fit, no accent→competence, no protected attributes.
 - Evals (`evals/` + `src/ai/evals/metrics.ts`): 12 synthetic goldens (6 tracks × strong/weak) + injection (4 vectors) + fairness (surface-token swaps, no protected profiling); bars provisional until free-key nightlies + multi-rater labels.
 
 ## Deploy
 
-Vercel (`vercel.json`: `npm install`) or Docker (`Dockerfile`: `node:20-alpine`, `npm ci`, `output:standalone`). Set `ZHIPU_API_KEY` + `SESSION_SECRET` + (optional) Supabase vars in the host env. Release gate: engineering all-green, zero fake AI, every score has evidence+uncertainty, injection/fairness/stability pass, RLS/auth/rate-limit pass, Lighthouse达标或有解释 (`/` 92/100/100/100; decor-LCP misses documented in `PERF_REPORT.md`), docs let a newcomer run clean-room.
+Vercel (`vercel.json`: `npm install`) or Docker (`Dockerfile`: `node:24-alpine`, `npm ci`, `output:standalone`). Set `ZHIPU_API_KEY` + `SESSION_SECRET` + (optional) Supabase vars in the host env. Release gate: engineering all-green, zero fake AI, every score has evidence+uncertainty, injection/fairness/stability pass, RLS/auth/rate-limit pass, Lighthouse达标或有解释 (`/` desktop 99/100/96/100, mobile 86 — fresh numbers in `docs/audit/LIGHTHOUSE_V10.md`), docs let a newcomer run clean-room.
 
 ## Roadmap / Limitations
 
