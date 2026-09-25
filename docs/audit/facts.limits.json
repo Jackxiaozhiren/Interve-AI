@@ -1,0 +1,26 @@
+{
+  "_seededAt": "2026-09-24T13:03:33.237Z",
+  "_keys": {
+    "debt.deprecatedObjectGenFiles": "call sites on @deprecated AI SDK object APIs",
+    "debt.experimentalRepairTextHits": "deprecated experimental_repairText aliases",
+    "debt.selectStarHits": "SELECT '*' — pulls columns past the field allowlist",
+    "debt.tsIgnoreHits": "type-check suppressions",
+    "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
+    "debt.anyEscapes": "explicit `any` escaping the strict config",
+    "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
+    "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
+    "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)"
+  },
+  "ceiling": {
+    "debt.deprecatedObjectGenFiles": 12,
+    "debt.experimentalRepairTextHits": 8,
+    "debt.selectStarHits": 13,
+    "debt.tsIgnoreHits": 2,
+    "debt.todoMarkers": 0,
+    "debt.anyEscapes": 0,
+    "debt.auditDocsLines": 3267,
+    "capabilities.untestedChatCallbacks": 0,
+    "capabilities.networkLayer.rawFetchCalls": 17
+  },
+  "floor": {}
+}

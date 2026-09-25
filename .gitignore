@@ -82,3 +82,9 @@ __pycache__/
 # Phase C1 quota ledger (local per-machine call counts, zero secrets).
 # Regenerated automatically; inspect with: npm run quota
 /.quota-ledger.json
+
+# V11 Phase 0 audit snapshot: a per-run derivative of git state + timestamps,
+# so committing it would diff on every `npm run facts`. The durable artifact is
+# the sibling facts.limits.json (reviewed policy ceilings), which IS tracked.
+# Regenerate with: npm run facts
+/docs/audit/facts.baseline.json

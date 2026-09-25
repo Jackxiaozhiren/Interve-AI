@@ -15,6 +15,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # V11 Ring B: debt ratchet. Cheapest gate in the pipeline (~0.3s), so it
+      # runs first — a ceiling breach should fail before a 40s build spends the
+      # runner. Ledger lives in docs/audit/facts.limits.json; re-seed with
+      # `npm run facts:seed` only as part of a deliberate, reviewed debt cut.
+      - run: npm run facts:check
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
