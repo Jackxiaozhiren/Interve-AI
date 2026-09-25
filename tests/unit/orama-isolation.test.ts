@@ -4,6 +4,15 @@
 // leak would surface A's resume chunks in B's retrieval (LLM09) and poison
 // grounding (LLM07). These tests pin the structural barriers:
 // hub namespacing, query-time isolation across re-init, fail-closed query.
+//
+// Relationship to its siblings, so a future dedup pass deletes the right one:
+// orama-partition and orama-abuse both mock the supabase layer, so they prove
+// the *query that gets issued* is namespaced. The last two cases here are the
+// only ones that exercise the real in-memory Orama: namespacing that holds
+// across a re-init, and a query that fails closed instead of returning [] —
+// an empty result reads to the caller as "no evidence found", which is how a
+// broken index hides. The first case here does duplicate partition's
+// `hubIdForUser` assertion and is the only removable one.
 import { describe, it, expect } from "vitest";
 import {
   initializeKnowledgeHub,
