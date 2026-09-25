@@ -67,7 +67,7 @@ import { useKeyboardShortcuts, createCtrlCmdShortcut } from "@/hooks/useKeyboard
 import { MultiAgentVisualizer, type AIExpert } from "@/components/interview/MultiAgentVisualizer";
 import { DynamicLoader } from "@/components/ui/DynamicLoader";
 import { SystemHealthIndicator } from "@/components/interview/SystemHealthIndicator";
-import { getMessageText } from "@/lib/message-text";
+import { getMessageText, getTextFromFinishEvent } from "@/lib/message-text";
 import { useInterveStore, normalizeGrounding } from "@/store/useInterveStore";
 import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -296,14 +296,15 @@ function InterviewRoomContent() {
         behavioralTraits: useInterveStore.getState().behavioralTraits
       }
     }),
-    onFinish: (message) => {
+    onFinish: (event) => {
       // Phase 8: send→complete round trip (includes generation time).
       if (lastSendAtRef.current !== null) {
         roundTripsRef.current.push(Date.now() - lastSendAtRef.current);
         lastSendAtRef.current = null;
       }
-      // Phase 14: v6 messages carry parts[], not .content/.text.
-      const textToSpeak = getMessageText(message as { parts?: unknown; content?: unknown; text?: unknown });
+      // v7 passes an event envelope, not the message: reading `event` itself
+      // yields "" and TTS speaks silence while the UI says it is generating.
+      const textToSpeak = getTextFromFinishEvent(event);
       
       // Check if text contains Chinese characters to route to the appropriate TTS engine
       const hasChinese = /[\u4e00-\u9fa5]/.test(textToSpeak);
