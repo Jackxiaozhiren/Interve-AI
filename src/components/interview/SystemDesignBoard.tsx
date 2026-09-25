@@ -32,8 +32,7 @@ const TldrawListener = ({ onTextUpdate, onEditorMount }: { onTextUpdate: (text: 
       timeoutId = setTimeout(() => {
         try {
           const shapes = Array.from(editor.getCurrentPageShapes());
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const extractedText = extractSystemDesignText(shapes as any);
+          const extractedText = extractSystemDesignText(shapes);
           onTextUpdate(extractedText);
         } catch (err) {
           console.error("Error extracting tldraw text:", err);

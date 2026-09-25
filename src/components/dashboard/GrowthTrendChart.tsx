@@ -1,6 +1,7 @@
 "use client";
 
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
+import type { MouseHandlerDataParam } from "recharts";
 
 export interface TrendDataPoint {
   name: string;
@@ -15,10 +16,15 @@ interface GrowthTrendChartProps {
 }
 
 export function GrowthTrendChart({ trendData, isCalmMode = false, onSessionClick }: GrowthTrendChartProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleClick = (data: any) => {
-    if (data?.activePayload?.[0]?.payload?.sessionId && onSessionClick) {
-      onSessionClick(data.activePayload[0].payload.sessionId);
+  // Recharts v3 types omit the runtime `activePayload` on click data —
+  // intersect the official param type instead of `any` (no disable needed).
+  type ChartClickData = MouseHandlerDataParam & {
+    activePayload?: { payload?: { sessionId?: unknown } }[];
+  };
+  const handleClick = (data?: ChartClickData) => {
+    const sessionId = data?.activePayload?.[0]?.payload?.sessionId;
+    if (typeof sessionId === "string" && onSessionClick) {
+      onSessionClick(sessionId);
     }
   };
 

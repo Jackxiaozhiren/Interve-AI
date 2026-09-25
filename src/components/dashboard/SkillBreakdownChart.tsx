@@ -31,8 +31,7 @@ export function SkillBreakdownChart({ radarData, showFirst, isCalmMode = false }
         <Tooltip 
           contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(8px)' }}
           itemStyle={{ fontFamily: 'var(--font-sans)', fontWeight: 500 }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter={(value: any, name: any) => [`${value}/100`, name === 'A' ? 'Latest Session' : 'First Session']}
+          formatter={(value, name) => [`${value}/100`, name === 'A' ? 'Latest Session' : 'First Session']}
         />
         <Legend 
           wrapperStyle={{ fontFamily: 'var(--font-sans)', fontSize: 12, paddingTop: '10px' }} 

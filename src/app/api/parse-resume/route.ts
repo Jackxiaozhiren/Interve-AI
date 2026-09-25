@@ -6,7 +6,6 @@ import { logApi, usageOf } from "@/lib/api/logging";
 import { zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildOcrInstruction } from "@/ai/prompts/resume";
-// @ts-expect-error - Types out of sync with pdf-parse v2
 import { PDFParse } from "pdf-parse";
 
 const ROUTE = "parse-resume";

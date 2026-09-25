@@ -1,11 +1,15 @@
+// pdf-parse v2 ambient-shaped declaration (runtime 2.4.5 exports a named
+// PDFParse class; the @types/pdf-parse v1 callable shape no longer applies).
+// Kept minimal to the surface this repo uses; index signature tolerates the
+// rest of the v2 result without `any` leakage into callers.
 declare module "pdf-parse" {
-  function pdf(dataBuffer: Buffer, options?: Record<string, unknown>): Promise<{
-    numpages: number;
-    numrender: number;
-    info: Record<string, unknown>;
-    metadata: Record<string, unknown>;
+  export interface PDFParseResult {
     text: string;
-    version: string;
-  }>;
-  export = pdf;
+    [key: string]: unknown;
+  }
+  export class PDFParse {
+    constructor(options: { data: Buffer | Uint8Array });
+    getText(): Promise<PDFParseResult>;
+    destroy(): Promise<void>;
+  }
 }
