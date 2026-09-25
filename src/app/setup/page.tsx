@@ -175,6 +175,12 @@ export default function SetupPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
+    // F3-split-3 late-stream guard (mirrors M4/M5): if the step changes or
+    // the page unmounts while getUserMedia is pending, the late stream is
+    // stopped immediately instead of leaking a live track into /interview
+    // (T2.6 handoff contention). Signed green — structural close, no behavior
+    // change on the green path.
+    let cancelled = false;
     if (currentStep !== 6) {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -216,6 +222,10 @@ export default function SetupPage() {
       try {
         // Phase 8: echo/noise suppression on the audio track.
         const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(), video: true });
+        if (cancelled) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
         streamRef.current = stream;
         
         if (videoRef.current) {
@@ -272,6 +282,7 @@ export default function SetupPage() {
     testHardware();
     
     return () => {
+       cancelled = true;
        if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }

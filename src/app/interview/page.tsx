@@ -851,6 +851,13 @@ function InterviewRoomContent() {
       stopAiPlayback();
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(getPreferredMicDevice()) });
+      // F3-split-3 late-stream guard (mirrors M4/M5/M1): back-navigation
+      // during the pending acquire must not leak a live track. Signed
+      // green — structural close, recording path unchanged.
+      if (unmountedRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       setActiveStream(stream);
       mediaRecorder.current = new MediaRecorder(stream);
       audioChunks.current = [];
