@@ -40,13 +40,13 @@ export const SoftPacingBar = ({ isRecording, recordingStartTime }: SoftPacingBar
           <>
             <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
             <Microphone className="w-3.5 h-3.5 text-rose-500" />
-            <span className="text-[12px] font-semibold text-rose-600">Your Turn</span>
+            <span className="text-[12px] font-semibold text-rose-700">Your Turn</span>
           </>
         ) : (
           <>
             <div className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
             <Brain className="w-3.5 h-3.5 text-sky-500" />
-            <span className="text-[12px] font-semibold text-sky-600">AI is Thinking</span>
+            <span className="text-[12px] font-semibold text-sky-700">AI is Thinking</span>
           </>
         )}
       </div>

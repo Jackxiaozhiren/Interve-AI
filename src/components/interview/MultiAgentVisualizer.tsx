@@ -184,8 +184,8 @@ export const MultiAgentVisualizer = React.memo(({ isSpeaking, isLoading, statusT
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className={`text-[13px] font-medium tracking-wide bg-white/60 backdrop-blur-md px-4 py-1.5 rounded-full border shadow-sm
-              ${stressTest ? 'text-rose-600 border-rose-100/80' : 'text-slate-500 border-white/80'}`
+            className={`text-[13px] font-medium tracking-wide bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full border shadow-sm
+              ${stressTest ? 'text-rose-700 border-rose-100/80' : 'text-slate-600 border-white/80'}`
             }
           >
             {statusText || (isSpeaking ? "正在倾听..." : "准备就绪")}

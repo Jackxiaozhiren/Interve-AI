@@ -55,11 +55,12 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
   const traitsEvidence = useInterveStore((state) => state.traitsEvidence);
   const traitsConfidence = useInterveStore((state) => state.traitsConfidence);
   
+  // F5-2: badge text deepened one step (axe color-contrast on /50 badges).
   const getWpmStatus = (wpm: number) => {
-    if (wpm === 0) return { label: "WAIT", color: "text-slate-400", bg: "bg-slate-100/50" };
-    if (wpm < 100) return { label: "SLOW", color: "text-amber-600", bg: "bg-amber-100/50" };
-    if (wpm > 160) return { label: "FAST", color: "text-rose-600", bg: "bg-rose-100/50" };
-    return { label: "GOOD", color: "text-emerald-600", bg: "bg-emerald-100/50" };
+    if (wpm === 0) return { label: "WAIT", color: "text-slate-600", bg: "bg-slate-100/70" };
+    if (wpm < 100) return { label: "SLOW", color: "text-amber-700", bg: "bg-amber-100/70" };
+    if (wpm > 160) return { label: "FAST", color: "text-rose-700", bg: "bg-rose-100/70" };
+    return { label: "GOOD", color: "text-emerald-800", bg: "bg-emerald-100/70" };
   };
 
   const wpmStatus = getWpmStatus(wpm);
@@ -90,7 +91,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
             className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"
           />
           <div className="flex items-center justify-between mb-2 z-10">
-            <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Pace.WPM</span>
+            <span className="text-[10px] text-slate-600 font-bold font-sans uppercase tracking-wider">Pace.WPM</span>
             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wide ${wpmStatus.bg} ${wpmStatus.color}`}>
               {wpmStatus.label}
             </span>
@@ -110,11 +111,11 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
           className="flex flex-col p-4 glass-card rounded-2xl relative overflow-hidden group"
         >
           <div className="flex items-center justify-between mb-2 z-10">
-            <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Filler</span>
+            <span className="text-[10px] text-slate-600 font-bold font-sans uppercase tracking-wider">Filler</span>
             {fillerWordsCount > 5 ? (
-               <span className="text-[9px] text-rose-700 font-bold uppercase tracking-wide bg-rose-100/50 px-1.5 py-0.5 rounded-md shadow-sm">WARN</span>
+               <span className="text-[9px] text-rose-800 font-bold uppercase tracking-wide bg-rose-100/70 px-1.5 py-0.5 rounded-md shadow-sm">WARN</span>
             ) : (
-               <span className="text-[9px] text-emerald-700 font-bold uppercase tracking-wide bg-emerald-100/50 px-1.5 py-0.5 rounded-md shadow-sm">OK</span>
+               <span className="text-[9px] text-emerald-800 font-bold uppercase tracking-wide bg-emerald-100/70 px-1.5 py-0.5 rounded-md shadow-sm">OK</span>
             )}
           </div>
           <div className="text-3xl font-bold text-zinc-900 font-mono tracking-tight leading-none z-10">
@@ -137,9 +138,9 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
           <div className="flex items-center justify-between mb-2 z-10">
             <div className="flex items-center gap-1">
               <Brain weight="bold" className="w-3 h-3 text-slate-400" />
-              <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Strain</span>
+              <span className="text-[10px] text-slate-600 font-bold font-sans uppercase tracking-wider">Strain</span>
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md shadow-sm text-slate-500 bg-slate-100/70">
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md shadow-sm text-slate-600 bg-slate-100">
               {t.interview.experimental}
             </span>
           </div>
@@ -147,9 +148,9 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
             <div className="text-3xl font-bold font-mono tracking-tight leading-none text-zinc-900">
               <AnimatedNumber value={Math.round(cognitiveLoad)} pad={1} />
             </div>
-            <span className="text-sm font-bold text-slate-400 mb-0.5">%</span>
+            <span className="text-sm font-bold text-slate-500 mb-0.5">%</span>
           </div>
-          <p className="text-[9px] text-slate-400 mt-2 z-10 leading-relaxed">
+          <p className="text-[9px] text-slate-500 mt-2 z-10 leading-relaxed">
             {t.interview.strainCaption}
           </p>
           {/* Strain bar */}
@@ -175,8 +176,8 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
           className="flex flex-col p-4 glass-card rounded-2xl col-span-2 relative overflow-hidden group"
         >
           <div className="flex items-center justify-between mb-3 z-10">
-            <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">STAR Progress</span>
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wide bg-slate-100/70 px-1.5 py-0.5 rounded-md shadow-sm">{t.interview.aiEstimate} · {t.interview.experimental}</span>
+            <span className="text-[10px] text-slate-600 font-bold font-sans uppercase tracking-wider">STAR Progress</span>
+            <span className="text-[9px] text-slate-600 font-bold uppercase tracking-wide bg-slate-100 px-1.5 py-0.5 rounded-md shadow-sm">{t.interview.aiEstimate} · {t.interview.experimental}</span>
           </div>
           <div className="grid grid-cols-4 gap-2 z-10">
             {[
@@ -207,7 +208,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
               sessions without evidence render exactly as before. */}
           {starEvidence.length > 0 && (
             <div className="mt-3 z-10 border-t border-slate-100/70 pt-2">
-              <p className="text-[9px] text-slate-400 leading-relaxed">
+              <p className="text-[9px] text-slate-500 leading-relaxed">
                 Basis in your answer: “{starEvidence[0]}”
                 {starEvidence.length > 1 ? ` (+${starEvidence.length - 1} more)` : ""}
                 {` · Evaluator confidence: ${starConfidence} (evidence sufficiency)`}
@@ -228,8 +229,8 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
           className="flex flex-col p-4 glass-card rounded-2xl col-span-2 relative overflow-hidden group"
         >
           <div className="flex items-center justify-between mb-3 z-10">
-            <span className="text-[10px] text-slate-500 font-bold font-sans uppercase tracking-wider">Behavioral Traits</span>
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wide bg-slate-100/70 px-1.5 py-0.5 rounded-md shadow-sm">{t.interview.aiEstimate} · {t.interview.experimental}</span>
+            <span className="text-[10px] text-slate-600 font-bold font-sans uppercase tracking-wider">Behavioral Traits</span>
+            <span className="text-[9px] text-slate-600 font-bold uppercase tracking-wide bg-slate-100 px-1.5 py-0.5 rounded-md shadow-sm">{t.interview.aiEstimate} · {t.interview.experimental}</span>
           </div>
           <div className="flex flex-col gap-3 z-10">
             {[
@@ -240,7 +241,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
               <div key={idx} className="flex flex-col gap-1.5">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-bold text-slate-600 font-sans">{trait.label}</span>
-                  <span className="text-[10px] font-bold text-slate-400 font-mono">{Math.round(trait.value)}%</span>
+                  <span className="text-[10px] font-bold text-slate-500 font-mono">{Math.round(trait.value)}%</span>
                 </div>
                 <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden relative">
                   <motion.div 
@@ -256,7 +257,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
           {/* Steering envelope (§7): see STAR tile above. */}
           {traitsEvidence.length > 0 && (
             <div className="mt-3 z-10 border-t border-slate-100/70 pt-2">
-              <p className="text-[9px] text-slate-400 leading-relaxed">
+              <p className="text-[9px] text-slate-500 leading-relaxed">
                 Basis in your answer: “{traitsEvidence[0]}”
                 {traitsEvidence.length > 1 ? ` (+${traitsEvidence.length - 1} more)` : ""}
                 {` · Evaluator confidence: ${traitsConfidence} (evidence sufficiency)`}

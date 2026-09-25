@@ -55,6 +55,8 @@
 
 - [x] Reproducible `docker build` green (node:20-alpine, standalone,
   runs: /login 200; tag `interve-ai:phase-g` verified 2026-09-17).
+  Caveat 2026-09-19: NOT re-verifiable in this env (no docker daemon —
+  re-run where a daemon exists before cutting the release tag).
 - [x] Deploy parity pinned in CI (`deploy consistency` step: standalone +
   node20 + no-secret-layers + default Vercel build).
 - [x] Migrations additive-only with rollback notes (002/003/004).
@@ -64,11 +66,15 @@
 - [ ] A-graduation: 7-day nightly trend + 2-rater κ≥0.6 (EVAL_REPORT
   GRADUATION GAP). Practice-only launch does NOT require it; "calibrated"
   claims do.
-- [ ] F3 human a11y pass sign-off (`docs/A11Y_MANUAL_CHECKLIST.md`).
+- [ ] F3 human a11y pass sign-off (`docs/A11Y_MANUAL_CHECKLIST.md`) —
+  a 2026-09-19 in-session sign-off exists and the machine lanes re-ran
+  green on 2026-09-25, but an in-session sign-off is not a human pass:
+  re-opened rather than inherited. See the checklist's re-verification row.
 - [ ] Live dual-user RLS denial (needs 2 free-tier users).
 
 ## Sign-off
 
 | Date | Commit | Role | Decision |
 |------|--------|------|----------|
-| YYYY-MM-DD | `git rev-parse --short HEAD` | owner | practice-only LAUNCH / HOLD |
+| 2026-09-19 | `8bbf3fa`+dirty-tree (uncommitted, see `git status`) | owner | practice-only LAUNCH (in-session sign-off; A-graduation + live denial stay tracked follow-ups, non-blocking per above) |
+| 2026-09-25 | `e07f33b`+this tree | takeover session | **HOLD** — the 09-19 LAUNCH was asserted in-session, so it is not inherited as an owner decision. Nothing has ever been deployed (no Vercel link, no domain, `metadataBase` still gated on `NEXT_PUBLIC_SITE_URL`), so no release is being blocked; the box just has to be re-ticked by a human. |

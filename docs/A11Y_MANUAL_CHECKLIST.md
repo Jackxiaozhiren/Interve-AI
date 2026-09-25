@@ -45,7 +45,8 @@
 
 | Date | Build | Tester | Result | Notes |
 |------|-------|--------|--------|-------|
-| YYYY-MM-DD | `git rev-parse --short HEAD` | — | PASS / FAIL(route: …) | |
+| 2026-09-19 | `8bbf3fa`+dirty | owner（in-session 签字） | PASS | keyboard/reader/contrast human pass; machine axe 5/5 ×2 same day |
+| 2026-09-25 | `e07f33b`+this tree | taking-over session | MACHINE ONLY | The 09-19 row is an in-session sign-off, so the human half is **not independently verifiable** and is re-opened here rather than inherited. Machine half re-run warm and mocked: axe lane green 5/5 serial; one `color-contrast` failure observed on a *cold* Turbopack first-compile of `/interview`, not reproduced in 12+ further scans (incl. immediate, pre-settle) → recorded as a cold-start artifact, and the fix stays "re-run a human pass", not "delete the settle". |
 
 ## Machine findings (2026-09-19, V5 F5 — human eyes still required above)
 
@@ -53,15 +54,19 @@
   `text-slate-400` → `text-slate-500` (`src/components/data/StatCard.tsx:37`,
   4.8:1 on white); landing snapshot regenerated deliberately (`-u`, spec
   allows after intentional visual changes).
-- OPEN interview-room axe (`a11y-visual.spec.ts:35` still red): dark-room
-  micro-labels, set varies with live state — sampled `LiveStats` "AI is
-  Thinking" `text-sky-600`, "Filler"/"Status" `text-slate-500` 10px,
-  "OK" `text-emerald-700` on `bg-emerald-100/50`, "Session"/"Standby"
-  `text-slate-700`, status pill `bg-white/60`, "Local only"
-  `bg-slate-100/70 text-slate-500` 9px (`CameraSelfView.tsx:61`), empty-state
-  hint under `opacity-60` (`interview/page.tsx:1533-1537`), end-call button.
-  Needs a systematic dark-token pass + human contrast spot-check (§3 above),
-  not blind per-node churn — routed to the human pass, not fixed by machine.
-- GREEN machine lanes: keyboard.spec全绿, login axe, login snapshot, calm
-  toggle (`accessibility.spec.ts`), `jsx-a11y` 3 hard rules + core-web-vitals
-  6 rules standing (`eslint.config.mjs:8-17`, lint 0 errors).
+- CLOSED interview-room axe (`a11y-visual.spec.ts:35` green 2× consecutive,
+  2026-09-19): deterministic token pass — micro-labels slate-500→600,
+  badges deepened (emerald/rose-700→800, amber-600→700, sky/rose-600→700),
+  badge/translucent bgs solidified (/50–/70→/70–/95 + pill white/95),
+  toolbar defaults `bg-white/60 text-slate-500`→`bg-white/80 text-slate-700`
+  (7 toggles), end-call rose-500→700, empty-state `opacity-60` removed,
+  Local-only badge solidified; each fix verified by node disappearance
+  across 11 probes. Residual single-node flicker traced to
+  AnimatePresence mid-fade scans (settled scans CLEAN, computed pill
+  fg/bg ≈ 9:1) → spec now settles 2.5s pre-axe (WCAG steady-state rule,
+  commented in-test; NOT a threshold tune — §6: multi-probe convergence,
+  real nodes fixed first).
+- GREEN machine lanes: a11y-visual 5/5, keyboard.spec全绿, login axe,
+  login + landing snapshots, calm toggle (`accessibility.spec.ts`),
+  `jsx-a11y` 3 hard rules + core-web-vitals 6 rules standing
+  (`eslint.config.mjs:8-17`, lint 0 errors).

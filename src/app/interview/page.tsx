@@ -1174,7 +1174,7 @@ function InterviewRoomContent() {
                 return newPaused;
               });
             }}
-            className={`rounded-full transition-all duration-300 ${isPaused ? 'bg-rose-500 text-white shadow-md hover:bg-rose-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            className={`rounded-full transition-all duration-300 ${isPaused ? 'bg-rose-500 text-white shadow-md hover:bg-rose-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isPaused ? "恢复面试 (Esc)" : "暂停思考 (Esc)"}
             aria-label={isPaused ? "恢复面试" : "暂停思考"}
           >
@@ -1184,7 +1184,7 @@ function InterviewRoomContent() {
             variant="ghost"
             size="icon-sm"
             onClick={() => setIsThinkTimeEnabled(!isThinkTimeEnabled)}
-            className={`rounded-full transition-all duration-300 ${isThinkTimeEnabled ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            className={`rounded-full transition-all duration-300 ${isThinkTimeEnabled ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isThinkTimeEnabled ? "关闭思考时间" : "开启思考时间 (答题前 10 秒缓冲)"}
             aria-label={isThinkTimeEnabled ? "关闭思考时间" : "开启思考时间"}
           >
@@ -1194,7 +1194,7 @@ function InterviewRoomContent() {
             variant="ghost"
             size="icon-sm"
             onClick={() => setIsCalmMode()}
-            className={`rounded-full transition-all duration-300 ${isCalmMode ? 'bg-teal-500 text-white shadow-md hover:bg-teal-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            className={`rounded-full transition-all duration-300 ${isCalmMode ? 'bg-teal-500 text-white shadow-md hover:bg-teal-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isCalmMode ? "退出宁静模式" : "开启宁静模式 (防过度视觉刺激)"}
             aria-label={isCalmMode ? "退出宁静模式" : "开启宁静模式"}
             aria-pressed={isCalmMode}
@@ -1205,7 +1205,7 @@ function InterviewRoomContent() {
             variant="ghost"
             size="icon-sm"
             onClick={() => setIsFocusMode(!isFocusMode)}
-            className={`rounded-full transition-all duration-300 ${isFocusMode ? 'bg-sky-500 text-white shadow-md hover:bg-sky-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            className={`rounded-full transition-all duration-300 ${isFocusMode ? 'bg-sky-500 text-white shadow-md hover:bg-sky-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isFocusMode ? "退出专注模式 (F)" : "开启专注模式 (F)"}
             aria-label={isFocusMode ? "退出专注模式" : "开启专注模式"}
             aria-pressed={isFocusMode}
@@ -1217,7 +1217,7 @@ function InterviewRoomContent() {
             variant="ghost"
             size="icon-sm"
             onClick={() => toggleLiveInsights()}
-            className={`rounded-full transition-all duration-300 font-bold text-[10px] ${showLiveInsights ? 'bg-violet-500 text-white shadow-md hover:bg-violet-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            className={`rounded-full transition-all duration-300 font-bold text-[10px] ${showLiveInsights ? 'bg-violet-500 text-white shadow-md hover:bg-violet-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={showLiveInsights ? t.interview.hideAiEstimatesTitle : t.interview.showAiEstimatesTitle}
             aria-label={showLiveInsights ? t.interview.hideAiEstimates : t.interview.showAiEstimates}
             aria-pressed={showLiveInsights}
@@ -1228,7 +1228,7 @@ function InterviewRoomContent() {
             variant="ghost"
             size="icon-sm"
             onClick={() => toggleLiveCaptions()}
-            className={`rounded-full transition-all duration-300 font-bold text-[10px] ${isLiveCaptionsEnabled ? 'bg-sky-500 text-white shadow-md hover:bg-sky-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            className={`rounded-full transition-all duration-300 font-bold text-[10px] ${isLiveCaptionsEnabled ? 'bg-sky-500 text-white shadow-md hover:bg-sky-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕"}
             aria-label={isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕"}
             aria-pressed={isLiveCaptionsEnabled}
@@ -1239,7 +1239,7 @@ function InterviewRoomContent() {
             variant="ghost"
             size="icon-sm"
             onClick={() => toggleDyslexiaMode()}
-            className={`rounded-full transition-all duration-300 font-bold text-[12px] ${isDyslexiaMode ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600' : 'bg-white/60 text-slate-500 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            className={`rounded-full transition-all duration-300 font-bold text-[12px] ${isDyslexiaMode ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助"}
             aria-label={isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助"}
             aria-pressed={isDyslexiaMode}
@@ -1531,7 +1531,7 @@ function InterviewRoomContent() {
           
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 scroll-smooth" role="log" aria-live="polite" aria-atomic="false">
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-3 opacity-60">
+              <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
                 <div className="w-12 h-12 rounded-full bg-white/50 border border-white flex items-center justify-center shadow-sm">
                   <Microphone className="w-5 h-5 text-slate-400" />
                 </div>
@@ -1641,7 +1641,7 @@ function InterviewRoomContent() {
           <div className="p-4 bg-white/40 border-t border-white/40">
             <Button 
               variant="outline" 
-              className="w-full rounded-full h-12 font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50/50 border-white bg-white/50 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+              className="w-full rounded-full h-12 font-medium text-rose-700 hover:text-rose-800 hover:bg-rose-50/50 border-white bg-white/50 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
               onClick={handleEndCall}
               disabled={isEnding}
               aria-label="结束面试并生成报告"

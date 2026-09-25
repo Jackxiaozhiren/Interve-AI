@@ -57,7 +57,7 @@ export const CameraSelfView = React.memo(() => {
           <Camera weight="bold" className="w-4 h-4 text-emerald-500" />
           <span className="text-[10px] font-bold tracking-widest uppercase font-sans text-slate-700">Self-view</span>
         </div>
-        <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-slate-100/70 text-slate-500">
+        <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600">
           {t.interview.localOnly}
         </span>
       </div>
@@ -81,7 +81,7 @@ export const CameraSelfView = React.memo(() => {
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
             <CameraSlash className="w-8 h-8 text-slate-300" weight="duotone" aria-hidden="true" />
-            <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
+            <p className="text-[11px] font-medium text-slate-600 leading-relaxed">
               {permission === "requesting"
                 ? t.interview.cameraRequesting
                 : t.interview.cameraOff}
