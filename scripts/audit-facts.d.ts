@@ -71,6 +71,12 @@ export interface Facts {
 /** Ratchet-eligible dotted keys and what each one guards. */
 export const RATCHET_KEYS: Record<string, string>;
 
+/**
+ * Uncommitted paths that would make a seeded ceiling unreproducible in CI.
+ * Takes `unknown` so tests can probe it with synthetic facts.
+ */
+export function seedBlockers(facts: unknown): string[];
+
 export function collectFacts(): Facts;
 export function numericLeaves(obj: unknown, prefix?: string, out?: FactLeaves): FactLeaves;
 export function evaluateRatchet(

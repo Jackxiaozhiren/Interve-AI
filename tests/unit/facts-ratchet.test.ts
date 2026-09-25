@@ -11,7 +11,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { collectFacts, evaluateRatchet, numericLeaves, RATCHET_KEYS } from "../../scripts/audit-facts.mjs";
+import { collectFacts, evaluateRatchet, numericLeaves, seedBlockers, RATCHET_KEYS } from "../../scripts/audit-facts.mjs";
 
 const LIMITS_FILE = path.join(process.cwd(), "docs/audit/facts.limits.json");
 const facts = collectFacts();
@@ -95,5 +95,27 @@ describe("capability contradiction probes", () => {
       expect(bundler.webpackConfigBlock).toBe(true);
       expect(bundler.webpackFlagInScripts).toBe(false);
     }
+  });
+});
+
+describe("seed provenance (V11 R-18)", () => {
+  it("accepts a clean tree", () => {
+    expect(seedBlockers({ git: { dirty: [] } })).toEqual([]);
+  });
+
+  it("blocks on uncommitted edits", () => {
+    expect(seedBlockers({ git: { dirty: [{ path: "src/a.ts", status: "M" }] } })).toEqual(["src/a.ts"]);
+  });
+
+  it("blocks on untracked files, which a CI checkout never contains", () => {
+    const blockers = seedBlockers({ git: { dirty: [{ path: "docs/audit/NEW.md", status: "??" }] } });
+    expect(blockers).toEqual(["docs/audit/NEW.md"]);
+  });
+
+  it("survives the shapes collectFacts actually emits", () => {
+    expect(seedBlockers(undefined)).toEqual([]);
+    expect(seedBlockers({})).toEqual([]);
+    expect(seedBlockers({ git: {} })).toEqual([]);
+    expect(seedBlockers(facts)).toEqual(facts.git.dirty.map((entry) => entry.path));
   });
 });

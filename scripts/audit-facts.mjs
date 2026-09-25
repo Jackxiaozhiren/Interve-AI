@@ -14,6 +14,7 @@
 //   node scripts/audit-facts.mjs            # JSON to stdout
 //   node scripts/audit-facts.mjs --write    # + docs/audit/facts.baseline.json
 //   node scripts/audit-facts.mjs --seed     # + docs/audit/facts.limits.json (ceilings at today's value)
+//   node scripts/audit-facts.mjs --force    # with --seed: allow a dirty tree, at the cost above
 //   node scripts/audit-facts.mjs --check    # exit 1 on any ratchet violation
 
 import fs from "node:fs";
@@ -266,6 +267,24 @@ export const RATCHET_KEYS = {
 };
 
 /**
+ * Paths that make a seed unreproducible, because CI enforces the ceilings
+ * against a checkout it builds from a commit — never against this directory.
+ *
+ * Ceilings seeded from uncommitted work record debt the repository does not
+ * have: main then fails its own gate while the author's machine stays green.
+ * That is exactly how the first `facts:check` run went red, so seeding from a
+ * dirty tree is refused rather than warned about.
+ *
+ * @param {unknown} facts
+ * @returns {string[]}
+ */
+export function seedBlockers(facts) {
+  const dirty = /** @type {{git?: {dirty?: {path?: unknown}[]}}} */ (facts ?? {})?.git?.dirty;
+  if (!Array.isArray(dirty)) return [];
+  return dirty.map((entry) => String(entry?.path ?? entry));
+}
+
+/**
  * Flatten to dotted numeric keys so the ratchet config stays a flat map.
  *
  * Typed via JSDoc rather than only the sibling .d.ts: `allowJs` is on, so tsc
@@ -311,6 +330,16 @@ function main() {
   const facts = collectFacts();
 
   if (args.includes("--seed")) {
+    const blockers = seedBlockers(facts);
+    if (blockers.length > 0 && !args.includes("--force")) {
+      process.stderr.write(
+        `seed refused: ${blockers.length} uncommitted entr${blockers.length === 1 ? "y" : "ies"} — ` +
+          `a ceiling taken from this tree is not one CI can reproduce.\n` +
+          blockers.map((b) => `  ${b}`).join("\n") +
+          `\nCommit or set the tree aside first, or pass --force to seed anyway.\n`,
+      );
+      process.exit(1);
+    }
     fs.mkdirSync(path.dirname(LIMITS), { recursive: true });
     const leaves = numericLeaves(facts);
     const ceiling = {};
