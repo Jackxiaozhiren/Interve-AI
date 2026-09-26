@@ -23,14 +23,26 @@
 - [x] Server-only keys never `NEXT_PUBLIC_*`, never logged (values never
   printed; `security-surface.test.ts` pins client-bundle hygiene).
 - [x] `service_role` never in frontend (secret scan 0 hits, SECURITY_REPORT §2).
+- [ ] `src/lib/supabase.ts:3-4` falls back to `placeholder.supabase.co` when
+  `NEXT_PUBLIC_SUPABASE_URL` is absent. Because that value is inlined at
+  **build** time, `/api/health` can report `db: ok` from a server started with
+  no environment at all (measured 2026-09-26: standalone artifact, zero runtime
+  env, health 200 with real 620ms/819ms probes). The check proves the baked
+  project is reachable — it does NOT prove the deployment was configured.
+  Decide before first deploy: keep the fallback, or fail fast at boot.
 
 ## Metadata & error surfaces
 
 - [x] Root metadata: title template + description + OG + twitter
   (`src/app/layout.tsx:9-33`); `lang="zh-CN"`, skip link.
 - [x] `robots.ts` live-verified (public 4 routes allow; gated/API disallow).
-- [x] `error.tsx` + `not-found.tsx` + `loading.tsx` present (no global-error —
-  acceptable: root layout has no async server boundary needing one).
+- [x] `error.tsx` + `not-found.tsx` + `loading.tsx` + `global-error.tsx` present.
+  The earlier "no global-error — acceptable: root layout has no async server
+  boundary needing one" rationale was wrong: `<Providers>` is a client tree that
+  throws fine, and `error.tsx` explicitly does not wrap the root layout/template.
+  Added 2026-09-26 and verified live (injected client throw → built → `next
+  start` → Chromium: own document, `lang`, title, styles and both recovery
+  actions reached the DOM). Pinned by `tests/unit/global-error-boundary.test.ts`.
 - [ ] Sitemap: OPEN (non-blocking) — needs a prod domain; refused to invent
   (condition: set `NEXT_PUBLIC_SITE_URL`, add `src/app/sitemap.ts`).
 
@@ -53,12 +65,19 @@
 
 ## Release mechanics
 
-- [x] Reproducible `docker build` green (node:20-alpine, standalone,
-  runs: /login 200; tag `interve-ai:phase-g` verified 2026-09-17).
+- [x] Reproducible `docker build` green (standalone, runs: /login 200; tag
+  `interve-ai:phase-g` verified 2026-09-17). Doc drift fixed 2026-09-26: this
+  row claimed node:20 while the Dockerfile and the CI parity check both pin
+  node:24 — so the recorded image build predates the base bump and is stale.
   Caveat 2026-09-19: NOT re-verifiable in this env (no docker daemon —
   re-run where a daemon exists before cutting the release tag).
+- [x] Standalone artifact runs without Docker, verified 2026-09-26 by assembling
+  exactly what the Dockerfile's runner stage copies (`standalone/` + `public/` +
+  `.next/static/`) and starting `node server.js`: `/api/health` 200 with live DB
+  probes, `/` 200 (81KB), `/manifest.json` 200. Covers the runtime half the
+  daemon-less caveat left open; the image build itself still needs a daemon.
 - [x] Deploy parity pinned in CI (`deploy consistency` step: standalone +
-  node20 + no-secret-layers + default Vercel build).
+  node24 + no-secret-layers + default Vercel build).
 - [x] Migrations additive-only with rollback notes (002/003/004).
 
 ## OPEN launch blockers (external, not code)
