@@ -104,16 +104,21 @@ domain, no service worker need, and "no global-error needed").
   without it, `400 VALIDATION_FAILED` with it — proves verify() passes without
   spending a model call). Env changes need a Redeploy; Redeploy does pick up
   newly added project vars.
-- [ ] `GOOGLE_GENERATIVE_AI_API_KEY` is **still unset in production** (dashboard
-  lists exactly 5 vars: Zhipu, the two Supabase ones, `OPENAI_BASE_URL`,
-  `SESSION_SECRET`). `parse-jd`, `analyze-alignment` and `analyze-code` call the
-  @ai-sdk/google default provider with no fallback model, so all three now 500
-  once a user is signed in — 3 of the 3 Google routes, all reachable. Previously
-  invisible because nobody could sign in.
-- [ ] `ZHIPU_API_KEY` carries a Vercel **Needs Attention** badge. 8 routes call
-  `zhipu()` and 6 of those are reachable (the other 2 are the uncalled
-  analyze-chunk / analyze-trends), including the interview itself — read the
-  badge before claiming the core loop works live.
+- [x] `GOOGLE_GENERATIVE_AI_API_KEY` — was absent for five months (the dashboard
+  listed only Zhipu, the two Supabase vars and `OPENAI_BASE_URL`), which meant
+  `parse-jd`, `analyze-alignment` and `analyze-code` — the three routes that call
+  the @ai-sdk/google default provider with no fallback model — returned 500 to any
+  signed-in user. Added as type Secret (Production + Preview) and **verified live
+  2026-09-26**: authenticated `POST /api/parse-jd` → 200 with real generated
+  questions (title/rationale differ from `MOCK_PAYLOADS`, and `AI_MOCK` is unset),
+  7–9s per call. Note the sequencing trap: the first probe after "I redeployed"
+  still returned 500 because the new deployment had not finished promoting.
+  Follow-up owed: the old (now revoked) key is still in `.env.local`, so these
+  three routes fail locally until it is replaced.
+- [x] `ZHIPU_API_KEY` re-saved as type **Secret** (it was `Config`, i.e. readable
+  in the dashboard by anyone with project access). The underlying value was **not**
+  rotated, so it has been readable for its whole lifetime; rotate at the source if
+  a collaborator or a read-scoped integration is ever added.
 - [ ] `NEXT_PUBLIC_SITE_URL` unset (live document has no `og:url`). Production has
   two further domains attached beyond `interve-ai.vercel.app` ("+2" in
   Settings → Environments); their names are unknown, so the canonical value is
