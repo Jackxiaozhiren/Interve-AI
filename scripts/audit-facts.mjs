@@ -202,7 +202,12 @@ function collectCapabilities() {
   });
 
   const warnings = [];
-  if (pkg.dependencies?.["next-pwa"] || pkg.devDependencies?.["next-pwa"] || /next-pwa/.test(config)) {
+  // The installed package is scoped; looking up bare "next-pwa" only ever
+  // matched through the config-text fallback, so a dep-only re-add was invisible.
+  const hasPwaPlugin = ["@ducanh2912/next-pwa", "next-pwa"].some(
+    (name) => pkg.dependencies?.[name] || pkg.devDependencies?.[name],
+  );
+  if (hasPwaPlugin || /next-pwa/.test(config)) {
     if (swFiles.length === 0) warnings.push("pwa_plugin_declares_offline_but_no_service_worker_emitted");
   }
   if (/^\s*webpack\s*:/m.test(config) && !/--webpack/.test(`${scripts.dev ?? ""} ${scripts.build ?? ""}`)) {

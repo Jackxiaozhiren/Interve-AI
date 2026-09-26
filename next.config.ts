@@ -1,16 +1,14 @@
 import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
 
-const withPWA = withPWAInit({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-  // Phase D2 verdict (2026-09-17): runtimeCaching/offline work was reverted —
-  // production builds run on Turbopack, under which this webpack-based plugin
-  // emits NO service worker at all (verified: no public/sw.js across builds,
-  // never tracked in git). Dead config pretends; see PERF_REPORT §5 for the
-  // unblock conditions (webpack builds or a Turbopack-native SW pipeline).
-});
-
+// Phase D2 (2026-09-17) recorded that @ducanh2912/next-pwa emits no service
+// worker under Turbopack; re-verified before removing it: `withPWA` only hooks
+// config.webpack (its dist composes user webpack at index.js:720 and needs
+// workbox-webpack-plugin), every build path is plain `next build`
+// (package.json, Dockerfile:30-32, ci.yml:26), and the current build contains
+// zero `__PWA_SW__` defines, no sw.js and no workbox chunk. The old `webpack:`
+// aliases (sharp$, onnxruntime-node$) died with that path, so they are gone
+// rather than kept as decoration — see git blame for the @huggingface worker
+// they were meant for (src/workers/whisper.worker.ts).
 const nextConfig: NextConfig = {
   output: 'standalone',
   serverExternalPackages: ['pdf-parse'],
@@ -23,19 +21,9 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'api.dicebear.com' },
     ],
   },
-  webpack: (config) => {
-    // Ignore node-specific modules when bundling for the browser
-    // This is required for @huggingface/transformers to work properly in the browser
-    config.resolve.alias = {
-        ...config.resolve.alias,
-        "sharp$": false,
-        "onnxruntime-node$": false,
-    }
-    return config;
-  },
   turbopack: {
     root: __dirname,
   },
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;
