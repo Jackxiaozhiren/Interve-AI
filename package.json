@@ -34,7 +34,6 @@
     "@ai-sdk/openai": "^4.0.72",
     "@ai-sdk/react": "^4.0.114",
     "@base-ui/react": "^1.4.0",
-    "@ducanh2912/next-pwa": "^10.2.9",
     "@huggingface/transformers": "^4.1.0",
     "@monaco-editor/react": "^4.7.0",
     "@orama/orama": "^3.1.18",
