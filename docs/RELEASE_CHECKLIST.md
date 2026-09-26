@@ -82,6 +82,16 @@
 
 ## OPEN launch blockers (external, not code)
 
+- [ ] First deploy must supply env at **build** time, not only runtime:
+  `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` are inlined into the bundle during
+  `next build`, so a host that sets them only for the running server produces an
+  app talking to `placeholder.supabase.co` (see the Env & secrets row).
+  Required names: the two Supabase ones, `SESSION_SECRET`, `ZHIPU_API_KEY`,
+  `GOOGLE_GENERATIVE_AI_API_KEY` — the last one newly documented: parse-jd,
+  analyze-alignment and analyze-code call the @ai-sdk/google *default* provider,
+  which reads that variable itself, with no fallback model, so an example-file
+  clone used to return 500 UPSTREAM_ERROR on all three. Now gated by
+  `tests/unit/env-surface.test.ts`.
 - [ ] A-graduation: 7-day nightly trend + 2-rater κ≥0.6 (EVAL_REPORT
   GRADUATION GAP). Practice-only launch does NOT require it; "calibrated"
   claims do.
