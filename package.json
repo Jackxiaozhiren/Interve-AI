@@ -16,7 +16,7 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
-    "test:e2e:mock": "E2E_MOCK=1 playwright test --project=chrome-1280x720 tests/mock-journey.spec.ts",
+    "test:e2e:mock": "E2E_MOCK=1 playwright test --project=chrome-1280x720 tests/mock-journey.spec.ts tests/chat.spec.ts",
     "test:eval": "vitest run --config vitest.eval.config.ts",
     "test:eval:free": "vitest run --config vitest.eval.config.ts evals/free.eval.test.ts",
     "verify:supabase-free": "node scripts/verify-supabase-free.mjs",

@@ -7,87 +7,10 @@
 // interview → answer → finish → analysis → replay → retry → compare →
 // export → delete. It does NOT prove provider quality or real persistence
 // (those need funded keys + staging — tracked).
-import { test, expect, type Route } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { createPostgrestStub } from './helpers';
 
 test.skip(!process.env.E2E_MOCK, 'needs E2E_MOCK=1 (mock AI server + stubbed DB)');
-
-interface Row {
-  id: number;
-  [k: string]: unknown;
-}
-
-function createPostgrestStub() {
-  const tables = new Map<string, Map<number, Row>>();
-  let nextId = 1;
-  const table = (name: string) => {
-    if (!tables.has(name)) tables.set(name, new Map());
-    return tables.get(name)!;
-  };
-
-  return async function handler(route: Route) {
-    const req = route.request();
-    const url = new URL(req.url());
-    const tableName = url.pathname.split('/').pop() ?? '';
-    const method = req.method();
-    const q = url.searchParams;
-
-    if (tableName === 'telemetry' || tableName === 'achievements' || tableName === 'evaluations' || tableName === 'assessments' || tableName === 'orama_index') {
-      if (method === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-      return route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
-    }
-
-    if (tableName !== 'interviews' && tableName !== 'practice_sessions') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-    }
-    const store = table(tableName);
-
-    if (method === 'POST') {
-      const body = req.postDataJSON() as Record<string, unknown>;
-      const row = { ...body, id: nextId++ } as Row;
-      store.set(row.id, row);
-      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(row) });
-    }
-    if (method === 'PATCH' || method === 'PUT') {
-      const idEq = q.get('id');
-      const body = (req.postDataJSON() ?? {}) as Record<string, unknown>;
-      if (idEq?.startsWith('eq.')) {
-        const id = Number(idEq.slice(3));
-        const prev = store.get(id);
-        if (prev) store.set(id, { ...prev, ...body });
-      }
-      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-    }
-    if (method === 'DELETE') {
-      const idEq = q.get('id');
-      if (idEq?.startsWith('eq.')) store.delete(Number(idEq.slice(3)));
-      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
-    }
-    // GET
-    const idEq = q.get('id');
-    if (idEq?.startsWith('eq.')) {
-      const row = store.get(Number(idEq.slice(3)));
-      if (!row) {
-        return route.fulfill({ status: 406, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST116', message: 'no rows' }) });
-      }
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
-    }
-    let rows = [...store.values()];
-    for (const [k, v] of q.entries()) {
-      if (k === 'select' || k === 'order') continue;
-      if (v.startsWith('eq.')) rows = rows.filter((r) => String(r[k]) === v.slice(3));
-    }
-    const order = q.get('order');
-    if (order) {
-      const [field, dir] = order.split('.');
-      rows.sort((a, b) => {
-        const av = String(a[field] ?? '');
-        const bv = String(b[field] ?? '');
-        return dir === 'desc' ? (av < bv ? 1 : -1) : av < bv ? -1 : 1;
-      });
-    }
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
-  };
-}
 
 test.describe('Mock full journey (no keys, no DB)', () => {
   // P2-07-dup (BUG-R-e2e-mock-flake): one scoped retry absorbs the
