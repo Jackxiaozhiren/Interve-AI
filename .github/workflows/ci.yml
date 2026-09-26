@@ -36,6 +36,14 @@ jobs:
       - run: npm run test:e2e:smoke
         env:
           CI: true
+      # Keyless full-journey lane: AI_MOCK=1 canned provider responses plus an
+      # in-browser PostgREST stub, so it needs no secrets and no database. Runs
+      # in CI because that is the only browser coverage of the authenticated
+      # product loop; verified env-independent (passes with NEXT_PUBLIC_SUPABASE_*
+      # unset) and ~50s for 4 tests, since the specs share one dev server.
+      - run: npm run test:e2e:mock
+        env:
+          CI: true
       # Transfer budgets (P2-02 follow-up): prod server + probe --assert.
       # Budgets live in scripts/perf-probe.mjs (policy + headroom documented
       # there); breach or probe failure fails the gate. Plain probe runs
