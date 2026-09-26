@@ -89,18 +89,48 @@
   node24 + no-secret-layers + default Vercel build).
 - [x] Migrations additive-only with rollback notes (002/003/004).
 
+## Production state, measured 2026-09-26
+
+The rows below come from the live site and the Vercel dashboard, not from the
+repo — the repo disagreed with reality on three counts (it claimed no prod
+domain, no service worker need, and "no global-error needed").
+
+- [x] `SESSION_SECRET` **was absent, which took down production login.**
+  `POST /api/session` returned `500 CONFIG_MISCONFIGURED`; the code fails closed
+  (no weak-key fallback under `NODE_ENV=production`), so it was an outage, not a
+  vulnerability. Fixed same day: fresh value generated off-machine, stored as
+  type Secret, scoped Production+Preview, redeployed. Verified: `200 {"ok":true}`,
+  and the cookie round-trips (`POST /api/parse-jd` with an empty body is `401`
+  without it, `400 VALIDATION_FAILED` with it — proves verify() passes without
+  spending a model call). Env changes need a Redeploy; Redeploy does pick up
+  newly added project vars.
+- [ ] `GOOGLE_GENERATIVE_AI_API_KEY` is **still unset in production** (dashboard
+  lists exactly 5 vars: Zhipu, the two Supabase ones, `OPENAI_BASE_URL`,
+  `SESSION_SECRET`). `parse-jd`, `analyze-alignment` and `analyze-code` call the
+  @ai-sdk/google default provider with no fallback model, so all three now 500
+  once a user is signed in — 3 of the 3 Google routes, all reachable. Previously
+  invisible because nobody could sign in.
+- [ ] `ZHIPU_API_KEY` carries a Vercel **Needs Attention** badge. 8 routes call
+  `zhipu()` and 6 of those are reachable (the other 2 are the uncalled
+  analyze-chunk / analyze-trends), including the interview itself — read the
+  badge before claiming the core loop works live.
+- [ ] `NEXT_PUBLIC_SITE_URL` unset (live document has no `og:url`). Production has
+  two further domains attached beyond `interve-ai.vercel.app` ("+2" in
+  Settings → Environments); their names are unknown, so the canonical value is
+  undecided. Unblock: pick the domain, set the var, redeploy, then add
+  `src/app/sitemap.ts` + `metadataBase`.
+- [ ] **Local dev and production share one Supabase project** — the ref in
+  `.env.local` also appears in the live client bundle. Any local interview run
+  writes rows into the production database. Decide: accept it, or point dev at a
+  second free project (migrations 001-004 are additive).
+
 ## OPEN launch blockers (external, not code)
 
-- [ ] First deploy must supply env at **build** time, not only runtime:
-  `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` are inlined into the bundle during
-  `next build`, so a host that sets them only for the running server produces an
-  app talking to `placeholder.supabase.co` (see the Env & secrets row).
-  Required names: the two Supabase ones, `SESSION_SECRET`, `ZHIPU_API_KEY`,
-  `GOOGLE_GENERATIVE_AI_API_KEY` — the last one newly documented: parse-jd,
-  analyze-alignment and analyze-code call the @ai-sdk/google *default* provider,
-  which reads that variable itself, with no fallback model, so an example-file
-  clone used to return 500 UPSTREAM_ERROR on all three. Now gated by
-  `tests/unit/env-surface.test.ts`.
+- [ ] Env at **build** time, not only runtime: `NEXT_PUBLIC_*` is inlined during
+  `next build`, so a host that sets it only on the running server produces an app
+  talking to `placeholder.supabase.co` (see the Env & secrets row). Declared and
+  checked by `tests/unit/env-surface.test.ts`, which fails if `src/` reads a name
+  that `.env.example` neither declares nor excludes with a reason.
 - [ ] A-graduation: 7-day nightly trend + 2-rater κ≥0.6 (EVAL_REPORT
   GRADUATION GAP). Practice-only launch does NOT require it; "calibrated"
   claims do.
