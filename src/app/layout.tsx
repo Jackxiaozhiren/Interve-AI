@@ -6,8 +6,9 @@ import "./globals.css";
 
 // Phase 13: document title + description (Lighthouse document-title and
 // meta-description checks; also the browser tab / share baseline).
-// Phase F4: OG + twitter cards (no url/images — no prod domain configured;
-// adding metadataBase/sitemap waits for NEXT_PUBLIC_SITE_URL, see robots.ts).
+// Phase F4: OG + twitter cards (no url/images — the live production URL exists
+// but NEXT_PUBLIC_SITE_URL is unset in the Vercel project, so metadataBase and
+// sitemap still have no absolute base; see robots.ts).
 export const metadata: Metadata = {
   title: {
     default: "Interve AI — AI 面试训练平台",
