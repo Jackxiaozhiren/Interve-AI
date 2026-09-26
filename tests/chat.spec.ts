@@ -1,10 +1,19 @@
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers';
 
-// fixme: this suite drives live AI interviews (sendMessage -> /api/interview-chat
-// -> Zhipu/Gemini). It needs provider keys with budget caps plus a deterministic
-// AI stub for CI. Re-enable in Phase 3 with the AI Eval harness; see
-// STABILIZATION_REPORT "Deferred: keyed AI e2e".
+// fixme, re-adjudicated 2026-09-26 — the original reason is now false. It
+// claimed this suite needs "provider keys plus a deterministic AI stub for CI";
+// the stub exists (`AI_MOCK=1`, and `npm run test:e2e:mock` passes the whole
+// journey keylessly in ~50s). What actually blocks it:
+//   1. Reaching the interview room needs the in-memory PostgREST stub, which is
+//      72 lines private to tests/mock-journey.spec.ts. Extract it into
+//      tests/helpers.ts and this suite can run in the mock lane.
+//   2. "should display Markdown correctly" is vacuous: `if (await
+//      codeBlock.isVisible()) { expect(...).toBeVisible() }` cannot fail. It
+//      needs a real assertion against the canned mock reply, not a restore.
+//   3. Neither of the other two has ever executed, so their locators and the
+//      1500-char round trip are unverified assumptions, not known-good tests.
+// So: two tests to prove and one to rewrite. Not dead because of keys.
 test.describe.fixme('Chat Interface', () => {
   test.describe.configure({ timeout: 60000 });
 
