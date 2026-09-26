@@ -61,7 +61,15 @@ export interface Facts {
       loadingFiles: number;
       globalErrorFiles: number;
     };
-    networkLayer: { abortControllerInApiClient: number; rawFetchCalls: number; clientComponentFiles: number };
+    networkLayer: {
+      abortControllersInRequestGuard: number;
+      routesUsingRequestGuard: number;
+      rawFetchCalls: number;
+      clientComponentFiles: number;
+    };
+    /** Paths a probe tried to open and could not — a non-empty list means a
+     *  reported number came from a file that was never read. */
+    probeBlindPaths: string[];
     untestedChatCallbacks: string[];
     warnings: string[];
   };

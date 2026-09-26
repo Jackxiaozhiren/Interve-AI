@@ -28,6 +28,9 @@ const LIMITS = path.join(ROOT, "docs/audit/facts.limits.json");
 
 const DAY_MS = 86_400_000;
 
+/** Paths a probe tried to open and could not. Surfaced as a fact, not a warning. */
+const probeBlindPaths = new Set();
+
 function git(args) {
   try {
     return execFileSync("git", args, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
@@ -40,6 +43,9 @@ function readText(rel) {
   try {
     return fs.readFileSync(path.join(ROOT, rel), "utf8");
   } catch {
+    // A probe that silently reads "" is worse than one that errors: it reports a
+    // confident zero about code it never opened. Recorded so a test can fail on it.
+    probeBlindPaths.add(rel);
     return null;
   }
 }
@@ -82,6 +88,11 @@ function countHits(re, { perFile = false } = {}) {
 
 function fileCountHit(re) {
   return countHits(re, { perFile: true });
+}
+
+/** How many source files match — the adoption half of "is this layer real?". */
+function fileCountMatching(re) {
+  return sourceFiles().filter((f) => re.test(fs.readFileSync(f, "utf8"))).length;
 }
 
 function collectGit() {
@@ -223,10 +234,16 @@ function collectCapabilities() {
       globalErrorFiles: appFiles.filter((f) => nameOf(f) === "global-error.tsx").length,
     },
     networkLayer: {
-      abortControllerInApiClient: (readText("src/lib/api-client.ts") ?? "").match(/AbortController/g)?.length ?? 0,
+      // Cancellation lives in the shared request guard that routes funnel
+      // through, not in `src/lib/api-client.ts` — that file is a typed Supabase
+      // row shim and issues no HTTP. Pointing here at it reported "no
+      // cancellation in the API client": literally true, and about the wrong file.
+      abortControllersInRequestGuard: (readText("src/lib/api/guard.ts") ?? "").match(/new AbortController/g)?.length ?? 0,
+      routesUsingRequestGuard: fileCountMatching(/from ["']@\/lib\/api\/guard["']/),
       rawFetchCalls: countHits(/\bfetch\(/g),
       clientComponentFiles: clientFiles.length,
     },
+    probeBlindPaths: [...probeBlindPaths].sort(),
     untestedChatCallbacks: untestedCallbacks,
     warnings,
   };

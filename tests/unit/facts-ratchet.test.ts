@@ -98,6 +98,34 @@ describe("capability contradiction probes", () => {
   });
 });
 
+describe("path-pinned probes read what their names claim (V11 R-19)", () => {
+  it("no probe reported a number from a file it never opened", () => {
+    expect(facts.capabilities.probeBlindPaths).toEqual([]);
+  });
+
+  it("measures cancellation in the layer routes actually call", () => {
+    // The bug this pins: `abortControllerInApiClient` read src/lib/api-client.ts,
+    // which is a typed Supabase row shim and issues no HTTP. It reported "no
+    // cancellation in the API client" — true, and about the wrong module, while
+    // the shared guard every route funnels through had the AbortController all
+    // along. Both halves are re-derived from disk so a probe cannot drift from
+    // its own name without this failing.
+    const guardFile = path.join(process.cwd(), "src/lib/api/guard.ts");
+    expect(fs.existsSync(guardFile), "the request guard moved; repoint the probe").toBe(true);
+    const constructed = (fs.readFileSync(guardFile, "utf8").match(/new AbortController/g) ?? []).length;
+    expect(constructed).toBe(facts.capabilities.networkLayer.abortControllersInRequestGuard);
+    expect(constructed).toBeGreaterThan(0);
+
+    const apiDir = path.join(process.cwd(), "src/app/api");
+    const adopters = fs
+      .readdirSync(apiDir, { recursive: true })
+      .filter((f): f is string => typeof f === "string" && f.endsWith(".ts"))
+      .filter((f) => /from ["']@\/lib\/api\/guard["']/.test(fs.readFileSync(path.join(apiDir, f), "utf8")));
+    expect(adopters.length).toBe(facts.capabilities.networkLayer.routesUsingRequestGuard);
+    expect(adopters.length).toBeGreaterThan(0);
+  });
+});
+
 describe("seed provenance (V11 R-18)", () => {
   it("accepts a clean tree", () => {
     expect(seedBlockers({ git: { dirty: [] } })).toEqual([]);
