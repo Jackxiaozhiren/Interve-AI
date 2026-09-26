@@ -57,12 +57,57 @@ describe("env surface declared to whoever sets up the app", () => {
     expect(stale, `no longer read, drop from EXCLUDED: ${stale.join(", ")}`).toEqual([]);
   });
 
-  // The implicit reader this whole file exists for: @ai-sdk/google's default
-  // provider takes its key from env without src/ saying so.
-  it("declares the key the Google default provider reads implicitly", () => {
+// Vercel stores a variable as either `Secret` (never readable again) or
+// `Config` (readable by anyone with project access). ZHIPU_API_KEY sat as Config
+// for five months, which is what its "Needs Attention" badge was about. The
+// platform can't be asserted from a test, so this pins the repo-side contract:
+// every credential-shaped name is classified, none of them is public, and the
+// list cannot grow silently.
+const REQUIRED_SECRET_TYPE = [
+  "SESSION_SECRET",
+  "ZHIPU_API_KEY",
+  "OPENAI_API_KEY",
+  "OPENROUTER_API_KEY",
+  // Not read via process.env anywhere: @ai-sdk/google's default provider reads
+  // it itself, which is exactly how it escaped the scan above.
+  "GOOGLE_GENERATIVE_AI_API_KEY",
+];
+
+const CREDENTIAL_SHAPED = /(?:_API_KEY|_SECRET|_TOKEN)$/;
+
+describe("credential variables are classified as secrets", () => {
+  it("every credential-shaped name the code reads is in the ledger", () => {
+    const unclassified = readNames.filter(
+      (n) => CREDENTIAL_SHAPED.test(n) && !REQUIRED_SECRET_TYPE.includes(n),
+    );
+    expect(unclassified, `classify in REQUIRED_SECRET_TYPE: ${unclassified.join(", ")}`).toEqual([]);
+  });
+
+  it("no ledger entry is stale", () => {
+    const stale = REQUIRED_SECRET_TYPE.filter(
+      (n) => !readNames.includes(n) && n !== "GOOGLE_GENERATIVE_AI_API_KEY",
+    );
+    expect(stale, `no longer read, drop from the ledger: ${stale.join(", ")}`).toEqual([]);
+  });
+
+  it("no credential is ever exposed as NEXT_PUBLIC_*", () => {
+    const publicSecrets = [...readNames, ...REQUIRED_SECRET_TYPE].filter(
+      (n) => n.startsWith("NEXT_PUBLIC_") && CREDENTIAL_SHAPED.test(n),
+    );
+    expect(publicSecrets).toEqual([]);
+  });
+
+  it("the setup document declares every credential in the ledger", () => {
+    const undocumented = REQUIRED_SECRET_TYPE.filter((n) => !declaredNames.includes(n));
+    expect(undocumented, `add to .env.example: ${undocumented.join(", ")}`).toEqual([]);
+  });
+
+  // Why the ledger carries a name the scan never sees: the provider is used in
+  // its default form, so no `process.env` lookup exists in src/ to find.
+  it("pins the implicit Google reader that the env scan cannot see", () => {
     expect(readFileSync(join(ROOT, "src/ai/providers/registry.ts"), "utf8")).toMatch(
       /import \{ google as googleDefault \} from "@ai-sdk\/google"/,
     );
-    expect(declaredNames).toContain("GOOGLE_GENERATIVE_AI_API_KEY");
   });
+});
 });
