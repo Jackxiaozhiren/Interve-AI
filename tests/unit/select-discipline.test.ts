@@ -8,6 +8,15 @@
 // for bytes, with no live DB to verify savings. Revisit with
 // pg_stat_statements + transfer numbers, never blind.
 //
+// Re-verified 2026-09-26 rather than re-litigated, and the decline still holds:
+// all 13 sites sit in this one module, and the list rows really are consumed
+// whole — src/components/dashboard/SessionDetailModal.tsx reads
+// session.councilDebate and KnowledgeMatchLoader.tsx reads session.resumeText /
+// session.jobDescription off the list object, while the heavy single-row reader
+// (dashboard/report/[id]) already goes through db.interviews.get(id). So the
+// reopen condition is that lazy-get refactor of the two modal/loader paths,
+// not a fresh pass over the same 13 lines.
+//
 // N+1 audit (same date): CLEAN — every list path is one query + in-memory
 // join (dashboard aggregates, achievements+definitions, telemetry windows).
 // No per-row follow-up queries exist in src/.

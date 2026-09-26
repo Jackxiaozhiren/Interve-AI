@@ -71,6 +71,7 @@ export interface Facts {
      *  reported number came from a file that was never read. */
     probeBlindPaths: string[];
     untestedChatCallbacks: string[];
+    orphanApiRoutes: string[];
     warnings: string[];
   };
   meta: { dirtyEntries: number; sourceFiles: number };

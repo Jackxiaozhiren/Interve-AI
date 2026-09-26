@@ -201,6 +201,27 @@ function collectCapabilities() {
     return usedInSrc && !new RegExp(`\\b${name}\\b`).test(testBody);
   });
 
+  // Ring A promotion: `/api/analyze-trends` was discovered to have no caller
+  // outside its own tests. "Route nobody calls" is mechanical, so measure it
+  // every run instead of re-finding it by hand. A route is called if its
+  // `/api/<name>` prefix appears anywhere outside its own handler — which covers
+  // template literals (`fetch(\`/api/${x}\`)`) and query suffixes alike.
+  const apiDir = path.join(appDir, "api");
+  const routeFiles = fs.existsSync(apiDir) ? walk(apiDir).filter((f) => nameOf(f) === "route.ts") : [];
+  const readAll = (files) =>
+    files.map((f) => { try { return fs.readFileSync(f, "utf8"); } catch { return ""; } }).join("\n");
+  const callerHaystack = readAll([
+    ...sourceFiles().filter((f) => !f.startsWith(apiDir + path.sep)),
+    ...(fs.existsSync(path.join(ROOT, "apps")) ? walk(path.join(ROOT, "apps")) : []),
+  ]);
+  const routeNames = routeFiles.map((f) => path.relative(apiDir, f).replace(/[/\\]route\.ts$/, ""));
+  const orphanApiRoutes = routeNames
+    .filter((name, i) => {
+      const siblingHandlers = readAll(routeFiles.filter((_, j) => j !== i));
+      return !`${callerHaystack}\n${siblingHandlers}`.includes(`/api/${name}`);
+    })
+    .sort();
+
   const warnings = [];
   // The installed package is scoped; looking up bare "next-pwa" only ever
   // matched through the config-text fallback, so a dep-only re-add was invisible.
@@ -215,6 +236,9 @@ function collectCapabilities() {
   }
   if (manifest?.display && swFiles.length === 0) {
     warnings.push("manifest_declares_standalone_display_without_service_worker");
+  }
+  if (orphanApiRoutes.length) {
+    warnings.push(`api_route_without_client_caller:${orphanApiRoutes.join(",")}`);
   }
 
   return {
@@ -250,6 +274,7 @@ function collectCapabilities() {
     },
     probeBlindPaths: [...probeBlindPaths].sort(),
     untestedChatCallbacks: untestedCallbacks,
+    orphanApiRoutes,
     warnings,
   };
 }
@@ -279,7 +304,7 @@ export function collectFacts() {
 export const RATCHET_KEYS = {
   "debt.deprecatedObjectGenFiles": "call sites on @deprecated AI SDK object APIs",
   "debt.experimentalRepairTextHits": "deprecated experimental_repairText aliases",
-  "debt.selectStarHits": "SELECT '*' — pulls columns past the field allowlist",
+  "debt.selectStarHits": "SELECT '*' — adjudicated 2026-09-19, re-verified 2026-09-26: dashboard list rows feed blob readers (SessionDetailModal councilDebate, KnowledgeMatchLoader resumeText/jobDescription). Reopens only with a lazy-get refactor of those two open paths, never blind.",
   "debt.tsIgnoreHits": "type-check suppressions",
   "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
   "debt.anyEscapes": "explicit `any` escaping the strict config",
