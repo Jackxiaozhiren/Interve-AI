@@ -136,17 +136,18 @@ domain, no service worker need, and "no global-error needed").
   talking to `placeholder.supabase.co` (see the Env & secrets row). Declared and
   checked by `tests/unit/env-surface.test.ts`, which fails if `src/` reads a name
   that `.env.example` neither declares nor excludes with a reason.
-- [ ] The keyless browser lane (`npm run test:e2e:mock`) is **not in CI**, and it
-  is not because nobody thought of it. It was wired on 2026-09-26 and the very
-  first runner attempt failed: the 3 chat specs passed, but
-  `tests/mock-journey.spec.ts:169` timed out at 180s (plus one retry) waiting on
-  `locator.click()` for the row's 删除 button — the locator resolved to
-  `button[aria-label="删除会话 …"]`, so this is actionability (something covering
-  or destabilising the button), not a missing element. It passes locally on
-  three consecutive runs, including with `NEXT_PUBLIC_SUPABASE_*` forced empty,
-  so the difference is the runner, not the config. Reverted to keep `main`
-  green. Fix the flake before re-wiring; do not raise the timeout or skip the
-  leg.
+- [x] The keyless browser lane (`npm run test:e2e:mock`) now runs in CI. It was
+  wired, failed once on the runner, reverted, then root-caused with the artifact
+  that failure itself produced: playwright's error-context snapshot showed the
+  step-0 "Welcome to Interve AI" dialog sitting over the Privacy Center,
+  intercepting the delete button. Cause: `OnboardingTour` is mounted by
+  dashboard-shell, so it belongs to every /dashboard/* route and reveals 1s after
+  mount, while the spec dismissed it exactly once behind a 45s window — miss that
+  and the seen-flag is never written, so it returns on the next dashboard page.
+  Fixed by re-applying the spec's existing Escape guard before the delete click and
+  asserting the dialog is hidden. Verified on a runner: gate pass, 9m26s.
+  Product question left open: should onboarding cover a page whose whole purpose is
+  deleting your data?
 - [ ] A-graduation: 7-day nightly trend + 2-rater κ≥0.6 (EVAL_REPORT
   GRADUATION GAP). Practice-only launch does NOT require it; "calibrated"
   claims do.
