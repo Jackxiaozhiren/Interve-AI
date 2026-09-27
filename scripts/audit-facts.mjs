@@ -95,16 +95,60 @@ function fileCountMatching(re) {
   return sourceFiles().filter((f) => re.test(fs.readFileSync(f, "utf8"))).length;
 }
 
+/**
+ * Parse `git status --porcelain -z` into records.
+ *
+ * The non-z form was the bug this replaces: a rename prints `RM new -> old` on
+ * one line, so slicing the tail produced the literal string "a.ts -> b.ts" as a
+ * pathspec, `git log` matched no commit, and every renamed file silently lost
+ * its lastTouch attribution. -z fixes two things at once — NUL-separated records
+ * are never line-wrapped, and the source path arrives as its own field.
+ */
+export function parseStatusEntries(porcelainZ) {
+  const fields = String(porcelainZ ?? "")
+    .split("\0")
+    .filter((field) => field !== "");
+  const rows = [];
+  for (let i = 0; i < fields.length; i += 1) {
+    const record = fields[i];
+    const status = record.slice(0, 2).trim();
+    const path = record.slice(3);
+    // Renames and copies carry the source path in the following record.
+    if (/^[RC]/.test(status)) {
+      rows.push({ status, path, renamedFrom: fields[++i] });
+    } else {
+      rows.push({ status, path });
+    }
+  }
+  return rows;
+}
+
+/**
+ * Status text must NOT go through git(): that helper trims, and a porcelain
+ * record starts with a space whenever the index column is clean, so trimming
+ * shifts every path in the first record by one character.
+ */
+export function gitStatusZ() {
+  try {
+    return execFileSync("git", ["status", "--porcelain", "-z"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return "";
+  }
+}
+
 function collectGit() {
-  const porcelain = git(["status", "--porcelain"]) ?? "";
-  const dirty = porcelain
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const status = line.slice(0, 2).trim();
-      const file = line.slice(2).trim();
-      const sha = git(["log", "-1", "--format=%H|%aI", "--", file]);
-      if (!sha) return { path: file, status, lastTouch: null, ageDays: null };
+  const entries = parseStatusEntries(gitStatusZ());
+  const dirty = entries.map(({ status, path: file, renamedFrom }) => {
+    // Follow a rename back to its source: the destination path has no history
+    // yet, so attributing only the destination would report a brand-new last
+    // touch for a file that may be years old.
+    const probe = (p) => git(["log", "-1", "--format=%H|%aI", "--", p]);
+    const sha = probe(file) || (renamedFrom ? probe(renamedFrom) : "");
+    if (!sha) return { path: file, status, lastTouch: null, ageDays: null };
       const [shaOnly, when] = sha.split("|");
       const ts = Date.parse(when);
       return {

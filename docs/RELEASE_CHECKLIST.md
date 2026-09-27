@@ -138,7 +138,11 @@ domain, no service worker need, and "no global-error needed").
   (undefined_column) for `interview_type`, `custom_type_description`,
   `difficulty`, `time_budget_sec`, `plan` and `evaluation_v2`, while `title`,
   `status`, `match_data` and `user_id` return `200`. So 002 *is* applied and
-  these six columns never were. `toSnakeCase()` forwards every key of the
+  these six columns never were. The same probe across all seven tables the client
+  writes to leaves `evaluations`, `practice_sessions`, `telemetry`, `achievements`,
+  `assessments` and `orama_index` clean — 001/002/004 are all applied, so the drift
+  is confined to `interviews`: one migration, not a schema rebuild.
+  `toSnakeCase()` forwards every key of the
   `Interview` contract with no whitelist and `setup/page.tsx` sets four of them
   unconditionally, so every insert is rejected — before RLS is even evaluated,
   because column resolution happens at planning. The `catch` then reported it as
@@ -152,8 +156,9 @@ domain, no service worker need, and "no global-error needed").
   005 alone converts "nobody's data saves" into "everyone's resumes and
   transcripts sit in one global bucket". Either finish the Supabase Auth
   cutover or close the legacy anon policies first.
-  `tests/unit/interview-column-contract.test.ts` now holds the repo-side
-  invariant (proven to fail with 005 hidden).
+  `tests/unit/row-contract-columns.test.ts` now holds the repo-side invariant for
+  **every** table the client writes to — measured clean apart from these six —
+  and was proven to bite per table (hiding 004 reddens only `practice_sessions`).
 
 ## OPEN launch blockers (external, not code)
 
