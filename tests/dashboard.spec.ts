@@ -35,3 +35,33 @@ test.describe('Dashboard Session Management', () => {
     }
   });
 });
+
+// Regression: OnboardingTour is mounted by dashboard-shell, so for a user who
+// never finished it the overlay re-appeared on EVERY /dashboard/* route —
+// including the Privacy Center, where its fixed inset-0 layer covered the
+// delete-session button and turned a click into a 180s actionability timeout
+// (first seen on a CI runner via tests/mock-journey.spec.ts:169).
+test.describe('Onboarding tour scope', () => {
+  test('never covers a dashboard sub-route', async ({ page }) => {
+    await loginAs(page);
+    // loginAs marks onboarding as seen; un-mark it to model a first-run user.
+    await page.addInitScript(() => localStorage.removeItem('interve_has_seen_onboarding'));
+    await page.goto('/dashboard/privacy');
+    // The tour reveals itself 1s after mount, so any shorter wait proves nothing.
+    await page.waitForTimeout(2500);
+    await expect(
+      page.getByRole('dialog', { name: /Welcome to Interve AI|Mock Interviews|Analytics/ })
+    ).toBeHidden();
+  });
+
+  // Counter-pin: scoping the tour away from sub-routes must not quietly delete
+  // onboarding. A first-run user on the dashboard index still gets it.
+  test('still appears on the dashboard index for a first-run user', async ({ page }) => {
+    await loginAs(page);
+    await page.addInitScript(() => localStorage.removeItem('interve_has_seen_onboarding'));
+    await page.goto('/dashboard');
+    const tour = page.getByRole('dialog', { name: /Welcome to Interve AI|Mock Interviews|Analytics/ });
+    await expect(tour).toBeVisible({ timeout: 15000 });
+    await expect(tour.getByRole('button', { name: 'Next' })).toBeVisible();
+  });
+});
