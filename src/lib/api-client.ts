@@ -76,6 +76,14 @@ async function stampOwner(row: Record<string, unknown>): Promise<Record<string, 
   return uid ? { ...row, user_id: uid } : row;
 }
 
+// A session that failed to persist gets a `local-<uuid>` stand-in id from
+// setup/page.tsx. Callers reach for Number()/parseInt() on it and get NaN,
+// which Postgres rejects (`invalid input syntax for type bigint: "NaN"`) after
+// a wasted round-trip. This is the one place that knows what a real row id is.
+export function isPersistableInterviewId(id: number | string): boolean {
+  return typeof id === 'number' ? Number.isFinite(id) : /^\d+$/.test(id);
+}
+
 // Wrapper for Interviews
 const interviews = {
   async add(data: Partial<Interview>): Promise<number | string> {
@@ -85,6 +93,7 @@ const interviews = {
     return result.id as number | string;
   },
   async get(id: number | string): Promise<Interview | undefined> {
+    if (!isPersistableInterviewId(id)) return undefined;
     const { data, error } = await supabase.from('interviews').select('*').eq('id', id).single();
     if (error) {
       if (error.code === 'PGRST116') return undefined; // not found
@@ -93,6 +102,11 @@ const interviews = {
     return toCamelCase<Interview>(data);
   },
   async update(id: number | string, changes: Partial<Interview>): Promise<void> {
+    // Unlike get(), a write cannot answer "no such row" — the caller has to
+    // learn the session was never stored, or it will report a saved result.
+    if (!isPersistableInterviewId(id)) {
+      throw new Error(`interview id "${String(id)}" is not persistable: this session was never saved to the database`);
+    }
     const snakeChanges = await stampOwner(toSnakeCase(changes as Record<string, unknown>));
     snakeChanges.updated_at = new Date().toISOString();
     const { error } = await supabase.from('interviews').update(snakeChanges).eq('id', id);

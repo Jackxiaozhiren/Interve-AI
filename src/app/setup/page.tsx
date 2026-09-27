@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/db";
+import { db, classifyDbFailure } from "@/lib/db";
 import { 
   Code, Database, Briefcase, ChartLineUp,
   Sword, HandsClapping, Brain,
@@ -453,14 +453,32 @@ export default function SetupPage() {
           }) as number;
         }
       } catch (dbError) {
-        // Supabase is documented as optional (.env.example): when the database
-        // is unreachable, fall back to a local-only session instead of
-        // blocking the demo. Interview context still travels via URL params +
-        // store + localStorage snapshot; persistence features (report/replay/
-        // dashboard history) degrade with explicit toasts downstream.
-        console.warn("Database unavailable, starting local-only session:", dbError);
+        // Two different failures land here and used to report as one. Saying
+        // "not connected" for a schema mismatch is what kept the missing
+        // interviews columns invisible: every symptom pointed at the network,
+        // so nobody looked at the columns. Both still run the session locally;
+        // only the explanation differs.
+        const kind = classifyDbFailure(dbError);
+        if (kind === "schema_drift") {
+          // Server-side contract problem, not the user's connection. Needs the
+          // console text to be greppable: a column this build writes is absent.
+          console.error(
+            "Interview not persisted: this build writes a column the database does not have.",
+            dbError
+          );
+          toast.warning("本次面试不会保存", {
+            description: "服务器数据库结构与当前版本不一致，面试照常进行，但报告和历史都无法恢复。",
+          });
+        } else {
+          // Supabase is documented as optional (.env.example): when the database
+          // is genuinely unreachable, fall back to a local-only session instead of
+          // blocking the demo. Interview context still travels via URL params +
+          // store + localStorage snapshot; persistence features (report/replay/
+          // dashboard history) degrade with explicit toasts downstream.
+          console.warn("Database unavailable, starting local-only session:", dbError);
+          toast.info("本地模式", { description: "未连接数据库，本次面试仅保存在当前浏览器。" });
+        }
         interviewId = `local-${crypto.randomUUID()}`;
-        toast.info("本地模式", { description: "未连接数据库，本次面试仅保存在当前浏览器。" });
       }
 
       if (!interviewId) {

@@ -125,9 +125,35 @@ domain, no service worker need, and "no global-error needed").
   undecided. Unblock: pick the domain, set the var, redeploy, then add
   `src/app/sitemap.ts` + `metadataBase`.
 - [ ] **Local dev and production share one Supabase project** — the ref in
-  `.env.local` also appears in the live client bundle. Any local interview run
-  writes rows into the production database. Decide: accept it, or point dev at a
-  second free project (migrations 001-004 are additive).
+  `.env.local` also appears in the live client bundle. Corrected 2026-09-27: the
+  claim that "any local interview run writes rows into the production database"
+  is false — no run from `/setup` has ever written a row (see the persistence
+  blocker below), so the shared project has been harmless *for now*. It stops
+  being harmless the moment persistence is fixed, which is why it is listed next
+  to that blocker rather than as its own decision. Decide: accept it, or point
+  dev at a second free project (migrations 001-005 are additive).
+- [ ] **No interview has ever persisted** (measured 2026-09-27, P0). Read-only
+  probes against the live project — `GET /rest/v1/interviews?select=<col>&limit=1`,
+  which needs no rows and writes nothing — return `400` Postgres `42703`
+  (undefined_column) for `interview_type`, `custom_type_description`,
+  `difficulty`, `time_budget_sec`, `plan` and `evaluation_v2`, while `title`,
+  `status`, `match_data` and `user_id` return `200`. So 002 *is* applied and
+  these six columns never were. `toSnakeCase()` forwards every key of the
+  `Interview` contract with no whitelist and `setup/page.tsx` sets four of them
+  unconditionally, so every insert is rejected — before RLS is even evaluated,
+  because column resolution happens at planning. The `catch` then reported it as
+  "Database unavailable", which is why the symptom kept pointing at the network.
+  `supabase/migrations/005_interview_session_columns.sql` is drafted (additive,
+  rollback spelled out) and **deliberately not applied**: with 42703 gone, the
+  email/password path writes `user_id IS NULL` rows — `src/lib/supabase.ts` is
+  `createClient(url, anonKey)` and nothing in `src/` calls `auth.setSession`, so
+  every browser request runs as role `anon` — and 003's `Legacy anon select
+  unowned` makes those readable by any holder of the publishable key. Applying
+  005 alone converts "nobody's data saves" into "everyone's resumes and
+  transcripts sit in one global bucket". Either finish the Supabase Auth
+  cutover or close the legacy anon policies first.
+  `tests/unit/interview-column-contract.test.ts` now holds the repo-side
+  invariant (proven to fail with 005 hidden).
 
 ## OPEN launch blockers (external, not code)
 
@@ -136,18 +162,28 @@ domain, no service worker need, and "no global-error needed").
   talking to `placeholder.supabase.co` (see the Env & secrets row). Declared and
   checked by `tests/unit/env-surface.test.ts`, which fails if `src/` reads a name
   that `.env.example` neither declares nor excludes with a reason.
-- [x] The keyless browser lane (`npm run test:e2e:mock`) now runs in CI. It was
-  wired, failed once on the runner, reverted, then root-caused with the artifact
-  that failure itself produced: playwright's error-context snapshot showed the
-  step-0 "Welcome to Interve AI" dialog sitting over the Privacy Center,
-  intercepting the delete button. Cause: `OnboardingTour` is mounted by
-  dashboard-shell, so it belongs to every /dashboard/* route and reveals 1s after
-  mount, while the spec dismissed it exactly once behind a 45s window — miss that
-  and the seen-flag is never written, so it returns on the next dashboard page.
-  Fixed by re-applying the spec's existing Escape guard before the delete click and
-  asserting the dialog is hidden. Verified on a runner: gate pass, 9m26s.
-  Product question left open: should onboarding cover a page whose whole purpose is
-  deleting your data?
+- [x] The keyless browser lane (`npm run test:e2e:mock`) runs in CI — it is a
+  step of the `gate` job in `.github/workflows/ci.yml`, landed via PR #11 with
+  `if: failure()` Playwright artifacts, and gate passed on a runner (9m26s).
+  The history is the useful part: it was wired on 2026-09-26, died on the first
+  runner attempt at `tests/mock-journey.spec.ts:169` with a 180s actionability
+  timeout on the Privacy Center 删除 button (the locator resolved, so something
+  was *covering* it), and was reverted to keep `main` green rather than
+  papered over with a longer timeout.
+  Root cause, read off the artifact that failure produced: `OnboardingTour` is
+  mounted by `dashboard-shell`, so for a user who had never finished it its
+  `fixed inset-0` `aria-modal` overlay reappeared on every `/dashboard/*` route
+  including Privacy, and it reveals 1s after mount. It never reproduced locally
+  because the local step-11→12 gap fits inside that timer — only a cold runner
+  misses the dismissal window, and missing it once means the seen-flag is never
+  written, so the dialog returns on the next dashboard page.
+  Two fixes, both kept. Spec-side: re-apply the Escape guard the spec already
+  had before the delete click and assert the dialog is hidden (runner-verified
+  on PR #11). Product-side: mount the tour on the dashboard index only, with a
+  regression test that failed against the unfixed code plus a counter-pin that a
+  first-run user still sees it there. That also answers the question PR #11
+  left open — should onboarding cover a page whose whole purpose is deleting
+  your data? No.
 - [ ] A-graduation: 7-day nightly trend + 2-rater κ≥0.6 (EVAL_REPORT
   GRADUATION GAP). Practice-only launch does NOT require it; "calibrated"
   claims do.
@@ -155,7 +191,14 @@ domain, no service worker need, and "no global-error needed").
   a 2026-09-19 in-session sign-off exists and the machine lanes re-ran
   green on 2026-09-25, but an in-session sign-off is not a human pass:
   re-opened rather than inherited. See the checklist's re-verification row.
-- [ ] Live dual-user RLS denial (needs 2 free-tier users).
+- [ ] Live dual-user RLS denial (needs 2 free-tier users). Narrowed 2026-09-27:
+  it cannot be tested through the email/password path at all, because that path
+  never creates a Supabase session — `stampOwner()` therefore writes unowned rows
+  and `auth.uid()`-based policies are unreachable rather than merely unverified.
+  Only `LoginForm.handleOAuthLogin` → `signInWithOAuth` yields a role that the
+  owner policies apply to, and whether Google/GitHub providers are enabled on this
+  project is unverified. So the real blocker is the auth cutover above, not the
+  second account.
 
 ## Sign-off
 
