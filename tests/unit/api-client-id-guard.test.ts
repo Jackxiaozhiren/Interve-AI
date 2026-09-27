@@ -11,6 +11,10 @@ let nextResult: { data: unknown; error: unknown } = { data: null, error: null };
 
 vi.mock("../../src/lib/supabase", () => ({
   supabase: {
+    // Content writes now require an owner (see stampOwner), so this harness has
+    // to present a session — otherwise every write is refused before it reaches
+    // the builder and the id-guard being tested never gets exercised.
+    auth: { getSession: async () => ({ data: { session: { user: { id: "uid-1" } } } }) },
     from: () => ({
       select: () => chained(),
       update: () => chained(),

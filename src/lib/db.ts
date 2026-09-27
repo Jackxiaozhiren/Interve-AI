@@ -192,12 +192,15 @@ export { db };
  * Client-safe on purpose — src/app/setup/page.tsx is a client component, so it
  * cannot import the server-only src/lib/api/classify-error.ts.
  */
-export type DbFailure = "schema_drift" | "unreachable" | "other";
+export type DbFailure = "schema_drift" | "unreachable" | "unowned_write" | "other";
 
 const SCHEMA_DRIFT_CODES = new Set([
   "42703", // undefined_column
   "PGRST204", // column absent from the PostgREST schema cache
 ]);
+// stampOwner refuses to write candidate content with no owner, so the caller can
+// say "not saved, sign in with an account" instead of "the database is down".
+const UNOWNED_WRITE_CODES = new Set(["NO_OWNER"]);
 const UNREACHABLE_CODES = new Set([
   "ECONNRESET",
   "ETIMEDOUT",
@@ -209,6 +212,7 @@ const UNREACHABLE_CODES = new Set([
 export function classifyDbFailure(err: unknown): DbFailure {
   const e = err as { code?: unknown; message?: unknown } | null | undefined;
   const code = typeof e?.code === "string" ? e.code : "";
+  if (UNOWNED_WRITE_CODES.has(code)) return "unowned_write";
   if (SCHEMA_DRIFT_CODES.has(code)) return "schema_drift";
   if (UNREACHABLE_CODES.has(code)) return "unreachable";
   const message = typeof e?.message === "string" ? e.message : "";

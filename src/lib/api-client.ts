@@ -70,10 +70,28 @@ async function currentOwnerId(): Promise<string | null> {
   }
 }
 
-async function stampOwner(row: Record<string, unknown>): Promise<Record<string, unknown>> {
+/**
+ * Tables holding candidate content (resume text, answers, transcripts, the
+ * index built from them). An unowned row here is readable by every holder of
+ * the publishable key through 003's "Legacy anon select unowned" bridge, so
+ * writing one without an owner is a leak, not a degraded success.
+ */
+const CONTENT_TABLES = new Set(['interviews', 'evaluations', 'practice_sessions', 'assessments', 'orama_index']);
+
+async function stampOwner(row: Record<string, unknown>, table: string): Promise<Record<string, unknown>> {
   if ("user_id" in row) return row;
   const uid = await currentOwnerId();
-  return uid ? { ...row, user_id: uid } : row;
+  if (uid) return { ...row, user_id: uid };
+  if (CONTENT_TABLES.has(table)) {
+    // Call sites already catch this and degrade to local-only / memory-only.
+    const err = new Error(
+      `refusing to write "${table}": there is no Supabase auth session to own the row, ` +
+      `and an ownerless row is readable by any holder of the publishable key (003 legacy anon bridge)`
+    );
+    (err as Error & { code?: string }).code = "NO_OWNER";
+    throw err;
+  }
+  return row;
 }
 
 // A session that failed to persist gets a `local-<uuid>` stand-in id from
@@ -87,7 +105,7 @@ export function isPersistableInterviewId(id: number | string): boolean {
 // Wrapper for Interviews
 const interviews = {
   async add(data: Partial<Interview>): Promise<number | string> {
-    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>));
+    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>), 'interviews');
     const { data: result, error } = await supabase.from('interviews').insert(snakeData).select('id').single();
     if (error) throw error;
     return result.id as number | string;
@@ -107,7 +125,7 @@ const interviews = {
     if (!isPersistableInterviewId(id)) {
       throw new Error(`interview id "${String(id)}" is not persistable: this session was never saved to the database`);
     }
-    const snakeChanges = await stampOwner(toSnakeCase(changes as Record<string, unknown>));
+    const snakeChanges = await stampOwner(toSnakeCase(changes as Record<string, unknown>), 'interviews');
     snakeChanges.updated_at = new Date().toISOString();
     const { error } = await supabase.from('interviews').update(snakeChanges).eq('id', id);
     if (error) throw error;
@@ -161,13 +179,13 @@ const interviews = {
 // Wrapper for Evaluations
 const evaluations = {
   async add(data: Partial<CandidateEvaluation>): Promise<number | string> {
-    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>));
+    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>), 'evaluations');
     const { data: result, error } = await supabase.from('evaluations').insert(snakeData).select('id').single();
     if (error) throw error;
     return result.id as number | string;
   },
   async update(id: number | string, changes: Partial<CandidateEvaluation>): Promise<void> {
-    const snakeChanges = await stampOwner(toSnakeCase(changes as Record<string, unknown>));
+    const snakeChanges = await stampOwner(toSnakeCase(changes as Record<string, unknown>), 'evaluations');
     snakeChanges.updated_at = new Date().toISOString();
     const { error } = await supabase.from('evaluations').update(snakeChanges).eq('id', id);
     if (error) throw error;
@@ -194,7 +212,7 @@ const evaluations = {
 // Wrapper for PracticeSessions
 const practiceSessions = {
   async add(data: Partial<PracticeSession>): Promise<number | string> {
-    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>));
+    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>), 'practice_sessions');
     const { data: result, error } = await supabase.from('practice_sessions').insert(snakeData).select('id').single();
     if (error) throw error;
     return result.id as number | string;
@@ -228,7 +246,7 @@ const practiceSessions = {
 // Wrapper for Telemetry
 const telemetry = {
   async add(data: Partial<TelemetryEvent>): Promise<void> {
-    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>));
+    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>), 'telemetry');
     const { error } = await supabase.from('telemetry').insert(snakeData);
     if (error) throw error;
   },
@@ -255,7 +273,7 @@ const telemetry = {
 // Wrapper for Achievements
 const achievements = {
   async add(data: Partial<Achievement>): Promise<void> {
-    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>));
+    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>), 'achievements');
     const { error } = await supabase.from('achievements').insert(snakeData);
     // Ignore duplicate key errors for achievements
     if (error && error.code !== '23505') throw error;
@@ -314,7 +332,7 @@ const oramaIndex = {
     return toCamelCase<OramaIndexData>(data);
   },
   async put(data: OramaIndexData): Promise<void> {
-    const snakeData = await stampOwner(toSnakeCase(data as unknown as Record<string, unknown>));
+    const snakeData = await stampOwner(toSnakeCase(data as unknown as Record<string, unknown>), 'orama_index');
     const { error } = await supabase.from('orama_index').upsert(snakeData);
     if (error) throw error;
   }
@@ -323,7 +341,7 @@ const oramaIndex = {
 // Wrapper for Assessments
 const assessments = {
   async add(data: Partial<Assessment>): Promise<number | string> {
-    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>));
+    const snakeData = await stampOwner(toSnakeCase(data as Record<string, unknown>), 'assessments');
     const { data: result, error } = await supabase.from('assessments').insert(snakeData).select('id').single();
     if (error) throw error;
     return result.id as number | string;

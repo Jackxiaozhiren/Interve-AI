@@ -201,9 +201,22 @@ domain, no service worker need, and "no global-error needed").
   never creates a Supabase session — `stampOwner()` therefore writes unowned rows
   and `auth.uid()`-based policies are unreachable rather than merely unverified.
   Only `LoginForm.handleOAuthLogin` → `signInWithOAuth` yields a role that the
-  owner policies apply to, and whether Google/GitHub providers are enabled on this
-  project is unverified. So the real blocker is the auth cutover above, not the
-  second account.
+  owner policies apply to. **Step 1 landed 2026-09-27** — decision: OAuth is the
+  primary identity path, and it needed no platform work: `auth/v1/settings`
+  reports `external.email/google/github = true` and `anonymous_users = false`,
+  `/auth/v1/authorize?provider=google` hands off to the provider for both the
+  production domain and localhost, and `detectSessionInUrl` defaults to true, so
+  the OAuth return already populates a session with no new code. `stampOwner()`
+  now refuses writes to `interviews` / `evaluations` / `practice_sessions` /
+  `assessments` / `orama_index` with no owner, tagged `NO_OWNER`, which
+  `classifyDbFailure` reports as its own outcome so the UI says "sign in with an
+  account to save" instead of "database unavailable". Stated plainly, because it
+  is a product consequence, not a bug: **the email/password demo login no longer
+  persists anything** — the alternative was a globally readable row. Still open:
+  surface OAuth as the prominent path in `LoginForm`, migration 006 dropping the
+  legacy anon policies, then apply 005 + 006 to production. Not proven: the
+  end-to-end OAuth round trip (needs a real provider account; would create a
+  production user row).
 
 ## Sign-off
 

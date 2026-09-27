@@ -8,7 +8,7 @@
 // export → delete. It does NOT prove provider quality or real persistence
 // (those need funded keys + staging — tracked).
 import { test, expect } from '@playwright/test';
-import { createPostgrestStub } from './helpers';
+import { createPostgrestStub, seedSupabaseSession } from './helpers';
 
 test.skip(!process.env.E2E_MOCK, 'needs E2E_MOCK=1 (mock AI server + stubbed DB)');
 
@@ -28,6 +28,12 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     // 报告加载失败. The mock lane is documented as no-DB, so intercept
     // every /rest/v1/* host.
     await page.route('**/rest/v1/*', createPostgrestStub());
+    // The journey asserts a persisted report (/dashboard/report/<digits>), so it
+    // must run as an account: stampOwner refuses ownerless writes to content
+    // tables, and the app's cookie login alone is not a Supabase identity.
+    // Without this the write declines to local-<uuid> — the very fallback the
+    // comment above exists to catch — for the wrong reason.
+    await seedSupabaseSession(page);
 
     // 1. Signup (mock auth accepts anything) → dashboard.
     // NOTE: signup does not auto-redirect (tracked UX debt) — navigate on.

@@ -453,13 +453,22 @@ export default function SetupPage() {
           }) as number;
         }
       } catch (dbError) {
-        // Two different failures land here and used to report as one. Saying
+        // Three different failures land here and used to report as one. Saying
         // "not connected" for a schema mismatch is what kept the missing
         // interviews columns invisible: every symptom pointed at the network,
-        // so nobody looked at the columns. Both still run the session locally;
-        // only the explanation differs.
+        // so nobody looked at the columns. All three still run the session
+        // locally; only the explanation differs.
         const kind = classifyDbFailure(dbError);
-        if (kind === "schema_drift") {
+        if (kind === "unowned_write") {
+          // stampOwner declined the write: the signed-in identity is a demo
+          // cookie with no Supabase session, so the row would be ownerless and
+          // readable by anyone holding the publishable key. Tell the candidate
+          // how to get persistence rather than blaming the connection.
+          console.warn("Interview not persisted: no account to own the row:", dbError);
+          toast.warning("本次面试不会保存", {
+            description: "当前是演示登录，没有可归属的账户。用 Google / GitHub 登录后即可保存报告与历史。",
+          });
+        } else if (kind === "schema_drift") {
           // Server-side contract problem, not the user's connection. Needs the
           // console text to be greppable: a column this build writes is absent.
           console.error(

@@ -29,6 +29,7 @@ vi.mock("../../src/lib/supabase", () => ({
 }));
 
 import { dbClient } from "../../src/lib/api-client";
+import { classifyDbFailure } from "../../src/lib/db";
 
 beforeEach(() => {
   seen.length = 0;
@@ -50,13 +51,54 @@ describe("owner-id binding (B1 cutover prep)", () => {
     expect(seen[1].row["user_id"]).toBe("oauth-uid-1");
   });
 
-  it("leaves rows NULL-bridged (no user_id) for demo logins without a session", async () => {
+  it("leaves telemetry NULL-bridged (no user_id) for demo logins without a session", async () => {
     sessionUid = null;
-    await dbClient.interviews.add({ title: "t" } as never);
-    await dbClient.assessments.add({ title: "a" } as never);
-    expect(seen).toHaveLength(2);
+    await dbClient.telemetry.add({ kind: "k" } as never);
+    expect(seen).toHaveLength(1);
     expect("user_id" in seen[0].row).toBe(false);
-    expect("user_id" in seen[1].row).toBe(false);
+  });
+
+  // Rule changed 2026-09-27 (was: content rows also wrote NULL-bridged, which
+  // 003's "Legacy anon select unowned" then exposed to every holder of the
+  // publishable key). Decision: OAuth is the primary identity path, so an
+  // ownerless write to a user-content table is a bug, not a fallback — refuse
+  // it and let each call site's existing catch degrade to local-only.
+  it("refuses content-table writes when no Supabase session exists", async () => {
+    sessionUid = null;
+    for (const w of [
+      () => dbClient.interviews.add({ title: "t" } as never),
+      () => dbClient.evaluations.add({ candidate: "c" } as never),
+      () => dbClient.practiceSessions.add({ questionId: "q" } as never),
+      () => dbClient.assessments.add({ title: "a" } as never),
+      () => dbClient.oramaIndex.put({ id: "h", data: {} } as never),
+    ]) {
+      await expect(w()).rejects.toThrow(/no supabase (auth )?session/i);
+    }
+    // Refused, not silently written: nothing reached the client.
+    expect(seen).toHaveLength(0);
+  });
+
+  // The refusal carries the code classifyDbFailure maps to "unowned_write", so
+  // the UI can say what actually happened instead of claiming an outage.
+  it("tags the refusal with NO_OWNER so callers can classify it", async () => {
+    sessionUid = null;
+    const err = await dbClient.interviews.add({ title: "t" } as never).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error & { code?: string }).code).toBe("NO_OWNER");
+    expect(classifyDbFailure(err)).toBe("unowned_write");
+  });
+
+  it("still writes content rows when a session exists (OAuth path)", async () => {
+    await dbClient.interviews.add({ title: "t" } as never);
+    expect(seen[0].row["user_id"]).toBe("oauth-uid-1");
+  });
+
+  it("an explicitly caller-bound row is never rewritten or refused", async () => {
+    sessionUid = null;
+    await expect(
+      dbClient.interviews.add({ title: "t", user_id: "pre-bound" } as never)
+    ).resolves.toBeDefined();
+    expect(seen[0].row["user_id"]).toBe("pre-bound");
   });
 
   it("never overwrites a caller-bound user_id (orama memory path)", async () => {

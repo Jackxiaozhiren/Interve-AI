@@ -47,6 +47,16 @@ describe("classifyDbFailure", () => {
     expect(classifyDbFailure({ code: "42501", message: "permission denied" })).toBe("other");
   });
 
+  // A refused ownerless write is neither an outage nor drift: the database is
+  // reachable and the schema is fine, the app declined to write. Reporting it as
+  // "not connected" would re-create the exact misdiagnosis this module exists to
+  // prevent, in the opposite direction.
+  it("names a refused ownerless write as its own outcome", () => {
+    expect(classifyDbFailure({ code: "NO_OWNER", message: "refusing to write interviews" })).toBe(
+      "unowned_write"
+    );
+  });
+
   it("survives the values callers actually receive", () => {
     expect(classifyDbFailure(null)).toBe("other");
     expect(classifyDbFailure(undefined)).toBe("other");
