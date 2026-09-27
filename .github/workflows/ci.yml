@@ -72,6 +72,20 @@ jobs:
             fail('vercel.json overrides build/output — keep default next build for parity');
           console.log('deploy consistency OK (standalone + node24 + no-secret-layers + default vercel build)');
           "
+      # Runner-only failures are otherwise undebuggable: Playwright writes an
+      # accessibility snapshot (error-context.md) and a trace per failure into
+      # test-results/, and those die with the runner. Only runs on failure, so a
+      # green pipeline uploads nothing.
+      - name: upload playwright evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # FREE-tier live AI smoke (≤3 flash calls). Skips safely when no free Zhipu
   # key is configured (job-level `if:` cannot read `secrets` — it invalidates
