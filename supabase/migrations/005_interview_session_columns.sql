@@ -94,12 +94,24 @@ ALTER TABLE interviews ADD COLUMN IF NOT EXISTS evaluation_v2 JSONB;
 -- unverified. 003 already names this debt: "This bridge is removed at the
 -- Supabase Auth cutover (tracked, not hidden)."
 --
--- Required before or with this migration — decide one:
---   A. Finish the Supabase Auth cutover so writes are owner-stamped and read
---      back under "Owner select"; or
---   B. Restrict the legacy anon policies on interviews (and evaluations,
---      practice_sessions) to rows with no PII, so an unowned write cannot put
---      candidate content in a globally readable bucket.
+-- Required before or with this migration — DECIDED 2026-09-27: option A, OAuth
+-- as the primary identity path. Measured on this project (read-only, no rows
+-- created): auth/v1/settings reports external.email/google/github = true,
+-- anonymous_users = false, disable_signup = false, mailer_autoconfirm = false;
+-- GET auth/v1/authorize?provider=google hands off to the provider for BOTH the
+-- production Vercel URL and localhost:3000, so the redirect allowlist already
+-- covers them. @supabase/auth-js defaults detectSessionInUrl to true, so the
+-- OAuth return populates a session with no new code and currentOwnerId() starts
+-- returning a real uid — stampOwner() then writes owned rows and the owner
+-- policies bind.
+--
+-- NOT proven by that probe: that the OAuth round-trip completes end to end (it
+-- needs a real provider account and would create a production user row), and
+-- whether email/password registration can confirm without SMTP.
+--
+-- Option B (restrict the legacy anon policies without closing them) stays open
+-- only as a fallback; it does not remove the trust problem, because a policy the
+-- browser enforces is not a policy.
 --
 -- Also note: table contents are NOT measurable with the publishable key. Both
 -- ?select=id and ?select=id&user_id=is.null return content-range */0, because
