@@ -136,6 +136,17 @@ domain, no service worker need, and "no global-error needed").
   talking to `placeholder.supabase.co` (see the Env & secrets row). Declared and
   checked by `tests/unit/env-surface.test.ts`, which fails if `src/` reads a name
   that `.env.example` neither declares nor excludes with a reason.
+- [ ] The keyless browser lane (`npm run test:e2e:mock`) is **not in CI**, and it
+  is not because nobody thought of it. It was wired on 2026-09-26 and the very
+  first runner attempt failed: the 3 chat specs passed, but
+  `tests/mock-journey.spec.ts:169` timed out at 180s (plus one retry) waiting on
+  `locator.click()` for the row's 删除 button — the locator resolved to
+  `button[aria-label="删除会话 …"]`, so this is actionability (something covering
+  or destabilising the button), not a missing element. It passes locally on
+  three consecutive runs, including with `NEXT_PUBLIC_SUPABASE_*` forced empty,
+  so the difference is the runner, not the config. Reverted to keep `main`
+  green. Fix the flake before re-wiring; do not raise the timeout or skip the
+  leg.
 - [ ] A-graduation: 7-day nightly trend + 2-rater κ≥0.6 (EVAL_REPORT
   GRADUATION GAP). Practice-only launch does NOT require it; "calibrated"
   claims do.
