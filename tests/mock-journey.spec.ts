@@ -164,6 +164,17 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     expect(download.suggestedFilename()).toMatch(/interve-ai-export-.*\.json/);
 
     // 12. Delete the session from Privacy Center.
+    // Late-tour guard again, same path as step 2. The tour is mounted by
+    // dashboard-shell on EVERY /dashboard/* route and reveals 1s after mount,
+    // so it can land between the export click and this one. That is exactly how
+    // this step failed on a cold runner: playwright's error-context snapshot
+    // shows the step-0 "Welcome to Interve AI" dialog sitting over the
+    // Privacy Center, intercepting the delete button's pointer events.
+    if (await expect(tour).toBeVisible({ timeout: 3000 }).then(() => true).catch(() => false)) {
+      await page.keyboard.press('Escape');
+    }
+    await expect(tour).toBeHidden({ timeout: 10000 });
+
     const rows = page.locator('li', { hasText: /Untitled Session|Interview/ });
     await expect(rows.first()).toBeVisible({ timeout: 30000 });
     await rows.first().getByRole('button', { name: /删除/ }).click();
