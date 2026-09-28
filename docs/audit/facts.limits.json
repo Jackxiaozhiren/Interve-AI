@@ -1,5 +1,5 @@
 {
-  "_seededAt": "2026-09-28T05:59:32.348Z",
+  "_seededAt": "2026-09-28T07:34:37.002Z",
   "_keys": {
     "debt.deprecatedObjectGenFiles": "call sites on @deprecated AI SDK object APIs",
     "debt.experimentalRepairTextHits": "deprecated experimental_repairText aliases",
@@ -20,7 +20,7 @@
     "debt.todoMarkers": 0,
     "debt.anyEscapes": 0,
     "debt.auditDocsLines": 3145,
-    "debt.longestSourceFileLines": 1766,
+    "debt.longestSourceFileLines": 1729,
     "capabilities.untestedChatCallbacks": 0,
     "capabilities.networkLayer.rawFetchCalls": 17
   },
