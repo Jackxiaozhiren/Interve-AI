@@ -162,6 +162,30 @@ domain, no service worker need, and "no global-error needed").
 
 ## OPEN launch blockers (external, not code)
 
+- [ ] **Reads have no owner predicate — RLS is the only lock, and its key is in
+  the client** (measured 2026-09-27, independent of the 005 column drift). Every
+  read wrapper in `src/lib/api-client.ts` sends `select('*')` with nothing but
+  the caller's own filter: `dashboard/page.tsx:47` → `api-client.ts:144` is
+  `select('*').order('created_at')`, full stop. So a candidate's history is
+  narrowed to their own rows purely by Postgres policies, while the browser holds
+  the publishable key and runs as role `anon`. Under 003's legacy anon bridge
+  that means any holder of the key reads every `user_id IS NULL` row — other
+  people's resume text, job descriptions and transcripts.
+  Not hypothetical for every table: `interviews` writes still die on 42703 so it
+  has no rows to leak, but `practice_sessions`, `telemetry`, `achievements`,
+  `evaluations`, `assessments` and `orama_index` have all their columns and their
+  writes succeed today.
+  Two-part fix in flight: migration `006_close_anon_bridge_content_tables.sql`
+  (drafted, drops the 20 anon policies on the five owner-gated content tables,
+  keeps telemetry/achievements bridged) and explicit `user_id` scoping in the
+  read wrappers (`tests/unit/read-ownership-scope.test.ts` pins it; written
+  first and observed red against the current code, which is the proof the
+  predicates were missing). RLS remains the enforcement point — the client filter
+  is the second lock, and with no account it declines to query at all rather than
+  asking anon for an empty set.
+  Ordering constraint: 006 must not be applied before the OAuth path actually
+  works, or demo accounts lose read and write together.
+
 - [ ] Env at **build** time, not only runtime: `NEXT_PUBLIC_*` is inlined during
   `next build`, so a host that sets it only on the running server produces an app
   talking to `placeholder.supabase.co` (see the Env & secrets row). Declared and

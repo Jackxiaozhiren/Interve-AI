@@ -16,6 +16,13 @@
    `user_id IS NULL` 行会落进 `003` 的 `Legacy anon select unowned`，变成任何持
    publishable key 者可读。先做 Supabase Auth cutover 或关闭该 anon bridge，再跑本文件。
    详见该文件头与 `docs/RELEASE_CHECKLIST.md`。
+6. `006_close_anon_bridge_content_tables.sql` —— 关闭 003 为 5 张内容表
+   （interviews / evaluations / practice_sessions / assessments / orama_index）
+   留下的 `Legacy anon * unowned` 共 20 条策略；telemetry 与 achievements 的桥
+   **保留**（前者按可观测性规范不含 PII 且仍被 owner-binding 测试钉住，后者写入
+   尚未做 owner 强制，先关会把可用功能变成静默失败）。
+   **状态：已起草、未应用**，且有顺序约束——必须在 OAuth 登录路径真的能用之后再跑；
+   否则演示登录用户会同时失去读写（fail-closed，不是危险，但等于历史/报告/回放不可用）。
 
 ## 冻结文件（只读，永不执行、永不编辑）
 
