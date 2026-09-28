@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/db";
+import { db, classifyDbFailure } from "@/lib/db";
 import { 
   Code, Database, Briefcase, ChartLineUp,
   Sword, HandsClapping, Brain,
@@ -165,13 +165,10 @@ export default function SetupPage() {
   const [camStatus, setCamStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
   const [networkStatus, setNetworkStatus] = useState<"checking" | "good" | "poor" | "offline">("checking");
   const [speakerTestPlaying, setSpeakerTestPlaying] = useState(false);
-  const [, setAudioLevel] = useState(0);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number>(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -190,13 +187,9 @@ export default function SetupPage() {
         audioContextRef.current.close();
         audioContextRef.current = null;
       }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
       setTimeout(() => {
         setMicStatus("idle");
         setCamStatus("idle");
-        setAudioLevel(0);
       }, 0);
       return;
     }
@@ -239,27 +232,11 @@ export default function SetupPage() {
         
         const analyserNode = audioContext.createAnalyser();
         analyserNode.fftSize = 256;
-        analyserRef.current = analyserNode;
         setAnalyser(analyserNode);
         
         const source = audioContext.createMediaStreamSource(stream);
         source.connect(analyserNode);
         
-        const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
-        
-        const updateAudioLevel = () => {
-          if (!analyserRef.current) return;
-          analyserRef.current.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-          }
-          const average = sum / dataArray.length;
-          const normalized = Math.min(100, (average / 128) * 100);
-          setAudioLevel(normalized);
-          animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
-        };
-        updateAudioLevel();
         setMicStatus("success");
       } catch (err: unknown) {
         console.error("Hardware access error:", err);
@@ -288,9 +265,6 @@ export default function SetupPage() {
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
       }
     };
   }, [currentStep]);
@@ -453,14 +427,41 @@ export default function SetupPage() {
           }) as number;
         }
       } catch (dbError) {
-        // Supabase is documented as optional (.env.example): when the database
-        // is unreachable, fall back to a local-only session instead of
-        // blocking the demo. Interview context still travels via URL params +
-        // store + localStorage snapshot; persistence features (report/replay/
-        // dashboard history) degrade with explicit toasts downstream.
-        console.warn("Database unavailable, starting local-only session:", dbError);
+        // Three different failures land here and used to report as one. Saying
+        // "not connected" for a schema mismatch is what kept the missing
+        // interviews columns invisible: every symptom pointed at the network,
+        // so nobody looked at the columns. All three still run the session
+        // locally; only the explanation differs.
+        const kind = classifyDbFailure(dbError);
+        if (kind === "unowned_write") {
+          // stampOwner declined the write: the signed-in identity is a demo
+          // cookie with no Supabase session, so the row would be ownerless and
+          // readable by anyone holding the publishable key. Tell the candidate
+          // how to get persistence rather than blaming the connection.
+          console.warn("Interview not persisted: no account to own the row:", dbError);
+          toast.warning("本次面试不会保存", {
+            description: "当前是演示登录，没有可归属的账户。用 Google / GitHub 登录后即可保存报告与历史。",
+          });
+        } else if (kind === "schema_drift") {
+          // Server-side contract problem, not the user's connection. Needs the
+          // console text to be greppable: a column this build writes is absent.
+          console.error(
+            "Interview not persisted: this build writes a column the database does not have.",
+            dbError
+          );
+          toast.warning("本次面试不会保存", {
+            description: "服务器数据库结构与当前版本不一致，面试照常进行，但报告和历史都无法恢复。",
+          });
+        } else {
+          // Supabase is documented as optional (.env.example): when the database
+          // is genuinely unreachable, fall back to a local-only session instead of
+          // blocking the demo. Interview context still travels via URL params +
+          // store + localStorage snapshot; persistence features (report/replay/
+          // dashboard history) degrade with explicit toasts downstream.
+          console.warn("Database unavailable, starting local-only session:", dbError);
+          toast.info("本地模式", { description: "未连接数据库，本次面试仅保存在当前浏览器。" });
+        }
         interviewId = `local-${crypto.randomUUID()}`;
-        toast.info("本地模式", { description: "未连接数据库，本次面试仅保存在当前浏览器。" });
       }
 
       if (!interviewId) {

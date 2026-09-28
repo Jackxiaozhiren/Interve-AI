@@ -66,6 +66,17 @@
   (evaluation contract, Zod-enforced).
 - [x] Privacy: 30-day local retention, user data export/delete
   (privacy center), `oroma_index` user-partitioned (B4-fix).
+- [x] Sign-up's Google/GitHub buttons actually authenticate (fixed 2026-09-28).
+  They used to call `login({id: crypto.randomUUID(), username: 'OAuth User',
+  email: 'oauth_user@example.com'})` with no provider contact at all, so the page
+  advertised two identity providers while minting a throwaway demo identity that
+  shared one hardcoded email across everyone who clicked either button. Under the
+  OAuth-primary model this was also the one place a new candidate is told to
+  register, and that identity could never own a row. Both buttons now call
+  `signInWithOAuth(provider)`, matching LoginForm. Held by
+  `tests/unit/auth-path-honesty.test.ts`, which additionally requires the two
+  paths to say what differs: an account saves interview history, the demo form
+  does not.
 
 ## Release mechanics
 
@@ -125,28 +136,94 @@ domain, no service worker need, and "no global-error needed").
   undecided. Unblock: pick the domain, set the var, redeploy, then add
   `src/app/sitemap.ts` + `metadataBase`.
 - [ ] **Local dev and production share one Supabase project** — the ref in
-  `.env.local` also appears in the live client bundle. Any local interview run
-  writes rows into the production database. Decide: accept it, or point dev at a
-  second free project (migrations 001-004 are additive).
+  `.env.local` also appears in the live client bundle. Corrected 2026-09-27: the
+  claim that "any local interview run writes rows into the production database"
+  is false — no run from `/setup` has ever written a row (see the persistence
+  blocker below), so the shared project has been harmless *for now*. It stops
+  being harmless the moment persistence is fixed, which is why it is listed next
+  to that blocker rather than as its own decision. Decide: accept it, or point
+  dev at a second free project (migrations 001-005 are additive).
+- [ ] **No interview has ever persisted** (measured 2026-09-27, P0). Read-only
+  probes against the live project — `GET /rest/v1/interviews?select=<col>&limit=1`,
+  which needs no rows and writes nothing — return `400` Postgres `42703`
+  (undefined_column) for `interview_type`, `custom_type_description`,
+  `difficulty`, `time_budget_sec`, `plan` and `evaluation_v2`, while `title`,
+  `status`, `match_data` and `user_id` return `200`. So 002 *is* applied and
+  these six columns never were. The same probe across all seven tables the client
+  writes to leaves `evaluations`, `practice_sessions`, `telemetry`, `achievements`,
+  `assessments` and `orama_index` clean — 001/002/004 are all applied, so the drift
+  is confined to `interviews`: one migration, not a schema rebuild.
+  `toSnakeCase()` forwards every key of the
+  `Interview` contract with no whitelist and `setup/page.tsx` sets four of them
+  unconditionally, so every insert is rejected — before RLS is even evaluated,
+  because column resolution happens at planning. The `catch` then reported it as
+  "Database unavailable", which is why the symptom kept pointing at the network.
+  `supabase/migrations/005_interview_session_columns.sql` is drafted (additive,
+  rollback spelled out) and **deliberately not applied**: with 42703 gone, the
+  email/password path writes `user_id IS NULL` rows — `src/lib/supabase.ts` is
+  `createClient(url, anonKey)` and nothing in `src/` calls `auth.setSession`, so
+  every browser request runs as role `anon` — and 003's `Legacy anon select
+  unowned` makes those readable by any holder of the publishable key. Applying
+  005 alone converts "nobody's data saves" into "everyone's resumes and
+  transcripts sit in one global bucket". Either finish the Supabase Auth
+  cutover or close the legacy anon policies first.
+  `tests/unit/row-contract-columns.test.ts` now holds the repo-side invariant for
+  **every** table the client writes to — measured clean apart from these six —
+  and was proven to bite per table (hiding 004 reddens only `practice_sessions`).
 
 ## OPEN launch blockers (external, not code)
+
+- [ ] **Reads have no owner predicate — RLS is the only lock, and its key is in
+  the client** (measured 2026-09-27, independent of the 005 column drift). Every
+  read wrapper in `src/lib/api-client.ts` sends `select('*')` with nothing but
+  the caller's own filter: `dashboard/page.tsx:47` → `api-client.ts:144` is
+  `select('*').order('created_at')`, full stop. So a candidate's history is
+  narrowed to their own rows purely by Postgres policies, while the browser holds
+  the publishable key and runs as role `anon`. Under 003's legacy anon bridge
+  that means any holder of the key reads every `user_id IS NULL` row — other
+  people's resume text, job descriptions and transcripts.
+  Not hypothetical for every table: `interviews` writes still die on 42703 so it
+  has no rows to leak, but `practice_sessions`, `telemetry`, `achievements`,
+  `evaluations`, `assessments` and `orama_index` have all their columns and their
+  writes succeed today.
+  Two-part fix in flight: migration `006_close_anon_bridge_content_tables.sql`
+  (drafted, drops the 20 anon policies on the five owner-gated content tables,
+  keeps telemetry/achievements bridged) and explicit `user_id` scoping in the
+  read wrappers (`tests/unit/read-ownership-scope.test.ts` pins it; written
+  first and observed red against the current code, which is the proof the
+  predicates were missing). RLS remains the enforcement point — the client filter
+  is the second lock, and with no account it declines to query at all rather than
+  asking anon for an empty set.
+  Ordering constraint: 006 must not be applied before the OAuth path actually
+  works, or demo accounts lose read and write together.
 
 - [ ] Env at **build** time, not only runtime: `NEXT_PUBLIC_*` is inlined during
   `next build`, so a host that sets it only on the running server produces an app
   talking to `placeholder.supabase.co` (see the Env & secrets row). Declared and
   checked by `tests/unit/env-surface.test.ts`, which fails if `src/` reads a name
   that `.env.example` neither declares nor excludes with a reason.
-- [ ] The keyless browser lane (`npm run test:e2e:mock`) is **not in CI**, and it
-  is not because nobody thought of it. It was wired on 2026-09-26 and the very
-  first runner attempt failed: the 3 chat specs passed, but
-  `tests/mock-journey.spec.ts:169` timed out at 180s (plus one retry) waiting on
-  `locator.click()` for the row's 删除 button — the locator resolved to
-  `button[aria-label="删除会话 …"]`, so this is actionability (something covering
-  or destabilising the button), not a missing element. It passes locally on
-  three consecutive runs, including with `NEXT_PUBLIC_SUPABASE_*` forced empty,
-  so the difference is the runner, not the config. Reverted to keep `main`
-  green. Fix the flake before re-wiring; do not raise the timeout or skip the
-  leg.
+- [x] The keyless browser lane (`npm run test:e2e:mock`) runs in CI — it is a
+  step of the `gate` job in `.github/workflows/ci.yml`, landed via PR #11 with
+  `if: failure()` Playwright artifacts, and gate passed on a runner (9m26s).
+  The history is the useful part: it was wired on 2026-09-26, died on the first
+  runner attempt at `tests/mock-journey.spec.ts:169` with a 180s actionability
+  timeout on the Privacy Center 删除 button (the locator resolved, so something
+  was *covering* it), and was reverted to keep `main` green rather than
+  papered over with a longer timeout.
+  Root cause, read off the artifact that failure produced: `OnboardingTour` is
+  mounted by `dashboard-shell`, so for a user who had never finished it its
+  `fixed inset-0` `aria-modal` overlay reappeared on every `/dashboard/*` route
+  including Privacy, and it reveals 1s after mount. It never reproduced locally
+  because the local step-11→12 gap fits inside that timer — only a cold runner
+  misses the dismissal window, and missing it once means the seen-flag is never
+  written, so the dialog returns on the next dashboard page.
+  Two fixes, both kept. Spec-side: re-apply the Escape guard the spec already
+  had before the delete click and assert the dialog is hidden (runner-verified
+  on PR #11). Product-side: mount the tour on the dashboard index only, with a
+  regression test that failed against the unfixed code plus a counter-pin that a
+  first-run user still sees it there. That also answers the question PR #11
+  left open — should onboarding cover a page whose whole purpose is deleting
+  your data? No.
 - [ ] A-graduation: 7-day nightly trend + 2-rater κ≥0.6 (EVAL_REPORT
   GRADUATION GAP). Practice-only launch does NOT require it; "calibrated"
   claims do.
@@ -154,7 +231,27 @@ domain, no service worker need, and "no global-error needed").
   a 2026-09-19 in-session sign-off exists and the machine lanes re-ran
   green on 2026-09-25, but an in-session sign-off is not a human pass:
   re-opened rather than inherited. See the checklist's re-verification row.
-- [ ] Live dual-user RLS denial (needs 2 free-tier users).
+- [ ] Live dual-user RLS denial (needs 2 free-tier users). Narrowed 2026-09-27:
+  it cannot be tested through the email/password path at all, because that path
+  never creates a Supabase session — `stampOwner()` therefore writes unowned rows
+  and `auth.uid()`-based policies are unreachable rather than merely unverified.
+  Only `LoginForm.handleOAuthLogin` → `signInWithOAuth` yields a role that the
+  owner policies apply to. **Step 1 landed 2026-09-27** — decision: OAuth is the
+  primary identity path, and it needed no platform work: `auth/v1/settings`
+  reports `external.email/google/github = true` and `anonymous_users = false`,
+  `/auth/v1/authorize?provider=google` hands off to the provider for both the
+  production domain and localhost, and `detectSessionInUrl` defaults to true, so
+  the OAuth return already populates a session with no new code. `stampOwner()`
+  now refuses writes to `interviews` / `evaluations` / `practice_sessions` /
+  `assessments` / `orama_index` with no owner, tagged `NO_OWNER`, which
+  `classifyDbFailure` reports as its own outcome so the UI says "sign in with an
+  account to save" instead of "database unavailable". Stated plainly, because it
+  is a product consequence, not a bug: **the email/password demo login no longer
+  persists anything** — the alternative was a globally readable row. Still open:
+  surface OAuth as the prominent path in `LoginForm`, migration 006 dropping the
+  legacy anon policies, then apply 005 + 006 to production. Not proven: the
+  end-to-end OAuth round trip (needs a real provider account; would create a
+  production user row).
 
 ## Sign-off
 

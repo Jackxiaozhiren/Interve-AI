@@ -79,7 +79,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <ScrollProgress containerRef={mainRef} />
           {/* D1: data-dense route opts out of JS-driven decor (static snapshot). */}
           <GlobalBackground animated={false} />
-          <OnboardingTour />
+          {/* First-run tour belongs to the dashboard index only: it is an
+              aria-modal overlay, so mounting it on every /dashboard/* route let
+              it cover consequential pages (it blocked the Privacy Center's
+              delete-session button on a CI runner). */}
+          {pathname === "/dashboard" && <OnboardingTour />}
 
           {/* Floating Sidebar - Liquid Glassmorphism */}
           <aside className="w-[280px] m-6 rounded-[2.5rem] border border-white shadow-[0_12px_40px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.8)] flex flex-col justify-between sticky top-6 h-[calc(100vh-3rem-64px)] z-40 bg-white/70 backdrop-blur-3xl overflow-hidden group/sidebar">

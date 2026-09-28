@@ -56,11 +56,13 @@ describe("partitioned persistence", () => {
     expect(row.user_id).toBe(UID); // leaves the anon NULL bridge
   });
 
-  it("put without a user keeps the legacy shape (no stamp possible)", async () => {
+  it("put without a user is refused, not written unowned", async () => {
+    // Was: "keeps the legacy shape (no stamp possible)" and asserted a put with
+    // no user_id. An ownerless orama row is resume-chunk text inside 003's anon
+    // bridge, so the OAuth-primary decision (2026-09-27) refuses the write;
+    // orama-client falls back to memory-only. Restore/read paths are unchanged.
     await initializeKnowledgeHub("Some resume text here.", null);
-    const row = calls.put[0] as Record<string, unknown>;
-    expect(row.id).toBe("resume-index");
-    expect(row).not.toHaveProperty("user_id");
+    expect(calls.put).toHaveLength(0);
   });
 
   it("restore tries the namespaced id first, then the legacy fallback", async () => {

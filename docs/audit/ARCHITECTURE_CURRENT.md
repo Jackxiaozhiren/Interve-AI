@@ -90,10 +90,10 @@ graph TB
 
 ## 3. Top architectural debts (Phase 2 must-fix)
 1. Triple Auth + naked AI APIs (billing/security).
-2. 1678-line interview God Component + stale transport snapshot + mic/Worker listener leaks.
+2. 1728-line interview God Component (measured 2026-09-28; 1772 → 1728 as `difficulty-label` and `analysis-projection` were extracted, was 1678) + stale transport snapshot + mic/Worker listener leaks.
 3. Fake vision persisted as score (integrity).
 4. `analyze-vision new URL()` crash bug.
-5. `api-client` lint-disabled + 30 `any` type hole.
+5. `api-client` lint-disabled (1 disable remains) — the 30 `any` hole is closed: debt.anyEscapes = 0.
 
 ## 4. Phase 1 refresh 2026-09-14 (HEAD `bc69d30`, read-only subagents)
 

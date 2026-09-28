@@ -1,0 +1,120 @@
+-- ============================================================================
+-- Migration 005: interview session columns the application already writes
+-- VERSION: 5.0 | DATE: 2026-09-27 | STATUS: DRAFT — NOT APPLIED ANYWHERE
+-- ============================================================================
+-- Severity: P0 (silent — every symptom points at the connection, not the schema)
+-- Owner: full-stack
+--
+-- WHY
+-- src/lib/api-client.ts toSnakeCase() forwards every key of the Interview
+-- object to PostgREST with no column whitelist, so an unknown key fails the
+-- whole INSERT/UPDATE with Postgres 42703 (undefined_column). Six keys have no
+-- column in ANY migration file:
+--
+--   interview_type            src/lib/db.ts:36   set at setup/page.tsx:426
+--   custom_type_description   src/lib/db.ts:37   set at setup/page.tsx:427
+--   difficulty                src/lib/db.ts:38   set at setup/page.tsx:428
+--   time_budget_sec           src/lib/db.ts:39   set at setup/page.tsx:429
+--   plan                      src/lib/db.ts:40   set at setup/page.tsx:430
+--   evaluation_v2             src/lib/db.ts:77   set at useInterviewSettlement.ts:99
+--
+-- Four of the six are set UNCONDITIONALLY on the setup path, so this is not an
+-- edge case: no interview created from /setup has ever persisted. The throw was
+-- caught by setup/page.tsx, which reported "Database unavailable, starting
+-- local-only session" — a correct-looking explanation that sent every
+-- investigation toward the network. Verified against the live project
+-- (bfgglzjltfvfpobzscet) with read-only
+--   GET /rest/v1/interviews?select=<col>&limit=1
+-- probes: all six return 400 / 42703, while title, status, match_data and
+-- user_id return 200. So 002 IS applied and these six never were.
+--
+-- WHAT THIS FIXES
+-- Persistence only. Reads already work — every select is '*', so a column that
+-- exists round-trips through toCamelCase() with no code change, and existing
+-- rows keep their NULLs.
+--
+-- ROLLBACK
+--   ALTER TABLE interviews
+--     DROP COLUMN IF EXISTS interview_type,
+--     DROP COLUMN IF EXISTS custom_type_description,
+--     DROP COLUMN IF EXISTS difficulty,
+--     DROP COLUMN IF EXISTS time_budget_sec,
+--     DROP COLUMN IF EXISTS plan,
+--     DROP COLUMN IF EXISTS evaluation_v2;
+--
+-- WARNING — unlike 001-004 this rollback is NOT data-safe. These columns hold
+-- the only copy of the session plan and the Phase 4 evaluation: dropping them
+-- destroys that content for every row written after this migration is applied.
+-- Back up the six columns before rolling back.
+-- ============================================================================
+
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS interview_type TEXT;
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS custom_type_description TEXT;
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS difficulty TEXT;
+-- The app sends a duration in seconds (setup/page.tsx selectedDurationSec).
+-- SMALLINT would fit every value the UI offers but the type carries no meaning
+-- the app enforces, so INTEGER keeps the domain the code actually assumes.
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS time_budget_sec INTEGER;
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS plan JSONB;
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS evaluation_v2 JSONB;
+
+-- VERIFICATION (run after applying; all six must return 200, not 400/42703)
+--   GET {SUPABASE_URL}/rest/v1/interviews?select=interview_type&limit=1
+--   GET {SUPABASE_URL}/rest/v1/interviews?select=custom_type_description&limit=1
+--   GET {SUPABASE_URL}/rest/v1/interviews?select=difficulty&limit=1
+--   GET {SUPABASE_URL}/rest/v1/interviews?select=time_budget_sec&limit=1
+--   GET {SUPABASE_URL}/rest/v1/interviews?select=plan&limit=1
+--   GET {SUPABASE_URL}/rest/v1/interviews?select=evaluation_v2&limit=1
+-- Then confirm the write path really persists, which nothing before this
+-- migration could: create an interview from /setup and check that
+--   GET {SUPABASE_URL}/rest/v1/interviews?select=id,status,plan&limit=1
+-- returns a row instead of the local-only fallback.
+--
+-- ---------------------------------------------------------------------------
+-- DO NOT APPLY ALONE — 42703 is currently hiding a second blocker
+-- ---------------------------------------------------------------------------
+-- The publishable/anon key the browser uses (src/lib/supabase.ts is
+-- createClient(url, anonKey) with no setSession call anywhere in src/) means
+-- every browser request runs as Postgres role `anon`, and currentOwnerId() ->
+-- supabase.auth.getSession() -> null, so stampOwner() omits user_id and rows
+-- are written UNOWNED.
+--
+-- The 400/42703 fires while planning the statement, before RLS is evaluated, so
+-- no row has ever been written and the policy consequence is untested. Add the
+-- six columns without closing this and demo-path interviews start persisting
+-- into a pool that 003's "Legacy anon select unowned" (FOR SELECT TO anon USING
+-- (user_id IS NULL)) makes readable by ANY holder of the publishable key —
+-- resume text, job descriptions and full interview transcripts across users.
+--
+-- The email/password path is the one affected: LoginForm.handleLogin calls
+-- login({id: crypto.randomUUID()}) against the app's own cookie session, which
+-- Supabase knows nothing about. Only the OAuth buttons
+-- (LoginForm.handleOAuthLogin -> signInWithOAuth) create a real Supabase
+-- session, and whether those providers are enabled on this project is
+-- unverified. 003 already names this debt: "This bridge is removed at the
+-- Supabase Auth cutover (tracked, not hidden)."
+--
+-- Required before or with this migration — DECIDED 2026-09-27: option A, OAuth
+-- as the primary identity path. Measured on this project (read-only, no rows
+-- created): auth/v1/settings reports external.email/google/github = true,
+-- anonymous_users = false, disable_signup = false, mailer_autoconfirm = false;
+-- GET auth/v1/authorize?provider=google hands off to the provider for BOTH the
+-- production Vercel URL and localhost:3000, so the redirect allowlist already
+-- covers them. @supabase/auth-js defaults detectSessionInUrl to true, so the
+-- OAuth return populates a session with no new code and currentOwnerId() starts
+-- returning a real uid — stampOwner() then writes owned rows and the owner
+-- policies bind.
+--
+-- NOT proven by that probe: that the OAuth round-trip completes end to end (it
+-- needs a real provider account and would create a production user row), and
+-- whether email/password registration can confirm without SMTP.
+--
+-- Option B (restrict the legacy anon policies without closing them) stays open
+-- only as a fallback; it does not remove the trust problem, because a policy the
+-- browser enforces is not a policy.
+--
+-- Also note: table contents are NOT measurable with the publishable key. Both
+-- ?select=id and ?select=id&user_id=is.null return content-range */0, because
+-- the key's policy already restricts it to NULL-owned rows — that is consistent
+-- with "nothing was ever written" and with "everything was written owned", and
+-- this file claims only the code-derived version above.

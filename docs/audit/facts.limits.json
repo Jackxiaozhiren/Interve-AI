@@ -1,13 +1,14 @@
 {
-  "_seededAt": "2026-09-24T13:03:33.237Z",
+  "_seededAt": "2026-09-28T07:34:37.002Z",
   "_keys": {
     "debt.deprecatedObjectGenFiles": "call sites on @deprecated AI SDK object APIs",
     "debt.experimentalRepairTextHits": "deprecated experimental_repairText aliases",
-    "debt.selectStarHits": "SELECT '*' — pulls columns past the field allowlist",
+    "debt.selectStarHits": "SELECT '*' — adjudicated 2026-09-19, re-verified 2026-09-26: dashboard list rows feed blob readers (SessionDetailModal councilDebate, KnowledgeMatchLoader resumeText/jobDescription). Reopens only with a lazy-get refactor of those two open paths, never blind.",
     "debt.tsIgnoreHits": "type-check suppressions",
     "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
     "debt.anyEscapes": "explicit `any` escaping the strict config",
     "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
+    "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
     "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
     "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)"
   },
@@ -18,7 +19,8 @@
     "debt.tsIgnoreHits": 2,
     "debt.todoMarkers": 0,
     "debt.anyEscapes": 0,
-    "debt.auditDocsLines": 3267,
+    "debt.auditDocsLines": 3145,
+    "debt.longestSourceFileLines": 1729,
     "capabilities.untestedChatCallbacks": 0,
     "capabilities.networkLayer.rawFetchCalls": 17
   },

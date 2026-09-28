@@ -37,8 +37,29 @@ describe("nightly-eval.yml wiring", () => {
 
   it("records trend JSON and uploads it even when lanes fail", () => {
     expect(yml).toContain("nightly-trend.json");
-    expect(yml).toContain("actions/upload-artifact@v4");
+    // Version-agnostic deliberately: this asserted the literal
+    // `actions/upload-artifact@v4`, so Dependabot PR #3 turned OUR gate red for
+    // a reason that had nothing to do with the wiring it claims to protect —
+    // a test that every version bump must fail is testing the version, not the
+    // behaviour. The major belongs in a policy Dependabot respects, not here.
+    expect(yml).toMatch(/uses:\s*actions\/upload-artifact@v\d+/);
     expect(yml).toContain("continue-on-error: true");
+  });
+
+  // Control for the relaxation above: dropping the upload step must still fail,
+  // so the regex is not quietly standing in for "whatever the file says".
+  it("still detects a missing upload step", () => {
+    const stripped = yml.replace(/uses:\s*actions\/upload-artifact@v\d+/g, "uses: removed");
+    expect(stripped).not.toMatch(/uses:\s*actions\/upload-artifact@v\d+/);
+    expect(yml).toMatch(/uses:\s*actions\/upload-artifact@v\d+/);
+  });
+
+  // And a bumped major must still pass: that is the whole point of the
+  // relaxation, and without this case the assertion could be accidentally
+  // pinned to the current file's digits again.
+  it("accepts a bumped upload-artifact major", () => {
+    const bumped = yml.replace(/actions\/upload-artifact@v\d+/g, "actions/upload-artifact@v7");
+    expect(bumped).toMatch(/uses:\s*actions\/upload-artifact@v\d+/);
   });
 
   it("documents the free-tier cost math in-file", () => {

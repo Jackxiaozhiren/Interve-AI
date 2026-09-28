@@ -4,6 +4,8 @@
 // through this helper — seeding the legacy `interve_auth_user` localStorage
 // key (dead auth track) or forging the cookie no longer authenticates.
 import type { Page, Route } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
 export async function loginAs(page: Page, email = "e2e@example.com"): Promise<void> {
@@ -27,6 +29,66 @@ export async function loginAs(page: Page, email = "e2e@example.com"): Promise<vo
     },
     { id, email, username }
   );
+}
+
+/**
+ * Give the browser a Supabase auth session, i.e. model the OAuth-signed-in
+ * account rather than the demo cookie login.
+ *
+ * Why this exists: stampOwner() refuses to write user-content rows with no
+ * owner (an ownerless row lands in 003's "Legacy anon select unowned" bridge,
+ * readable by any holder of the publishable key). loginAs() only mints the
+ * app's own cookie, which Supabase knows nothing about, so specs that assert
+ * real persistence — mock-journey's /dashboard/report/<digits> — need an
+ * account. This is the identity class that path belongs to, not a workaround.
+ *
+ * The storage key mirrors src/lib/supabase.ts exactly, including its
+ * placeholder fallback, so if the test process and the built client ever
+ * disagree the write is refused and the spec fails loudly instead of silently
+ * testing a degraded mode.
+ */
+export async function seedSupabaseSession(page: Page, uid = randomUUID()): Promise<string> {
+  const url = supabaseUrlForTests();
+  const storageKey = `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
+  const session = {
+    access_token: "e2e-fake-access-token",
+    token_type: "bearer",
+    // Future expiry keeps GoTrueClient from attempting a refresh, which would
+    // leave rest/v1 and hit the real network for an auth endpoint.
+    expires_at: Math.floor(Date.now() / 1000) + 24 * 3600,
+    refresh_token: "e2e-fake-refresh-token",
+    user: { id: uid, aud: "authenticated", role: "authenticated", email: "e2e@example.com" },
+  };
+  await page.addInitScript(
+    ({ key, value }: { key: string; value: string }) => {
+      window.localStorage.setItem(key, value);
+    },
+    { key: storageKey, value: JSON.stringify(session) }
+  );
+  return uid;
+}
+
+/**
+ * The URL the browser bundle actually got. next dev reads .env.local into the
+ * inlined NEXT_PUBLIC_* value, and the Playwright process does not inherit it,
+ * so deriving only from process.env produced a placeholder storage key while the
+ * app looked for its real project ref — the write was then refused for a harness
+ * bug, not a product one. Same precedence as src/lib/supabase.ts's fallback.
+ */
+function supabaseUrlForTests(): string {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) return process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // process.cwd(), not import.meta.url: Playwright compiles spec helpers to CJS
+  // and import.meta breaks the module load outright.
+  for (const file of [".env.local", ".env"]) {
+    try {
+      const text = readFileSync(resolve(process.cwd(), file), "utf8");
+      const m = text.match(/^NEXT_PUBLIC_SUPABASE_URL=(.*)$/m);
+      if (m?.[1]?.trim()) return m[1].trim();
+    } catch {
+      /* file absent — that is the CI case, fall through */
+    }
+  }
+  return "https://placeholder.supabase.co";
 }
 
 /**

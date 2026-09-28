@@ -124,6 +124,26 @@ describe("path-pinned probes read what their names claim (V11 R-19)", () => {
     expect(adopters.length).toBe(facts.capabilities.networkLayer.routesUsingRequestGuard);
     expect(adopters.length).toBeGreaterThan(0);
   });
+  it("reports the longest source file as a line count, not a list length", () => {
+    // Why this matters for the split in flight: numericLeaves maps an ARRAY to
+    // its length, so `debt.longestSourceFiles` hands the ratchet the number 5 —
+    // how many rows the probe prints, not how long anything is. A ceiling on it
+    // would guard the size of the report while the files grew without bound.
+    const srcDir = path.join(process.cwd(), "src");
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const p = path.join(dir, e.name);
+        return e.isDirectory() ? walk(p) : /\.(ts|tsx)$/.test(e.name) ? [p] : [];
+      });
+    const measured = walk(srcDir)
+      .map((p) => fs.readFileSync(p, "utf8").split("\n").length)
+      .sort((a, b) => b - a)[0];
+
+    expect(facts.debt.longestSourceFileLines, "the probe must expose a scalar a ceiling can bind to").toBe(measured);
+    // Same file both ways, or the two halves agree by accident.
+    expect(facts.debt.longestSourceFiles[0].lines).toBe(measured);
+    expect(measured).toBeGreaterThan(1000);
+  });
 });
 
 describe("seed provenance (V11 R-18)", () => {

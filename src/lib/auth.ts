@@ -5,7 +5,14 @@ export const signInWithOAuth = async (provider: 'google' | 'github') => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined,
+      // Must land on a page src/proxy.ts does not guard. supabase-js defaults to
+      // PKCE, so the provider returns with ?code=&state= in the query, and a
+      // first-time signer has no app cookie yet: /dashboard answered
+      // `307 -> /login?from=%2Fdashboard` with the code and state dropped
+      // (measured against a running dev server), so no session was ever
+      // exchanged. /login is unguarded and LoginForm already forwards to
+      // `from || DASHBOARD` once AuthContext has bridged the identity.
+      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined,
     },
   });
   if (error) throw error;

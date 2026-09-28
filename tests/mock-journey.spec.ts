@@ -8,7 +8,7 @@
 // export → delete. It does NOT prove provider quality or real persistence
 // (those need funded keys + staging — tracked).
 import { test, expect } from '@playwright/test';
-import { createPostgrestStub } from './helpers';
+import { createPostgrestStub, seedSupabaseSession } from './helpers';
 
 test.skip(!process.env.E2E_MOCK, 'needs E2E_MOCK=1 (mock AI server + stubbed DB)');
 
@@ -28,6 +28,12 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     // 报告加载失败. The mock lane is documented as no-DB, so intercept
     // every /rest/v1/* host.
     await page.route('**/rest/v1/*', createPostgrestStub());
+    // The journey asserts a persisted report (/dashboard/report/<digits>), so it
+    // must run as an account: stampOwner refuses ownerless writes to content
+    // tables, and the app's cookie login alone is not a Supabase identity.
+    // Without this the write declines to local-<uuid> — the very fallback the
+    // comment above exists to catch — for the wrong reason.
+    await seedSupabaseSession(page);
 
     // 1. Signup (mock auth accepts anything) → dashboard.
     // NOTE: signup does not auto-redirect (tracked UX debt) — navigate on.
@@ -164,6 +170,17 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     expect(download.suggestedFilename()).toMatch(/interve-ai-export-.*\.json/);
 
     // 12. Delete the session from Privacy Center.
+    // Late-tour guard again, same path as step 2. The tour is mounted by
+    // dashboard-shell on EVERY /dashboard/* route and reveals 1s after mount,
+    // so it can land between the export click and this one. That is exactly how
+    // this step failed on a cold runner: playwright's error-context snapshot
+    // shows the step-0 "Welcome to Interve AI" dialog sitting over the
+    // Privacy Center, intercepting the delete button's pointer events.
+    if (await expect(tour).toBeVisible({ timeout: 3000 }).then(() => true).catch(() => false)) {
+      await page.keyboard.press('Escape');
+    }
+    await expect(tour).toBeHidden({ timeout: 10000 });
+
     const rows = page.locator('li', { hasText: /Untitled Session|Interview/ });
     await expect(rows.first()).toBeVisible({ timeout: 30000 });
     await rows.first().getByRole('button', { name: /删除/ }).click();

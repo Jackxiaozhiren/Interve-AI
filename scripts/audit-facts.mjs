@@ -6,9 +6,12 @@
 // instead of measuring. This script is the single place those facts may live.
 // Nothing here is allowed to be quoted from memory — `--check` re-derives it.
 //
-// Design: zero dependencies, zero network, zero keyed calls, never writes
-// source. Exit code is the product: `--check` exits 1 when a ceiling ratchet is
-// crossed, so CI — not a human re-running greps — owns the debt ledger.
+// Design: zero network, zero keyed calls, never writes source. Exit code is the
+// product: `--check` exits 1 when a ceiling ratchet is crossed, so CI — not a
+// human re-running greps — owns the debt ledger. The one module it imports is
+// the workspace's own `typescript` (already required by `npm run typecheck`),
+// used to parse call sites properly rather than grep text: a doc comment that
+// mentions `fetch(` otherwise reports debt the repository does not have.
 //
 // CLI:
 //   node scripts/audit-facts.mjs            # JSON to stdout
@@ -21,6 +24,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BASELINE = path.join(ROOT, "docs/audit/facts.baseline.json");
@@ -95,16 +99,102 @@ function fileCountMatching(re) {
   return sourceFiles().filter((f) => re.test(fs.readFileSync(f, "utf8"))).length;
 }
 
+/**
+ * Count `fetch(...)` call sites in one source text, by parse tree.
+ *
+ * Replaces /\bfetch\(/g over raw file text. That scanner could not tell a call
+ * from a mention: the day a doc comment described "the fetch(...) chains" being
+ * lifted out of the interview page, the ratchet reported 18 where 17 were real.
+ * Indirect forms (`window.fetch(`) still count, so the ceiling cannot be
+ * relaxed by the rewrite — only prose stops moving the number.
+ */
+export function countRawFetchCallSites(sourceText, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  let hits = 0;
+  const visit = (node) => {
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      const name = ts.isIdentifier(callee)
+        ? callee.escapedText
+        : ts.isPropertyAccessExpression(callee)
+          ? callee.name.escapedText
+          : null;
+      if (name === "fetch") hits += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return hits;
+}
+
+function countRawFetchCallSitesInSrc() {
+  let total = 0;
+  for (const file of sourceFiles()) {
+    total += countRawFetchCallSites(fs.readFileSync(file, "utf8"), file);
+  }
+  return total;
+}
+
+/**
+ * Parse `git status --porcelain -z` into records.
+ *
+ * The non-z form was the bug this replaces: a rename prints `RM new -> old` on
+ * one line, so slicing the tail produced the literal string "a.ts -> b.ts" as a
+ * pathspec, `git log` matched no commit, and every renamed file silently lost
+ * its lastTouch attribution. -z fixes two things at once — NUL-separated records
+ * are never line-wrapped, and the source path arrives as its own field.
+ */
+export function parseStatusEntries(porcelainZ) {
+  const fields = String(porcelainZ ?? "")
+    .split("\0")
+    .filter((field) => field !== "");
+  const rows = [];
+  for (let i = 0; i < fields.length; i += 1) {
+    const record = fields[i];
+    const status = record.slice(0, 2).trim();
+    const path = record.slice(3);
+    // Renames and copies carry the source path in the following record.
+    if (/^[RC]/.test(status)) {
+      rows.push({ status, path, renamedFrom: fields[++i] });
+    } else {
+      rows.push({ status, path });
+    }
+  }
+  return rows;
+}
+
+/**
+ * Status text must NOT go through git(): that helper trims, and a porcelain
+ * record starts with a space whenever the index column is clean, so trimming
+ * shifts every path in the first record by one character.
+ */
+export function gitStatusZ() {
+  try {
+    return execFileSync("git", ["status", "--porcelain", "-z"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return "";
+  }
+}
+
 function collectGit() {
-  const porcelain = git(["status", "--porcelain"]) ?? "";
-  const dirty = porcelain
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const status = line.slice(0, 2).trim();
-      const file = line.slice(2).trim();
-      const sha = git(["log", "-1", "--format=%H|%aI", "--", file]);
-      if (!sha) return { path: file, status, lastTouch: null, ageDays: null };
+  const entries = parseStatusEntries(gitStatusZ());
+  const dirty = entries.map(({ status, path: file, renamedFrom }) => {
+    // Follow a rename back to its source: the destination path has no history
+    // yet, so attributing only the destination would report a brand-new last
+    // touch for a file that may be years old.
+    const probe = (p) => git(["log", "-1", "--format=%H|%aI", "--", p]);
+    const sha = probe(file) || (renamedFrom ? probe(renamedFrom) : "");
+    if (!sha) return { path: file, status, lastTouch: null, ageDays: null };
       const [shaOnly, when] = sha.split("|");
       const ts = Date.parse(when);
       return {
@@ -163,6 +253,10 @@ function collectDebt() {
     todoMarkers: countHits(/\b(?:TODO|FIXME|HACK|XXX)\b/g),
     anyEscapes: countHits(/:\s*any\b|\bas any\b|<any>/g),
     longestSourceFiles: withLines,
+    // Scalar sibling, because numericLeaves maps an array to its length: a
+    // ceiling on longestSourceFiles would bound how many rows this report
+    // prints, not how long the code is. See tests/unit/facts-ratchet.test.ts.
+    longestSourceFileLines: withLines[0]?.lines ?? 0,
     auditDocsLines,
   };
 }
@@ -269,7 +363,7 @@ function collectCapabilities() {
       // cancellation in the API client": literally true, and about the wrong file.
       abortControllersInRequestGuard: (readText("src/lib/api/guard.ts") ?? "").match(/new AbortController/g)?.length ?? 0,
       routesUsingRequestGuard: fileCountMatching(/from ["']@\/lib\/api\/guard["']/),
-      rawFetchCalls: countHits(/\bfetch\(/g),
+      rawFetchCalls: countRawFetchCallSitesInSrc(),
       clientComponentFiles: clientFiles.length,
     },
     probeBlindPaths: [...probeBlindPaths].sort(),
@@ -309,6 +403,7 @@ export const RATCHET_KEYS = {
   "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
   "debt.anyEscapes": "explicit `any` escaping the strict config",
   "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
+  "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
   "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
   "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",
 };

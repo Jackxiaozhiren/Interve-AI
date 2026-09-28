@@ -182,3 +182,41 @@ export interface TelemetryEvent {
 const db = dbClient;
 
 export { db };
+
+/**
+ * Why a write/read against Postgres failed, in the three buckets the UI can act
+ * on. `setup/page.tsx` used to report every failure as "Database unavailable",
+ * which is how a missing-column bug stayed invisible: the message sent each
+ * next investigation toward the connection instead of the schema.
+ *
+ * Client-safe on purpose — src/app/setup/page.tsx is a client component, so it
+ * cannot import the server-only src/lib/api/classify-error.ts.
+ */
+export type DbFailure = "schema_drift" | "unreachable" | "unowned_write" | "other";
+
+const SCHEMA_DRIFT_CODES = new Set([
+  "42703", // undefined_column
+  "PGRST204", // column absent from the PostgREST schema cache
+]);
+// stampOwner refuses to write candidate content with no owner, so the caller can
+// say "not saved, sign in with an account" instead of "the database is down".
+const UNOWNED_WRITE_CODES = new Set(["NO_OWNER"]);
+const UNREACHABLE_CODES = new Set([
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "ECONNREFUSED",
+  "EAI_AGAIN",
+]);
+
+export function classifyDbFailure(err: unknown): DbFailure {
+  const e = err as { code?: unknown; message?: unknown } | null | undefined;
+  const code = typeof e?.code === "string" ? e.code : "";
+  if (UNOWNED_WRITE_CODES.has(code)) return "unowned_write";
+  if (SCHEMA_DRIFT_CODES.has(code)) return "schema_drift";
+  if (UNREACHABLE_CODES.has(code)) return "unreachable";
+  const message = typeof e?.message === "string" ? e.message : "";
+  if (/does not exist|schema cache/i.test(message)) return "schema_drift";
+  if (/fetch failed|network error|socket hang up/i.test(message)) return "unreachable";
+  return "other";
+}

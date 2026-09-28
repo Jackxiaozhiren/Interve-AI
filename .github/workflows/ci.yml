@@ -36,6 +36,11 @@ jobs:
       - run: npm run test:e2e:smoke
         env:
           CI: true
+
+      # Reproduce the runner-only mock-journey failure with evidence attached.
+      - run: npm run test:e2e:mock
+        env:
+          CI: true
       # Transfer budgets (P2-02 follow-up): prod server + probe --assert.
       # Budgets live in scripts/perf-probe.mjs (policy + headroom documented
       # there); breach or probe failure fails the gate. Plain probe runs
