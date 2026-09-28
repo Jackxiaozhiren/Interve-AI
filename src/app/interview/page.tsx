@@ -76,6 +76,7 @@ import {
 import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { loopBadge } from "@/lib/interview/difficulty-label";
+import { createLatencySpan } from "@/lib/interview/latency";
 import { useVADInterruption } from "@/hooks/useVADInterruption";
 import { createSttSession } from "@/lib/audio/stt";
 // Phase E1: pure slices extracted from this God component (unit-tested).
@@ -150,16 +151,18 @@ function InterviewRoomContent() {
   const interruptionsRef = useRef(0);
   const answerSegmentsRef = useRef<{ startMs: number; endMs: number }[]>([]);
   const roundTripsRef = useRef<number[]>([]);
-  const lastSendAtRef = useRef<number | null>(null);
+  // One start, two readers: TTFT is read at the first token and the round trip
+  // at the end of the answer, so the span is not consumed by the first.
+  const sendSpanRef = useRef(createLatencySpan());
   const sttRestartsRef = useRef(0);
   const unmountedRef = useRef(false);
   // Phase 13: latency breakdown refs (31). TTFT ≈ submit→streaming;
   // whisper = post→complete turnaround; TTS = speak-request→first audio.
   const ttftSamplesRef = useRef<number[]>([]);
-  const whisperSendAtRef = useRef<number | null>(null);
   const whisperTurnaroundsRef = useRef<number[]>([]);
-  const ttsRequestAtRef = useRef<number | null>(null);
+  const whisperSpanRef = useRef(createLatencySpan());
   const ttsStartupSamplesRef = useRef<number[]>([]);
+  const ttsSpanRef = useRef(createLatencySpan());
   // Phase 6: interview loop (turns/difficulty/budget). Initialized per
   // interview id; authority stays server-side (synthesizeServerState).
   // Phase 9: loop chrome text comes from the locale dictionary.
@@ -253,10 +256,7 @@ function InterviewRoomContent() {
     currentAudioSource.current = source;
     source.start();
     // Phase 13: Kokoro TTS startup = generate-request → first audio frame.
-    if (ttsRequestAtRef.current !== null) {
-      ttsStartupSamplesRef.current.push(Date.now() - ttsRequestAtRef.current);
-      ttsRequestAtRef.current = null;
-    }
+    ttsSpanRef.current.collectInto(ttsStartupSamplesRef.current);
   }
 
   // Cognitive Load Silence Tracking
@@ -298,10 +298,7 @@ function InterviewRoomContent() {
     }),
     onFinish: (event) => {
       // Phase 8: send→complete round trip (includes generation time).
-      if (lastSendAtRef.current !== null) {
-        roundTripsRef.current.push(Date.now() - lastSendAtRef.current);
-        lastSendAtRef.current = null;
-      }
+      sendSpanRef.current.collectInto(roundTripsRef.current);
       // v7 passes an event envelope, not the message: reading `event` itself
       // yields "" and TTS speaks silence while the UI says it is generating.
       const textToSpeak = getTextFromFinishEvent(event);
@@ -317,18 +314,13 @@ function InterviewRoomContent() {
         utterance.lang = hasChinese ? 'zh-CN' : 'en-US'; 
         utterance.onend = () => setIsAiSpeaking(false);
         // Phase 13: TTS startup = speak() → first audio.
-        ttsRequestAtRef.current = Date.now();
-        utterance.onstart = () => {
-          if (ttsRequestAtRef.current !== null) {
-            ttsStartupSamplesRef.current.push(Date.now() - ttsRequestAtRef.current);
-            ttsRequestAtRef.current = null;
-          }
-        };
+        ttsSpanRef.current.start();
+        utterance.onstart = () => ttsSpanRef.current.collectInto(ttsStartupSamplesRef.current);
         window.speechSynthesis.speak(utterance);
       } else if (modelsReady && kokoroWorker.current) {
         setIsAiSpeaking(true);
         setModelStatus("正在生成语音...");
-        ttsRequestAtRef.current = Date.now();
+        ttsSpanRef.current.start();
         kokoroWorker.current.postMessage({
           type: 'generate',
           text: textToSpeak,
@@ -350,9 +342,9 @@ function InterviewRoomContent() {
       return () => { clearTimeout(t1); clearTimeout(t2); };
     } else if (status === 'streaming') {
       // Phase 13: stream-start latency ≈ LLM TTFT (submit → first chunk).
-      if (lastSendAtRef.current !== null) {
-        ttftSamplesRef.current.push(Date.now() - lastSendAtRef.current);
-      }
+      // Reads without consuming: the round trip closes the same span later.
+      const ttftMs = sendSpanRef.current.elapsed();
+      if (ttftMs !== null) ttftSamplesRef.current.push(ttftMs);
       setLatencyPhase(3);
     } else {
       setLatencyPhase(0);
@@ -361,7 +353,7 @@ function InterviewRoomContent() {
   const handleUserInput = async (text: string) => {
     stopAiPlayback();
     // Phase 8: send timestamp for round-trip measurement (19.3).
-    lastSendAtRef.current = Date.now();
+    sendSpanRef.current.start();
     
     let oramaContext = "";
     if (modelsReady || isUsingNativeTTS) {
@@ -590,10 +582,7 @@ function InterviewRoomContent() {
         console.log("Whisper ready");
       } else if (status === 'complete' && text) {
         // Phase 13: STT latency turnaround.
-        if (whisperSendAtRef.current !== null) {
-          whisperTurnaroundsRef.current.push(Date.now() - whisperSendAtRef.current);
-          whisperSendAtRef.current = null;
-        }
+        whisperSpanRef.current.collectInto(whisperTurnaroundsRef.current);
         setModelStatus("");
         
         // Delivery Analysis Logic (E1: pure helpers, behavior-identical)
@@ -925,7 +914,7 @@ function InterviewRoomContent() {
           audio: float32Data
         }, [float32Data.buffer]);
         // Phase 13: STT latency = post → complete turnaround.
-        whisperSendAtRef.current = Date.now();
+        whisperSpanRef.current.start();
       };
 
       mediaRecorder.current.start();
