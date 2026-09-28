@@ -35,7 +35,6 @@ vi.mock("../../src/lib/supabase", () => ({
 }));
 
 import {
-  hubIdForUser,
   initializeKnowledgeHub,
   restoreKnowledgeHub,
   queryKnowledgeHub,

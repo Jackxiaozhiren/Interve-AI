@@ -38,7 +38,9 @@ describe("OAuth redirect target vs the page guard", () => {
     // Bouncing to a page that ignores the session would pass the assertion
     // above and still leave sign-in broken.
     const m = src().match(/redirectTo:[^`]*`\$\{window\.location\.origin\}(\/[^`?]*)`/);
-    const target = m![1];
+    // The non-null check is the point: `m![1]` below was only ever a throw
+    // guard, so say it out loud and drop the unused binding.
+    expect(m, "the OAuth redirect target is no longer an origin-relative path").not.toBeNull();
     const loginForm = readFileSync(
       new URL("../../src/components/auth/LoginForm.tsx", import.meta.url),
       "utf8"
