@@ -12,7 +12,7 @@
 graph TB
   User([Browser Camera/Mic]) --> Proxy[src/proxy.ts Cookie gate + CSP]
   Proxy --> App[Next.js 16 App Router layout + providers]
-  App --> InterviewUI[src/app/interview/page.tsx 1678 lines useChat + workers]
+  App --> InterviewUI[src/app/interview/page.tsx 1667 lines useChat + workers]
   App --> SetupUI[src/app/setup/page.tsx 1295 lines wizard + PDF]
   App --> DashUI[src/app/dashboard report/replay/charts]
   App --> PracticeUI[src/app/practice Server/Client split - only clean boundary]
@@ -90,7 +90,7 @@ graph TB
 
 ## 3. Top architectural debts (Phase 2 must-fix)
 1. Triple Auth + naked AI APIs (billing/security).
-2. 1728-line interview God Component (measured 2026-09-28; 1772 → 1728 as `difficulty-label` and `analysis-projection` were extracted, was 1678) + stale transport snapshot + mic/Worker listener leaks.
+2. 1667-line interview God Component (measured 2026-09-28; 1772 → 1667 as difficulty-label, analysis-projection, HeaderToggle, StandbyOverlay and the latency spans were extracted; was 1678) + stale transport snapshot + mic/Worker listener leaks.
 3. Fake vision persisted as score (integrity).
 4. `analyze-vision new URL()` crash bug.
 5. `api-client` lint-disabled (1 disable remains) — the 30 `any` hole is closed: debt.anyEscapes = 0.
