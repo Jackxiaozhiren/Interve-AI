@@ -207,6 +207,10 @@ function collectDebt() {
     todoMarkers: countHits(/\b(?:TODO|FIXME|HACK|XXX)\b/g),
     anyEscapes: countHits(/:\s*any\b|\bas any\b|<any>/g),
     longestSourceFiles: withLines,
+    // Scalar sibling, because numericLeaves maps an array to its length: a
+    // ceiling on longestSourceFiles would bound how many rows this report
+    // prints, not how long the code is. See tests/unit/facts-ratchet.test.ts.
+    longestSourceFileLines: withLines[0]?.lines ?? 0,
     auditDocsLines,
   };
 }
@@ -353,6 +357,7 @@ export const RATCHET_KEYS = {
   "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
   "debt.anyEscapes": "explicit `any` escaping the strict config",
   "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
+  "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
   "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
   "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",
 };
