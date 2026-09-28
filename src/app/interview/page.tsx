@@ -93,6 +93,7 @@ import { restoreKnowledgeHub } from "@/lib/orama-client";
 import { LiveWaveform } from "@/components/interview/LiveWaveform";
 import { TextSelectionMenu } from "@/components/interview/TextSelectionMenu";
 import { GreenRoom } from "@/components/interview/GreenRoom";
+import { HeaderToggle } from "@/components/interview/HeaderToggle";
 
 function InterviewRoomContent() {
   const searchParams = useSearchParams();
@@ -970,36 +971,36 @@ function InterviewRoomContent() {
     }
   };
 
+  const togglePaused = () => {
+    const next = !isPaused;
+    setIsPaused(next);
+    if (next) {
+      stopRecording();
+      stopAiPlayback();
+      toast("面试已暂停", { description: "已静音并模糊屏幕，按 Esc 恢复" });
+    } else {
+      toast("面试恢复", { description: "计时已恢复" });
+    }
+  };
+
+  const toggleFocusMode = () => {
+    const next = !isFocusMode;
+    setIsFocusMode(next);
+    toast(next ? "已开启专注模式" : "已退出专注模式", {
+      description: next ? "干扰元素已隐藏，按 F 键恢复" : "遥测数据已恢复显示",
+    });
+  };
+
   useKeyboardShortcuts([
     {
       key: "Escape",
       allowInInput: true,
-      handler: () => {
-        setIsPaused(prev => {
-          const newPaused = !prev;
-          if (newPaused) {
-            stopRecording();
-            stopAiPlayback();
-            toast("面试已暂停", { description: "已静音并模糊屏幕，按 Esc 恢复" });
-          } else {
-            toast("面试恢复", { description: "计时已恢复" });
-          }
-          return newPaused;
-        });
-      }
+      handler: togglePaused,
     },
     {
       key: "f",
       allowInInput: false,
-      handler: () => {
-        setIsFocusMode(prev => {
-          const newMode = !prev;
-          toast(newMode ? "已开启专注模式" : "已退出专注模式", {
-            description: newMode ? "干扰元素已隐藏，按 F 键恢复" : "遥测数据已恢复显示"
-          });
-          return newMode;
-        });
-      }
+      handler: toggleFocusMode,
     },
     {
       key: " ",
@@ -1122,94 +1123,73 @@ function InterviewRoomContent() {
         </div>
         <div className="flex items-center gap-3">
           <SoftPacingBar isRecording={isRecording} recordingStartTime={recordingStartTime} />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              setIsPaused(prev => {
-                const newPaused = !prev;
-                if (newPaused) {
-                  stopRecording();
-                  stopAiPlayback();
-                  toast("面试已暂停", { description: "已静音并模糊屏幕，按 Esc 恢复" });
-                } else {
-                  toast("面试恢复", { description: "计时已恢复" });
-                }
-                return newPaused;
-              });
-            }}
-            className={`rounded-full transition-all duration-300 ${isPaused ? 'bg-rose-500 text-white shadow-md hover:bg-rose-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+          <HeaderToggle
+            active={isPaused}
+            activeClass="bg-rose-500 text-white shadow-md hover:bg-rose-600"
+            onClick={togglePaused}
             title={isPaused ? "恢复面试 (Esc)" : "暂停思考 (Esc)"}
-            aria-label={isPaused ? "恢复面试" : "暂停思考"}
+            label={isPaused ? "恢复面试" : "暂停思考"}
           >
             {isPaused ? <Play className="w-4 h-4" weight="fill" /> : <Pause className="w-4 h-4" weight="fill" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          </HeaderToggle>
+          <HeaderToggle
+            active={isThinkTimeEnabled}
+            activeClass="bg-amber-500 text-white shadow-md hover:bg-amber-600"
             onClick={() => setIsThinkTimeEnabled(!isThinkTimeEnabled)}
-            className={`rounded-full transition-all duration-300 ${isThinkTimeEnabled ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isThinkTimeEnabled ? "关闭思考时间" : "开启思考时间 (答题前 10 秒缓冲)"}
-            aria-label={isThinkTimeEnabled ? "关闭思考时间" : "开启思考时间"}
+            label={isThinkTimeEnabled ? "关闭思考时间" : "开启思考时间"}
           >
             <Clock className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          </HeaderToggle>
+          <HeaderToggle
+            active={isCalmMode}
+            activeClass="bg-teal-500 text-white shadow-md hover:bg-teal-600"
             onClick={() => setIsCalmMode()}
-            className={`rounded-full transition-all duration-300 ${isCalmMode ? 'bg-teal-500 text-white shadow-md hover:bg-teal-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
             title={isCalmMode ? "退出宁静模式" : "开启宁静模式 (防过度视觉刺激)"}
-            aria-label={isCalmMode ? "退出宁静模式" : "开启宁静模式"}
-            aria-pressed={isCalmMode}
+            label={isCalmMode ? "退出宁静模式" : "开启宁静模式"}
           >
             <Brain className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setIsFocusMode(!isFocusMode)}
-            className={`rounded-full transition-all duration-300 ${isFocusMode ? 'bg-sky-500 text-white shadow-md hover:bg-sky-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+          </HeaderToggle>
+          <HeaderToggle
+            active={isFocusMode}
+            activeClass="bg-sky-500 text-white shadow-md hover:bg-sky-600"
+            onClick={toggleFocusMode}
             title={isFocusMode ? "退出专注模式 (F)" : "开启专注模式 (F)"}
-            aria-label={isFocusMode ? "退出专注模式" : "开启专注模式"}
-            aria-pressed={isFocusMode}
+            label={isFocusMode ? "退出专注模式" : "开启专注模式"}
           >
             {isFocusMode ? <CornersIn className="w-4 h-4" /> : <CornersOut className="w-4 h-4" />}
-          </Button>
+          </HeaderToggle>
           {/* Phase 9: live AI estimates hidden by default (score distraction). */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          <HeaderToggle
+            active={showLiveInsights}
+            activeClass="bg-violet-500 text-white shadow-md hover:bg-violet-600"
             onClick={() => toggleLiveInsights()}
-            className={`rounded-full transition-all duration-300 font-bold text-[10px] ${showLiveInsights ? 'bg-violet-500 text-white shadow-md hover:bg-violet-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            extraClassName="font-bold text-[10px]"
             title={showLiveInsights ? t.interview.hideAiEstimatesTitle : t.interview.showAiEstimatesTitle}
-            aria-label={showLiveInsights ? t.interview.hideAiEstimates : t.interview.showAiEstimates}
-            aria-pressed={showLiveInsights}
+            label={showLiveInsights ? t.interview.hideAiEstimates : t.interview.showAiEstimates}
           >
             AI
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          </HeaderToggle>
+          <HeaderToggle
+            active={isLiveCaptionsEnabled}
+            activeClass="bg-sky-500 text-white shadow-md hover:bg-sky-600"
             onClick={() => toggleLiveCaptions()}
-            className={`rounded-full transition-all duration-300 font-bold text-[10px] ${isLiveCaptionsEnabled ? 'bg-sky-500 text-white shadow-md hover:bg-sky-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            extraClassName="font-bold text-[10px]"
             title={isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕"}
-            aria-label={isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕"}
-            aria-pressed={isLiveCaptionsEnabled}
+            label={isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕"}
           >
             CC
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          </HeaderToggle>
+          <HeaderToggle
+            active={isDyslexiaMode}
+            activeClass="bg-amber-500 text-white shadow-md hover:bg-amber-600"
             onClick={() => toggleDyslexiaMode()}
-            className={`rounded-full transition-all duration-300 font-bold text-[12px] ${isDyslexiaMode ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600' : 'bg-white/80 text-slate-700 hover:bg-white hover:text-slate-800 shadow-sm border border-white'}`}
+            extraClassName="font-bold text-[12px]"
             title={isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助"}
-            aria-label={isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助"}
-            aria-pressed={isDyslexiaMode}
+            label={isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助"}
           >
             A
-          </Button>
+          </HeaderToggle>
         </div>
       </header>
 

@@ -66,4 +66,34 @@ test.describe('Keyboard & Focus', () => {
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('STAR Progress')).toBeVisible();
   });
+
+  test('pause and think-time report their pressed state', async ({ page }) => {
+    // The AI-estimates toggle above already exposes aria-pressed; these two
+    // were the outliers — stateful toggles a screen reader could only read as
+    // plain buttons, whose labels change on activation. Activation is asserted
+    // through a different channel than the attribute (Escape for pause, click
+    // for think-time), so a stale aria-pressed cannot pass unnoticed.
+    await loginAs(page);
+    await page.goto('/interview?id=kbd-pressed&testMode=true');
+    const bypass = page.getByRole('button', { name: /跳过语音测试/i });
+    if (await bypass.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await bypass.click();
+    }
+    const enter = page.getByRole('button', { name: /开始面试|强制开始/i });
+    await expect(enter).toBeEnabled({ timeout: 35000 });
+    await enter.click();
+
+    const pause = page.getByRole('button', { name: /暂停思考|恢复面试/ });
+    await expect(pause).toBeVisible({ timeout: 15000 });
+    await expect(pause).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press('Escape');
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('Escape');
+    await expect(pause).toHaveAttribute('aria-pressed', 'false');
+
+    const think = page.getByRole('button', { name: /开启思考时间|关闭思考时间/ });
+    await expect(think).toHaveAttribute('aria-pressed', 'false');
+    await think.click();
+    await expect(think).toHaveAttribute('aria-pressed', 'true');
+  });
 });
