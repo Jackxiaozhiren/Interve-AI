@@ -71,6 +71,7 @@ import { getMessageText, getTextFromFinishEvent } from "@/lib/message-text";
 import { useInterveStore, normalizeGrounding } from "@/store/useInterveStore";
 import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { loopBadge } from "@/lib/interview/difficulty-label";
 import { useVADInterruption } from "@/hooks/useVADInterruption";
 import { createSttSession } from "@/lib/audio/stt";
 // Phase E1: pure slices extracted from this God component (unit-tested).
@@ -159,16 +160,9 @@ function InterviewRoomContent() {
   const { t } = useLanguage();
   const interviewIdParam = searchParams?.get('id') ?? null;
   const initLoop = useInterviewLoopStore((s) => s.initLoop);
-  const loopMeta = useInterviewLoopStore((s) => {
-    if (!s.loop) return null;
-    const diffKey = `difficulty${s.loop.difficulty[0].toUpperCase()}${s.loop.difficulty.slice(1)}` as const;
-    const diffLabel =
-      diffKey === "difficultyEasy" ? t.interview.difficultyEasy
-      : diffKey === "difficultyMedium" ? t.interview.difficultyMedium
-      : diffKey === "difficultyHard" ? t.interview.difficultyHard
-      : t.interview.difficultyExpert;
-    return `${t.interview.turn} ${s.loop.turnCount} · ${diffLabel}`;
-  });
+  const loopMeta = useInterviewLoopStore((s) =>
+    s.loop ? loopBadge(t, s.loop.turnCount, s.loop.difficulty) : null
+  );
   useEffect(() => {
     const budget = Number(searchParams?.get('timeBudgetSec'));
     initLoop(level, {
