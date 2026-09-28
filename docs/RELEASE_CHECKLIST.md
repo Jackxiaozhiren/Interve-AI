@@ -66,6 +66,17 @@
   (evaluation contract, Zod-enforced).
 - [x] Privacy: 30-day local retention, user data export/delete
   (privacy center), `oroma_index` user-partitioned (B4-fix).
+- [x] Sign-up's Google/GitHub buttons actually authenticate (fixed 2026-09-28).
+  They used to call `login({id: crypto.randomUUID(), username: 'OAuth User',
+  email: 'oauth_user@example.com'})` with no provider contact at all, so the page
+  advertised two identity providers while minting a throwaway demo identity that
+  shared one hardcoded email across everyone who clicked either button. Under the
+  OAuth-primary model this was also the one place a new candidate is told to
+  register, and that identity could never own a row. Both buttons now call
+  `signInWithOAuth(provider)`, matching LoginForm. Held by
+  `tests/unit/auth-path-honesty.test.ts`, which additionally requires the two
+  paths to say what differs: an account saves interview history, the demo form
+  does not.
 
 ## Release mechanics
 

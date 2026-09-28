@@ -10,6 +10,7 @@ import { ArrowRight, GithubLogo, GoogleLogo } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { GlobalBackground } from "@/components/ui/global-background";
 import { useAuth } from "@/context/AuthContext";
+import { signInWithOAuth } from "@/lib/auth";
 
 export default function SignupPage() {
   const { login, isLoading } = useAuth();
@@ -29,11 +30,17 @@ export default function SignupPage() {
     }
   };
 
-  const handleOAuthSignup = async () => {
+  // This used to be a fake: both buttons called login() with a hardcoded
+  // `oauth_user@example.com` identity and never touched Supabase, so the page
+  // advertised Google/GitHub while creating a throwaway demo account that
+  // shared one email with every other "OAuth" signup. Real provider redirect,
+  // same as LoginForm, and the account lands on /login where the AuthContext
+  // bridge converts it into an app session.
+  const handleOAuthSignup = async (provider: "google" | "github") => {
     try {
-      await login({ id: crypto.randomUUID(), username: 'OAuth User', email: 'oauth_user@example.com' });
+      await signInWithOAuth(provider);
     } catch (error) {
-      console.error("OAuth signup failed", error);
+      console.error(`${provider} signup failed`, error);
     }
   };
 
@@ -66,23 +73,28 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <button 
-                  onClick={handleOAuthSignup}
-                  type="button"
-                  disabled={isLoading}
-                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:shadow-sm text-sm font-semibold text-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <GoogleLogo weight="bold" className="w-4 h-4" /> Google
-                </button>
-                <button 
-                  onClick={handleOAuthSignup}
-                  type="button"
-                  disabled={isLoading}
-                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:shadow-sm text-sm font-semibold text-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <GithubLogo weight="fill" className="w-4 h-4" /> GitHub
-                </button>
+              <div>
+                <p className="text-sm font-semibold text-slate-700 mb-3">
+                  用账号注册 · 面试记录、报告与回放都会保存
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => handleOAuthSignup("google")}
+                    type="button"
+                    disabled={isLoading}
+                    className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <GoogleLogo weight="bold" className="w-4 h-4" /> Google
+                  </button>
+                  <button
+                    onClick={() => handleOAuthSignup("github")}
+                    type="button"
+                    disabled={isLoading}
+                    className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <GithubLogo weight="fill" className="w-4 h-4" /> GitHub
+                  </button>
+                </div>
               </div>
 
               <div className="relative">
@@ -90,7 +102,7 @@ export default function SignupPage() {
                   <span className="w-full border-t border-slate-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-[#f8fafd] px-2 text-slate-400 font-semibold tracking-wider">Or register with</span>
+                  <span className="bg-[#f8fafd] px-2 text-slate-400 font-semibold tracking-wider">或用演示账号(不保存数据)</span>
                 </div>
               </div>
 
