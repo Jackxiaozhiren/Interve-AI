@@ -112,7 +112,13 @@ const interviews = {
   },
   async get(id: number | string): Promise<Interview | undefined> {
     if (!isPersistableInterviewId(id)) return undefined;
-    const { data, error } = await supabase.from('interviews').select('*').eq('id', id).single();
+    // Defense in depth next to RLS: the policy is the enforcement point, but an
+    // anonymous read here would otherwise ask for a row it has no business
+    // seeing and depend entirely on the policy being correct. See
+    // tests/unit/read-ownership-scope.test.ts.
+    const uid = await currentOwnerId();
+    if (!uid) return undefined;
+    const { data, error } = await supabase.from('interviews').select('*').eq('user_id', uid).eq('id', id).single();
     if (error) {
       if (error.code === 'PGRST116') return undefined; // not found
       throw error;
@@ -141,14 +147,18 @@ const interviews = {
       reverse() {
         return {
           async toArray(): Promise<Interview[]> {
-            const { data, error } = await supabase.from('interviews').select('*').order(snakeField, { ascending: false });
+            const uid = await currentOwnerId();
+            if (!uid) return [];
+            const { data, error } = await supabase.from('interviews').select('*').eq('user_id', uid).order(snakeField, { ascending: false });
             if (error) throw error;
             return toCamelCase<Interview[]>(data || []);
           }
         }
       },
       async toArray(): Promise<Interview[]> {
-        const { data, error } = await supabase.from('interviews').select('*').order(snakeField, { ascending: true });
+        const uid = await currentOwnerId();
+        if (!uid) return [];
+        const { data, error } = await supabase.from('interviews').select('*').eq('user_id', uid).order(snakeField, { ascending: true });
         if (error) throw error;
         return toCamelCase<Interview[]>(data || []);
       }
@@ -160,13 +170,17 @@ const interviews = {
       equals(value: unknown) {
         return {
           async count(): Promise<number> {
-            const { count, error } = await supabase.from('interviews').select('*', { count: 'exact', head: true }).eq(snakeField, value);
+            const uid = await currentOwnerId();
+            if (!uid) return 0;
+            const { count, error } = await supabase.from('interviews').select('*', { count: 'exact', head: true }).eq('user_id', uid).eq(snakeField, value);
             if (error) throw error;
             return count || 0;
           },
           async sortBy(sortField: string): Promise<Interview[]> {
+            const uid = await currentOwnerId();
+            if (!uid) return [];
             const snakeSortField = sortField.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-            const { data, error } = await supabase.from('interviews').select('*').eq(snakeField, value).order(snakeSortField, { ascending: true });
+            const { data, error } = await supabase.from('interviews').select('*').eq('user_id', uid).eq(snakeField, value).order(snakeSortField, { ascending: true });
             if (error) throw error;
             return toCamelCase<Interview[]>(data || []);
           }
@@ -196,7 +210,9 @@ const evaluations = {
       equals(value: unknown) {
         return {
           async first(): Promise<CandidateEvaluation | undefined> {
-            const { data, error } = await supabase.from('evaluations').select('*').eq(snakeField, value).single();
+            const uid = await currentOwnerId();
+            if (!uid) return undefined;
+            const { data, error } = await supabase.from('evaluations').select('*').eq('user_id', uid).eq(snakeField, value).single();
             if (error) {
               if (error.code === 'PGRST116') return undefined;
               throw error;
@@ -223,7 +239,9 @@ const practiceSessions = {
     if (error) throw error;
   },
   async toArray(): Promise<PracticeSession[]> {
-    const { data, error } = await supabase.from('practice_sessions').select('*').order('created_at', { ascending: false });
+    const uid = await currentOwnerId();
+    if (!uid) return [];
+    const { data, error } = await supabase.from('practice_sessions').select('*').eq('user_id', uid).order('created_at', { ascending: false });
     if (error) throw error;
     return toCamelCase<PracticeSession[]>(data || []);
   },
@@ -233,7 +251,9 @@ const practiceSessions = {
       equals(value: unknown) {
         return {
           async toArray(): Promise<PracticeSession[]> {
-            const { data, error } = await supabase.from('practice_sessions').select('*').eq(snakeField, value).order('created_at', { ascending: false });
+            const uid = await currentOwnerId();
+            if (!uid) return [];
+            const { data, error } = await supabase.from('practice_sessions').select('*').eq('user_id', uid).eq(snakeField, value).order('created_at', { ascending: false });
             if (error) throw error;
             return toCamelCase<PracticeSession[]>(data || []);
           }
@@ -324,6 +344,10 @@ const achievements = {
 // Wrapper for OramaIndex
 const oramaIndex = {
   async get(id: string): Promise<OramaIndexData | undefined> {
+    // No user_id predicate here on purpose: the caller's id is already
+    // namespaced (hubIdForUser) and put() writes an explicit user_id, so the
+    // isolation exists; adding a session check here instead broke the legacy
+    // fallback read that tests/unit/orama-partition.test.ts guards.
     const { data, error } = await supabase.from('orama_index').select('*').eq('id', id).single();
     if (error) {
       if (error.code === 'PGRST116') return undefined;

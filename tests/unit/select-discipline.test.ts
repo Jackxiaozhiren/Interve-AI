@@ -32,21 +32,26 @@ const src = readFileSync(new URL("src/lib/api-client.ts", ROOT), "utf8");
 // one pattern). The COUNT pin is binding; the patterns document the why.
 const EXPECTED_STAR_COUNT = 13;
 const KNOWN_STAR_SELECTS = [
+  // 2026-09-27: the content-table sites below gained an explicit
+  // .eq('user_id', uid) predicate (defense in depth beside migration 006; RLS
+  // stays the enforcement point). The COUNT is unchanged at 13 — only the
+  // filter chain after each select grew — so these patterns document shape, not
+  // volume. Behaviour is pinned in tests/unit/read-ownership-scope.test.ts.
   // interviews.get(id) — single-row detail (modal/dossier/replay need full row).
-  "interviews').select('*').eq('id', id).single()",
+  "interviews').select('*').eq('user_id', uid).eq('id', id).single()",
   // interviews list (orderBy asc/desc) — dashboard aggregates read
   // status/createdAt/title/scores/radar/readiness across ALL rows; the
   // detail modal reuses the same objects (resumeText/jobDescription/
   // councilDebate/timeline for dossier). Trimming needs a lazy-get
   // refactor of the modal open path — tracked, not done blind.
-  "interviews').select('*').order(snakeField",
+  "interviews').select('*').eq('user_id', uid).order(snakeField",
   // interviews where().sortBy — same full-row readers as the list path.
-  "interviews').select('*').eq(snakeField, value)",
+  "interviews').select('*').eq('user_id', uid).eq(snakeField, value)",
   // evaluations where().first — recruiter lane reads full evaluation.
-  "evaluations').select('*').eq(snakeField, value)",
+  "evaluations').select('*').eq('user_id', uid).eq(snakeField, value)",
   // practice_sessions list + where — report/replay detail needs full rows.
-  "practice_sessions').select('*').order('created_at'",
-  "practice_sessions').select('*').eq(snakeField, value)",
+  "practice_sessions').select('*').eq('user_id', uid).order('created_at'",
+  "practice_sessions').select('*').eq('user_id', uid).eq(snakeField, value)",
   // telemetry list — already paged (D3 limit); columns are all scalars.
   "telemetry').select('*').order(snakeField",
   // achievements — narrow table (code/unlockedAt), single + lists.

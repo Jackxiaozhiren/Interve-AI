@@ -23,16 +23,19 @@ vi.mock("../../src/lib/supabase", () => ({
 }));
 
 // eq() is the terminal filter for both paths: get() then calls .single(),
-// update() awaits the builder directly.
+// update() awaits the builder directly. eq() returns the same object so chained
+// filters (the owner predicate plus the id) are all recorded, matching the real
+// PostgREST builder.
 function chained() {
-  return {
+  const api = {
     eq: (field: string, value: unknown) => {
       eqCalls.push([field, value]);
-      return Object.assign(Promise.resolve(nextResult), {
-        single: () => Promise.resolve(nextResult),
-      });
+      return api;
     },
+    single: () => Promise.resolve(nextResult),
+    then: (res: (v: unknown) => unknown) => Promise.resolve(nextResult).then(res),
   };
+  return api;
 }
 
 import { dbClient } from "../../src/lib/api-client";
@@ -58,18 +61,20 @@ describe("interviews.get with a non-persistable id", () => {
     expect(eqCalls).toEqual([]);
   });
 
-  // Controls: the guard must not swallow real lookups.
+  // Controls: the guard must not swallow real lookups. Both now carry the owner
+  // predicate added on 2026-09-27 (see read-ownership-scope.test.ts), so the
+  // recorded filters are user_id first, then id.
   it("still queries a numeric id", async () => {
     nextResult = { data: { id: 42, status: "completed" }, error: null };
     const row = await dbClient.interviews.get(42);
-    expect(eqCalls).toEqual([["id", 42]]);
+    expect(eqCalls).toEqual([["user_id", "uid-1"], ["id", 42]]);
     expect(row?.status).toBe("completed");
   });
 
   it("still queries a numeric string id", async () => {
     nextResult = { data: { id: 42, status: "in_progress" }, error: null };
     const row = await dbClient.interviews.get("42");
-    expect(eqCalls).toEqual([["id", "42"]]);
+    expect(eqCalls).toEqual([["user_id", "uid-1"], ["id", "42"]]);
     expect(row?.status).toBe("in_progress");
   });
 });
