@@ -94,6 +94,7 @@ import { LiveWaveform } from "@/components/interview/LiveWaveform";
 import { TextSelectionMenu } from "@/components/interview/TextSelectionMenu";
 import { GreenRoom } from "@/components/interview/GreenRoom";
 import { HeaderToggle } from "@/components/interview/HeaderToggle";
+import { StandbyOverlay } from "@/components/interview/StandbyOverlay";
 
 function InterviewRoomContent() {
   const searchParams = useSearchParams();
@@ -971,6 +972,16 @@ function InterviewRoomContent() {
     }
   };
 
+  const startFromStandby = () => {
+    if (!modelsReady && modelLoadError) {
+      setModelsReady(true);
+      setIsUsingNativeTTS(true);
+      toast.info("已切换至基础语音模式", { description: "由于加载超时，已为您切换到基础引擎" });
+    }
+    setIsStandby(false);
+    handleStartSpeaking();
+  };
+
   const togglePaused = () => {
     const next = !isPaused;
     setIsPaused(next);
@@ -1626,53 +1637,12 @@ function InterviewRoomContent() {
       )}
 
       {/* Standby / Click to Start Overlay */}
-      <AnimatePresence>
-        {isStandby && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-md"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white p-10 rounded-[32px] shadow-2xl flex flex-col items-center text-center max-w-md border border-white/50"
-            >
-              <div className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center mb-6 border border-sky-100 shadow-sm">
-                 <Play className="w-10 h-10 text-sky-500 ml-1" weight="fill" />
-              </div>
-              <h2 className="text-3xl font-bold font-heading text-slate-800 mb-3">准备好开始了吗？</h2>
-              <p className="text-slate-500 mb-8 leading-relaxed text-[15px]">
-                您的硬件检测已完成。点击下方按钮正式进入面试状态。深呼吸，放松心情。
-              </p>
-              <div className="w-full flex flex-col gap-3">
-                <Button 
-                  onClick={() => {
-                    if (!modelsReady && modelLoadError) {
-                      setModelsReady(true);
-                      setIsUsingNativeTTS(true);
-                      toast.info("已切换至基础语音模式", { description: "由于加载超时，已为您切换到基础引擎" });
-                    }
-                    setIsStandby(false);
-                    handleStartSpeaking();
-                  }}
-                  disabled={!modelsReady && !modelLoadError}
-                  className="w-full h-14 text-lg rounded-full bg-slate-800 hover:bg-slate-700 text-white shadow-lg transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  {modelsReady ? "开始面试" : (modelLoadError ? "强制开始 (基础模式)" : "正在加载 AI 引擎...")}
-                </Button>
-                {(!modelsReady && modelLoadError) && (
-                  <p className="text-xs text-amber-500 font-medium px-2">
-                    AI 引擎加载时间过长，您可以强制开始，系统将自动切换为基础语音。
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <StandbyOverlay
+        open={isStandby}
+        modelsReady={modelsReady}
+        loadError={modelLoadError}
+        onStart={startFromStandby}
+      />
 
       {/* End of Interview Overlay */}
       <AnimatePresence>
