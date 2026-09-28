@@ -13,7 +13,7 @@
   always-204, PII-free logs).
 - [x] CVE-2025-29927 class pinned (`tests/integration/proxy-guard.test.ts`:
   forged `x-middleware-subrequest` still gated).
-- [x] `npm audit --audit-level=critical` exit 0 (Next 16.3.5; 0 critical,
+- [x] `npm audit --audit-level=critical` exit 0 (Next 16.3.6; 0 critical,
   SECURITY_REPORT §1 re-audit).
 
 ## Env & secrets
