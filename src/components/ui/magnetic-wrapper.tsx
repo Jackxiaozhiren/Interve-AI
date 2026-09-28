@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { motion, useSpring } from "framer-motion";
 
 interface MagneticWrapperProps {
@@ -11,7 +11,6 @@ interface MagneticWrapperProps {
 
 export function MagneticWrapper({ children, className = "", intensity = 0.2 }: MagneticWrapperProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [, setIsHovered] = useState(false);
 
   // Use springs for smooth elastic movement
   const springConfig = { damping: 15, stiffness: 150, mass: 0.1 };
@@ -34,13 +33,8 @@ export function MagneticWrapper({ children, className = "", intensity = 0.2 }: M
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
     x.set(0);
     y.set(0);
-  };
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
   };
 
   return (
@@ -48,7 +42,6 @@ export function MagneticWrapper({ children, className = "", intensity = 0.2 }: M
       ref={ref}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onMouseEnter={handleMouseEnter}
       style={{ x, y }}
       className={className}
     >

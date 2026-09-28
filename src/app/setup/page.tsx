@@ -165,13 +165,10 @@ export default function SetupPage() {
   const [camStatus, setCamStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
   const [networkStatus, setNetworkStatus] = useState<"checking" | "good" | "poor" | "offline">("checking");
   const [speakerTestPlaying, setSpeakerTestPlaying] = useState(false);
-  const [, setAudioLevel] = useState(0);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number>(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -190,13 +187,9 @@ export default function SetupPage() {
         audioContextRef.current.close();
         audioContextRef.current = null;
       }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
       setTimeout(() => {
         setMicStatus("idle");
         setCamStatus("idle");
-        setAudioLevel(0);
       }, 0);
       return;
     }
@@ -239,27 +232,11 @@ export default function SetupPage() {
         
         const analyserNode = audioContext.createAnalyser();
         analyserNode.fftSize = 256;
-        analyserRef.current = analyserNode;
         setAnalyser(analyserNode);
         
         const source = audioContext.createMediaStreamSource(stream);
         source.connect(analyserNode);
         
-        const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
-        
-        const updateAudioLevel = () => {
-          if (!analyserRef.current) return;
-          analyserRef.current.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-          }
-          const average = sum / dataArray.length;
-          const normalized = Math.min(100, (average / 128) * 100);
-          setAudioLevel(normalized);
-          animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
-        };
-        updateAudioLevel();
         setMicStatus("success");
       } catch (err: unknown) {
         console.error("Hardware access error:", err);
@@ -288,9 +265,6 @@ export default function SetupPage() {
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
       }
     };
   }, [currentStep]);
