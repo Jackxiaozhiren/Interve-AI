@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { User, AuthContextType } from '@/types/auth';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { STORAGE_KEYS } from '@/utils/constants';
 import { supabase } from '@/lib/supabase';
 
@@ -34,6 +35,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(newUser);
   }, []);
 
+  // Turns a validated Supabase identity into an app session. One account, one
+  // shape, so the mount-time lookup and the SIGNED_IN event cannot drift.
+  const bridgeSupabaseUser = useCallback(async (su: SupabaseUser) => {
+    if (!su.email) return;
+    await login({
+      id: su.id,
+      email: su.email,
+      username: (
+        (su.user_metadata?.name as string | undefined) ??
+        (su.user_metadata?.user_name as string | undefined) ??
+        su.email.split('@')[0]
+      ).slice(0, 64),
+      avatar: (su.user_metadata?.avatar_url as string | undefined) ?? (su.user_metadata?.picture as string | undefined),
+    });
+  }, [login]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -55,19 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // server-side; the returned identity is then bound via login() below.
         try {
           const { data, error } = await supabase.auth.getUser();
-          const su = error ? null : data.user;
-          if (alive && su?.email) {
-            await login({
-              id: su.id,
-              email: su.email,
-              username: (
-                (su.user_metadata?.name as string | undefined) ??
-                (su.user_metadata?.user_name as string | undefined) ??
-                su.email.split('@')[0]
-              ).slice(0, 64),
-              avatar: (su.user_metadata?.avatar_url as string | undefined) ?? (su.user_metadata?.picture as string | undefined),
-            });
-          }
+          if (!error && data.user) await bridgeSupabaseUser(data.user);
         } catch (error) {
           console.error('Supabase session bridge failed', error);
         }
@@ -77,7 +82,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       alive = false;
     };
-  }, [login]);
+  }, [bridgeSupabaseUser]);
+
+  // The PKCE exchange supabase-js performs on landing back from the provider is
+  // async, so the getUser() above can run before there is a token to validate —
+  // it returns null and the candidate ends up signed in at Supabase but locked
+  // out of the app. SIGNED_IN fires when that exchange resolves, which removes
+  // the timing dependency instead of guessing at it.
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        void bridgeSupabaseUser(session.user).catch((error) => {
+          console.error('Supabase sign-in bridge failed', error);
+        });
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, [bridgeSupabaseUser]);
 
   const logout = async () => {
     try {
