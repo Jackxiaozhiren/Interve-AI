@@ -68,7 +68,11 @@ import { MultiAgentVisualizer, type AIExpert } from "@/components/interview/Mult
 import { DynamicLoader } from "@/components/ui/DynamicLoader";
 import { SystemHealthIndicator } from "@/components/interview/SystemHealthIndicator";
 import { getMessageText, getTextFromFinishEvent } from "@/lib/message-text";
-import { useInterveStore, normalizeGrounding } from "@/store/useInterveStore";
+import { useInterveStore } from "@/store/useInterveStore";
+import {
+  applyBehavioralAnalysis,
+  applyStarAnalysis,
+} from "@/lib/interview/analysis-projection";
 import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { loopBadge } from "@/lib/interview/difficulty-label";
@@ -636,36 +640,7 @@ function InterviewRoomContent() {
               systemDesignContext: activeSystemDesignContextRef.current
             })
           }).then(res => res.json()).then(data => {
-            if (data && data.s && typeof data.s.progress === 'number') {
-              const store = useInterveStore.getState();
-              store.setStarProgress((prev) => ({
-                s: { 
-                  progress: Math.max(prev.s.progress, data.s.progress), 
-                  confidence: data.s.confidence || 0, 
-                  timeSpentSeconds: prev.s.timeSpentSeconds + (data.s.timeSpentSeconds || 0) 
-                },
-                t: { 
-                  progress: Math.max(prev.t.progress, data.t.progress), 
-                  confidence: data.t.confidence || 0, 
-                  timeSpentSeconds: prev.t.timeSpentSeconds + (data.t.timeSpentSeconds || 0) 
-                },
-                a: { 
-                  progress: Math.max(prev.a.progress, data.a.progress), 
-                  confidence: data.a.confidence || 0, 
-                  timeSpentSeconds: prev.a.timeSpentSeconds + (data.a.timeSpentSeconds || 0) 
-                },
-                r: { 
-                  progress: Math.max(prev.r.progress, data.r.progress), 
-                  confidence: data.r.confidence || 0, 
-                  timeSpentSeconds: prev.r.timeSpentSeconds + (data.r.timeSpentSeconds || 0) 
-                },
-              }));
-              // Steering envelope (§7): latest quotes replace per call.
-              const grounding = normalizeGrounding(data, 4);
-              if (grounding.evidence.length > 0) {
-                store.setStarGrounding(grounding.evidence, grounding.confidence);
-              }
-            }
+            applyStarAnalysis(data, useInterveStore.getState());
           }).catch(err => console.error("STAR analysis error:", err));
 
           // Phase 31: Advanced Behavioral Tracking
@@ -674,19 +649,7 @@ function InterviewRoomContent() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ transcript: trimmedText })
           }).then(res => res.json()).then(data => {
-            if (data && typeof data.leadership === 'number') {
-              const store = useInterveStore.getState();
-              store.setBehavioralTraits((prev) => ({
-                leadership: Math.max(prev.leadership, data.leadership),
-                problemSolving: Math.max(prev.problemSolving, data.problemSolving),
-                communication: Math.max(prev.communication, data.communication)
-              }));
-              // Steering envelope (§7): latest quotes replace per call.
-              const grounding = normalizeGrounding(data, 4);
-              if (grounding.evidence.length > 0) {
-                store.setTraitsGrounding(grounding.evidence, grounding.confidence);
-              }
-            }
+            applyBehavioralAnalysis(data, useInterveStore.getState());
           }).catch(err => console.error("Behavioral analysis error:", err));
         }
         
