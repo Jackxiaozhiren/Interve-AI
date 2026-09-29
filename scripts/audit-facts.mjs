@@ -142,6 +142,41 @@ function countRawFetchCallSitesInSrc() {
 }
 
 /**
+ * Count explicit `any` type positions in one source text, by parse tree.
+ *
+ * Same defect class as the fetch counter this file used to carry: /\s*any\b
+ * over raw text cannot tell a type annotation from a sentence, and the first
+ * comment that said "…at all: any error response fell into" reported one escape
+ * where the strict config has none. `SyntaxKind.AnyKeyword` is the thing measured
+ * — it covers `: any`, `as any`, `Array<any>`, `Record<string, any>` and
+ * `any[]`, including the nested forms the old regex never saw.
+ */
+export function countAnyEscapes(sourceText, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  let hits = 0;
+  const visit = (node) => {
+    if (node.kind === ts.SyntaxKind.AnyKeyword) hits += 1;
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return hits;
+}
+
+function countAnyEscapesInSrc() {
+  let total = 0;
+  for (const file of sourceFiles()) {
+    total += countAnyEscapes(fs.readFileSync(file, "utf8"), file);
+  }
+  return total;
+}
+
+/**
  * Parse `git status --porcelain -z` into records.
  *
  * The non-z form was the bug this replaces: a rename prints `RM new -> old` on
@@ -251,7 +286,7 @@ function collectDebt() {
     selectStarHits: countHits(/\bselect\(\s*['"]\*['"]\s*\)/g),
     tsIgnoreHits: countHits(/@ts-(?:ignore|expect-error)/g),
     todoMarkers: countHits(/\b(?:TODO|FIXME|HACK|XXX)\b/g),
-    anyEscapes: countHits(/:\s*any\b|\bas any\b|<any>/g),
+    anyEscapes: countAnyEscapesInSrc(),
     longestSourceFiles: withLines,
     // Scalar sibling, because numericLeaves maps an array to its length: a
     // ceiling on longestSourceFiles would bound how many rows this report
