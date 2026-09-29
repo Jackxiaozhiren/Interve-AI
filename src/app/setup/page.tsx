@@ -343,27 +343,33 @@ export default function SetupPage() {
         method: "POST",
         body: formData,
       });
-      
-      const data = await res.json();
-      
-      if (res.ok && data.text) {
-        setParsedResumeText(data.text);
-      } else {
-        if (res.status === 422) {
-           toast.error("Extraction failed", {
-             description: data.error || "Please upload a standard text-based PDF.",
-           });
-        } else {
-           toast.error("Extraction failed", {
-             description: "Could not extract text from this PDF.",
-           });
-        }
-        setFile(null);
+
+      let data: { text?: string; error?: { code?: string; message?: string } } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
       }
+
+      if (res.ok && data?.text) {
+        setParsedResumeText(data.text);
+        return;
+      }
+
+      // Three different failures used to collapse into one blind "Parsing
+      // Error": the server said no in JSON, the server said something that was
+      // not JSON at all (a platform timeout or body-limit rejection looks
+      // exactly like this), or the request never completed. The status is the
+      // only clue a user can pass on, so it goes in the message.
+      const description = !data
+        ? `服务返回了无法解析的响应（HTTP ${res.status}）。通常是文件过大或处理超时，请压缩后重试。`
+        : data.error?.message ?? `未能从这份 PDF 中取到文字（HTTP ${res.status}）。`;
+      toast.error("Extraction failed", { description });
+      setFile(null);
     } catch (err) {
       console.error("Failed to parse resume:", err);
-      toast.error("Parsing Error", {
-        description: "An error occurred while parsing the resume.",
+      toast.error("Upload failed", {
+        description: "请求未能完成（网络中断或超时），请重试。",
       });
       setFile(null);
     } finally {
