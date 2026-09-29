@@ -7,11 +7,17 @@ import { zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry"
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildOcrInstruction } from "@/ai/prompts/resume";
 import { PDFParse } from "pdf-parse";
+import { shouldOcrFallback, stripPageMarkers } from "@/lib/resume/text-quality";
+
+export const runtime = 'nodejs';
+// The OCR branch waits on a provider, like every other analyzer route that
+// declares a budget (60-170s). Without it the platform kills the function
+// mid-call and the client receives a body it cannot parse as JSON.
+export const maxDuration = 100;
 
 const ROUTE = "parse-resume";
 // Matches the "5MB" claim already shown in the setup UI.
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
-const OCR_TEXT_MIN_LENGTH = 50;
 
 export async function POST(req: Request) {
   const requestId = getRequestId(req);
@@ -80,11 +86,12 @@ export async function POST(req: Request) {
       const parser = new PDFParse({ data: buffer });
       const result = await parser.getText();
       await parser.destroy();
-      text = result.text || "";
+      text = stripPageMarkers(result.text || "");
     }
 
-    // Robust Validation
-    if (isImage || text.trim().length < OCR_TEXT_MIN_LENGTH || (text.match(/[a-zA-Z0-9]/g) || []).length / text.length < 0.3) {
+    // A text layer with too few characters is a scanned page, not a thin
+    // resume; the script-aware quality test in text-quality.ts owns that call.
+    if (isImage || shouldOcrFallback(text)) {
        isOcrFallback = true;
        try {
          const { generateText } = await import('ai');
@@ -115,8 +122,11 @@ export async function POST(req: Request) {
     if (text.length > 60000) text = text.slice(0, 60000);
     done(200, ocrExtra);
     return okResponse({ text: text, isOcrFallback }, requestId);
-  } catch {
-    done(500, { reason: "internal" });
+  } catch (err) {
+    // Name the failure: a bare "internal" is why a production 500 on this route
+    // stayed undiagnosable. The message goes to the log, not the client.
+    const name = err instanceof Error ? err.name : typeof err;
+    done(500, { reason: `internal:${name}` });
     return errorResponse("INTERNAL", "Failed to parse resume", 500, requestId);
   }
 }
