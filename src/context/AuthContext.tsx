@@ -84,11 +84,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [bridgeSupabaseUser]);
 
-  // The PKCE exchange supabase-js performs on landing back from the provider is
-  // async, so the getUser() above can run before there is a token to validate —
-  // it returns null and the candidate ends up signed in at Supabase but locked
-  // out of the app. SIGNED_IN fires when that exchange resolves, which removes
-  // the timing dependency instead of guessing at it.
+  // Consuming the provider callback is async (supabase-js parses the URL, then
+  // validates the session), so the getUser() above can run before there is a
+  // token to validate — it returns null and the candidate ends up signed in at
+  // Supabase but locked out of the app. SIGNED_IN fires when that completes,
+  // which removes the timing dependency instead of guessing at it.
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {

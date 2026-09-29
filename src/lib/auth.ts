@@ -5,13 +5,14 @@ export const signInWithOAuth = async (provider: 'google' | 'github') => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      // Must land on a page src/proxy.ts does not guard. supabase-js defaults to
-      // PKCE, so the provider returns with ?code=&state= in the query, and a
-      // first-time signer has no app cookie yet: /dashboard answered
-      // `307 -> /login?from=%2Fdashboard` with the code and state dropped
-      // (measured against a running dev server), so no session was ever
-      // exchanged. /login is unguarded and LoginForm already forwards to
-      // `from || DASHBOARD` once AuthContext has bridged the identity.
+      // Must land on a page src/proxy.ts does not guard. This client is
+      // createClient(url, key) with no options, so flowType is the default
+      // 'implicit' and gotrue returns the session in the URL fragment — which
+      // does survive a 307 (measured). /login is chosen anyway to avoid an
+      // extra guarded hop, a stale ?from=, and a sign-in that depends on the
+      // browser re-applying a fragment across a redirect. LoginForm already
+      // forwards to `from || DASHBOARD` once AuthContext has bridged the
+      // identity; the bridge is what actually made sign-in work.
       redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined,
     },
   });
