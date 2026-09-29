@@ -9,6 +9,7 @@ import { useInterveStore } from "@/store/useInterveStore";
 import { toast } from "sonner";
 import { OnMount } from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
+import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -41,6 +42,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
     isOptimal: boolean;
   } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [suspiciousPasteCount, setSuspiciousPasteCount] = useState(0);
 
   // Live Code Execution State
@@ -163,7 +165,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
   // Debounced AI Analysis
   useEffect(() => {
     if (mode !== "code" || content.trim().length < 10) {
-      const resetTimer = setTimeout(() => setAnalysis(null), 0);
+      const resetTimer = setTimeout(() => { setAnalysis(null); setAnalysisError(null); }, 0);
       return () => clearTimeout(resetTimer);
     }
 
@@ -175,12 +177,21 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: content, language, problemStatement }),
         });
-        if (res.ok) {
-          const data = await res.json();
-          setAnalysis(data);
+        const result = await readApiJson<typeof analysis>(res);
+        if (result.ok) {
+          setAnalysis(result.data);
+          setAnalysisError(null);
+        } else {
+          // A debounced auto-analysis must not toast — it would fire on every
+          // pause in typing once the route is broken — but it also must not
+          // look like the panel simply has nothing to say.
+          setAnalysis(null);
+          setAnalysisError(describeApiFailure(result.failure));
         }
       } catch (err) {
         console.error("Analysis failed", err);
+        setAnalysis(null);
+        setAnalysisError("代码分析请求未能完成。");
       } finally {
         setIsAnalyzing(false);
       }
@@ -478,6 +489,12 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
             {mode === "code" && isAnalyzing && (
               <div className="flex items-center gap-2 text-sky-500 normal-case tracking-normal text-xs animate-pulse">
                 Analyzing complexity...
+              </div>
+            )}
+
+            {mode === "code" && !isAnalyzing && analysisError && (
+              <div className="text-amber-600 normal-case tracking-normal text-xs" title={analysisError}>
+                复杂度分析未完成 · {analysisError}
               </div>
             )}
 

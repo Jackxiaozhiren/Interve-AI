@@ -8,6 +8,7 @@ import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { Badge } from "@/components/ui/badge";
 import { db, Assessment } from "@/lib/db";
 import { fadeUpVariant, staggerContainer } from "@/lib/motion";
+import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
 
 export default function CreateAssessmentPage() {
   const [jobDescription, setJobDescription] = useState("");
@@ -32,12 +33,23 @@ export default function CreateAssessmentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobDescription, questionCount: 5 }),
       });
-      if (!response.ok) throw new Error("Failed to generate questions. Please check your connection.");
-      const data = await response.json();
+      const result = await readApiJson<{ title?: string; questions?: Assessment["questions"] }>(response);
+      if (!result.ok) {
+        // Used to throw "Please check your connection" for every non-2xx,
+        // which sent users to debug their own network when the server had
+        // answered with a rate limit or a provider failure.
+        setError(describeApiFailure(result.failure));
+        return;
+      }
+      const questions = result.data.questions ?? [];
+      if (questions.length === 0) {
+        setError("服务返回了零道题目——请补充职位描述的具体职责后重试。");
+        return;
+      }
       setGeneratedData({
-        title: data.title || "Custom Assessment",
+        title: result.data.title || "Custom Assessment",
         jobDescription,
-        questions: data.questions || [],
+        questions,
         createdAt: new Date(),
         updatedAt: new Date()
       });

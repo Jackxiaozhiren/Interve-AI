@@ -23,6 +23,7 @@ import { RUBRICS } from "@/ai/rubrics";
 import { buildInterviewPlan, type InterviewPlan } from "@/ai/interview/plan";
 import { normalizeGrounding } from "@/ai/evidence";
 import { type Difficulty } from "@/ai/interview/state";
+import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
 
 const DIFFICULTY_OPTIONS: { id: Difficulty; name: string; desc: string }[] = [
   { id: "easy", name: "Easy", desc: "Foundations first, generous pacing." },
@@ -294,21 +295,26 @@ export default function SetupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText: parsedResumeText, jobDescription: context }),
       });
-      const data = await res.json();
-      if (data.matchScore !== undefined) {
-        setAlignmentReport(data);
+      // There was no `res.ok` check here at all: any error response fell into
+      // the catch below and was reported as "Something went wrong", and a
+      // platform-level rejection (this route declares no duration budget) is
+      // not even JSON, so the parse itself threw.
+      const result = await readApiJson<NonNullable<typeof alignmentReport>>(res);
+      if (!result.ok) {
+        toast.error("Analysis Failed", { description: describeApiFailure(result.failure), duration: 8000 });
+      } else if (result.data.matchScore !== undefined) {
+        setAlignmentReport(result.data);
         // Automatically append to context if not already added
         if (!context.includes("RECOMMENDED FOCUS:")) {
-            
-           setContext(prev => prev + `\n\nRECOMMENDED FOCUS: ${data.recommendedFocus}`);
+           setContext(prev => prev + `\n\nRECOMMENDED FOCUS: ${result.data.recommendedFocus}`);
         }
         toast.success("Analysis Complete", { description: "Alignment report generated successfully." });
       } else {
-        toast.error("Analysis Failed", { description: "Could not generate report." });
+        toast.error("Analysis Failed", { description: `服务返回了没有匹配分数的报告（HTTP ${res.status}）。` });
       }
     } catch (err) {
       console.error(err);
-      toast.error("Analysis Error", { description: "Something went wrong during analysis." });
+      toast.error("Analysis Error", { description: "分析请求未能完成，请重试。" });
     } finally {
       setIsAnalyzing(false);
     }
