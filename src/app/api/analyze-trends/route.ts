@@ -7,6 +7,10 @@ import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildTrendsPrompt } from "@/ai/prompts/trends";
 
 export const runtime = "edge";
+// guardRequest waits 55s on the provider, so the function has to be allowed to
+// live that long. Same pairing as analyze-vision, which declares 60 against the
+// identical guard; held by tests/unit/route-budget.test.ts.
+export const maxDuration = 60;
 
 const ROUTE = "analyze-trends";
 
