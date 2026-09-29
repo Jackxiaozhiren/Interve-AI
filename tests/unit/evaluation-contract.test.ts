@@ -149,9 +149,23 @@ describe("isThinEvaluationText + THIN_TRANSCRIPT wiring", () => {
     const { readFileSync } = await import("node:fs");
     // Phase E1: settlement lives in useInterviewSettlement.ts; the page
     // renders its isEnding/handleEndCall. Pin the slice, not the file.
+    //
+    // The copy moved to src/lib/interview/settlement-plan.ts when every
+    // non-2xx had to say something (not just the thin floor), so pinning the
+    // literal to one file asserted the wrong thing. What has to hold is the
+    // chain: the end-call reads the provider's error code out of the response
+    // and routes it through analysisFailureNotice, whose 422/THIN_TRANSCRIPT
+    // copy is asserted behaviourally in tests/unit/settlement-plan.test.ts.
     const slice = readFileSync(new URL("../../src/components/interview/useInterviewSettlement.ts", import.meta.url), "utf8");
-    expect(slice).toContain("THIN_TRANSCRIPT");
-    expect(slice).toContain("回答内容较薄");
+    // A call, not merely an import: `toContain("analysisFailureNotice")` is
+    // satisfied by the import line alone and stayed green against a mutated
+    // hook whose call site was removed. That is the failure mode this pin
+    // exists to catch.
+    expect(slice).toMatch(/analysisFailureNotice\(\s*\{/);
+    expect(slice).toMatch(/error\?\.\s*code|error\.code/);
+    const plan = readFileSync(new URL("../../src/lib/interview/settlement-plan.ts", import.meta.url), "utf8");
+    expect(plan).toContain("THIN_TRANSCRIPT");
+    expect(plan).toContain("回答内容较薄");
     const page = readFileSync(new URL("../../src/app/interview/page.tsx", import.meta.url), "utf8");
     expect(page).toContain("useInterviewSettlement");
   });

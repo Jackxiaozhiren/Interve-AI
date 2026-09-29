@@ -10,6 +10,12 @@ import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { getMessageText } from "@/lib/message-text";
 import { summarizeDelivery, avgLatencyMs } from "@/lib/audio/delivery";
+import {
+  analysisFailureNotice,
+  persistenceFailureNotice,
+  planSettlement,
+  unsavedNotice,
+} from "@/lib/interview/settlement-plan";
 import type { createSttSession } from "@/lib/audio/stt";
 
 export interface SettlementRefs {
@@ -60,10 +66,11 @@ export function useInterviewSettlement(opts: SettlementOptions) {
 
     toast("面试结束", { description: "正在生成您的详细分析报告...", duration: 5000 });
 
-    try {
-      const interviewId = opts.searchParams?.get('id');
+    const interviewId = opts.searchParams?.get('id') ?? null;
+    const plan = planSettlement({ hasMessages: opts.messages.length > 0, interviewId });
 
-      if (opts.messages.length > 0 && interviewId) {
+    try {
+      if (plan.shouldAnalyze && interviewId) {
         // Fetch analysis
         const res = await fetch("/api/analyze-interview", {
           method: "POST",
@@ -139,25 +146,35 @@ export function useInterviewSettlement(opts: SettlementOptions) {
             }
           }
         } else {
-          // Thin-transcript floor (THIN_TRANSCRIPT 422): the model found
-          // nothing quotable in ANY dimension. Tell the candidate to add
-          // specifics and retry instead of landing on an empty report.
-          let thin = res.status === 422;
+          // Every non-2xx now says something. Previously only the thin-transcript
+          // floor (422 / THIN_TRANSCRIPT) produced a message, so a 500 or a
+          // provider timeout left the candidate walking into an empty report
+          // with no explanation and no status to report.
+          let code: string | undefined;
+          let message: string | undefined;
           try {
-            const errBody = await res.json() as { error?: { code?: string } };
-            if (errBody?.error?.code === "THIN_TRANSCRIPT") thin = true;
-          } catch { /* non-JSON error — fall through to generic handling */ }
-          if (thin) {
-            toast("回答内容较薄，暂无法生成完整评估", { description: "补充具体做法、数字和结果后重试——最弱的一次也不该只看到报错", duration: 8000 });
+            const errBody = await res.json() as { error?: { code?: string; message?: string } };
+            code = errBody?.error?.code;
+            message = errBody?.error?.message;
+          } catch { /* non-JSON error body — the status alone is still worth showing */ }
+          const notice = analysisFailureNotice({ ok: false, status: res.status, code, message });
+          if (notice) {
+            toast(notice.title, { description: notice.description, duration: 8000 });
           }
         }
+      } else if (plan.unsavedReason) {
+        const notice = unsavedNotice(plan.unsavedReason);
+        toast.error(notice.title, { description: notice.description, duration: 9000 });
       }
     } catch (e) {
       console.error("Error analyzing interview:", e);
-      toast.error("生成报告时出错", { description: "我们将保留部分数据" });
+      const notice = persistenceFailureNotice(e);
+      toast.error(notice.title, { description: notice.description, duration: 9000 });
     }
 
-    window.location.href = opts.searchParams?.get('id') ? `/dashboard/report/${opts.searchParams.get('id')}` : "/dashboard";
+    window.location.href = plan.destination === "report" && interviewId
+      ? `/dashboard/report/${interviewId}`
+      : "/dashboard";
   };
 
   return { isEnding, handleEndCall };
