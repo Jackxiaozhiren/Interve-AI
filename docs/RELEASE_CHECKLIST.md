@@ -237,11 +237,26 @@ domain, no service worker need, and "no global-error needed").
   and `auth.uid()`-based policies are unreachable rather than merely unverified.
   Only `LoginForm.handleOAuthLogin` → `signInWithOAuth` yields a role that the
   owner policies apply to. **Step 1 landed 2026-09-27** — decision: OAuth is the
-  primary identity path, and it needed no platform work: `auth/v1/settings`
-  reports `external.email/google/github = true` and `anonymous_users = false`,
-  `/auth/v1/authorize?provider=google` hands off to the provider for both the
-  production domain and localhost, and `detectSessionInUrl` defaults to true, so
-  the OAuth return already populates a session with no new code. `stampOwner()`
+  primary identity path. That step asserted "it needed no platform work" on the
+  strength of `auth/v1/settings` reporting `external.email/google/github = true`
+  and `anonymous_users = false`, plus `/auth/v1/authorize?provider=google`
+  handing off for both the production domain and localhost. **That assertion was
+  wrong and is retracted (measured 2026-09-29):** the handoff is only the
+  outbound half. gotrue picks the *return* target from the project's Site URL and
+  the URL Redirect allowlist, and a `redirect_to` outside that allowlist is
+  dropped silently. Observed on a real Chrome against production: Google consent
+  succeeded and the browser was returned to
+  `http://localhost:3000/#access_token=eyJhbGciOi...` — not to
+  `https://interve-ai.vercel.app/login` — so the app never saw the session. Two
+  conclusions follow: the Site URL is still the development default, and the
+  production origin is not in the allowlist. Neither is fixable in code; the
+  platform change is recorded below. What this does NOT undo: the
+  `onAuthStateChange('SIGNED_IN')` bridge and `redirectTo=/login` are both still
+  wanted — but neither was ever the blocker, so nobody should re-litigate them.
+  Platform fix (owner action, Supabase dashboard → Authentication → URL
+  Redirects): Site URL = `https://interve-ai.vercel.app`; add
+  `https://interve-ai.vercel.app/**` to Redirect URLs and keep
+  `http://localhost:3000/**` for development. `stampOwner()`
   now refuses writes to `interviews` / `evaluations` / `practice_sessions` /
   `assessments` / `orama_index` with no owner, tagged `NO_OWNER`, which
   `classifyDbFailure` reports as its own outcome so the UI says "sign in with an
