@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { InterveTopNav, InterveNavLink, InterveButton } from "@/components/interve-ui";
 import { InterveMessageCard } from "@/components/interve-ui/chat";
+import { EXTERNAL_LINKS } from "@/utils/constants";
 
 export default function LandingPage() {
   return (
@@ -32,10 +33,13 @@ export default function LandingPage() {
           </>
         }
       >
+        {/* 定价 and 关于 were links to #pricing / #about, sections that exist on
+            the `/` home page (components/home/*) but not on this route — two of
+            the four primary nav items scrolled to nothing. This page's own
+            sections are home / features / demo. */}
         <InterveNavLink href="#home" active>首页</InterveNavLink>
         <InterveNavLink href="#features">功能</InterveNavLink>
-        <InterveNavLink href="#pricing">定价</InterveNavLink>
-        <InterveNavLink href="#about">关于</InterveNavLink>
+        <InterveNavLink href="#demo">演示</InterveNavLink>
       </InterveTopNav>
 
       <main className="pt-32 pb-16 px-6 lg:px-16 max-w-7xl mx-auto flex flex-col gap-32 responsive-container">
@@ -191,27 +195,33 @@ export default function LandingPage() {
               </p>
             </div>
             
+            {/* Every entry here has a destination that exists on this route. The
+                nine that used to sit at href="#" (定价方案 / 企业版 / 更新日志 /
+                帮助中心 / 开发者 API / 博客 / 面试题库 / 联系我们 / and the X
+                handle) were removed rather than left pointing at nothing: a
+                footer that advertises pages which do not exist reads as a
+                template, and 面试题库 in particular is a real page but behind the
+                login guard, so linking it publicly promised a browse you cannot
+                start. tests/unit/anchor-integrity.test.ts keeps this column
+                honest. */}
             <div className="flex flex-col gap-3">
                 <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">产品</h3>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">核心功能</a>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">定价方案</a>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">企业版</a>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">更新日志</a>
+              <a href="#features" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">核心功能</a>
+              <a href="#demo" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">界面演示</a>
+              <Link href="/signup" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">免费开始</Link>
             </div>
 
             <div className="flex flex-col gap-3">
                 <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">资源</h3>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">帮助中心</a>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">开发者 API</a>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">博客</a>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">面试题库</a>
+              <a href={EXTERNAL_LINKS.repository} className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">源码仓库</a>
+              <a href={EXTERNAL_LINKS.issues} className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">问题反馈</a>
             </div>
 
             <div className="flex flex-col gap-3">
                 <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">法律</h3>
               <Link href="/privacy" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">隐私政策</Link>
               <Link href="/terms" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">服务条款</Link>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">联系我们</a>
+              <a href={EXTERNAL_LINKS.issues} className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">联系我们</a>
             </div>
           </div>
           
@@ -220,10 +230,10 @@ export default function LandingPage() {
               © {new Date().getFullYear()} Interve AI. 保留所有权利。
             </p>
             <div className="flex gap-4">
-              <a href="#" aria-label="X (Twitter)" className="text-[var(--interve-text-placeholder)] hover:text-[var(--interve-text-title)] transition-colors">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg>
-              </a>
-              <a href="#" aria-label="GitHub" className="text-[var(--interve-text-placeholder)] hover:text-[var(--interve-text-title)] transition-colors">
+              {/* The X/Twitter icon was here with href="#" and no account behind
+                  it. Removed rather than pointed at a handle nobody owns; add it
+                  back with a real URL. */}
+              <a href={EXTERNAL_LINKS.repository} aria-label="GitHub 仓库" target="_blank" rel="noopener noreferrer" className="text-[var(--interve-text-placeholder)] hover:text-[var(--interve-text-title)] transition-colors">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
               </a>
             </div>

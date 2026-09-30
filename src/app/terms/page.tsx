@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { EXTERNAL_LINKS } from "@/utils/constants";
 
 export const metadata: Metadata = {
   title: "服务条款",
@@ -24,7 +25,7 @@ const SECTIONS = [
 
 const UPDATED = "2026-09-30";
 
-const REPO_ISSUES = "https://github.com/Jackxiaozhiren/Interve-AI/issues";
+const REPO_ISSUES = EXTERNAL_LINKS.issues;
 
 function Evidence({ children }: { children: React.ReactNode }) {
   return (
@@ -62,7 +63,7 @@ export default function TermsPage() {
 
         <div>
           <header>
-            <Link href="/landing" className="text-[13px] font-semibold text-sky-600 hover:underline">
+            <Link href="/" className="text-[13px] font-semibold text-sky-600 hover:underline">
               ← 返回 Interve AI
             </Link>
             <h1 className="mt-4 font-serif text-[2.5rem] leading-none tracking-tight text-[#111111]">服务条款</h1>

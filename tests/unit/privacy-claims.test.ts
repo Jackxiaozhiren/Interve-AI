@@ -150,7 +150,10 @@ describe("公开可读，且不承诺做不到的联系方式", () => {
   });
 
   it("links to the repository rather than an invented email address", () => {
-    expect(privacyPage).toMatch(/github\.com\/Jackxiaozhiren\/Interve-AI\/issues/);
+    // The URL is owned by src/utils/constants.ts and cited by the legal pages,
+    // both footers and this test — assert the shared value, not a copy of it.
+    expect(read("src/utils/constants.ts")).toMatch(/github\.com\/Jackxiaozhiren\/Interve-AI\/issues/);
+    expect(privacyPage).toMatch(/EXTERNAL_LINKS\.issues/);
     expect(privacyPage).not.toMatch(/mailto:/);
   });
 });
