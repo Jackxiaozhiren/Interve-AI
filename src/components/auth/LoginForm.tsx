@@ -174,17 +174,15 @@ export function LoginForm() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="login-password" className="text-slate-700 font-medium">
-                    Password
-                  </Label>
-                  <Link
-                    href="#"
-                    className="text-xs font-semibold text-sky-600 hover:text-sky-500 hover:underline transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <Label htmlFor="login-password" className="text-slate-700 font-medium">
+                  Password
+                </Label>
+                {/* "Forgot password?" used to sit here as href="#". It was a dead
+                    link and, under demo auth, a meaningless one: no password is
+                    ever checked, so there is nothing to reset. Removed rather
+                    than pointed at resetPasswordForEmail, which would send real
+                    mail from the production project and need a reset page that
+                    does not exist yet. */}
                 <div className="relative">
                   <Input
                     id="login-password"

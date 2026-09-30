@@ -5,6 +5,10 @@ import { User, AuthContextType } from '@/types/auth';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { STORAGE_KEYS } from '@/utils/constants';
 import { supabase } from '@/lib/supabase';
+import { withTimeout } from '@/lib/with-timeout';
+
+/** Ceiling on the mount-time session probe. See its use site for why. */
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 4000;
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -71,8 +75,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // with a Supabase session but no app session yet. getUser() validates
         // server-side; the returned identity is then bound via login() below.
         try {
-          const { data, error } = await supabase.auth.getUser();
-          if (!error && data.user) await bridgeSupabaseUser(data.user);
+          // Bounded on purpose. This await is what releases `isLoading`, and
+          // isLoading disables the Google / GitHub / submit buttons on /login
+          // and /signup — so an unbounded getUser() does not merely delay the
+          // "already signed in?" answer, it locks the page whose job is to get
+          // you signed in. On a timeout the visitor proceeds as unverified, and
+          // the onAuthStateChange listener below still bridges them if the
+          // refresh lands late.
+          const user = await withTimeout(
+            supabase.auth.getUser().then(({ data, error }) => (error ? null : data.user)),
+            AUTH_BOOTSTRAP_TIMEOUT_MS,
+            () => null
+          );
+          if (user) await bridgeSupabaseUser(user);
         } catch (error) {
           console.error('Supabase session bridge failed', error);
         }

@@ -92,7 +92,12 @@ describe("prohibited capabilities (static locks)", () => {
 
   it("no protected-attribute inference", () => {
     const hits = grepFiles(/\b(race|gender|religion|politics|ethnicity|sexual orientation|disability)\b/i).filter(
-      (h) => !h.line.includes("trace")
+      // `Promise.race` is the one legitimate spelling, and it is exempted by
+      // name rather than by the old `line.includes("trace")` filter — that one
+      // suppressed every violation sharing a line with the word "trace", and
+      // still fired on Promise.race, which is how a timeout helper turned this
+      // lock red. Anything else named race, including `foo.race`, is reported.
+      (h) => !/Promise\.race\b/.test(h.line)
     );
     expect(hits).toEqual([]);
   });
