@@ -14,6 +14,8 @@ interface SystemDesignBoardProps {
 }
 
 import { toast } from "sonner";
+import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
+import { writeDesignCanvas } from "@/lib/interview/board-state";
 import { Editor } from "@tldraw/tldraw";
 
 // Component to listen to Tldraw state changes
@@ -63,12 +65,9 @@ export const SystemDesignBoard = React.memo(function SystemDesignBoard({ isOpen,
 
   const handleTextUpdate = useCallback((text: string) => {
     setExtractedContext(text);
-    // Save to local storage for the AI context loop
-    try {
-      localStorage.setItem("interve_system_design_content", text);
-    } catch {
-      // Ignore write errors
-    }
+    // Persisted for the AI context loop, which reads it per turn (see
+    // src/lib/interview/board-state.ts — the key is owned there).
+    writeDesignCanvas(text);
   }, []);
 
   const handleAnalyzeSnapshot = async () => {
@@ -107,15 +106,17 @@ export const SystemDesignBoard = React.memo(function SystemDesignBoard({ isOpen,
           })
         });
         
-        if (res.ok) {
-          const data = await res.json();
+        const result = await readApiJson<{ feedback?: string }>(res);
+        if (result.ok && result.data.feedback) {
           toast.success("Architecture Feedback", {
-            description: data.feedback,
+            description: result.data.feedback,
             duration: 15000,
             position: "top-center"
           });
         } else {
-          toast.error("Analysis Failed", { description: "Could not evaluate architecture." });
+          toast.error("Analysis Failed", {
+            description: result.ok ? "服务返回了空反馈。" : describeApiFailure(result.failure),
+          });
         }
         setIsAnalyzing(false);
       };

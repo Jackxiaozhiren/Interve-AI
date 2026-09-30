@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Brain, PencilSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { appendScratchpadContent } from "@/lib/interview/board-state";
 
 export function TextSelectionMenu() {
   const [selectionRect, setSelectionRect] = useState<DOMRect | null>(null);
@@ -71,9 +72,7 @@ export function TextSelectionMenu() {
   };
 
   const handleSendToScratchpad = () => {
-    const existing = localStorage.getItem("interve_scratchpad_content") || "";
-    const newContent = existing ? existing + "\n\n" + selectedText : selectedText;
-    localStorage.setItem("interve_scratchpad_content", newContent);
+    appendScratchpadContent(selectedText);
     toast.success("已发送至白板", { description: "可在技术白板中查看" });
     setSelectionRect(null);
     window.getSelection()?.removeAllRanges();

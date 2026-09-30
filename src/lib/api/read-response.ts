@@ -1,12 +1,14 @@
 /**
  * One reader for every JSON API response the browser makes.
  *
- * Eight call sites each invented their own handling and all of them lost the
- * same thing: what the server actually said. Two had no `res.ok` check at all,
- * so an error response threw inside `.json()` and landed in a generic catch;
- * one told the user to "check your connection" when the server had answered
- * with a rate limit; two failed so quietly that a button appeared to do
- * nothing.
+ * The call sites this replaces each invented their own handling and all of them
+ * lost the same thing: what the server actually said. Some had no `res.ok`
+ * check at all, so an error response threw inside `.json()` and landed in a
+ * generic catch; one told the user to "check your connection" when the server
+ * had answered with a rate limit; others failed so quietly that a button
+ * appeared to do nothing. Those failure modes are pinned individually in
+ * tests/unit/read-response.test.ts, which also holds the predicate that no
+ * feature file parses a response by hand any more.
  *
  * The case that motivated this is the one that is easiest to miss: a function
  * killed by the platform's duration limit, or a body rejected before the app

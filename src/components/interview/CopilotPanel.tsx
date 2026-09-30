@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lightbulb, MagicWand } from "@phosphor-icons/react";
 
 import { StarTracker } from "./StarTracker";
+import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
 
 interface CopilotPanelProps {
   latestAiMessage: string;
@@ -14,6 +15,7 @@ export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) 
   const [hints, setHints] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isBehavioral, setIsBehavioral] = useState(false);
+  const [degraded, setDegraded] = useState(false);
   
   // Cache for Copilot hints to reduce API calls during the same session
   const hintsCache = React.useRef<Record<string, string[]>>({});
@@ -47,13 +49,16 @@ export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) 
             })
           });
 
-          if (res.ok) {
-            const data = await res.json();
-            const newHints = data.hints || [];
+          const result = await readApiJson<{ hints?: string[] }>(res);
+          if (result.ok && Array.isArray(result.data.hints)) {
+            const newHints = result.data.hints;
             hintsCache.current[latestAiMessage] = newHints;
             setHints(newHints);
+            setDegraded(false);
           } else {
-            // Fallback to simple truncation
+            // Fallback to simple truncation. Kept, because an empty panel is
+            // worse than a plain one — but labelled, so a candidate is not
+            // reading clipped resume text as an AI-generated hint.
             const cleanHints = results.map(r => {
               const text = r.replace(/^.+?:/, '').trim();
               return text.length > 80 ? text.substring(0, 80) + "..." : text;
@@ -61,6 +66,8 @@ export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) 
             const fallbackHints = cleanHints.filter(h => h.length > 0);
             hintsCache.current[latestAiMessage] = fallbackHints;
             setHints(fallbackHints);
+            setDegraded(true);
+            console.warn("Copilot degraded:", result.ok ? "empty hints" : describeApiFailure(result.failure));
           }
         } else {
           setHints([]);
@@ -90,7 +97,14 @@ export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) 
           <div className="p-1.5 bg-emerald-50 text-emerald-500 rounded-md shadow-sm border border-emerald-100/50">
             <MagicWand className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-semibold text-slate-700">Copilot Hints</h3>
+          <h3 className="text-sm font-semibold text-slate-700">
+            Copilot Hints
+            {degraded && hints.length > 0 && (
+              <span className="ml-2 text-[10px] font-normal text-amber-600 normal-case tracking-normal">
+                · 离线摘要（AI 提示未生成）
+              </span>
+            )}
+          </h3>
         </div>
 
         {/* STAR Framework Guide */}

@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { getMessageText } from "@/lib/message-text";
 import { summarizeDelivery, avgLatencyMs } from "@/lib/audio/delivery";
+import { readApiJson } from "@/lib/api/read-response";
+import type { EvaluationV2 } from "@/ai/evaluation-contract";
 import {
   analysisFailureNotice,
   persistenceFailureNotice,
@@ -78,13 +80,15 @@ export function useInterviewSettlement(opts: SettlementOptions) {
           body: JSON.stringify({ messages: opts.messages, framework: opts.framework, interviewType: opts.interviewType })
         });
 
-        if (res.ok) {
+        const result = await readApiJson<EvaluationV2>(res);
+
+        if (result.ok) {
           // Phase 4: evidence-grounded evaluation (rubric-anchored dimensions
           // + readiness). Legacy radarScores/hireVerdict are no longer
           // produced; historical rows keep rendering via the eval-compat
           // adapter. See EVALUATION_V2_REPORT.
-          const evaluationV2 = await res.json();
-          const { qaReview } = evaluationV2 as { qaReview?: { question: string; userAnswer: string; flaws: string; perfectRewrite: string }[] };
+          const evaluationV2 = result.data;
+          const { qaReview } = evaluationV2;
 
           // Phase 3 (Truthfulness Reset): no visual metrics are collected
           // anymore (CameraSelfView performs zero analysis), so nothing
@@ -147,17 +151,12 @@ export function useInterviewSettlement(opts: SettlementOptions) {
           }
         } else {
           // Every non-2xx now says something. Previously only the thin-transcript
-          // floor (422 / THIN_TRANSCRIPT) produced a message, so a 500 or a
-          // provider timeout left the candidate walking into an empty report
-          // with no explanation and no status to report.
-          let code: string | undefined;
-          let message: string | undefined;
-          try {
-            const errBody = await res.json() as { error?: { code?: string; message?: string } };
-            code = errBody?.error?.code;
-            message = errBody?.error?.message;
-          } catch { /* non-JSON error body — the status alone is still worth showing */ }
-          const notice = analysisFailureNotice({ ok: false, status: res.status, code, message });
+          // floor (422 / THIN_TRANSCRIPT) produced a message, so a 500, a
+          // provider timeout, or a body that was never JSON (a function killed
+          // mid-stream returns HTML with a 200-ish status) left the candidate
+          // walking into an empty report with no explanation and no status to
+          // report.
+          const notice = analysisFailureNotice({ ok: false, ...result.failure });
           if (notice) {
             toast(notice.title, { description: notice.description, duration: 8000 });
           }

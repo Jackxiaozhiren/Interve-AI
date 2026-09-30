@@ -162,7 +162,14 @@ describe("isThinEvaluationText + THIN_TRANSCRIPT wiring", () => {
     // hook whose call site was removed. That is the failure mode this pin
     // exists to catch.
     expect(slice).toMatch(/analysisFailureNotice\(\s*\{/);
-    expect(slice).toMatch(/error\?\.\s*code|error\.code/);
+    // The envelope read moved to readApiJson, so the hook no longer names
+    // `error.code` itself. Assert the whole chain instead: the hook reads the
+    // response through the shared reader and hands the parsed failure — which
+    // is what carries `code` — to the notice builder.
+    expect(slice).toMatch(/readApiJson[<(]/);
+    expect(slice).toMatch(/\.\.\.result\.failure/);
+    const reader = readFileSync(new URL("../../src/lib/api/read-response.ts", import.meta.url), "utf8");
+    expect(reader).toMatch(/error\?\.\s*code/);
     const plan = readFileSync(new URL("../../src/lib/interview/settlement-plan.ts", import.meta.url), "utf8");
     expect(plan).toContain("THIN_TRANSCRIPT");
     expect(plan).toContain("回答内容较薄");

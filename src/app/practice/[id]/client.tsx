@@ -12,6 +12,8 @@ import { InterviewQuestion } from "@/lib/question-bank";
 import { DRILL_BANK } from "@/ai/drills/bank";
 
 import { db } from "@/lib/db";
+import { toast } from "sonner";
+import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
 
 interface AttemptRow {
   score: number;
@@ -74,11 +76,18 @@ export default function PracticeSessionClient({ question }: { question: Intervie
         body: JSON.stringify({ question, answer }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to analyze answer');
+      const result = await readApiJson<{
+        score: number;
+        strengths: string[];
+        improvements: string[];
+      }>(response);
+      if (!result.ok) {
+        // This path had no error surface at all — a failed analysis just
+        // stopped the spinner, which reads as "the button did nothing".
+        toast.error("点评生成失败", { description: describeApiFailure(result.failure) });
+        return;
       }
-
-      const data = await response.json();
+      const data = result.data;
       setFeedback(data);
 
       // §9: persist grounding with the attempt (guarded — old API responses
@@ -103,6 +112,11 @@ export default function PracticeSessionClient({ question }: { question: Intervie
       
     } catch (e) {
       console.error(e);
+      // Covers both halves of the try — the request itself and the history
+      // write — so the copy names neither as the culprit it cannot prove.
+      toast.error("本次练习未能完成", {
+        description: e instanceof Error ? e.message : "点评或保存环节出错，请重试。",
+      });
     } finally {
       setIsSubmitting(false);
     }

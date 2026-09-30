@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { describeApiFailure, readApiJson, type ApiFailure } from "@/lib/api/read-response";
+import fs from "node:fs";
+import path from "node:path";
 
 function res(status: number, body: string, contentType = "application/json"): Response {
   return new Response(body, { status, headers: { "content-type": contentType } });
@@ -64,5 +66,47 @@ describe("describeApiFailure", () => {
       const line = describeApiFailure(failure);
       expect(line).not.toMatch(/连接|connection|保留|已保存/);
     }
+  });
+});
+
+/**
+ * The sweep's done-when predicate. Without it, "I migrated the call sites" is a
+ * claim about a list I was reading from memory, and lists rot: the original
+ * inventory was compiled by grep and every session since has added or removed
+ * one. This asserts the property instead of the story.
+ *
+ * Server routes are out of scope — they read request bodies (`await req.json()`)
+ * inside the shared guard, which is the correct place for that.
+ */
+describe("no client fetch parses JSON by hand", () => {
+  // Built fresh per use: a /g regex carries lastIndex, and reusing one across
+  // files with .test() skips matches depending on where the last scan stopped.
+  const BARE_PARSE = () => /await\s+(?:res|resp|response|r)\.json\s*\(\s*\)/g;
+
+  function clientFiles(dir = path.join(process.cwd(), "src"), out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (full.includes(`${path.sep}api${path.sep}`)) continue;
+        clientFiles(full, out);
+      } else if (/\.(ts|tsx)$/.test(entry.name)) {
+        out.push(full);
+      }
+    }
+    return out;
+  }
+
+  it("the scan can see the pattern it forbids", () => {
+    expect("const d = await res.json();".match(BARE_PARSE())).toHaveLength(1);
+    expect("const d = await response.json();".match(BARE_PARSE())).toHaveLength(1);
+    expect("const d = await req.json();".match(BARE_PARSE())).toBeNull();
+  });
+
+  it("finds bare parses only inside read-response.ts", () => {
+    const offenders = clientFiles()
+      .filter((f) => !f.endsWith("lib/api/read-response.ts"))
+      .filter((f) => BARE_PARSE().test(fs.readFileSync(f, "utf8")))
+      .map((f) => path.relative(process.cwd(), f));
+    expect(offenders, `hand-rolled JSON parses:\n  ${offenders.join("\n  ")}`).toEqual([]);
   });
 });

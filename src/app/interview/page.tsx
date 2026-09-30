@@ -77,11 +77,13 @@ import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { loopBadge } from "@/lib/interview/difficulty-label";
 import { createLatencySpan } from "@/lib/interview/latency";
+import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
 import { useVADInterruption } from "@/hooks/useVADInterruption";
 import { createSttSession } from "@/lib/audio/stt";
 // Phase E1: pure slices extracted from this God component (unit-tested).
 import { computeWpm, countFillers, shouldRunAnalysis } from "@/lib/interview/delivery-metrics";
 import { saveSession, loadSession, clearSession } from "@/lib/interview/session-persistence";
+import { readDesignCanvas, readScratchpadCodeContext, readScratchpadContent } from "@/lib/interview/board-state";
 import { useInterviewSettlement } from "@/components/interview/useInterviewSettlement";
 import { micConstraints, getPreferredMicDevice } from "@/lib/audio/vad";
 import { FlowMap } from "@/components/interview/FlowMap";
@@ -367,30 +369,9 @@ function InterviewRoomContent() {
     }
     setActiveContext(oramaContext);
 
-    let codeCtx = "";
-    try {
-      const savedCode = localStorage.getItem("interve_scratchpad_content");
-      const mode = localStorage.getItem("interve_scratchpad_mode");
-      if (savedCode && mode === "code") {
-        codeCtx = savedCode;
-        const savedLogs = localStorage.getItem("interve_scratchpad_logs");
-        if (savedLogs) {
-          const parsedLogs = JSON.parse(savedLogs);
-          if (Array.isArray(parsedLogs) && parsedLogs.length > 0) {
-            codeCtx += `\n\n【Terminal Output / Execution Logs】:\n` + parsedLogs.map((l: { type: string; message: string }) => `[${l.type}] ${l.message}`).join("\n");
-          }
-        }
-      }
-    } catch {}
+    const codeCtx = readScratchpadCodeContext();
+    const sysDesignCtx = readDesignCanvas();
     setActiveCodeContext(codeCtx);
-
-    let sysDesignCtx = "";
-    try {
-      const savedDesign = localStorage.getItem("interve_system_design_content");
-      if (savedDesign) {
-        sysDesignCtx = savedDesign;
-      }
-    } catch {}
     setActiveSystemDesignContext(sysDesignCtx);
 
     // Give React a tick to update the context before appending
@@ -435,13 +416,7 @@ function InterviewRoomContent() {
     if (isRequestingHint) return;
     setIsRequestingHint(true);
     
-    let codeCtx = "";
-    try {
-      const savedCode = localStorage.getItem("interve_scratchpad_content");
-      if (savedCode) {
-        codeCtx = savedCode;
-      }
-    } catch {}
+    const codeCtx = readScratchpadContent();
 
     const chatHistory = messages.map(m => {
       // Phase 14: v6 parts-first extraction.
@@ -460,15 +435,19 @@ function InterviewRoomContent() {
         })
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      const result = await readApiJson<{ hint?: string }>(res);
+      if (result.ok && result.data.hint) {
         toast.success("AI 提示 (Hint)", {
-          description: data.hint,
+          description: result.data.hint,
           duration: 15000,
           position: "top-center"
         });
       } else {
-        toast.error("无法生成提示");
+        // "无法生成提示" with no reason sent nobody anywhere: a rate limit and a
+        // killed function look identical from here.
+        toast.error("无法生成提示", {
+          description: result.ok ? "服务返回了空提示。" : describeApiFailure(result.failure),
+        });
       }
     } catch (error) {
       console.error(error);

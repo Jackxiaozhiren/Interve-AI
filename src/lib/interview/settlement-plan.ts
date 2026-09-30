@@ -1,4 +1,5 @@
 import { isPersistableInterviewId } from "@/lib/api-client";
+import { describeApiFailure } from "@/lib/api/read-response";
 
 /**
  * What happens when an interview ends, decided in one place.
@@ -57,6 +58,7 @@ export function analysisFailureNotice(input: {
   status: number;
   code?: string;
   message?: string;
+  malformed?: boolean;
 }): SettlementNotice | null {
   if (input.ok) return null;
 
@@ -67,11 +69,16 @@ export function analysisFailureNotice(input: {
     };
   }
 
+  if (input.malformed) {
+    return {
+      title: "评估没能生成",
+      description: `${describeApiFailure({ status: input.status, malformed: true })}。本场对话记录仍在，但报告会是空的。`,
+    };
+  }
+
   return {
     title: "评估没能生成",
-    description: input.message
-      ? `服务返回 ${input.status}：${input.message}。本场对话记录仍在，但报告会是空的。`
-      : `服务返回 ${input.status}。本场对话记录仍在，但报告会是空的。`,
+    description: `${describeApiFailure({ status: input.status, code: input.code, message: input.message, malformed: false })}。本场对话记录仍在，但报告会是空的。`,
   };
 }
 

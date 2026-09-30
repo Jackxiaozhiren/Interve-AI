@@ -10,6 +10,13 @@ import { toast } from "sonner";
 import { OnMount } from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
+import {
+  readScratchpadContent,
+  readScratchpadMode,
+  writeScratchpadContent,
+  writeScratchpadLogs,
+  writeScratchpadMode,
+} from "@/lib/interview/board-state";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -95,25 +102,17 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
 
   // Initialize from localStorage on mount
   useEffect(() => {
-    try {
-      const savedContent = localStorage.getItem("interve_scratchpad_content");
-      const savedMode = localStorage.getItem("interve_scratchpad_mode");
-      setTimeout(() => {
-        if (savedContent) setContent(savedContent);
-        if (savedMode === "code" || savedMode === "notes") setMode(savedMode);
-      }, 0);
-    } catch {
-      console.warn("localStorage access restricted");
-    }
+    const savedContent = readScratchpadContent();
+    const savedMode = readScratchpadMode();
+    setTimeout(() => {
+      if (savedContent) setContent(savedContent);
+      if (savedMode) setMode(savedMode);
+    }, 0);
   }, []);
 
   // Save to localStorage on change
   useEffect(() => {
-    try {
-      localStorage.setItem("interve_scratchpad_content", content);
-    } catch {
-      // Ignore write errors
-    }
+    writeScratchpadContent(content);
   }, [content]);
 
   // Periodic Cognitive Load Evaluation
@@ -151,15 +150,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
   }, [setCognitiveLoad]);
 
   useEffect(() => {
-    try {
-      if (logs.length > 0) {
-        localStorage.setItem("interve_scratchpad_logs", JSON.stringify(logs));
-      } else {
-        localStorage.removeItem("interve_scratchpad_logs");
-      }
-    } catch {
-      // Ignore write errors
-    }
+    writeScratchpadLogs(logs);
   }, [logs]);
 
   // Debounced AI Analysis
@@ -201,11 +192,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
   }, [content, mode, language, problemStatement]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("interve_scratchpad_mode", mode);
-    } catch {
-      // Ignore write errors
-    }
+    writeScratchpadMode(mode);
   }, [mode]);
 
   const handleCopy = () => {

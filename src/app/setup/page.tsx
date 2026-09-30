@@ -350,15 +350,10 @@ export default function SetupPage() {
         body: formData,
       });
 
-      let data: { text?: string; error?: { code?: string; message?: string } } | null = null;
-      try {
-        data = await res.json();
-      } catch {
-        data = null;
-      }
+      const result = await readApiJson<{ text?: string }>(res);
 
-      if (res.ok && data?.text) {
-        setParsedResumeText(data.text);
+      if (result.ok && result.data.text) {
+        setParsedResumeText(result.data.text);
         return;
       }
 
@@ -367,10 +362,12 @@ export default function SetupPage() {
       // not JSON at all (a platform timeout or body-limit rejection looks
       // exactly like this), or the request never completed. The status is the
       // only clue a user can pass on, so it goes in the message.
-      const description = !data
-        ? `服务返回了无法解析的响应（HTTP ${res.status}）。通常是文件过大或处理超时，请压缩后重试。`
-        : data.error?.message ?? `未能从这份 PDF 中取到文字（HTTP ${res.status}）。`;
-      toast.error("Extraction failed", { description });
+      toast.error("Extraction failed", {
+        description: result.ok
+          ? `服务返回了空正文（HTTP ${res.status}）。`
+          : describeApiFailure(result.failure),
+        duration: 8000,
+      });
       setFile(null);
     } catch (err) {
       console.error("Failed to parse resume:", err);
