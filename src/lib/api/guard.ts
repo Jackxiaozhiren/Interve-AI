@@ -79,7 +79,8 @@ export async function guardRequest<T>(
     logApi(opts.route, { requestId, status, latencyMs: Math.round(performance.now() - startTime), ...extra });
 
   // 1. Rate limit (pre-auth).
-  const rl = checkRateLimit(opts.route, getClientIp(req), opts.rateLimit);
+  const clientIp = getClientIp(req);
+  const rl = checkRateLimit(opts.route, clientIp, opts.rateLimit);
   if (!rl.allowed) {
     done(429, { reason: "rate_limited" });
     return {
@@ -117,13 +118,17 @@ export async function guardRequest<T>(
     };
   }
 
-  // 5. Phase B6: per-user daily budget (Unbounded Consumption fuse). Only
+  // 5. Phase B6: per-caller daily budget (Unbounded Consumption fuse). Only
   // validated, authenticated calls consume budget; malformed/anonymous
   // traffic never does. Over-budget is 429 with Retry-After till PT-midnight
   // rollover — same code clients already handle for IP rate limits.
+  //
+  // The session id alone cannot serve as the fuse: /api/session mints a cookie
+  // for any identity the caller supplies, so a new id is a new allowance. The
+  // IP is counted alongside it, which is what makes the ceiling real.
   if (opts.userBudget !== false && session.id) {
     const limit = opts.userBudget?.limit ?? defaultUserBudget();
-    const budget = checkUserBudget(opts.route, session.id, limit);
+    const budget = checkUserBudget(opts.route, [session.id, clientIp], limit);
     if (!budget.allowed) {
       done(429, { reason: "user_budget_exceeded" });
       return {

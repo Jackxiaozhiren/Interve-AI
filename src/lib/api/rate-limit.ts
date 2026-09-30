@@ -3,8 +3,8 @@
 // Single-instance in-memory design (Map). Correct for `next start`
 // standalone and dev; multi-instance deployments need a shared store
 // (Upstash Redis) — tracked in STABILIZATION_REPORT as Phase 3 work.
-// Keying is by client IP (x-forwarded-for first entry) so anonymous floods
-// are bounded even before session verification.
+// Keying is by client IP so anonymous floods are bounded even before session
+// verification.
 
 export interface RateLimitRule {
   limit: number;
@@ -19,10 +19,26 @@ interface Bucket {
 const buckets = new Map<string, Bucket>();
 const MAX_BUCKETS = 20000;
 
+/**
+ * The abuse controls are only as good as this value, so the trust boundary is
+ * stated rather than assumed:
+ *
+ * - Vercel overwrites the inbound `x-forwarded-for` with the real peer address
+ *   and does not forward a client-supplied one — "This restriction is in place
+ *   to prevent IP spoofing" (docs/headers/request-headers). Rotation of the
+ *   session identity therefore cannot mint a fresh IP bucket in production.
+ * - `x-vercel-forwarded-for` carries the same value and survives a proxy
+ *   layered on top of Vercel, which would otherwise rewrite `x-forwarded-for`.
+ *   Read first for that reason.
+ * - With neither header (running outside the platform), callers collapse to a
+ *   single shared bucket. That is deliberate: an unprovable per-caller key must
+ *   not be read as a per-caller control. Anything deployed off-Vercel needs a
+ *   trusted proxy or a shared store before these limits mean what they say.
+ */
 export function getClientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) {
-    const first = fwd.split(",")[0]?.trim();
+  for (const header of ["x-vercel-forwarded-for", "x-forwarded-for"]) {
+    const fwd = req.headers.get(header);
+    const first = fwd?.split(",")[0]?.trim();
     if (first) return first.slice(0, 64);
   }
   return "unknown";

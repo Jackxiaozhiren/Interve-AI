@@ -32,9 +32,30 @@ describe("checkRateLimit", () => {
 });
 
 describe("getClientIp", () => {
-  it("prefers x-forwarded-for first entry and caps length", () => {
+  it("uses the x-forwarded-for first entry", () => {
     const req = new Request("http://x/", { headers: { "x-forwarded-for": "1.2.3.4, 5.6.7.8" } });
     expect(getClientIp(req)).toBe("1.2.3.4");
+  });
+
+  it("prefers the header a proxy on top of the platform cannot rewrite", () => {
+    // x-forwarded-for is overwritten by Vercel so a client cannot spoof it; the
+    // Vercel-specific copy is the one that survives an added proxy, so it wins
+    // when both are present.
+    const req = new Request("http://x/", {
+      headers: { "x-vercel-forwarded-for": "9.9.9.9", "x-forwarded-for": "1.2.3.4" },
+    });
+    expect(getClientIp(req)).toBe("9.9.9.9");
+  });
+
+  it("has no per-caller key at all off-platform, and says so with one shared bucket", () => {
     expect(getClientIp(new Request("http://x/"))).toBe("unknown");
+    expect(
+      getClientIp(new Request("http://x/", { headers: { "x-forwarded-for": "   " } })),
+    ).toBe("unknown");
+  });
+
+  it("caps the key length so a hostile header cannot bloat the bucket map", () => {
+    const req = new Request("http://x/", { headers: { "x-forwarded-for": "a".repeat(500) } });
+    expect(getClientIp(req)).toHaveLength(64);
   });
 });

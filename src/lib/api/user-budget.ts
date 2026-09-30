@@ -6,8 +6,9 @@
 // multi-instance needs a shared store; tracked as follow-up).
 //
 // Window: PT calendar day (same RPD reset as providers + C1 ledger).
-// Keyed by route + session user id (pseudonymous UUID). The id is NEVER
-// logged — observability is route/requestId/status/reason + remaining.
+// Keyed by route + every attribution subject (session user id AND client IP).
+// Neither id is logged — observability is route/requestId/status/reason +
+// remaining.
 const ptDayFmt = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Los_Angeles",
   year: "numeric",
@@ -62,30 +63,58 @@ export function nextPtMidnight(now = new Date()): Date {
   return new Date(hi);
 }
 
+/**
+ * Daily AI-call ceiling for one caller, expressed as every subject the request
+ * can be attributed to — the session user id and the client IP.
+ *
+ * All subjects are checked before any is incremented, and the call is refused
+ * when the *first* to run out does. Passing only the user id made the ceiling
+ * trivially inflatable: POST /api/session mints a cookie for any identity the
+ * caller types, so a script could take a fresh 200-call allowance per guessed
+ * UUID (measured locally: one identity went 200/200/429, a second minted
+ * seconds later from the same process returned 200). Binding the same budget to
+ * the IP closes that, which is what the header's "cycling IPs cannot burn the
+ * quota" claim always assumed.
+ *
+ * The cost is honest and worth naming: a shared egress (campus, office, carrier
+ * NAT) splits one day's allowance among everyone behind it. USER_AI_BUDGET_RPD
+ * is the knob; the per-minute per-route limiter is unaffected.
+ */
 export function checkUserBudget(
   route: string,
-  userId: string,
+  subjects: string[],
   limit = defaultUserBudget(),
   now = new Date()
 ): UserBudgetResult {
   const window = ptDayKey(now);
-  const mapKey = `${route}:${userId}`;
+  const resetMs = Math.max(0, nextPtMidnight(now).getTime() - now.getTime());
+  if (subjects.length === 0) {
+    return { allowed: false, remaining: 0, resetMs };
+  }
+  const keys = subjects.map((subject) => `${route}:${subject}`);
+
   if (buckets.size > MAX_BUCKETS) {
     for (const [k, b] of buckets) {
       if (b.window !== window) buckets.delete(k);
       if (buckets.size <= MAX_BUCKETS / 2) break;
     }
   }
-  let bucket = buckets.get(mapKey);
-  if (!bucket || bucket.window !== window) {
-    bucket = { window, count: 0 };
-    buckets.set(mapKey, bucket);
+
+  const open = (key: string): Bucket => {
+    const existing = buckets.get(key);
+    if (existing && existing.window === window) return existing;
+    const fresh = { window, count: 0 };
+    buckets.set(key, fresh);
+    return fresh;
+  };
+
+  // Deny from the most-constrained subject without incrementing anything.
+  const counts = keys.map((key) => open(key).count);
+  if (counts.some((count) => count >= limit)) {
+    return { allowed: false, remaining: 0, resetMs };
   }
-  if (bucket.count < limit) {
-    bucket.count += 1;
-    return { allowed: true, remaining: limit - bucket.count, resetMs: Math.max(0, nextPtMidnight(now).getTime() - now.getTime()) };
-  }
-  return { allowed: false, remaining: 0, resetMs: Math.max(0, nextPtMidnight(now).getTime() - now.getTime()) };
+  keys.forEach((key) => { open(key).count += 1; });
+  return { allowed: true, remaining: limit - Math.max(...counts) - 1, resetMs };
 }
 
 /** Test hook: clears all buckets. */
