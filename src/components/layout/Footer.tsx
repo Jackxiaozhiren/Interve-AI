@@ -38,7 +38,8 @@ export function Footer() {
 
           <div className="flex flex-col gap-3">
             <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">法律</h3>
-            <Link href="/dashboard/privacy" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">隐私政策</Link>
+            <Link href="/privacy" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">隐私政策</Link>
+            <Link href="/terms" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">服务条款</Link>
             <Link href="/dashboard/settings" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">设置</Link>
             <Link href="/login" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">登录</Link>
           </div>

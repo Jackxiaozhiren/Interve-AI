@@ -209,8 +209,8 @@ export default function LandingPage() {
 
             <div className="flex flex-col gap-3">
                 <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">法律</h3>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">隐私政策</a>
-              <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">服务条款</a>
+              <Link href="/privacy" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">隐私政策</Link>
+              <Link href="/terms" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">服务条款</Link>
               <a href="#" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">联系我们</a>
             </div>
           </div>

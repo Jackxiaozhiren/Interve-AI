@@ -18,6 +18,7 @@ const INVENTORY: { data: string; where: string; why: string; retention: string }
   { data: "Delivery metrics (WPM, fillers, durations)", where: "Database (interviews.delivery_stats)", why: "Observable speaking feedback on your report", retention: "Until you delete the session" },
   { data: "Evaluation + evidence quotes", where: "Database (interviews.evaluation_v2)", why: "Rubric scores with cited evidence for your review", retention: "Until you delete the session" },
   { data: "Practice answers + scores", where: "Database (practice_sessions)", why: "Retry-and-compare practice loop", retention: "Until you delete the session" },
+  { data: "系统设计白板截图", where: "Only sent when you click analyze — never stored", why: "Give feedback on the architecture diagram you drew", retention: "Not stored (on demand)" },
   { data: "Raw microphone audio", where: "Nowhere permanent — transcribed in-memory, then discarded", why: "Speech-to-text needs audio; storage does not", retention: "Not stored (default)" },
   { data: "Camera video / frames", where: "This device only (self-view preview)", why: "Self-view while speaking; never analyzed, never uploaded", retention: "Never stored (default)" },
   { data: "Browser session snapshot", where: "This browser (localStorage interve_session_*)", why: "Recover an interrupted interview after reload", retention: "Auto-expires after 30 days" },
