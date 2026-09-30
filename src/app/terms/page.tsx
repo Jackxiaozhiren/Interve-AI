@@ -82,6 +82,9 @@ export default function TermsPage() {
               <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
                 把这里的任何输出提交给第三方（雇主、学校、平台）之前，请你自行判断它是否适用。
               </p>
+              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+                站内另有一个招聘端界面，它是<strong className="font-semibold text-slate-900">未接真实数据的演示</strong>：页面上的候选人、评分与统计都是写死的示例，页面自己会说明这一点，你在其中输入的备注也不会被保存。它不构成一项面向企业销售的产品能力。
+              </p>
               <Evidence>
                 产品红线由 <code>tests/integration/prohibitions.test.ts</code> 锁住：不生成录用结论、不做情绪与外貌评判、不推断受保护属性。
               </Evidence>

@@ -16,6 +16,7 @@ export const dictionaries = {
     recruiter: {
       commandCenter: "Recruiting Command Center",
       commandCenterDesc: "Macro-level insights and candidate pipeline management.",
+      demoNotice: "Interface demo: the candidates, scores and statistics on this page are sample data. Nothing here is saved, and none of it represents a real hiring pipeline.",
       totalCandidates: "Total Candidates",
       avgMatchScore: "Avg Match Score",
       interviewsThisWeek: "Interviews This Week",
@@ -95,6 +96,7 @@ export const dictionaries = {
     recruiter: {
       commandCenter: "招聘指挥中心",
       commandCenterDesc: "宏观洞察与候选人流转管理。",
+      demoNotice: "界面演示：本页的候选人、评分与统计均为示例数据，不会保存，也不代表任何真实招聘管道。",
       totalCandidates: "候选人总数",
       avgMatchScore: "平均匹配度",
       interviewsThisWeek: "本周面试数",

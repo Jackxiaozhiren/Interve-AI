@@ -10,7 +10,7 @@ export function CtaSection() {
         <div className="relative z-10 flex flex-col items-center gap-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-[var(--interve-text-title)]">准备好改变面试方式了吗？</h2>
           <p className="text-[var(--interve-text-secondary)] max-w-xl">
-            加入数百家顶尖企业，使用 Interve AI 提升招聘效率与质量。现在注册即可获得14天免费试用。
+            把简历和目标岗位交给 Interve AI，几分钟后就有一份带原文证据的报告：哪些回答站得住、缺了哪一块、下一句该怎么说。所有记录随时可以导出或删除。
           </p>
           <div className="mt-4">
             <Link href="/signup">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Users, Target, ChartBar, Funnel, MagnifyingGlass, FunnelSimple, X, Tag, NotePencil, CheckCircle, FloppyDisk } from "@phosphor-icons/react";
+import { Users, Target, ChartBar, MagnifyingGlass, FunnelSimple, X, Tag, NotePencil, CheckCircle, FloppyDisk } from "@phosphor-icons/react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, PageHeader, StatusBadge, type DataTableColumn } from "@/components/data";
 import { dbClient as db, useLiveQuery } from "@/lib/api-client";
+import { toast } from "sonner";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { SystemTelemetry } from "@/components/dashboard/SystemTelemetry";
@@ -84,26 +85,13 @@ export default function RecruiterDashboard() {
 
   const handleSaveEvaluation = async () => {
     if (!selectedCandidate) return;
+    // Persists nothing, on purpose. `selectedCandidate.id` is one of the mock
+    // rows above ("C-105"), so a saved note would be a real evaluations row
+    // keyed to a person who does not exist and unreachable by any query —
+    // the table would quietly fill with commentary about invented candidates.
     setIsSaving(true);
-    try {
-      if (evaluation?.id) {
-        await db.evaluations.update(evaluation.id, {
-          notes,
-          tags,
-          updatedAt: new Date()
-        });
-      } else {
-        await db.evaluations.add({
-          candidateId: selectedCandidate.id,
-          notes,
-          tags,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-      }
-    } finally {
-      setTimeout(() => setIsSaving(false), 800);
-    }
+    toast.info(t.recruiter.demoNotice);
+    setTimeout(() => setIsSaving(false), 800);
   };
 
   const handleAddTag = () => {
@@ -176,12 +164,25 @@ export default function RecruiterDashboard() {
                     {t.recruiter.smartParser}
                   </Button>
                 </Link>
-                <Button className="bg-slate-900 text-white rounded-full px-6 h-12 shadow-md hover:bg-slate-800 transition-all">
-                  <Funnel className="w-4 h-4 mr-2" /> {t.common.generateReport}
-                </Button>
+                {/* The primary action here used to be a 生成报告 button with no
+                    onClick — it looked like the page's headline capability and
+                    did nothing when pressed. Removed rather than wired to a
+                    report generator that does not exist. */}
               </>
             }
           />
+        </motion.div>
+
+        {/* Every KPI below is a string literal in this file and every candidate is
+            a mock row, but the page reads and once wrote real evaluation rows. The
+            banner states what this is before anyone reads "1,284 candidates" as
+            their own pipeline. */}
+        <motion.div
+          variants={fadeUpVariant}
+          role="status"
+          className="rounded-2xl border border-amber-200 bg-amber-50/80 px-5 py-4 text-sm leading-relaxed text-amber-900"
+        >
+          {t.recruiter.demoNotice}
         </motion.div>
 
         {/* KPIs */}

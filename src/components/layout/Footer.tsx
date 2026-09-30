@@ -23,16 +23,19 @@ export function Footer() {
           
           <div className="flex flex-col gap-3">
             <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">产品</h3>
-            <Link href="/practice" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">面试题库</Link>
+            {/* 面试题库 appeared in both columns; it stays under 资源. */}
             <Link href="/setup" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">开始面试</Link>
             <Link href="/dashboard" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">控制台</Link>
-            <Link href="/recruiter" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">企业版</Link>
+            {/* 企业版 used to link /recruiter. That route is an interface demo
+                with fabricated candidates and KPIs, so labelling it "Enterprise"
+                sold a product tier that does not exist. */}
           </div>
 
           <div className="flex flex-col gap-3">
             <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">资源</h3>
             <Link href="/landing" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">产品介绍</Link>
-            <a href="/api/session" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">API 状态</a>
+            {/* "API 状态" linked /api/session, a machine endpoint that answers 401
+                to a signed-out visitor — not a resource page. */}
             <Link href="/chat" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">AI 对话</Link>
             <Link href="/practice" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">面试题库</Link>
           </div>
