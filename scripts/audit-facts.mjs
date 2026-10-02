@@ -13,6 +13,13 @@
 // used to parse call sites properly rather than grep text: a doc comment that
 // mentions `fetch(` otherwise reports debt the repository does not have.
 //
+// Known blind spot, stated rather than discovered later: rawFetchCalls counts
+// literal `fetch(` call expressions. Wrapping a call behind an injected
+// `fetchImpl` parameter hides it, so the number falls when call sites become
+// managed and testable — which is the right direction, but it is not a measure
+// of how much the browser fetches. Read a decrease as "fewer unmanaged call
+// sites"; a decrease alone is never evidence that a network call disappeared.
+//
 // CLI:
 //   node scripts/audit-facts.mjs            # JSON to stdout
 //   node scripts/audit-facts.mjs --write    # + docs/audit/facts.baseline.json

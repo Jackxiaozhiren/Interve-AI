@@ -69,10 +69,7 @@ import { DynamicLoader } from "@/components/ui/DynamicLoader";
 import { SystemHealthIndicator } from "@/components/interview/SystemHealthIndicator";
 import { getMessageText, getTextFromFinishEvent } from "@/lib/message-text";
 import { useInterveStore } from "@/store/useInterveStore";
-import {
-  applyBehavioralAnalysis,
-  applyStarAnalysis,
-} from "@/lib/interview/analysis-projection";
+import { runTurnAnalysis } from "@/lib/interview/turn-analysis";
 import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { loopBadge } from "@/lib/interview/difficulty-label";
@@ -600,33 +597,18 @@ function InterviewRoomContent() {
           
           lastAnalysisTimeRef.current = now;
 
-          // Phase 35: STAR Progress Analysis
-          fetch('/api/analyze-star', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+          // Phase 35 + 31: STAR progress and behavioral tracking for this
+          // utterance. Extracted to runTurnAnalysis so the dispatch has tests;
+          // fire-and-forget as before, because a degraded analysis route must
+          // not cost the candidate their turn.
+          void runTurnAnalysis(
+            {
               transcript: trimmedText,
               codeContext: activeCodeContextRef.current,
-              systemDesignContext: activeSystemDesignContextRef.current
-            })
-          }).then(readApiJson).then(result => {
-            // Deliberately not a toast: this fires on every substantial
-            // utterance, so a degraded route would notify between sentences.
-            // The status is logged because "STAR analysis error: SyntaxError"
-            // described the parse, not the server.
-            if (result.ok) applyStarAnalysis(result.data, useInterveStore.getState());
-            else console.warn("STAR analysis unavailable:", describeApiFailure(result.failure));
-          }).catch(err => console.error("STAR analysis request failed:", err));
-
-          // Phase 31: Advanced Behavioral Tracking
-          fetch('/api/analyze-behavior', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcript: trimmedText })
-          }).then(readApiJson).then(result => {
-            if (result.ok) applyBehavioralAnalysis(result.data, useInterveStore.getState());
-            else console.warn("Behavioral analysis unavailable:", describeApiFailure(result.failure));
-          }).catch(err => console.error("Behavioral analysis request failed:", err));
+              systemDesignContext: activeSystemDesignContextRef.current,
+            },
+            useInterveStore.getState()
+          );
         }
         
       } else if (status === 'error') {

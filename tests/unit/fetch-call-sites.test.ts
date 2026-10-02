@@ -47,8 +47,16 @@ describe("the instrument change moved no real debt (R-19)", () => {
     // a clean tree. If this drifts, the new parser disagrees about a call site
     // rather than about prose, and the number must be re-adjudicated — not
     // just copied into the ceiling.
+    //
+    // Re-adjudicated to 15 in daea42b's follow-up: the interview page's two
+    // per-utterance analysis fetches moved into runTurnAnalysis behind an
+    // injected fetchImpl, so the parser no longer sees a literal fetch( there.
+    // That is a real improvement — those two sites went from no tests to six —
+    // and simultaneously the blind spot it exposes: indirection lowers this
+    // number without removing a network call. Read a fall as "fewer unmanaged
+    // call sites", never as "less fetching".
     const { collectFacts } = await import("../../scripts/audit-facts.mjs");
     const facts = collectFacts();
-    expect(facts.capabilities.networkLayer.rawFetchCalls).toBe(17);
+    expect(facts.capabilities.networkLayer.rawFetchCalls).toBe(15);
   });
 });
