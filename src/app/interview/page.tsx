@@ -609,18 +609,24 @@ function InterviewRoomContent() {
               codeContext: activeCodeContextRef.current,
               systemDesignContext: activeSystemDesignContextRef.current
             })
-          }).then(res => res.json()).then(data => {
-            applyStarAnalysis(data, useInterveStore.getState());
-          }).catch(err => console.error("STAR analysis error:", err));
+          }).then(readApiJson).then(result => {
+            // Deliberately not a toast: this fires on every substantial
+            // utterance, so a degraded route would notify between sentences.
+            // The status is logged because "STAR analysis error: SyntaxError"
+            // described the parse, not the server.
+            if (result.ok) applyStarAnalysis(result.data, useInterveStore.getState());
+            else console.warn("STAR analysis unavailable:", describeApiFailure(result.failure));
+          }).catch(err => console.error("STAR analysis request failed:", err));
 
           // Phase 31: Advanced Behavioral Tracking
           fetch('/api/analyze-behavior', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ transcript: trimmedText })
-          }).then(res => res.json()).then(data => {
-            applyBehavioralAnalysis(data, useInterveStore.getState());
-          }).catch(err => console.error("Behavioral analysis error:", err));
+          }).then(readApiJson).then(result => {
+            if (result.ok) applyBehavioralAnalysis(result.data, useInterveStore.getState());
+            else console.warn("Behavioral analysis unavailable:", describeApiFailure(result.failure));
+          }).catch(err => console.error("Behavioral analysis request failed:", err));
         }
         
       } else if (status === 'error') {

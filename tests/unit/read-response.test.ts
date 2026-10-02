@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { describeApiFailure, readApiJson, type ApiFailure } from "@/lib/api/read-response";
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 
 function res(status: number, body: string, contentType = "application/json"): Response {
   return new Response(body, { status, headers: { "content-type": contentType } });
@@ -81,7 +82,35 @@ describe("describeApiFailure", () => {
 describe("no client fetch parses JSON by hand", () => {
   // Built fresh per use: a /g regex carries lastIndex, and reusing one across
   // files with .test() skips matches depending on where the last scan stopped.
-  const BARE_PARSE = () => /await\s+(?:res|resp|response|r)\.json\s*\(\s*\)/g;
+  /**
+   * Counts hand-rolled response parses from the parse tree.
+   *
+   * The first version of this was a regex for `await res.json()`, and it declared
+   * the sweep complete while two sites still read `.then(res => res.json())` —
+   * a promise chain never mentions await. This is the fourth instrument in this
+   * repo to fail by scanning text instead of parsing it (after rawFetchCalls,
+   * anyEscapes and the protected-attribute lock), so the shape is fixed: parse,
+   * and match any zero-argument `.json()` regardless of how the result is
+   * consumed.
+   */
+  function countBareParses(sourceText: string, fileName: string): { line: number; receiver: string }[] {
+    const sf = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const hits: { line: number; receiver: string }[] = [];
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.name.getText(sf) === "json" &&
+        node.arguments.length === 0
+      ) {
+        const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+        hits.push({ line: line + 1, receiver: node.expression.expression.getText(sf) });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+    return hits;
+  }
 
   function clientFiles(dir = path.join(process.cwd(), "src"), out: string[] = []): string[] {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -96,17 +125,34 @@ describe("no client fetch parses JSON by hand", () => {
     return out;
   }
 
-  it("the scan can see the pattern it forbids", () => {
-    expect("const d = await res.json();".match(BARE_PARSE())).toHaveLength(1);
-    expect("const d = await response.json();".match(BARE_PARSE())).toHaveLength(1);
-    expect("const d = await req.json();".match(BARE_PARSE())).toBeNull();
+  it("the scan can see every shape of the pattern it forbids", () => {
+    // Without this control the sweep can be green because the predicate is blind,
+    // which is precisely what happened to the regex version.
+    const shapes = [
+      "const d = await res.json();",
+      "return fetch(u).then(res => res.json()).then(d => d);",
+      "const d = (await response.json()) as T;",
+      "fetch(u).then(r => { const d = r.json(); });",
+    ];
+    for (const src of shapes) {
+      expect(countBareParses(src, "probe.ts"), src).toHaveLength(1);
+    }
+  });
+
+  it("does not count the shared reader or unrelated calls", () => {
+    expect(countBareParses("const d = await readApiJson(res);", "probe.ts")).toHaveLength(0);
+    expect(countBareParses("return Response.json({ ok: true }, { status: 200 });", "probe.ts")).toHaveLength(0);
+    expect(countBareParses("const d = JSON.parse(text);", "probe.ts")).toHaveLength(0);
   });
 
   it("finds bare parses only inside read-response.ts", () => {
     const offenders = clientFiles()
       .filter((f) => !f.endsWith("lib/api/read-response.ts"))
-      .filter((f) => BARE_PARSE().test(fs.readFileSync(f, "utf8")))
-      .map((f) => path.relative(process.cwd(), f));
+      .flatMap((f) =>
+        countBareParses(fs.readFileSync(f, "utf8"), f).map(
+          (h) => `${path.relative(process.cwd(), f)}:${h.line} (${h.receiver}.json())`
+        )
+      );
     expect(offenders, `hand-rolled JSON parses:\n  ${offenders.join("\n  ")}`).toEqual([]);
   });
 });
