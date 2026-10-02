@@ -1,5 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * The origin specs navigate to. Owned here and imported by tests/helpers.ts,
+ * which has to set an HttpOnly cookie before the first navigation — at that
+ * point page.url() is still about:blank, so the helper cannot derive the origin
+ * from the page and must not grow its own copy of this string.
+ */
+export const BASE_URL = 'http://localhost:3000';
+
 export default defineConfig({
   testDir: './tests',
   // Phase 2: only Playwright specs. vitest owns tests/unit + tests/integration
@@ -11,7 +19,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
   },
   timeout: 60000,
