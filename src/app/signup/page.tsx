@@ -102,7 +102,7 @@ export default function SignupPage() {
                   <span className="w-full border-t border-slate-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-[#f8fafd] px-2 text-slate-400 font-semibold tracking-wider">或用演示账号(不保存数据)</span>
+                  <span className="bg-[#f8fafd] px-2 text-slate-600 font-semibold tracking-wider">或用演示账号(不保存数据)</span>
                 </div>
               </div>
 
@@ -152,7 +152,7 @@ export default function SignupPage() {
 
         <p className="text-center text-slate-500 text-sm mt-8 font-medium">
           Already have an account?{" "}
-          <Link href="/login" className="text-sky-600 font-bold hover:underline">
+          <Link href="/login" className="text-sky-700 font-bold hover:underline">
             Sign in
           </Link>
         </p>
