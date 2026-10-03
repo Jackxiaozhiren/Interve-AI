@@ -15,11 +15,11 @@ test.describe('Keyboard & Focus', () => {
   });
 
   test('mic button is keyboard-operable (Enter toggles recording)', async ({ page }) => {
-    // §9 flake guard: recording START loads the whisper worker + fake-mic
-    // device; under parallel workers this starves and times out BEFORE any
-    // steering code runs (pre-existing contention, not a product regression).
-    // test.slow() triples the timeout budget; CI still pins --workers=1
-    // for mic suites (see playwright.config.ts + EVALUATION_V2_REPORT §8/§9).
+    // Recording START loads the whisper worker + fake-mic device, so this is the
+    // only test in the repo that needs `modelsReady` to become true. It is
+    // excluded from every CI lane (`npm run test:e2e:keyboard` greps it out)
+    // because a cold runner has never reached that state inside the budget;
+    // `test.slow()` keeps a local run from tripping over the model download.
     test.slow();
     await loginAs(page);
     await page.goto('/interview?id=kbd-mic&testMode=true');
@@ -35,6 +35,12 @@ test.describe('Keyboard & Focus', () => {
 
     const mic = page.getByRole('button', { name: /开始录音|停止录音/ });
     await expect(mic).toBeVisible({ timeout: 15000 });
+    // The button is `disabled={!modelsReady || isLoading}`, and a disabled
+    // control swallows Enter silently — asserting only visibility let this pass
+    // against a button that could not have started anything. Waiting for the
+    // enabled state is what the test's own name claims: keyboard operability of
+    // a live control, after the Whisper worker is ready.
+    await expect(mic).toBeEnabled({ timeout: 60000 });
     await mic.focus();
     await expect(mic).toBeFocused();
     // Keyboard activation must start recording (fake mic in CI).

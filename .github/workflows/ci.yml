@@ -44,6 +44,15 @@ jobs:
         env:
           CI: true
 
+      # Three of this file's four tests: skip-link focus, the insights
+      # default-off check, and pause/think-time pressed state. The excluded one
+      # needs the mic button to leave its `!modelsReady` disabled state, which a
+      # cold runner has never done inside the budget.
+      # See docs/TESTING.md "Specs no CI lane collects".
+      - run: npm run test:e2e:keyboard
+        env:
+          CI: true
+
       # Reproduce the runner-only mock-journey failure with evidence attached.
       - run: npm run test:e2e:mock
         env:
