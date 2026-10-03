@@ -37,6 +37,13 @@ jobs:
         env:
           CI: true
 
+      # axe legs only. The two snapshot tests in the same file are deliberately
+      # excluded: their baselines are captured on darwin and Playwright keys the
+      # baseline filename by platform, so this runner could never resolve them.
+      - run: npm run test:e2e:axe
+        env:
+          CI: true
+
       # Reproduce the runner-only mock-journey failure with evidence attached.
       - run: npm run test:e2e:mock
         env:
