@@ -83,6 +83,7 @@ import { saveSession, loadSession, clearSession } from "@/lib/interview/session-
 import { readDesignCanvas, readScratchpadCodeContext, readScratchpadContent } from "@/lib/interview/board-state";
 import { useInterviewSettlement } from "@/components/interview/useInterviewSettlement";
 import { micConstraints, getPreferredMicDevice } from "@/lib/audio/vad";
+import { decodeRecordingToMono16k } from "@/lib/audio/decode-recording";
 import { FlowMap } from "@/components/interview/FlowMap";
 import { PinnedQuestion } from "@/components/interview/PinnedQuestion";
 import { SoftPacingBar } from "@/components/interview/SoftPacingBar";
@@ -869,17 +870,35 @@ function InterviewRoomContent() {
         if (unmountedRef.current) return;
         const blob = new Blob(audioChunks.current, { type: 'audio/webm' });
         setModelStatus("正在识别语音...");
-        
-        // Decode audio to 16kHz Float32Array for Whisper
-        const tempContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ sampleRate: 16000 });
-        const arrayBuffer = await blob.arrayBuffer();
-        const decoded = await tempContext.decodeAudioData(arrayBuffer);
-        const float32Data = decoded.getChannelData(0);
-        
+
+        // decodeRecordingToMono16k closes its own AudioContext and reports
+        // failure as null, so neither a too-short recording nor the browser's
+        // live-context cap can leave this status on screen forever — which is
+        // what an uncaught rejection in this async handler used to do.
+        const AudioContextCtor = window.AudioContext
+          || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        const samples = AudioContextCtor
+          ? await decodeRecordingToMono16k(blob, AudioContextCtor)
+          : null;
+
+        if (unmountedRef.current) return;
+        if (!samples) {
+          // Idle, not "listening": the recorder has stopped and the mic tracks
+          // are closed, so claiming to be listening would be its own small lie.
+          setModelStatus("");
+          if (blob.size > 0) {
+            toast.error("语音转写未完成", {
+              description: "录音解码失败，可直接输入回答，或再答一次。",
+              duration: 6000,
+            });
+          }
+          return;
+        }
+
         whisperWorker.current?.postMessage({
           type: 'transcribe',
-          audio: float32Data
-        }, [float32Data.buffer]);
+          audio: samples
+        }, [samples.buffer]);
         // Phase 13: STT latency = post → complete turnaround.
         whisperSpanRef.current.start();
       };
