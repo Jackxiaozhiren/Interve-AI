@@ -137,7 +137,7 @@ export function LoginForm() {
                 <span className="w-full border-t border-slate-200" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[#f8fafd] px-2 text-slate-400 font-semibold tracking-wider">
+                <span className="bg-[#f8fafd] px-2 text-slate-600 font-semibold tracking-wider">
                   或用演示账号(不保存数据)
                 </span>
               </div>
@@ -238,7 +238,7 @@ export function LoginForm() {
       {/* Switch to Signup */}
       <p className="text-center text-slate-500 text-sm mt-8 font-medium">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-sky-600 font-bold hover:underline">
+        <Link href="/signup" className="text-sky-700 font-bold hover:underline">
           Sign up
         </Link>
       </p>
