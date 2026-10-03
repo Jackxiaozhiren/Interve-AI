@@ -20,11 +20,18 @@ export function ptDayKey(now = new Date()): string {
   return ptDayFmt.format(now);
 }
 
+/**
+ * The fallback behind `defaultUserBudget()`. Exported because the marketing
+ * pricing card quotes it — keeping it a literal in two places is how the
+ * homepage ends up advertising a number the guard no longer enforces.
+ */
+export const DEFAULT_USER_BUDGET_RPD = 200;
+
 /** Default daily budget per user per route (generous; tighten via env). */
 export function defaultUserBudget(): number {
   const raw = process.env.USER_AI_BUDGET_RPD;
   const parsed = raw === undefined || raw === "" ? NaN : Number.parseInt(raw, 10);
-  if (!Number.isInteger(parsed) || parsed <= 0) return 200;
+  if (!Number.isInteger(parsed) || parsed <= 0) return DEFAULT_USER_BUDGET_RPD;
   return parsed;
 }
 

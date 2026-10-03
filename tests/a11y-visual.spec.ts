@@ -3,7 +3,7 @@
 // - visual: landing hero + login card snapshots (animations disabled).
 //   Snapshots live beside this file; regenerate deliberately via
 //   `playwright test -u` after INTENTIONAL visual changes only.
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { loginAs } from './helpers';
 
@@ -62,19 +62,32 @@ test.describe('Automated a11y scans', () => {
 });
 
 test.describe('Visual regression', () => {
+  /**
+   * Next's dev overlay mounts into <nextjs-portal> and grows an "N · 1 Issue"
+   * pill whenever the dev server logs anything — /login logs a hydration
+   * warning today, and the pill alone is 3,735 px, nine times the diff budget.
+   * Nothing like it exists in production, so masking keeps the snapshot
+   * measuring the product rather than the harness.
+   */
+  const devChrome = (page: Page) => page.locator('nextjs-portal');
+
   test('landing hero matches snapshot', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('main')).toHaveScreenshot('landing-main.png', {
       animations: 'disabled',
       maxDiffPixels: 400,
+      mask: [devChrome(page)],
     });
   });
 
   test('login card matches snapshot', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.locator('main, body').first()).toHaveScreenshot('login-main.png', {
+    // 'main, body' looks like a fallback but CSS matches in DOM order, so
+    // .first() always won <body> and the "card" snapshot was the whole page.
+    await expect(page.locator('main')).toHaveScreenshot('login-main.png', {
       animations: 'disabled',
       maxDiffPixels: 400,
+      mask: [devChrome(page)],
     });
   });
 });

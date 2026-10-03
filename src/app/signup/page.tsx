@@ -133,12 +133,14 @@ export default function SignupPage() {
                   />
                 </div>
                 
-                <MagneticButton 
+                <MagneticButton
                   className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-[0_4px_12px_rgba(15,23,42,0.15)] flex justify-center items-center group transition-all"
                   disabled={isLoading}
+                  aria-label="Sign Up"
+                  aria-busy={isLoading}
                 >
                   {isLoading ? (
-                    <span className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    <span aria-hidden="true" className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   ) : (
                     <>Sign Up <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" /></>
                   )}

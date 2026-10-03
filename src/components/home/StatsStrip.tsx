@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { StatCard } from "@/components/data";
 import { db } from "@/lib/db";
 
-/* Home Stats 条：本地会话数 / 已完成率 / 题库规模。
+/* Home Stats 条：本地会话数 / 已完成率 / 题目来源。
    读不到数据时显示占位符，永不白屏。 */
 
 export function StatsStrip() {
@@ -52,9 +52,9 @@ export function StatsStrip() {
           hint="已完成 / 全部会话"
         />
         <StatCard
-          label="练习题库"
-          value="100+"
-          hint="行为 / 技术 / 系统设计 / 领导力全覆盖"
+          label="面试题目"
+          value="实时生成"
+          hint="按你的目标与岗位由模型生成，没有固定题库"
         />
       </div>
     </section>

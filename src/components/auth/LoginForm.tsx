@@ -210,12 +210,19 @@ export function LoginForm() {
                 </div>
               </div>
 
+              {/* The loading branch swaps the label for a bare spinner, which
+                  leaves a submit button with no accessible name at the exact
+                  moment a screen-reader user needs feedback. aria-label keeps
+                  the name stable (identical to the visible text, so 2.5.3
+                  still holds) and aria-busy carries the state. */}
               <MagneticButton
                 className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-[0_4px_12px_rgba(15,23,42,0.15)] flex justify-center items-center group transition-all"
                 disabled={isLoading}
+                aria-label="Sign In"
+                aria-busy={isLoading}
               >
                 {isLoading ? (
-                  <span className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  <span aria-hidden="true" className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                 ) : (
                   <>
                     Sign In{" "}

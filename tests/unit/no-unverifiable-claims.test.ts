@@ -115,3 +115,88 @@ describe("the terms page agrees with the product", () => {
     expect(terms).toMatch(/不会.{0,6}被保存/);
   });
 });
+
+/**
+ * The `/` route is the page a stranger actually lands on, and until this slice
+ * it carried more invented proof than `/landing` ever did: 10,000+ active users,
+ * 50,000+ completed interviews, a 95% satisfaction rate, a question bank of
+ * "100+" that does not exist as data (prompts are generated per session), three
+ * pricing tiers with no billing code behind any of them, and a testimonial
+ * attributed to a named engineer at a named real employer. The employer and the
+ * person are both invented, which is a different order of problem from a round
+ * number — so these are pinned structurally, not phrase by phrase.
+ */
+describe("the homepage asserts nothing it cannot show", () => {
+  const HOME = SOURCE_FILES.filter((f) => f.startsWith("src/components/home/"));
+
+  it("renders no invented metric: no literal number carrying a + or % suffix", () => {
+    // Derived values are safe here — StatsStrip interpolates a rate it read from
+    // IndexedDB, so `${rate}%` contains no numeric literal to ban.
+    const hits = HOME.flatMap((f) =>
+      [...prose(f).matchAll(/([0-9][0-9,]*)\s*[+%]/g)].map((m) => `${f}: ${m[0]}`)
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it("attributes no quote to a person", () => {
+    const hits = HOME.filter((f) => /<blockquote/.test(prose(f)));
+    expect(hits).toEqual([]);
+  });
+
+  it("names no employer alongside a person", () => {
+    // The removed card read 李明 / 前端工程师 · 腾讯. A middle dot between a role
+    // and a company is the shape of every byline in this file family.
+    const hits = HOME.filter((f) => /·\s*[\u4e00-\u9fa5]{2,6}\s*(?:<|")/.test(prose(f)));
+    expect(hits).toEqual([]);
+  });
+
+  it("offers exactly one price, because one price exists", () => {
+    const body = prose("src/components/home/PricingSection.tsx");
+    expect([...body.matchAll(/¥/g)]).toHaveLength(1);
+  });
+
+  it("puts no phantom tier or CTA in the slots that would carry one", () => {
+    // Checked as structure, not as a whole-file substring ban: the section's own
+    // disclaimer says out loud that 企业版 does not exist, and a guard that
+    // indicts a honest negation gets routed around instead of obeyed. Tier names
+    // live in <h3>, calls to action live in <InterveButton>.
+    const body = prose("src/components/home/PricingSection.tsx");
+    const tiers = [...body.matchAll(/<h3[^>]*>([^<]*)<\/h3>/g)].map((m) => m[1].trim());
+    const ctas = [...body.matchAll(/<InterveButton[^>]*>([^<]*)<\/InterveButton>/g)].map((m) => m[1].trim());
+    expect(tiers).toEqual(["免费"]);
+    expect(ctas).toEqual(["免费注册"]);
+    for (const label of [...tiers, ...ctas]) {
+      expect(label).not.toMatch(/企业版|专业版|升级|联系销售/);
+    }
+  });
+
+  it("has no billing surface for the copy to overreach into", () => {
+    // If a checkout route ever lands, this fails and the pricing card gets
+    // re-read — that is the point of checking the API surface and not only the prose.
+    const api = SOURCE_FILES.filter((f) => f.startsWith("src/app/api/"));
+    const billing = api.filter((f) => /billing|checkout|payment|subscription|upgrade/i.test(f));
+    expect(billing).toEqual([]);
+  });
+
+  it("quotes the two numbers it shows from the code that owns them", () => {
+    const body = read("src/components/home/PricingSection.tsx");
+    expect(body).toMatch(/INTERVIEW_TYPES\.length/);
+    expect(body).toMatch(/DEFAULT_USER_BUDGET_RPD/);
+  });
+
+  it("agrees with the budget module about the default ceiling", async () => {
+    const { DEFAULT_USER_BUDGET_RPD, defaultUserBudget } = await import("@/lib/api/user-budget");
+    expect(DEFAULT_USER_BUDGET_RPD).toBe(200);
+    expect(defaultUserBudget()).toBe(DEFAULT_USER_BUDGET_RPD);
+  });
+
+  it("lists only interview types that actually exist", async () => {
+    // No pin on the total: the card renders INTERVIEW_TYPES.length, so adding a
+    // type keeps the copy true and a length assertion would only punish the work.
+    const { INTERVIEW_TYPES } = await import("@/ai/interview/types");
+    const ids = INTERVIEW_TYPES.map((t) => t.id);
+    for (const id of ["behavioral", "technical", "system-design", "business-case"]) {
+      expect(ids, id).toContain(id);
+    }
+  });
+});
