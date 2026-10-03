@@ -24,6 +24,7 @@ import { buildInterviewPlan, type InterviewPlan } from "@/ai/interview/plan";
 import { normalizeGrounding } from "@/ai/evidence";
 import { type Difficulty } from "@/ai/interview/state";
 import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
+import { probeHardware } from "@/lib/interview/hardware-probe";
 
 const DIFFICULTY_OPTIONS: { id: Difficulty; name: string; desc: string }[] = [
   { id: "easy", name: "Easy", desc: "Foundations first, generous pacing." },
@@ -213,59 +214,59 @@ export default function SetupPage() {
         }
       }
 
+      const probe = await probeHardware(
+        (constraints) => navigator.mediaDevices.getUserMedia(constraints),
+        micConstraints()
+      );
+      if (cancelled) {
+        probe.stream?.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      setMicStatus(probe.mic);
+      setCamStatus(probe.cam);
+      if (probe.message) setErrorMessage(probe.message);
+      if (!probe.stream) return;
+
+      streamRef.current = probe.stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = probe.stream;
+      }
+
+      // The meter is decoration on top of a working microphone, so it gets its
+      // own failure path: an AudioContext that will not start must not report the
+      // candidate's devices as broken, which is what happened when it sat inside
+      // the same try as getUserMedia.
       try {
-        // Phase 8: echo/noise suppression on the audio track.
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(), video: true });
-        if (cancelled) {
-          stream.getTracks().forEach(track => track.stop());
-          return;
-        }
-        streamRef.current = stream;
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        setCamStatus("success");
-        
         const AudioContext = window.AudioContext || (window as Window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
         const audioContext = new AudioContext();
         audioContextRef.current = audioContext;
-        
+
         const analyserNode = audioContext.createAnalyser();
         analyserNode.fftSize = 256;
         setAnalyser(analyserNode);
-        
-        const source = audioContext.createMediaStreamSource(stream);
+
+        const source = audioContext.createMediaStreamSource(probe.stream);
         source.connect(analyserNode);
-        
-        setMicStatus("success");
-      } catch (err: unknown) {
-        console.error("Hardware access error:", err);
-        setMicStatus("error");
-        setCamStatus("error");
-        if (err instanceof Error) {
-          if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-            setErrorMessage("Browser blocked camera/microphone access. Please allow access in your URL bar and try again.");
-          } else if (err.name === "NotFoundError") {
-            setErrorMessage("No camera/microphone detected. Please plug in a device.");
-          } else {
-            setErrorMessage("An error occurred while accessing the camera/microphone.");
-          }
-        } else {
-          setErrorMessage("An error occurred while accessing the camera/microphone.");
-        }
+      } catch (err) {
+        console.warn("Mic level meter unavailable:", err);
+        audioContextRef.current = null;
       }
     };
 
     testHardware();
-    
+
     return () => {
        cancelled = true;
        if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
+        // Cleared as well as closed: the next run of this effect reads the ref,
+        // and closing an already-closed context rejects instead of no-oping.
+        audioContextRef.current = null;
       }
     };
   }, [currentStep]);
