@@ -5,40 +5,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { motion, AnimatePresence } from "framer-motion";
-
-interface ISpeechRecognitionEvent {
-  resultIndex: number;
-  results: {
-    length: number;
-    [index: number]: {
-      isFinal: boolean;
-      [index: number]: {
-        transcript: string;
-      }
-    }
-  };
-}
-
-interface ISpeechRecognitionErrorEvent {
-  error: string;
-}
-
-interface ISpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onresult: ((event: ISpeechRecognitionEvent) => void) | null;
-  onerror: ((event: ISpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-}
-
-interface IWindowWithSpeech extends Window {
-  SpeechRecognition?: { new (): ISpeechRecognition };
-  webkitSpeechRecognition?: { new (): ISpeechRecognition };
-}
 import { Microphone, PhoneDisconnect, WarningCircle, PaperPlaneRight, PencilSimple, CornersOut, CornersIn, Brain, Clock, Pause, Play, Lightbulb, Graph, Trash, ArrowsClockwise, Copy } from "@phosphor-icons/react";
 import { useAccessibilityStore } from "@/store/useAccessibilityStore";
 import { Button } from "@/components/ui/button";
@@ -79,6 +45,7 @@ import { useVADInterruption } from "@/hooks/useVADInterruption";
 import { createSttSession } from "@/lib/audio/stt";
 // Phase E1: pure slices extracted from this God component (unit-tested).
 import { computeWpm, countFillers, shouldRunAnalysis } from "@/lib/interview/delivery-metrics";
+import { startSpeechSession, type SpeechRecognitionLike, type WindowWithSpeech } from "@/lib/interview/speech-session";
 import { saveSession, loadSession, clearSession } from "@/lib/interview/session-persistence";
 import { readDesignCanvas, readScratchpadCodeContext, readScratchpadContent } from "@/lib/interview/board-state";
 import { useInterviewSettlement } from "@/components/interview/useInterviewSettlement";
@@ -154,7 +121,6 @@ function InterviewRoomContent() {
   // One start, two readers: TTFT is read at the first token and the round trip
   // at the end of the answer, so the span is not consumed by the first.
   const sendSpanRef = useRef(createLatencySpan());
-  const sttRestartsRef = useRef(0);
   const unmountedRef = useRef(false);
   // Phase 13: latency breakdown refs (31). TTFT ≈ submit→streaming;
   // whisper = post→complete turnaround; TTS = speak-request→first audio.
@@ -212,7 +178,7 @@ function InterviewRoomContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const whisperWorker = useRef<Worker | null>(null);
   const kokoroWorker = useRef<Worker | null>(null);
-  const speechRecognition = useRef<ISpeechRecognition | null>(null);
+  const speechRecognition = useRef<SpeechRecognitionLike | null>(null);
   
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<BlobPart[]>([]);
@@ -782,86 +748,44 @@ function InterviewRoomContent() {
         if (e.data.size > 0) audioChunks.current.push(e.data);
       };
 
-      // SpeechRecognition for Real-time Telemetry & API Analysis
-      const SpeechRecognition = (window as unknown as IWindowWithSpeech).SpeechRecognition || (window as unknown as IWindowWithSpeech).webkitSpeechRecognition;
+      // SpeechRecognition for Real-time Telemetry & API Analysis.
+      // Transcript assembly, the filler delta and the bounded network-reconnect
+      // live in startSpeechSession so they can be tested without a real
+      // window.SpeechRecognition; this call site only pushes React state.
+      const SpeechRecognition = (window as unknown as WindowWithSpeech).SpeechRecognition || (window as unknown as WindowWithSpeech).webkitSpeechRecognition;
       if (SpeechRecognition) {
-         speechRecognition.current = new SpeechRecognition();
-         speechRecognition.current.continuous = true;
-         speechRecognition.current.interimResults = true;
-         speechRecognition.current.lang = 'zh-CN'; // Defaulting to Chinese, but will pick up English too
-         
-         let accumulatedDraft = "";
-         let localFillerCount = 0;
-
-          speechRecognition.current.onresult = (event: ISpeechRecognitionEvent) => {
-            let interimTranscript = '';
-            let finalTranscript = '';
-            
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-               const alternative = event.results[i][0] as { transcript: string; confidence?: number };
-               if (event.results[i].isFinal) {
-                  finalTranscript += alternative.transcript;
-                  // Phase 8: STT observability (19.2) — finals with confidence.
-                  sttSessionRef.current.recordFinal(alternative.transcript, alternative.confidence);
-               } else {
-                  interimTranscript += alternative.transcript;
-                  sttSessionRef.current.recordPartial(alternative.transcript);
-               }
-            }
-            
-            const currentDraft = accumulatedDraft + finalTranscript + interimTranscript;
-            
+        const session = startSpeechSession({
+          create: () => new SpeechRecognition(),
+          countFillers,
+          stt: sttSessionRef.current,
+          onWarning: (message) => console.warn(message),
+          onDraft: ({ draft, fillersInDraft, newFillers }) => {
             // Update speech time to avoid silence penalty
             lastSpeechTimeRef.current = Date.now();
             setCognitiveLoad(prev => Math.max(0, prev - 1)); // Active speaking slightly reduces load
-            
-            // Calculate WPM (E1: pure helper)
-            if (recordingStartTimeRef.current) {
-               const durationMinutes = (Date.now() - recordingStartTimeRef.current) / 60000;
-               const currentWpm = computeWpm(currentDraft, durationMinutes);
-               if (currentWpm !== null) setWpm(currentWpm);
-            }
-            setActiveUserTranscript(currentDraft);
 
-            // Filler words check (hesitation tracking, E1: pure helper)
-            const fillerMatches = countFillers(currentDraft);
-            if (fillerMatches > 0) {
-               setFillerWordsCount(totalFillerWordsRef.current + fillerMatches);
-               const newFillers = fillerMatches - localFillerCount;
-               if (newFillers > 0) {
-                  // Phase 2: Voice Pattern Extraction (Hesitation)
-                  // Increase cognitive load significantly for repeated hesitation
-                  setCognitiveLoad(prev => Math.min(100, prev + newFillers * 5));
-                  localFillerCount = fillerMatches;
-               }
+            if (recordingStartTimeRef.current) {
+              const durationMinutes = (Date.now() - recordingStartTimeRef.current) / 60000;
+              const currentWpm = computeWpm(draft, durationMinutes);
+              if (currentWpm !== null) setWpm(currentWpm);
             }
-            
-            // Parallel API Analysis on final chunks
+            setActiveUserTranscript(draft);
+
+            if (fillersInDraft > 0) {
+              setFillerWordsCount(totalFillerWordsRef.current + fillersInDraft);
+            }
+            if (newFillers > 0) {
+              // Phase 2: Voice Pattern Extraction (Hesitation)
+              // Increase cognitive load significantly for repeated hesitation
+              setCognitiveLoad(prev => Math.min(100, prev + newFillers * 5));
+            }
+
             // Phase 3 (Truthfulness Reset): the chunk-analysis endpoint
-            // response (sentiment/accuracy scores) had NO consumer — both
-            // setters fed dead LiveStats props — while burning provider quota
-            // on every final chunk. The call is removed; WPM/filler above
-            // remain the observable delivery signals. See TRUTHFULNESS_REPORT.
-            if (finalTranscript.trim()) {
-               accumulatedDraft += finalTranscript;
-            }
-         };
-          speechRecognition.current.onerror = (e: ISpeechRecognitionErrorEvent) => {
-            console.warn("Speech recognition error:", e.error);
-            // Phase 8 (19.2): bounded auto-reconnect on network drops only.
-            // 'no-speech' is normal silence; 'not-allowed' needs the user.
-            if (e.error === "network" && sttRestartsRef.current < 3) {
-              sttRestartsRef.current += 1;
-              sttSessionRef.current.recordReconnect();
-              try {
-                speechRecognition.current?.start();
-              } catch {
-                // already running — the next result will arrive on its own
-              }
-            }
-          };
-         
-         speechRecognition.current.start();
+            // response had no consumer while burning provider quota on every
+            // final chunk; the call stays removed. See TRUTHFULNESS_REPORT.
+          },
+        });
+        speechRecognition.current = session.recognition;
       }
 
        mediaRecorder.current.onstop = async () => {
