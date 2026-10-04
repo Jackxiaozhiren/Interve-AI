@@ -45,6 +45,7 @@ import { useVADInterruption } from "@/hooks/useVADInterruption";
 import { createSttSession } from "@/lib/audio/stt";
 // Phase E1: pure slices extracted from this God component (unit-tested).
 import { computeWpm, countFillers, shouldRunAnalysis } from "@/lib/interview/delivery-metrics";
+import { createDeliveryLedger } from "@/lib/interview/delivery-ledger";
 import { startSpeechSession, type SpeechRecognitionLike, type WindowWithSpeech } from "@/lib/interview/speech-session";
 import { saveSession, loadSession, clearSession } from "@/lib/interview/session-persistence";
 import { readDesignCanvas, readScratchpadCodeContext, readScratchpadContent } from "@/lib/interview/board-state";
@@ -109,7 +110,9 @@ function InterviewRoomContent() {
   const [modelLoadError, setModelLoadError] = useState(false);
   const [isGreenRoom, setIsGreenRoom] = useState(!testMode);
   const recordingStartTimeRef = useRef<number | null>(null);
-  const totalFillerWordsRef = useRef<number>(0);
+  // One owner for the hesitation count, because both speech engines see the same
+  // spoken fillers (see src/lib/interview/delivery-ledger.ts).
+  const deliveryLedgerRef = useRef(createDeliveryLedger(countFillers));
   const lastSpeechTimeRef = useRef<number>(Date.now());
   const lastAnalysisTimeRef = useRef<number>(0);
   // Phase 8: observable delivery analytics (no psychology). Refs only —
@@ -475,7 +478,7 @@ function InterviewRoomContent() {
         onClick: () => {
           setMessages(snapshot.messages as never[]);
           if (snapshot.wpm) setWpm(snapshot.wpm);
-          if (snapshot.fillerWordsCount) setFillerWordsCount(snapshot.fillerWordsCount);
+          if (snapshot.fillerWordsCount) setFillerWordsCount(deliveryLedgerRef.current.seed(snapshot.fillerWordsCount));
           toast.success("已恢复对话记录");
         }
       },
@@ -536,12 +539,9 @@ function InterviewRoomContent() {
            recordingStartTimeRef.current = null;
         }
 
-        const newFillers = countFillers(text);
-        if (newFillers > 0) {
-           const finalCount = totalFillerWordsRef.current + newFillers;
-           setFillerWordsCount(finalCount);
-           totalFillerWordsRef.current = finalCount;
-        }
+        // The Whisper final is the answer's authoritative text, so it — not the
+        // browser draft — owns the hesitation count for this answer.
+        setFillerWordsCount(deliveryLedgerRef.current.commitFinalFromWhisper(text));
 
         // Send transcribed text to API
         if (handleUserInputRef.current) {
@@ -740,6 +740,11 @@ function InterviewRoomContent() {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
+      // One ledger per answer. Reset before the first engine can report so a
+      // discarded (unmounted) start never burns the reset, and so a second
+      // startRecording() inside the same mount cannot inherit the last
+      // answer's committed total.
+      deliveryLedgerRef.current.beginAnswer();
       setActiveStream(stream);
       mediaRecorder.current = new MediaRecorder(stream);
       audioChunks.current = [];
@@ -759,7 +764,7 @@ function InterviewRoomContent() {
           countFillers,
           stt: sttSessionRef.current,
           onWarning: (message) => console.warn(message),
-          onDraft: ({ draft, fillersInDraft, newFillers }) => {
+          onDraft: ({ draft, newFillers }) => {
             // Update speech time to avoid silence penalty
             lastSpeechTimeRef.current = Date.now();
             setCognitiveLoad(prev => Math.max(0, prev - 1)); // Active speaking slightly reduces load
@@ -771,9 +776,10 @@ function InterviewRoomContent() {
             }
             setActiveUserTranscript(draft);
 
-            if (fillersInDraft > 0) {
-              setFillerWordsCount(totalFillerWordsRef.current + fillersInDraft);
-            }
+            // Provisional only: if this answer already committed via Whisper,
+            // the ledger returns the committed total and this late browser
+            // flush adds nothing.
+            setFillerWordsCount(deliveryLedgerRef.current.provisionalFromDraft(draft));
             if (newFillers > 0) {
               // Phase 2: Voice Pattern Extraction (Hesitation)
               // Increase cognitive load significantly for repeated hesitation
