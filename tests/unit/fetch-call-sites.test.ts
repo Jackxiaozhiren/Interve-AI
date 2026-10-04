@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countRawFetchCallSites } from "../../scripts/audit-facts.mjs";
+import { collectFacts, countRawFetchCallSites } from "../../scripts/audit-facts.mjs";
 
 /**
  * The ratchet key `capabilities.networkLayer.rawFetchCalls` is a CALL-SITE
@@ -41,8 +41,13 @@ it("parses TSX without tripping over JSX", () => {
   expect(countRawFetchCallSites(tsx, "probe.tsx")).toBe(1);
 });
 
+// Measured at module load rather than inside the test — see the note in
+// any-escapes.test.ts. collectFacts() walks and parses all of src/, and a ~1.4s
+// measurement inside a 5s test timeout is a gate that goes red on a busy runner.
+const facts = collectFacts();
+
 describe("the instrument change moved no real debt (R-19)", () => {
-  it("still reports the seeded ceiling for src/", async () => {
+  it("still reports the seeded ceiling for src/", () => {
     // 17 is the value facts.limits.json carries, measured by the old scanner on
     // a clean tree. If this drifts, the new parser disagrees about a call site
     // rather than about prose, and the number must be re-adjudicated — not
@@ -55,8 +60,6 @@ describe("the instrument change moved no real debt (R-19)", () => {
     // and simultaneously the blind spot it exposes: indirection lowers this
     // number without removing a network call. Read a fall as "fewer unmanaged
     // call sites", never as "less fetching".
-    const { collectFacts } = await import("../../scripts/audit-facts.mjs");
-    const facts = collectFacts();
     expect(facts.capabilities.networkLayer.rawFetchCalls).toBe(15);
   });
 });

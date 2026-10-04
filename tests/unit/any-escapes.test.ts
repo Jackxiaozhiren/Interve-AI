@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countAnyEscapes } from "../../scripts/audit-facts.mjs";
+import { countAnyEscapes, collectFacts } from "../../scripts/audit-facts.mjs";
 
 /**
  * `debt.anyEscapes` is the ledger for explicit `any` escaping the strict
@@ -30,11 +30,17 @@ describe.each(cases)("any-escape counter: %s", (_label, body, expected) => {
   });
 });
 
-it("still reports the seeded ceiling for src/", async () => {
+// Measured at module load, not inside the test: collectFacts() parses every file
+// under src/ and cost ~1.4s on an idle machine, which lost the default 5s test
+// timeout whenever the suite ran under load — a red gate that meant nothing
+// about the code. Module collection is not timed, so the number is still
+// re-derived for every run.
+const facts = collectFacts();
+
+it("still reports the seeded ceiling for src/", () => {
   // 17 fetch sites had an equivalent control; this one guards the same way:
   // if the AST count ever moves off the ledger's 0, that is either newly
   // discovered debt or a probe that started counting something else, and both
   // need adjudicating rather than a ceiling edit.
-  const { collectFacts } = await import("../../scripts/audit-facts.mjs");
-  expect(collectFacts().debt.anyEscapes).toBe(0);
+  expect(facts.debt.anyEscapes).toBe(0);
 });
