@@ -202,7 +202,7 @@ export default function PrivacyPage() {
                 这些都在你的设备上，清除浏览器数据即可移除；隐私中心里也有一键清理本地数据的按钮。
               </p>
               <Evidence>
-                快照过期由 <code>SESSION_TTL_MS</code>（30 天）决定；会话 Cookie 为 HMAC 签名、<code>HttpOnly</code>，其 <code>Max-Age</code> 取自同一个 24 小时常量。
+                快照过期由 <code>SESSION_TTL_MS</code>（30 天）决定，并在两处强制：读取该场面试时（<code>loadSession</code>）与每次页面挂载时遍历清理（<code>pruneExpiredSessions</code>）——所以即使你不再回到那场面试，过期快照也会被删掉。会话 Cookie 为 HMAC 签名、<code>HttpOnly</code>，其 <code>Max-Age</code> 取自同一个 24 小时常量。
               </Evidence>
             </section>
 
