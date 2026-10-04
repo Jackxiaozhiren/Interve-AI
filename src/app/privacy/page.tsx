@@ -239,7 +239,7 @@ export default function PrivacyPage() {
             <section>
               <H2 id="third">第三方与托管</H2>
               <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
-                应用托管在 Vercel，数据库与身份认证使用 Supabase，模型推理见上文。此外浏览器会从这些地址加载静态资源，因此对方会看到常规的访问日志（含 IP）：Hugging Face CDN（语音与语音合成模型权重）、jsDelivr（代码编辑器）、fonts.googleapis.com 与 fonts.gstatic.com（字体）。
+                应用托管在 Vercel，数据库与身份认证使用 Supabase，模型推理见上文。此外浏览器会从这些地址加载静态资源，因此对方会看到常规的访问日志（含 IP）：Hugging Face CDN（语音与语音合成模型权重）与 jsDelivr（代码编辑器）。字体不来自第三方：本项目不使用 next/font、外链字体样式表或任何远程字体文件，界面字体由你设备本地已安装的字体渲染。
               </p>
               <Evidence>
                 内容安全策略在 <code>src/proxy.ts</code> 声明了允许的来源；没有接入任何广告或行为分析脚本。
