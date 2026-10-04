@@ -23,7 +23,7 @@ export const MODEL_IDS = {
   gpt4oMini: "gpt-4o-mini",
   gpt4o: "gpt-4o",
   // OpenRouter free tier (OpenAI-compatible, $0). Opt-in only via
-  // `?model=openrouter` — never the default (free models rotate + rate-limit).
+  // `?aiModel=openrouter` — never the default (free models rotate + rate-limit).
   // Verified 2026-09-19 against https://openrouter.ai/api/v1/models:
   // ultra = text-only free-form chat (NO vision, NO response_format — do NOT
   // use for generateObject eval lanes); deepseek = structured-output candidate
@@ -91,7 +91,7 @@ let openrouterClient: OpenAIProvider | null = null;
 /**
  * Singleton OpenRouter (OpenAI-compatible) client. Server-only key
  * (`OPENROUTER_API_KEY`, never `NEXT_PUBLIC_*`). Without it, only the
- * explicit `?model=openrouter*` opt-in fails closed at call time — keyless
+ * explicit `?aiModel=openrouter*` opt-in fails closed at call time — keyless
  * CI/build never touches the network. NOTE: must use `.chat()` — the
  * callable default is the Responses API (/responses), which OpenRouter's
  * OpenAI-compatible endpoint does not serve for these models.
