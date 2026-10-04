@@ -14,6 +14,7 @@
  * that nobody runs goes red; so does a table row that outlives its gap.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const read = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
@@ -104,4 +105,94 @@ describe("the CI lane inventory matches the CI file", () => {
     const ghost = cited.filter((f) => !specFilesOnDisk.includes(f));
     expect(ghost, `doc cites missing specs: ${ghost.join(", ")}`).toEqual([]);
   });
+});
+
+/**
+ * The partial rows carry a count — `"Visual regression" (2)` — and a count that
+ * nobody recomputes is a transcription, not a check. Adding a third snapshot leg
+ * to the file would leave the doc claiming two and this suite still green, which
+ * is the exact failure mode the rest of this file exists to close.
+ *
+ * So the number is derived from primary artifacts: the grep pattern the CI
+ * command actually passes, matched against the test titles Playwright would see
+ * in that file (describe title joined to test title with " > ", which is what
+ * `--grep` is applied to).
+ */
+function testTitles(rel: string): string[] {
+  const src = read(rel);
+  const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const titles: string[] = [];
+
+  const literal = (n: ts.Node | undefined): string | null =>
+    n && ts.isStringLiteral(n) ? n.text : null;
+
+  const walk = (node: ts.Node, ancestors: string[]) => {
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      // `describe`, `test.describe`, `test.skip`, `it` — Playwright and Vitest
+      // both spell these, and an inventory that only recognises the bare form
+      // silently loses every title nested under the dotted one.
+      const head = ts.isIdentifier(callee)
+        ? callee.text
+        : ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression)
+          ? `${callee.expression.text}.${callee.name.text}`
+          : null;
+      const isDescribe = head === "describe" || head === "test.describe";
+      const isTest = head !== null && !isDescribe && /^(test|it)(\.|$)/.test(head);
+      if (isTest || isDescribe) {
+        const title = literal(node.arguments[0]);
+        if (title !== null) {
+          if (isDescribe) walk(node.arguments[1] as ts.Node, [...ancestors, title]);
+          else titles.push([...ancestors, title].join(" > "));
+          return;
+        }
+      }
+    }
+    node.forEachChild((c) => walk(c, ancestors));
+  };
+  walk(sf, []);
+  return titles;
+}
+
+/** `--grep-invert "P" file.spec.ts` pairs, straight out of package.json. */
+const filters: { file: string; pattern: string }[] = [];
+for (const script of ciScripts) {
+  const cmd = pkg.scripts[script] ?? "";
+  const m = /--grep-invert\s+"([^"]+)"\s+(tests\/[^\s]+\.spec\.ts)/.exec(cmd);
+  if (m) filters.push({ pattern: m[1], file: m[2] });
+}
+
+describe("the excluded-test counts in TESTING.md are derived", () => {
+  it("finds at least one grep filter, so the checks below are not vacuous", () => {
+    expect(filters.length).toBeGreaterThan(0);
+  });
+
+  it.each(filters.map((f) => [`${f.file} excluding /${f.pattern}/`, f] as const))(
+    "%s",
+    (_label, { file, pattern }) => {
+      const excluded = testTitles(file).filter((t) => new RegExp(pattern).test(t));
+      // Non-vacuity: the pattern must really exclude something in that file.
+      expect(excluded.length, `no title in ${file} matches /${pattern}/`).toBeGreaterThan(0);
+
+      const row = doc
+        .split("\n")
+        .find((line) => line.includes(`\`${file}\``) && /→/.test(line));
+      expect(row, `no partial row for ${file}`).toBeDefined();
+
+      const declared = /\((\d+)\)/.exec(row ?? "");
+      expect(declared, `the ${file} row states no count`).not.toBeNull();
+      expect(
+        Number(declared?.[1]),
+        `doc says ${(declared?.[1])} but ${pattern} excludes ${excluded.length}: ${excluded.join(" | ")}`
+      ).toBe(excluded.length);
+
+      // Whatever the row quotes must be a title the pattern really excludes.
+      for (const quoted of [...row!.matchAll(/"([^"]+)"/g)].map((m) => m[1])) {
+        expect(
+          excluded.some((t) => t.includes(quoted)),
+          `row quotes "${quoted}", which /${pattern}/ does not exclude`
+        ).toBe(true);
+      }
+    }
+  );
 });
