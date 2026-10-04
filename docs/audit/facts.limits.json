@@ -20,7 +20,7 @@
     "debt.todoMarkers": 0,
     "debt.anyEscapes": 0,
     "debt.auditDocsLines": 3145,
-    "debt.longestSourceFileLines": 1593,
+    "debt.longestSourceFileLines": 1560,
     "capabilities.untestedChatCallbacks": 0,
     "capabilities.networkLayer.rawFetchCalls": 17
   },
