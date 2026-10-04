@@ -524,11 +524,11 @@ function DeliveryCoach({ stats }: {
   // measurements against a conventional 100–160 band — never evidence of
   // nervousness, confidence, or authority.
   if (wpm > 160) {
-    advices.push(`语速 ${wpm} WPM，高于 100–160 参考带。关键论点处有意停顿，听众更容易跟上。`);
+    advices.push(`语速 ${wpm}，高于 100–160 参考带。关键论点处有意停顿，听众更容易跟上。`);
   } else if (wpm > 0 && wpm < 100) {
-    advices.push(`语速 ${wpm} WPM，低于 100–160 参考带。检查是否有过长停顿或断句，必要时做模拟录音对比。`);
+    advices.push(`语速 ${wpm}，低于 100–160 参考带。检查是否有过长停顿或断句，必要时做模拟录音对比。`);
   } else if (wpm > 0) {
-    advices.push(`语速 ${wpm} WPM，落在 100–160 参考带内，节奏稳定。`);
+    advices.push(`语速 ${wpm}，落在 100–160 参考带内，节奏稳定。`);
   }
 
   // Filler Words Evaluation
@@ -545,7 +545,7 @@ function DeliveryCoach({ stats }: {
       {/* Phase 8 (19.3): measured values only; "—" when unmeasured. */}
       <div className="flex flex-wrap gap-8 mb-6">
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1">语速 (WPM)</p>
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1">语速（字或词 / 分钟）</p>
           <p className="text-2xl font-serif text-slate-800">{wpm}</p>
         </div>
         <div>
