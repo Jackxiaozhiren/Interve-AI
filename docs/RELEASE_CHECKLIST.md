@@ -6,11 +6,20 @@
 
 ## Security headers & CSP
 
-- [x] Enforcing CSP + hardening headers on every response (`src/proxy.ts:83-104`:
-  CSP, nosniff, DENY frame, XSS-block, referrer, HSTS, permissions-policy).
-- [x] Strict policy converging via Report-Only + live collector
-  (`src/proxy.ts` report-only block, `src/app/api/csp-report/route.ts`,
-  always-204, PII-free logs).
+- [x] One enforced CSP header, scoped to what the app actually loads
+  (`src/proxy.ts`: nosniff, DENY frame, referrer, HSTS, permissions-policy,
+  plus `object-src 'none'` and `base-uri 'self'`).
+- [ ] ~~Strict policy converging via Report-Only + live collector~~ — **removed
+  2026-10-04, not deferred.** Measured against a production build the report-only
+  header emitted 9-12 console violations on every route, including one for
+  Next.js's own inline bootstrap script, so its end state was unreachable on both
+  the style axis (57 inline `style={{}}` attributes across 34 files) and the
+  script axis (nonces need a custom server this deployment does not have). Its
+  reports went to `/api/csp-report`, which logs to stdout and has no reader. A
+  permanent error stream that blocks nothing is noise that hides the violations
+  that would matter. `tests/unit/csp-scope.test.ts` now re-derives the inline-style
+  count and fails if it reaches 0 while the header still allows `unsafe-inline` —
+  that is a convergence signal that can actually fire.
 - [x] CVE-2025-29927 class pinned (`tests/integration/proxy-guard.test.ts`:
   forged `x-middleware-subrequest` still gated).
 - [x] `npm audit --audit-level=critical` exit 0 (Next 16.3.6; 0 critical,
