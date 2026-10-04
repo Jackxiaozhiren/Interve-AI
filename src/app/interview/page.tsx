@@ -478,7 +478,7 @@ function InterviewRoomContent() {
         onClick: () => {
           setMessages(snapshot.messages as never[]);
           if (snapshot.wpm) setWpm(snapshot.wpm);
-          if (snapshot.fillerWordsCount) setFillerWordsCount(snapshot.fillerWordsCount);
+          if (snapshot.fillerWordsCount) setFillerWordsCount(deliveryLedgerRef.current.seed(snapshot.fillerWordsCount));
           toast.success("已恢复对话记录");
         }
       },

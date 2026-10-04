@@ -11,11 +11,11 @@
  * it.
  *
  * Predicate, per `setFillerWordsCount(x)` in src/app/interview/page.tsx:
- *   - `x` is a call on `deliveryLedgerRef.current.*`  → owned by the ledger, or
- *   - `x` contains no call and no arithmetic          → a plain value (a
- *     restored snapshot field, or a reset to 0), which the ledger cannot know, or
- *   - anything else                                   → somebody is summing
- *     filler counts at the call site again. Red.
+ *   - `x` must be a call on `deliveryLedgerRef.current.*`, or
+ *   - it is red — including a plain number. A reset belongs in the ledger too
+ *     (`seed(0)`), because the only way a call-site write and the ledger can
+ *     disagree is for the page to write one and the ledger to own the other,
+ *     which is exactly how the double-count and the restore-clobber got in.
  */
 import { readFileSync } from "node:fs";
 import ts from "typescript";
@@ -30,16 +30,6 @@ const source = ts.createSourceFile(
   true,
   ts.ScriptKind.TSX,
 );
-
-const contains = (node: ts.Node, kind: ts.SyntaxKind): boolean => {
-  let hit = false;
-  const walk = (n: ts.Node) => {
-    if (n.kind === kind) hit = true;
-    n.forEachChild(walk);
-  };
-  walk(node);
-  return hit;
-};
 
 interface SetterSite {
   args: ts.NodeArray<ts.Expression>;
@@ -70,7 +60,7 @@ function isLedgerCall(node: ts.Node): boolean {
   return callee.expression.getText(source) === "deliveryLedgerRef.current";
 }
 
-const LEDGER_METHODS = ["beginAnswer", "commitFinalFromWhisper", "provisionalFromDraft"];
+const LEDGER_METHODS = ["beginAnswer", "commitFinalFromWhisper", "provisionalFromDraft", "seed"];
 
 function ledgerCallsTo(method: string): number {
   let count = 0;
@@ -90,26 +80,33 @@ function ledgerCallsTo(method: string): number {
 describe(`filler-count ownership in ${PAGE}`, () => {
   it("finds the setter sites it is claiming to inspect (instrument sanity)", () => {
     const sites = findCalls("setFillerWordsCount");
-    // Three today: the two ledger paths and the localStorage restore. A count of
-    // zero would mean the probe is blind, not that the code is clean.
+    // Three today: the Whisper commit, the browser draft, and the localStorage
+    // restore. A count of zero would mean the probe is blind, not that the code
+    // is clean.
     expect(sites.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("only ever sets the total from the ledger or from a plain value", () => {
+  it("only ever sets the total from the ledger", () => {
     const offenders = findCalls("setFillerWordsCount")
-      .filter((site) => site.args.length === 1)
-      .filter((site) => {
-        const arg = site.args[0];
-        if (isLedgerCall(arg)) return false;
-        const computes =
-          contains(arg, ts.SyntaxKind.CallExpression) ||
-          contains(arg, ts.SyntaxKind.BinaryExpression) ||
-          contains(arg, ts.SyntaxKind.TemplateExpression);
-        return computes;
-      })
+      .filter((site) => site.args.length !== 1 || !isLedgerCall(site.args[0]))
       .map((site) => site.text);
 
     expect(offenders).toEqual([]);
+  });
+
+  it("derives every total it displays from a ledger method that returns one", () => {
+    // `total()` reads the ledger without writing the display, so it must not be
+    // what a setter is fed — that would show a committed number while a draft is
+    // in flight, and re-open the question of which engine owns the answer.
+    const bare = findCalls("setFillerWordsCount").filter((site) => {
+      const arg = site.args[0];
+      return (
+        ts.isCallExpression(arg) &&
+        ts.isPropertyAccessExpression(arg.expression) &&
+        arg.expression.name.text === "total"
+      );
+    });
+    expect(bare).toEqual([]);
   });
 
   it.each(LEDGER_METHODS)("routes %s through the ledger at least once", (method) => {

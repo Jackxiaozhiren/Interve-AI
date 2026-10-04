@@ -114,3 +114,47 @@ describe("createDeliveryLedger", () => {
     expect(l.total()).toBe(1);
   });
 });
+
+/**
+ * The room offers to restore an unfinished interview from localStorage, and the
+ * restored snapshot includes the hesitation count. Until `seed()` existed, that
+ * number went straight into React state while the accumulator stayed at 0 — so
+ * the first answer that hesitated replaced the candidate's own history with just
+ * that answer's count.
+ */
+describe("a restored snapshot", () => {
+  const spoken = "嗯 嗯 那个 我觉得可以"; // 3 fillers
+
+  it("demonstrates the clobber it replaced", () => {
+    const legacy = legacyComposition();
+    const restored = 5; // what the widget showed after clicking 恢复
+    // The old composition wrote its own sum rather than adding to what was
+    // shown, so the candidate's restored history was replaced by this one
+    // answer's count.
+    const afterFirstHesitantAnswer = legacy.onWhisperFinal(spoken);
+    expect(afterFirstHesitantAnswer).toBe(3);
+    expect(afterFirstHesitantAnswer).toBeLessThan(restored);
+  });
+
+  it("keeps accumulating from the restored number", () => {
+    const l = createDeliveryLedger(countFillers);
+    expect(l.seed(5)).toBe(5);
+    l.beginAnswer();
+    expect(l.commitFinalFromWhisper(spoken)).toBe(8);
+    expect(l.total()).toBe(8);
+  });
+
+  it("replaces the baseline when seeded twice instead of adding", () => {
+    const l = createDeliveryLedger(countFillers);
+    l.seed(5);
+    expect(l.seed(2)).toBe(2);
+    expect(l.total()).toBe(2);
+  });
+
+  it("leaves a provisional draft above the restored baseline", () => {
+    const l = createDeliveryLedger(countFillers);
+    l.seed(5);
+    l.beginAnswer();
+    expect(l.provisionalFromDraft("嗯")).toBe(6);
+  });
+});

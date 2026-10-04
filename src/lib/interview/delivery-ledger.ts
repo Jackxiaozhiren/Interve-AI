@@ -15,14 +15,21 @@
  * opens a window (the page calls it when recording starts); inside one window
  * at most one commit lands, and drafts after that commit stop adding.
  *
- * Scope: the ledger owns the count for answers recorded in *this* mount. A
- * session restored from localStorage writes the display directly, so a
- * restored number is not part of `total()` and the next recorded answer
- * replaces it — the same as before this module existed.
+ * Scope: the ledger owns the count for the whole mounted room. A session
+ * restored from localStorage hands its stored number to `seed()` rather than
+ * writing the display behind the ledger's back, so the restored history is the
+ * baseline the next answer adds to. Before that, the first hesitant answer
+ * replaced a restored "口头禅 5 次" with just its own count.
  */
 export interface DeliveryLedger {
   /** Open a new answer window. Called when recording starts. */
   beginAnswer(): void;
+  /**
+   * Adopt a baseline the ledger did not observe — a count restored from an
+   * unfinished session. Sets rather than adds, so restoring twice cannot inflate.
+   * Returns the new total so the caller can render it without a second read.
+   */
+  seed(value: number): number;
   /** Committed total so far, excluding anything in flight. */
   total(): number;
   /**
@@ -46,6 +53,10 @@ export function createDeliveryLedger(countFillers: (text: string) => number): De
   return {
     beginAnswer() {
       committedForThisAnswer = false;
+    },
+    seed(value) {
+      total = value;
+      return total;
     },
     total() {
       return total;
