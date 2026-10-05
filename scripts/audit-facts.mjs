@@ -293,6 +293,7 @@ function collectDebt() {
     selectStarHits: countHits(/\bselect\(\s*['"]\*['"]\s*\)/g),
     tsIgnoreHits: countHits(/@ts-(?:ignore|expect-error)/g),
     todoMarkers: countHits(/\b(?:TODO|FIXME|HACK|XXX)\b/g),
+    hardInternalNavigations: countHits(/\b(?:window\.|globalThis\.)?location\.(?:href\s*=|assign\s*\(|replace\s*\()/g),
     anyEscapes: countAnyEscapesInSrc(),
     longestSourceFiles: withLines,
     // Scalar sibling, because numericLeaves maps an array to its length: a
@@ -443,6 +444,12 @@ export const RATCHET_KEYS = {
   "debt.selectStarHits": "SELECT '*' — adjudicated 2026-09-19, re-verified 2026-09-26: dashboard list rows feed blob readers (SessionDetailModal councilDebate, KnowledgeMatchLoader resumeText/jobDescription). Reopens only with a lazy-get refactor of those two open paths, never blind.",
   "debt.tsIgnoreHits": "type-check suppressions",
   "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
+  "debt.hardInternalNavigations":
+    "whole-document navigations to an app route, which drop every client module and re-run every initial fetch. "
+    + "Adjudicated 2026-10-05: 3 found, 2 removed (error.tsx 'Go to Dashboard' and SessionDetailModal 'Interactive Replay' "
+    + "were accidental — both are now router.push). The 1 that stays is useInterviewSettlement's end-of-interview exit, kept "
+    + "deliberate because a full reload guarantees the microphone and both speech engines are torn down with the page; a client "
+    + "transition would have to prove that teardown, and nothing here can observe it keyless. Reopens only with a verified teardown.",
   "debt.anyEscapes": "explicit `any` escaping the strict config",
   "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
   "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",

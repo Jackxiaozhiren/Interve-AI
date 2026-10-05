@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { WarningCircle, ArrowClockwise } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 import { easePrimary } from "@/lib/motion";
 
@@ -16,6 +17,8 @@ export default function ErrorBoundary({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     // Log the error to an error reporting service
     console.error("Global application error:", error);
@@ -71,7 +74,7 @@ export default function ErrorBoundary({
         </Button>
         <Button
           variant="outline"
-          onClick={() => (window.location.href = "/dashboard")}
+          onClick={() => router.push("/dashboard")}
           className="rounded-full font-semibold"
         >
           Go to Dashboard
