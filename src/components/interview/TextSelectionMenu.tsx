@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Brain, PencilSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { Button } from "@/components/ui/button";
 import { appendScratchpadContent } from "@/lib/interview/board-state";
 
@@ -58,8 +59,12 @@ export function TextSelectionMenu() {
     };
   }, []);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(selectedText);
+  const handleCopy = async () => {
+    const copiedOk = await copyTextToClipboard(selectedText);
+    if (!copiedOk) {
+      toast.error("复制失败", { description: "浏览器拒绝了剪贴板访问" });
+      return;
+    }
     toast.success("已复制", { description: "内容已复制到剪贴板" });
     setSelectionRect(null);
     window.getSelection()?.removeAllRanges();
