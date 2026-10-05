@@ -153,7 +153,7 @@ export default function PrivacyPage() {
                 评估必须由语言模型完成，因此文本会离开我们的服务器、到达模型提供方。具体是：你的对话轮次、简历与职位描述中被截取用于出题和对齐的片段、你在代码白板上的代码，以及你主动点击「分析」时导出的那张架构图（PNG）。
               </p>
               <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
-                默认提供方是智谱 AI（glm-4-flash / glm-4.7-flash，接口域名 open.bigmodel.cn）。仅当链接显式带上 <code>?model=</code> 参数时才会走 OpenAI、Google Gemini 或 OpenRouter；未识别的取值一律回落到默认提供方。
+                默认提供方是智谱 AI（glm-4-flash / glm-4.7-flash，接口域名 open.bigmodel.cn）。仅当链接显式带上 <code>?aiModel=</code> 参数时（由 <code>src/app/interview/page.tsx</code> 读取）才会走 OpenAI、Google Gemini 或 OpenRouter；服务端 <code>resolveChatModel</code> 对未识别的取值一律回落到默认提供方。
               </p>
               <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
                 我们不会用你的内容训练模型，也不会把它提供给你面试的公司——这个产品本身不出录用结论，见「我们不做的事」。
@@ -233,7 +233,7 @@ export default function PrivacyPage() {
               <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
                 删除后数据从我们的数据库移除。托管平台自身可能保留短周期的备份副本，那部分遵循 Supabase 与 Vercel 的备份策略，我们无法单独延长或缩短。
               </p>
-              <Evidence>删除失败会被收集并如实报告，而不是弹一句「已删除」了事。</Evidence>
+              <Evidence>逐条删除的失败项被收集在 <code>src/app/dashboard/privacy/page.tsx</code> 的删除流程里：有任何失败就报「部分删除失败」并给出条数，而不是弹一句「已删除」了事。</Evidence>
             </section>
 
             <section>
