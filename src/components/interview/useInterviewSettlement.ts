@@ -171,6 +171,9 @@ export function useInterviewSettlement(opts: SettlementOptions) {
       toast.error(notice.title, { description: notice.description, duration: 9000 });
     }
 
+    // A full document reload, not a client transition: leaving the room must take the
+    // microphone and both speech engines down with it. docs/audit/facts.limits.json ratchets
+    // this as the one deliberate whole-document navigation, with the teardown caveat recorded.
     window.location.href = plan.destination === "report" && interviewId
       ? `/dashboard/report/${interviewId}`
       : "/dashboard";

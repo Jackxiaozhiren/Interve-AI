@@ -10,12 +10,14 @@ import { TextReveal } from "@/components/ui/text-reveal";
 import { InterviewTimeline } from "@/components/interview/InterviewTimeline";
 import { KnowledgeMatchLoader } from "@/components/dashboard/KnowledgeMatchLoader";
 import { useModalState } from "@/app/dashboard/dashboard-shell";
+import { useRouter } from "next/navigation";
 import type { Interview } from "@/lib/db";
 import { toEvaluationView } from "@/lib/eval-compat";
 import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills } from "@/components/evaluation/EvaluationView";
 
 export function SessionDetailModal({ session, onClose }: { session: Interview, onClose: () => void }) {
   const { setIsModalOpen } = useModalState();
+  const router = useRouter();
   // Phase 4: single view model over V2 and legacy rows.
   const view = toEvaluationView(session);
 
@@ -72,7 +74,7 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
             <Button 
               variant="outline" 
               className="rounded-full shadow-sm hidden md:flex"
-              onClick={() => window.location.href = `/dashboard/replay/${session.id}`}
+              onClick={() => router.push(`/dashboard/replay/${session.id}`)}
             >
               <Play className="w-4 h-4 mr-2" weight="fill" />
               Interactive Replay

@@ -11,7 +11,14 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { collectFacts, evaluateRatchet, numericLeaves, seedBlockers, RATCHET_KEYS } from "../../scripts/audit-facts.mjs";
+import {
+  collectFacts,
+  countHardInternalNavigations,
+  evaluateRatchet,
+  numericLeaves,
+  RATCHET_KEYS,
+  seedBlockers,
+} from "../../scripts/audit-facts.mjs";
 
 const LIMITS_FILE = path.join(process.cwd(), "docs/audit/facts.limits.json");
 const facts = collectFacts();
@@ -165,5 +172,41 @@ describe("seed provenance (V11 R-18)", () => {
     expect(seedBlockers({})).toEqual([]);
     expect(seedBlockers({ git: {} })).toEqual([]);
     expect(seedBlockers(facts)).toEqual(facts.git.dirty.map((entry) => entry.path));
+  });
+});
+
+/**
+ * The hard-navigation metric decides on the parse tree, so prose about a
+ * navigation is not a navigation. The regex version it replaced counted the
+ * adjudication comment itself, which is how a ratchet ends up teaching people
+ * to reword documentation instead of code.
+ */
+describe("countHardInternalNavigations", () => {
+  const cases: [string, string, number][] = [
+    ["assignment through window", 'window.location.href = "/dashboard";', 1],
+    ["bare location.assign", 'location.assign("/dashboard");', 1],
+    ["document.location.replace", 'document.location.replace("/x");', 1],
+    ["handler inside JSX", 'const B = () => (<button onClick={() => (window.location.href = "/setup")} />);', 1],
+    ["named in a line comment", '// window.location.href = "/dashboard"\nconst a = 1;', 0],
+    ["named in a block comment", '/* location.assign("/x") */\nconst a = 1;', 0],
+    ["reading href is not a navigation", "const here = window.location.href;", 0],
+    ["another object's location field", 'state.location.assign("/x"); "abc".replace("a", "b");', 0],
+  ];
+  it.each(cases)("counts %s", (_label, body, expected) => {
+    expect(countHardInternalNavigations(body, "probe.tsx")).toBe(expected);
+  });
+
+  it("finds the one adjudicated case, and only there", () => {
+    // The ceiling says 1. This says which file owns it, so deleting the
+    // settlement reload cannot be paid for by adding one somewhere else.
+    expect(facts.debt.hardInternalNavigations).toBe(1);
+    for (const [file, expected] of [
+      ["src/components/interview/useInterviewSettlement.ts", 1],
+      ["src/app/error.tsx", 0],
+      ["src/components/dashboard/SessionDetailModal.tsx", 0],
+    ] as [string, number][]) {
+      const body = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+      expect(countHardInternalNavigations(body, file), file).toBe(expected);
+    }
   });
 });

@@ -22,7 +22,8 @@
     "debt.auditDocsLines": 3145,
     "debt.longestSourceFileLines": 1520,
     "capabilities.untestedChatCallbacks": 0,
-    "capabilities.networkLayer.rawFetchCalls": 17
+    "capabilities.networkLayer.rawFetchCalls": 17,
+    "debt.hardInternalNavigations": 1
   },
   "floor": {}
 }

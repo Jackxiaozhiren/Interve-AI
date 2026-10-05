@@ -175,6 +175,67 @@ export function countAnyEscapes(sourceText, fileName) {
   return hits;
 }
 
+/**
+ * Whole-document navigations to an app route, measured on the parse tree.
+ *
+ * The first version counted a regex over raw text, which cannot tell code from
+ * prose about code — so the very comment that adjudicates the surviving case
+ * would have raised the debt number itself, inviting a future reader to reword
+ * the comment rather than the navigation. Only an assignment to, or a call on,
+ * a global `location` object counts; reading `location.href` does not.
+ */
+export function countHardInternalNavigations(sourceText, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  const isGlobalLocation = (node) => {
+    if (ts.isPropertyAccessExpression(node)) {
+      const base = node.expression;
+      return (
+        ts.isIdentifier(node.name) &&
+        node.name.text === "location" &&
+        ts.isIdentifier(base) &&
+        ["window", "document", "globalThis"].includes(base.text)
+      );
+    }
+    return ts.isIdentifier(node) && node.text === "location";
+  };
+  let hits = 0;
+  const visit = (node) => {
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+      const left = node.left;
+      if (
+        ts.isPropertyAccessExpression(left) &&
+        left.name.text === "href" &&
+        isGlobalLocation(left.expression)
+      ) {
+        hits += 1;
+      }
+    }
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+      const name = node.expression.name.text;
+      if ((name === "assign" || name === "replace") && isGlobalLocation(node.expression.expression)) {
+        hits += 1;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return hits;
+}
+
+function countHardInternalNavigationsInSrc() {
+  let total = 0;
+  for (const file of sourceFiles()) {
+    total += countHardInternalNavigations(fs.readFileSync(file, "utf8"), file);
+  }
+  return total;
+}
+
 function countAnyEscapesInSrc() {
   let total = 0;
   for (const file of sourceFiles()) {
@@ -293,6 +354,7 @@ function collectDebt() {
     selectStarHits: countHits(/\bselect\(\s*['"]\*['"]\s*\)/g),
     tsIgnoreHits: countHits(/@ts-(?:ignore|expect-error)/g),
     todoMarkers: countHits(/\b(?:TODO|FIXME|HACK|XXX)\b/g),
+    hardInternalNavigations: countHardInternalNavigationsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
     longestSourceFiles: withLines,
     // Scalar sibling, because numericLeaves maps an array to its length: a
@@ -443,6 +505,12 @@ export const RATCHET_KEYS = {
   "debt.selectStarHits": "SELECT '*' — adjudicated 2026-09-19, re-verified 2026-09-26: dashboard list rows feed blob readers (SessionDetailModal councilDebate, KnowledgeMatchLoader resumeText/jobDescription). Reopens only with a lazy-get refactor of those two open paths, never blind.",
   "debt.tsIgnoreHits": "type-check suppressions",
   "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
+  "debt.hardInternalNavigations":
+    "whole-document navigations to an app route, which drop every client module and re-run every initial fetch. "
+    + "Adjudicated 2026-10-05: 3 found, 2 removed (error.tsx 'Go to Dashboard' and SessionDetailModal 'Interactive Replay' "
+    + "were accidental — both are now router.push). The 1 that stays is useInterviewSettlement's end-of-interview exit, kept "
+    + "deliberate because a full reload guarantees the microphone and both speech engines are torn down with the page; a client "
+    + "transition would have to prove that teardown, and nothing here can observe it keyless. Reopens only with a verified teardown.",
   "debt.anyEscapes": "explicit `any` escaping the strict config",
   "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
   "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
