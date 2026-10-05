@@ -37,17 +37,27 @@ function stubClipboard(mode: 'rejects' | 'resolves' | 'absent') {
 }
 
 async function selectHeading(page: import('@playwright/test').Page) {
-  await page.evaluate(() => {
-    const el = Array.from(document.querySelectorAll('h2')).find((h) => h.textContent?.includes('Target Role'));
-    if (!el) throw new Error('heading not found');
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-  });
-  await expect(page.locator('#text-selection-menu')).toBeVisible();
+  // A cold route is served as SSR HTML while it is still compiling, so one
+  // dispatch can land before the menu's document listener exists. Re-arm the
+  // selection until the menu answers rather than trusting a single event.
+  await expect
+    .poll(
+      async () => {
+        await page.evaluate(() => {
+          const el = Array.from(document.querySelectorAll('h2')).find((h) => h.textContent?.includes('Target Role'));
+          if (!el) return;
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+          document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        });
+        return page.locator('#text-selection-menu').isVisible();
+      },
+      { timeout: 30000, message: 'the selection menu never opened — /setup is not interactive' },
+    )
+    .toBe(true);
 }
 
 test.describe('clipboard disclosure on /setup', () => {
