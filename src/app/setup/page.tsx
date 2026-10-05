@@ -12,7 +12,7 @@ import {
   UploadSimple, FilePdf, CircleNotch, Trash, TerminalWindow, Microphone, WarningCircle,
   VideoCamera, WifiHigh, WifiLow, WifiSlash, SpeakerHigh, PlayCircle
 } from "@phosphor-icons/react";
-import { waterfallVariant } from "@/lib/motion";
+import { WizardSection } from "@/components/setup/WizardSection";
 import { toast } from "sonner";
 import { useInterveStore } from "@/store/useInterveStore";
 import { WaveformVisualizer } from "@/components/setup/WaveformVisualizer";
@@ -608,11 +608,7 @@ export default function SetupPage() {
             
             {currentStep === 1 && (<>
             {/* Target Role */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Target Role</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">01</span>
-              </div>
+            <WizardSection title="Target Role" index="01">
               
               <div className="grid grid-cols-2 gap-4 relative">
                 {roles.map((role) => {
@@ -683,16 +679,12 @@ export default function SetupPage() {
                   );
                 })}
               </div>
-            </motion.section>
+            </WizardSection>
 
             </>)}
             {currentStep === 2 && (<>
             {/* Target Company */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Target Company</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">02</span>
-              </div>
+            <WizardSection title="Target Company" index="02">
               
               <div className="grid grid-cols-2 gap-4 relative">
                 {companiesList.map((company) => {
@@ -724,16 +716,12 @@ export default function SetupPage() {
                   );
                 })}
               </div>
-            </motion.section>
+            </WizardSection>
 
             </>)}
             {currentStep === 3 && (<>
             {/* Persona */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Interviewer Persona</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">03a</span>
-              </div>
+            <WizardSection title="Interviewer Persona" index="03a">
               
               <div className="flex flex-col gap-4 relative">
                 {personas.map((persona) => {
@@ -789,14 +777,10 @@ export default function SetupPage() {
                   );
                 })}
               </div>
-            </motion.section>
+            </WizardSection>
 
             {/* Framework */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Interview Framework</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">03b</span>
-              </div>
+            <WizardSection title="Interview Framework" index="03b">
               
               <div className="grid grid-cols-2 gap-4 relative">
                 {frameworksList.map((fw) => {
@@ -828,14 +812,10 @@ export default function SetupPage() {
                   );
                 })}
               </div>
-            </motion.section>
+            </WizardSection>
 
             {/* Interview Type (Phase 7: selects evaluation rubric + tooling) */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Interview Type</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">03c</span>
-              </div>
+            <WizardSection title="Interview Type" index="03c">
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 relative">
                 {INTERVIEW_TYPES.map((t) => {
@@ -880,14 +860,10 @@ export default function SetupPage() {
                 {getInterviewType(selectedInterviewType).needsCoding ? " · enables the coding scratchpad" : ""}
                 {getInterviewType(selectedInterviewType).needsWhiteboard ? " · uses the system-design whiteboard" : ""}
               </p>
-            </motion.section>
+            </WizardSection>
 
             {/* Difficulty & Duration (Phase 7: wired to the adaptive loop) */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Difficulty & Duration</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">03d</span>
-              </div>
+            <WizardSection title="Difficulty & Duration" index="03d">
 
               <div>
                 <p className="text-[13px] font-semibold text-slate-500 mb-3 uppercase tracking-wider">Starting difficulty (adapts live)</p>
@@ -935,14 +911,10 @@ export default function SetupPage() {
                   })}
                 </div>
               </div>
-            </motion.section>
+            </WizardSection>
 
             {/* Stress Test */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Stress Test Mode</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">03e</span>
-              </div>
+            <WizardSection title="Stress Test Mode" index="03e">
               
               <button
                 onClick={() => setStressTest(!stressTest)}
@@ -988,16 +960,12 @@ export default function SetupPage() {
                   />
                 </div>
               </button>
-            </motion.section>
+            </WizardSection>
 
             </>)}
             {currentStep === 4 && (<>
             {/* AI Model Selection */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">AI Model Engine</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">04</span>
-              </div>
+            <WizardSection title="AI Model Engine" index="04">
               
               <div className="flex flex-col gap-4 relative">
                 {[
@@ -1041,15 +1009,11 @@ export default function SetupPage() {
                   );
                 })}
               </div>
-            </motion.section>
+            </WizardSection>
             </>)}
             {currentStep === 5 && (<>
             {/* Resume Upload (New Phase 4 Feature) */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Resume Integration</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">05a</span>
-              </div>
+            <WizardSection title="Resume Integration" index="05a">
               
               <div 
                 className={`relative group rounded-[28px] overflow-hidden transition-all duration-500 border-2 border-dashed ${
@@ -1123,14 +1087,10 @@ export default function SetupPage() {
                   )}
                 </div>
               </div>
-            </motion.section>
+            </WizardSection>
 
             {/* Context */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Additional Context</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">05b</span>
-              </div>
+            <WizardSection title="Additional Context" index="05b">
               
               <div className="relative group">
                 <div className="absolute inset-0 bg-white/70 rounded-[28px] backdrop-blur-xl border border-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.03),inset_0_2px_4px_rgba(0,0,0,0.02)] pointer-events-none transition-all duration-300 group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.05),inset_0_2px_4px_rgba(0,0,0,0.02)]" />
@@ -1147,14 +1107,10 @@ export default function SetupPage() {
                   {context.length}/500
                 </div>
               </div>
-            </motion.section>
+            </WizardSection>
 
             {/* Alignment Analysis */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Resume Alignment</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">05c</span>
-              </div>
+            <WizardSection title="Resume Alignment" index="05c">
               
               {!alignmentReport ? (
                 <div className="p-8 rounded-[28px] border border-slate-200/60 bg-white/40 backdrop-blur-sm flex flex-col items-center justify-center text-center gap-4">
@@ -1285,14 +1241,10 @@ export default function SetupPage() {
                   })()}
                 </motion.div>
               )}
-            </motion.section>
+            </WizardSection>
 
             {/* Technical Assessment */}
-            <motion.section variants={waterfallVariant} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                <h2 className="text-2xl font-serif tracking-tight text-slate-800">Technical Assessment</h2>
-                <span className="text-sky-400/60 font-mono text-sm font-bold">05d</span>
-              </div>
+            <WizardSection title="Technical Assessment" index="05d">
               
               <button
                 onClick={() => setIncludeCoding(!includeCoding)}
@@ -1360,15 +1312,11 @@ export default function SetupPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.section>
+            </WizardSection>
 
             </>)}
             {currentStep === 6 && (
-              <motion.section variants={waterfallVariant} className="space-y-8">
-                <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
-                  <h2 className="text-2xl font-serif tracking-tight text-slate-800">Hardware Check</h2>
-                  <span className="text-emerald-400/80 font-mono text-sm font-bold">06</span>
-                </div>
+              <WizardSection title="Hardware Check" index="06" tone="emerald" gap="space-y-8">
                 
                 <div className="bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-[32px] p-8 shadow-sm">
                   <div className="text-center mb-8">
@@ -1479,7 +1427,7 @@ export default function SetupPage() {
                     </div>
                   </div>
                 </div>
-              </motion.section>
+              </WizardSection>
             )}
             
             {/* Stepper Navigation */}
