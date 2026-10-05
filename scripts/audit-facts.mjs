@@ -175,6 +175,67 @@ export function countAnyEscapes(sourceText, fileName) {
   return hits;
 }
 
+/**
+ * Whole-document navigations to an app route, measured on the parse tree.
+ *
+ * The first version counted a regex over raw text, which cannot tell code from
+ * prose about code — so the very comment that adjudicates the surviving case
+ * would have raised the debt number itself, inviting a future reader to reword
+ * the comment rather than the navigation. Only an assignment to, or a call on,
+ * a global `location` object counts; reading `location.href` does not.
+ */
+export function countHardInternalNavigations(sourceText, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  const isGlobalLocation = (node) => {
+    if (ts.isPropertyAccessExpression(node)) {
+      const base = node.expression;
+      return (
+        ts.isIdentifier(node.name) &&
+        node.name.text === "location" &&
+        ts.isIdentifier(base) &&
+        ["window", "document", "globalThis"].includes(base.text)
+      );
+    }
+    return ts.isIdentifier(node) && node.text === "location";
+  };
+  let hits = 0;
+  const visit = (node) => {
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+      const left = node.left;
+      if (
+        ts.isPropertyAccessExpression(left) &&
+        left.name.text === "href" &&
+        isGlobalLocation(left.expression)
+      ) {
+        hits += 1;
+      }
+    }
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+      const name = node.expression.name.text;
+      if ((name === "assign" || name === "replace") && isGlobalLocation(node.expression.expression)) {
+        hits += 1;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return hits;
+}
+
+function countHardInternalNavigationsInSrc() {
+  let total = 0;
+  for (const file of sourceFiles()) {
+    total += countHardInternalNavigations(fs.readFileSync(file, "utf8"), file);
+  }
+  return total;
+}
+
 function countAnyEscapesInSrc() {
   let total = 0;
   for (const file of sourceFiles()) {
@@ -293,7 +354,7 @@ function collectDebt() {
     selectStarHits: countHits(/\bselect\(\s*['"]\*['"]\s*\)/g),
     tsIgnoreHits: countHits(/@ts-(?:ignore|expect-error)/g),
     todoMarkers: countHits(/\b(?:TODO|FIXME|HACK|XXX)\b/g),
-    hardInternalNavigations: countHits(/\b(?:window\.|globalThis\.)?location\.(?:href\s*=|assign\s*\(|replace\s*\()/g),
+    hardInternalNavigations: countHardInternalNavigationsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
     longestSourceFiles: withLines,
     // Scalar sibling, because numericLeaves maps an array to its length: a
