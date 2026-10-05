@@ -5,6 +5,7 @@ import { ArrowsClockwise, Copy, Microphone, Trash } from "@phosphor-icons/react"
 import { toast } from "sonner";
 import type { RefObject } from "react";
 import { getMessageText } from "@/lib/message-text";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { CopilotPanel } from "@/components/interview/CopilotPanel";
 
 interface TranscriptMessage {
@@ -89,9 +90,10 @@ export function InterviewTranscript({
             {/* Actions (visible on hover AND keyboard focus) */}
             <div className={`flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 transition-opacity ${m.role === "user" ? "flex-row-reverse mr-1" : "ml-1"}`}>
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(content);
-                  toast.success("已复制到剪贴板", { position: "top-center" });
+                onClick={async () => {
+                  const copied = await copyTextToClipboard(content);
+                  if (copied) toast.success("已复制到剪贴板", { position: "top-center" });
+                  else toast.error("复制失败", { description: "浏览器拒绝了剪贴板访问", position: "top-center" });
                 }}
                 className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
                 title="复制"

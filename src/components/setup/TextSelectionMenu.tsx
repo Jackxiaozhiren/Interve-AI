@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Sparkle } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { copyTextToClipboard } from "@/lib/clipboard";
 
 interface TextSelectionMenuProps {
   onEnhance?: (text: string) => void;
@@ -58,13 +59,16 @@ export function TextSelectionMenu({ onEnhance }: TextSelectionMenuProps) {
     };
   }, []);
 
-  const handleCopy = () => {
-    if (selection) {
-      navigator.clipboard.writeText(selection.text);
-      toast.success("Copied to clipboard");
-      setSelection(null);
-      window.getSelection()?.removeAllRanges();
+  const handleCopy = async () => {
+    if (!selection) return;
+    const copiedOk = await copyTextToClipboard(selection.text);
+    if (!copiedOk) {
+      toast.error("Copy failed", { description: "The browser denied clipboard access." });
+      return;
     }
+    toast.success("Copied to clipboard");
+    setSelection(null);
+    window.getSelection()?.removeAllRanges();
   };
 
   const handleEnhance = () => {

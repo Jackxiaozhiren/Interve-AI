@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { useCodeExecutor } from "@/hooks/useCodeExecutor";
 import { useInterveStore } from "@/store/useInterveStore";
 import { toast } from "sonner";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { OnMount } from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
@@ -195,8 +196,12 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
     writeScratchpadMode(mode);
   }, [mode]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content);
+  const handleCopy = async () => {
+    const copiedOk = await copyTextToClipboard(content);
+    if (!copiedOk) {
+      toast.error("复制失败", { description: "浏览器拒绝了剪贴板访问" });
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

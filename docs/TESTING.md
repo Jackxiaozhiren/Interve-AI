@@ -29,3 +29,27 @@ is wired in; the guard fails on stale rows too.
 | `tests/e2e/core-visual-consistency.spec.ts` (1) | Contains zero assertions: it navigates, writes PNGs under `artifacts/`, and logs PASS/ERROR. It cannot fail for a product reason, so collecting it would buy runtime rather than coverage. |
 
 Golden journey: Signup→Setup→resume+JD→Preflight→answer→complete→analysis→Replay→Drill→delete-session. `testMatch:**/*.spec.ts` keeps Playwright off vitest files. `E2E_MOCK=1` runs `tests/mock-journey.spec.ts` keyless.
+
+### A spec whose verdict follows the browser's Supabase env
+
+`tests/interview-flow.spec.ts` signs in with `loginAs()`, which mints only the app's own session
+cookie. `stampOwner()` refuses to write an ownerless `interviews` row — policy, not a bug — so the
+spec's outcome depends on which persistence path the browser bundle takes:
+
+| dev server env | smoke result |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` absent — the shape every CI `gate` step uses, since `.github/workflows/ci.yml` passes only `CI: true` to `test:e2e:smoke` | passes |
+| `NEXT_PUBLIC_SUPABASE_URL` present via `.env.local` on a developer machine | fails on the room assertion with `refusing to write "interviews": there is no Supabase auth session to own the row` |
+
+Measured on the same commit both ways (2026-10-05): emptying the two variables in the server's
+process env gives `npx playwright test tests/interview-flow.spec.ts --project=chrome-1280x720`
+→ `1 passed`; with `.env.local` in force the same command fails at
+`tests/interview-flow.spec.ts:68`. `tests/interview.spec.ts`'s room test passes in both shapes, so
+only this one file is env-split.
+
+Read that local red as "this machine has credentials the runner does not", not as a code signal.
+The durable fix is `seedSupabaseSession()` from `tests/helpers.ts`, which gives the browser a real
+Supabase identity; it is deliberately not applied here, because that path cannot be observed green
+on this machine — the local `.env.local` credentials are stale, and the REST calls they produce
+answered `406` during the run recorded above — and a change nobody can verify is not a change to
+make blindly.

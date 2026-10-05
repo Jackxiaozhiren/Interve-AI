@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 
 /* ═══════════════════════════════════════
@@ -123,21 +124,9 @@ export function InterveCodeBlock({
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback for older browsers
-      const textarea = document.createElement("textarea");
-      textarea.value = code;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    if (!(await copyTextToClipboard(code))) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const lines = code.split("\n");
