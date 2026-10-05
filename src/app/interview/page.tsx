@@ -94,7 +94,7 @@ function InterviewRoomContent() {
   const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
   const [isSystemDesignOpen, setIsSystemDesignOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const { isCalmMode, isLiveCaptionsEnabled, isDyslexiaMode, showLiveInsights } = useAccessibilityStore();
+  const { isCalmMode, isDyslexiaMode, showLiveInsights } = useAccessibilityStore();
   const isPageVisible = usePageVisibility();
   const [activeUserTranscript, setActiveUserTranscript] = useState("");
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
