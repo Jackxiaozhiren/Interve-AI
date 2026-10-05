@@ -623,6 +623,7 @@ export default function SetupPage() {
                           ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]" 
                           : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
                       }`}
+              aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
@@ -666,6 +667,7 @@ export default function SetupPage() {
                           ? "text-white border-slate-900 shadow-[0_4px_12px_rgba(15,23,42,0.2)]" 
                           : "text-slate-500 bg-white/50 border-slate-200/60 hover:bg-white hover:text-slate-800 hover:border-slate-300 hover:shadow-sm"
                       }`}
+              aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
@@ -698,6 +700,7 @@ export default function SetupPage() {
                           ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]" 
                           : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
                       }`}
+              aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
@@ -736,6 +739,7 @@ export default function SetupPage() {
                           ? `${persona.border} shadow-[0_12px_40px_rgba(0,0,0,0.06)]`
                           : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
                       }`}
+              aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
@@ -794,6 +798,7 @@ export default function SetupPage() {
                           ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]" 
                           : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
                       }`}
+              aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
@@ -923,6 +928,7 @@ export default function SetupPage() {
                     ? "border-rose-300/60 shadow-[0_12px_40px_rgba(244,63,94,0.15)] bg-rose-50/40" 
                     : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
                 }`}
+              aria-pressed={stressTest}
               >
                 {stressTest && (
                   <motion.div
@@ -984,6 +990,7 @@ export default function SetupPage() {
                           ? "border-sky-300 shadow-[0_12px_40px_rgba(14,165,233,0.1)] bg-white"
                           : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60"
                       }`}
+              aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
@@ -1253,6 +1260,7 @@ export default function SetupPage() {
                     ? "border-sky-300/60 shadow-[0_12px_40px_rgba(14,165,233,0.15)] bg-sky-50/40" 
                     : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
                 }`}
+              aria-pressed={includeCoding}
               >
                 {includeCoding && (
                   <motion.div

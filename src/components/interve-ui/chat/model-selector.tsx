@@ -64,6 +64,7 @@ export function InterveModelSelector({
                   ? "bg-[var(--interve-brand-surface)] border-[var(--interve-brand-accent)]/20 shadow-[var(--interve-shadow-button)]"
                   : "bg-white border-[var(--interve-border)] hover:border-[var(--interve-border-hover)] hover:shadow-[var(--interve-shadow-xs)]"
               )}
+              aria-pressed={isSelected}
             >
               <div className="flex items-center gap-2 w-full">
                 {model.icon && (
@@ -136,6 +137,7 @@ export function InterveModelSelector({
                     ? "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)]"
                     : "text-[var(--interve-text-body)] hover:bg-[var(--interve-bg-accent)]"
                 )}
+              aria-pressed={isSelected}
               >
                 {model.icon && <span className="w-5 h-5 shrink-0">{model.icon}</span>}
                 <div className="flex-1 min-w-0">

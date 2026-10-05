@@ -24,7 +24,7 @@
     "facts": "node scripts/audit-facts.mjs --write",
     "facts:check": "node scripts/audit-facts.mjs --check",
     "facts:seed": "node scripts/audit-facts.mjs --seed",
-    "test:e2e:smoke": "playwright test --project=chrome-1280x720 tests/landing.spec.ts tests/setup.spec.ts tests/interview.spec.ts tests/interview-flow.spec.ts tests/dashboard.spec.ts tests/replay.spec.ts tests/settings.spec.ts tests/accessibility.spec.ts tests/chat.spec.ts tests/privacy.spec.ts tests/clipboard-disclosure.spec.ts tests/e2e/interview-greenroom.spec.ts tests/e2e/interview-interactive.spec.ts",
+    "test:e2e:smoke": "playwright test --project=chrome-1280x720 tests/landing.spec.ts tests/setup.spec.ts tests/interview.spec.ts tests/interview-flow.spec.ts tests/dashboard.spec.ts tests/replay.spec.ts tests/settings.spec.ts tests/accessibility.spec.ts tests/chat.spec.ts tests/privacy.spec.ts tests/clipboard-disclosure.spec.ts tests/selection-a11y.spec.ts tests/e2e/interview-greenroom.spec.ts tests/e2e/interview-interactive.spec.ts",
     "test:e2e:axe": "playwright test --project=chrome-1280x720 --grep-invert \"Visual regression\" tests/a11y-visual.spec.ts",
     "test:e2e:keyboard": "playwright test --project=chrome-1280x720 --grep-invert \"keyboard-operable\" tests/keyboard.spec.ts",
     "test:a11y": "playwright test --project=chrome-1280x720 tests/accessibility.spec.ts",
