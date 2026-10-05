@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -9,22 +9,20 @@ import {
   Code, Database, Briefcase, ChartLineUp,
   Sword, HandsClapping, Brain,
   CaretRight, FileText, CheckCircle, Lightning,
-  UploadSimple, FilePdf, CircleNotch, Trash, TerminalWindow, Microphone, WarningCircle,
-  VideoCamera, WifiHigh, WifiLow, WifiSlash, SpeakerHigh, PlayCircle
+  UploadSimple, FilePdf, CircleNotch, Trash, TerminalWindow
 } from "@phosphor-icons/react";
 import { WizardSection } from "@/components/setup/WizardSection";
 import { toast } from "sonner";
 import { useInterveStore } from "@/store/useInterveStore";
-import { WaveformVisualizer } from "@/components/setup/WaveformVisualizer";
+import { HardwareCheckPanel } from "@/components/setup/HardwareCheckPanel";
+import { useHardwareCheck } from "@/hooks/useHardwareCheck";
 import { TextSelectionMenu } from "@/components/setup/TextSelectionMenu";
-import { micConstraints } from "@/lib/audio/vad";
 import { INTERVIEW_TYPES, getInterviewType } from "@/ai/interview/types";
 import { RUBRICS } from "@/ai/rubrics";
 import { buildInterviewPlan, type InterviewPlan } from "@/ai/interview/plan";
 import { normalizeGrounding } from "@/ai/evidence";
 import { type Difficulty } from "@/ai/interview/state";
 import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
-import { probeHardware } from "@/lib/interview/hardware-probe";
 
 const DIFFICULTY_OPTIONS: { id: Difficulty; name: string; desc: string }[] = [
   { id: "easy", name: "Easy", desc: "Foundations first, generous pacing." },
@@ -162,114 +160,7 @@ export default function SetupPage() {
     }
   }, [storeResumeText, storeJd, parsedResumeText, context]);
   
-  // Hardware check state
-  const [micStatus, setMicStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
-  const [camStatus, setCamStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
-  const [networkStatus, setNetworkStatus] = useState<"checking" | "good" | "poor" | "offline">("checking");
-  const [speakerTestPlaying, setSpeakerTestPlaying] = useState(false);
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const streamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  useEffect(() => {
-    // F3-split-3 late-stream guard (mirrors M4/M5): if the step changes or
-    // the page unmounts while getUserMedia is pending, the late stream is
-    // stopped immediately instead of leaking a live track into /interview
-    // (T2.6 handoff contention). Signed green — structural close, no behavior
-    // change on the green path.
-    let cancelled = false;
-    if (currentStep !== 6) {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      setTimeout(() => {
-        setMicStatus("idle");
-        setCamStatus("idle");
-      }, 0);
-      return;
-    }
-
-    const testHardware = async () => {
-      await Promise.resolve();
-      setMicStatus("testing");
-      setCamStatus("testing");
-      setNetworkStatus("checking");
-      
-      // Network check
-      if (!navigator.onLine) {
-        setNetworkStatus("offline");
-      } else {
-        const conn = (navigator as unknown as { connection?: { rtt: number; downlink: number } }).connection;
-        if (conn && (conn.rtt > 300 || conn.downlink < 1)) {
-          setNetworkStatus("poor");
-        } else {
-          setNetworkStatus("good");
-        }
-      }
-
-      const probe = await probeHardware(
-        (constraints) => navigator.mediaDevices.getUserMedia(constraints),
-        micConstraints()
-      );
-      if (cancelled) {
-        probe.stream?.getTracks().forEach((track) => track.stop());
-        return;
-      }
-
-      setMicStatus(probe.mic);
-      setCamStatus(probe.cam);
-      if (probe.message) setErrorMessage(probe.message);
-      if (!probe.stream) return;
-
-      streamRef.current = probe.stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = probe.stream;
-      }
-
-      // The meter is decoration on top of a working microphone, so it gets its
-      // own failure path: an AudioContext that will not start must not report the
-      // candidate's devices as broken, which is what happened when it sat inside
-      // the same try as getUserMedia.
-      try {
-        const AudioContext = window.AudioContext || (window as Window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
-        const audioContext = new AudioContext();
-        audioContextRef.current = audioContext;
-
-        const analyserNode = audioContext.createAnalyser();
-        analyserNode.fftSize = 256;
-        setAnalyser(analyserNode);
-
-        const source = audioContext.createMediaStreamSource(probe.stream);
-        source.connect(analyserNode);
-      } catch (err) {
-        console.warn("Mic level meter unavailable:", err);
-        audioContextRef.current = null;
-      }
-    };
-
-    testHardware();
-
-    return () => {
-       cancelled = true;
-       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        // Cleared as well as closed: the next run of this effect reads the ref,
-        // and closing an already-closed context rejects instead of no-oping.
-        audioContextRef.current = null;
-      }
-    };
-  }, [currentStep]);
+  const hardware = useHardwareCheck({ enabled: currentStep === 6 });
   // Alignment Analysis State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [alignmentReport, setAlignmentReport] = useState<{
@@ -1326,115 +1217,7 @@ export default function SetupPage() {
             {currentStep === 6 && (
               <WizardSection title="Hardware Check" index="06" tone="emerald" gap="space-y-8">
                 
-                <div className="bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-[32px] p-8 shadow-sm">
-                  <div className="text-center mb-8">
-                    <p className="text-slate-500">Let&apos;s make sure your microphone is working before we enter the interview room.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[300px]">
-                    {/* Camera Preview */}
-                    <div className="col-span-1 md:col-span-2 bg-slate-50/50 border border-slate-200/50 rounded-[24px] overflow-hidden flex flex-col items-center justify-center relative min-h-[240px]">
-                      {camStatus === "testing" && (
-                        <div className="flex flex-col items-center animate-pulse text-sky-500">
-                          <VideoCamera className="w-12 h-12 mb-4" weight="duotone" />
-                          <p className="text-sm font-medium">Requesting camera access...</p>
-                        </div>
-                      )}
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-500 ${camStatus === "success" ? "opacity-100" : "opacity-0"}`}
-                      />
-                      {camStatus === "success" && (
-                        <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs font-medium border border-white/10 shadow-lg">
-                          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          Camera Active
-                        </div>
-                      )}
-                      {camStatus === "error" && (
-                        <div className="flex flex-col items-center text-rose-500 z-10">
-                          <WarningCircle className="w-12 h-12 mb-4" weight="duotone" />
-                          <p className="text-sm font-medium text-center px-4 max-w-sm">{errorMessage}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Microphone Check */}
-                    <div className="bg-slate-50/50 border border-slate-200/50 rounded-[24px] p-6 flex flex-col items-center justify-center text-center">
-                      <div className="relative mb-4">
-                        {micStatus === "success" && <div className="absolute inset-0 bg-emerald-400/20 rounded-full animate-ping" />}
-                        <div className={`relative p-3 rounded-full border ${micStatus === "success" ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-slate-100 border-slate-200 text-slate-400"}`}>
-                          <Microphone className="w-8 h-8" weight={micStatus === "success" ? "fill" : "duotone"} />
-                        </div>
-                      </div>
-                      <h3 className="font-semibold text-slate-800 mb-1">Microphone</h3>
-                      {micStatus === "success" ? (
-                        <>
-                          <div className="w-full max-w-[160px] h-12 my-2 overflow-hidden flex items-center justify-center">
-                            <WaveformVisualizer 
-                              analyser={analyser} 
-                              color="#10b981" 
-                              className="opacity-80"
-                            />
-                          </div>
-                          <p className="text-xs text-slate-500">Speak to test levels</p>
-                        </>
-                      ) : (
-                         <p className="text-xs text-slate-500 mt-2">Waiting for access...</p>
-                      )}
-                    </div>
-
-                    {/* Network & Speaker */}
-                    <div className="space-y-6">
-                      {/* Speaker Check */}
-                      <div className="bg-slate-50/50 border border-slate-200/50 rounded-[24px] p-5 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="bg-sky-100 p-3 rounded-full border border-sky-200 text-sky-600">
-                            <SpeakerHigh className="w-6 h-6" weight="duotone" />
-                          </div>
-                          <div className="text-left">
-                            <h3 className="font-semibold text-slate-800 text-sm">Speaker Test</h3>
-                            <p className="text-xs text-slate-500">Play a test sound</p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-full shadow-sm"
-                          onClick={() => {
-                            setSpeakerTestPlaying(true);
-                            const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-                            audio.play().catch(() => setSpeakerTestPlaying(false));
-                            audio.onended = () => setSpeakerTestPlaying(false);
-                          }}
-                          disabled={speakerTestPlaying}
-                        >
-                          {speakerTestPlaying ? "Playing..." : <><PlayCircle className="w-4 h-4 mr-1" /> Play</>}
-                        </Button>
-                      </div>
-
-                      {/* Network Status */}
-                      <div className="bg-slate-50/50 border border-slate-200/50 rounded-[24px] p-5 flex items-center gap-4">
-                        <div className={`p-3 rounded-full border ${
-                          networkStatus === "good" ? "bg-emerald-100 border-emerald-200 text-emerald-600" :
-                          networkStatus === "poor" ? "bg-amber-100 border-amber-200 text-amber-600" :
-                          networkStatus === "offline" ? "bg-rose-100 border-rose-200 text-rose-600" :
-                          "bg-slate-100 border-slate-200 text-slate-400"
-                        }`}>
-                          {networkStatus === "good" ? <WifiHigh className="w-6 h-6" weight="bold" /> :
-                           networkStatus === "poor" ? <WifiLow className="w-6 h-6" weight="bold" /> :
-                           <WifiSlash className="w-6 h-6" weight="bold" />}
-                        </div>
-                        <div className="text-left">
-                          <h3 className="font-semibold text-slate-800 text-sm">Network Connection</h3>
-                          <p className="text-xs text-slate-500 capitalize">{networkStatus} status</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <HardwareCheckPanel hardware={hardware} />
               </WizardSection>
             )}
             
@@ -1475,7 +1258,7 @@ export default function SetupPage() {
                       <><CircleNotch className="w-5 h-5 mr-2 animate-spin" /> Starting...</>
                     ) : (
                       <>
-                        {micStatus === "success" ? "Start Session" : "Start without Mic"}
+                        {hardware.micStatus === "success" ? "Start Session" : "Start without Mic"}
                         <motion.div
                           className="ml-2 inline-flex"
                           whileHover={{ x: 5 }}
