@@ -38,4 +38,19 @@ jobs:
         run: E2E_MOCK=1 npx playwright test --project=chrome-1280x720 --project=mobile-390
         env:
           CI: true
-      - run: npm --prefix apps/dsa-web audit --audit-level=critical
+      # Same predicate as before — npm's own exit code decides — but the advisory
+      # list now reaches the job summary. Without this the step's only artefact was
+      # "Process completed with exit code 1", so every PR touching these paths
+      # showed a red `dsa` check that nobody could read: the failure was real (the
+      # app pins next 16.3.4, inside GHSA-vcvr-r3jv-pc5j) and undiagnosable.
+      - name: npm audit (critical) - apps/dsa-web
+        run: |
+          set +e
+          out="$(npm --prefix apps/dsa-web audit --audit-level=critical 2>&1)"
+          code=$?
+          printf '%s\n' "$out"
+          {
+            printf '### apps/dsa-web npm audit --audit-level=critical exited %s\n\n' "$code"
+            printf '```text\n%s\n```\n' "$out"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
