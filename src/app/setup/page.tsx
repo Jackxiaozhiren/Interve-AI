@@ -9,7 +9,7 @@ import {
   Code, Database, Briefcase, ChartLineUp,
   Sword, HandsClapping, Brain,
   CaretRight, FileText, CheckCircle, Lightning,
-  UploadSimple, FilePdf, CircleNotch, Trash, TerminalWindow
+  CircleNotch, TerminalWindow
 } from "@phosphor-icons/react";
 import { WizardSection } from "@/components/setup/WizardSection";
 import { toast } from "sonner";
@@ -22,7 +22,8 @@ import { RUBRICS } from "@/ai/rubrics";
 import { buildInterviewPlan, type InterviewPlan } from "@/ai/interview/plan";
 import { normalizeGrounding } from "@/ai/evidence";
 import { type Difficulty } from "@/ai/interview/state";
-import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
+import { useResumeIntegration } from "@/hooks/useResumeIntegration";
+import { ResumeAlignmentSection, ResumeUploadSection } from "@/components/setup/ResumeIntegrationSections";
 
 const DIFFICULTY_OPTIONS: { id: Difficulty; name: string; desc: string }[] = [
   { id: "easy", name: "Easy", desc: "Foundations first, generous pacing." },
@@ -142,135 +143,35 @@ export default function SetupPage() {
   const [includeCoding, setIncludeCoding] = useState(false);
   const [problemStatement, setProblemStatement] = useState("");
   
-  // Resume upload state
-  const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isParsing, setIsParsing] = useState(false);
-  const [parsedResumeText, setParsedResumeText] = useState("");
+  // Resume upload + alignment preflight state and handlers live in useResumeIntegration,
+  // which also seeds the parsed resume from the store; the destructured names are
+  // unchanged so the rest of the page reads exactly as before.
+  const {
+    file,
+    isDragging,
+    setIsDragging,
+    isParsing,
+    parsedResumeText,
+    alignmentReport,
+    isAnalyzing,
+    analyzeAlignment,
+    handleFileUpload,
+    clearFile,
+  } = useResumeIntegration({ context, setContext, storeResumeText });
 
-  // Hydrate from store
+  // Seed the job description from the store. It has to stay an effect rather than a
+  // lazy `useState` initializer: `storeJd` can arrive after this page mounts (the
+  // interview page writes it when it navigates back), and a first-render initializer
+  // would read "" and never look again.
   useEffect(() => {
-    if (storeResumeText && !parsedResumeText) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setParsedResumeText(storeResumeText);
-    }
     if (storeJd && !context) {
-       
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setContext(storeJd);
     }
-  }, [storeResumeText, storeJd, parsedResumeText, context]);
+  }, [storeJd, context]);
   
   const hardware = useHardwareCheck({ enabled: currentStep === 6 });
-  // Alignment Analysis State
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [alignmentReport, setAlignmentReport] = useState<{
-    matchScore: number;
-    strengths: string[];
-    gaps: string[];
-    recommendedFocus: string;
-    evidence?: string[];
-    confidence?: "high" | "medium" | "low";
-  } | null>(null);
 
-  const [hasAutoAnalyzed, setHasAutoAnalyzed] = useState(false);
-
-
-  const analyzeAlignment = async () => {
-    if (!parsedResumeText || !context) {
-      toast.error("Missing Data", { description: "Please upload a resume and provide context (JD) first." });
-      return;
-    }
-    setIsAnalyzing(true);
-    try {
-      const res = await fetch("/api/analyze-alignment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText: parsedResumeText, jobDescription: context }),
-      });
-      // There was no `res.ok` check here at all: any error response fell into
-      // the catch below and was reported as "Something went wrong", and a
-      // platform-level rejection (this route declares no duration budget) is
-      // not even JSON, so the parse itself threw.
-      const result = await readApiJson<NonNullable<typeof alignmentReport>>(res);
-      if (!result.ok) {
-        toast.error("Analysis Failed", { description: describeApiFailure(result.failure), duration: 8000 });
-      } else if (result.data.matchScore !== undefined) {
-        setAlignmentReport(result.data);
-        // Automatically append to context if not already added
-        if (!context.includes("RECOMMENDED FOCUS:")) {
-           setContext(prev => prev + `\n\nRECOMMENDED FOCUS: ${result.data.recommendedFocus}`);
-        }
-        toast.success("Analysis Complete", { description: "Alignment report generated successfully." });
-      } else {
-        toast.error("Analysis Failed", { description: `服务返回了没有匹配分数的报告（HTTP ${res.status}）。` });
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Analysis Error", { description: "分析请求未能完成，请重试。" });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  useEffect(() => {
-    // Auto-analyze if we have both parsedResumeText and context, but haven't analyzed yet
-    if (parsedResumeText && context && !alignmentReport && !isAnalyzing && !hasAutoAnalyzed) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setHasAutoAnalyzed(true);
-      // Let React settle before calling analyzeAlignment
-      setTimeout(() => analyzeAlignment(), 100);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parsedResumeText, context, alignmentReport, isAnalyzing, hasAutoAnalyzed]);
-
-  const handleFileUpload = async (uploadedFile: File) => {
-    if (!uploadedFile || uploadedFile.type !== "application/pdf") {
-      toast.error("Invalid file", {
-        description: "Please upload a valid PDF file.",
-      });
-      return;
-    }
-    setFile(uploadedFile);
-    setIsParsing(true);
-    
-    const formData = new FormData();
-    formData.append("file", uploadedFile);
-    
-    try {
-      const res = await fetch("/api/parse-resume", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await readApiJson<{ text?: string }>(res);
-
-      if (result.ok && result.data.text) {
-        setParsedResumeText(result.data.text);
-        return;
-      }
-
-      // Three different failures used to collapse into one blind "Parsing
-      // Error": the server said no in JSON, the server said something that was
-      // not JSON at all (a platform timeout or body-limit rejection looks
-      // exactly like this), or the request never completed. The status is the
-      // only clue a user can pass on, so it goes in the message.
-      toast.error("Extraction failed", {
-        description: result.ok
-          ? `服务返回了空正文（HTTP ${res.status}）。`
-          : describeApiFailure(result.failure),
-        duration: 8000,
-      });
-      setFile(null);
-    } catch (err) {
-      console.error("Failed to parse resume:", err);
-      toast.error("Upload failed", {
-        description: "请求未能完成（网络中断或超时），请重试。",
-      });
-      setFile(null);
-    } finally {
-      setIsParsing(false);
-    }
-  };
 
   // Session start loading state
   const confirmAndStart = async () => {
@@ -910,82 +811,15 @@ export default function SetupPage() {
             </WizardSection>
             </>)}
             {currentStep === 5 && (<>
-            {/* Resume Upload (New Phase 4 Feature) */}
-            <WizardSection title="Resume Integration" index="05a">
-              
-              <div 
-                className={`relative group rounded-[28px] overflow-hidden transition-all duration-500 border-2 border-dashed ${
-                  isDragging 
-                    ? "border-sky-400 bg-sky-50/50" 
-                    : file 
-                      ? "border-emerald-300/60 bg-emerald-50/30" 
-                      : "border-slate-200 hover:border-sky-300 hover:bg-slate-50/50"
-                }`}
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    handleFileUpload(e.dataTransfer.files[0]);
-                  }
-                }}
-              >
-                <div className="absolute inset-0 bg-white/40 backdrop-blur-md pointer-events-none z-0" />
-                
-                <div className="relative z-10 p-8 flex flex-col items-center justify-center text-center min-h-[200px]">
-                  {isParsing ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <CircleNotch className="w-10 h-10 text-sky-500 animate-spin" />
-                      <p className="text-sm font-medium text-slate-600">Extracting context from PDF...</p>
-                    </div>
-                  ) : file ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center border border-emerald-200 shadow-sm">
-                        <FilePdf className="w-8 h-8 text-emerald-600" weight="duotone" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-800">{file.name}</p>
-                        <p className="text-xs font-mono text-slate-500 mt-1">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB • {parsedResumeText.length} chars extracted
-                        </p>
-                      </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFile(null);
-                          setParsedResumeText("");
-                        }}
-                        className="mt-2 text-xs font-semibold text-rose-500 flex items-center gap-1 hover:text-rose-600 transition-colors bg-white/80 px-3 py-1.5 rounded-full shadow-sm border border-rose-100"
-                      >
-                        <Trash weight="bold" /> Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-4 cursor-pointer" onClick={() => document.getElementById("resume-upload")?.click()}>
-                      <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shadow-sm group-hover:scale-105 transition-transform duration-300">
-                        <UploadSimple className="w-8 h-8 text-slate-500 group-hover:text-sky-500 transition-colors" weight="duotone" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-700">Drag & drop your resume</p>
-                        <p className="text-sm text-slate-500 mt-1">PDF format up to 5MB</p>
-                      </div>
-                      <input 
-                        type="file" 
-                        id="resume-upload" 
-                        accept="application/pdf" 
-                        className="hidden" 
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files.length > 0) {
-                            handleFileUpload(e.target.files[0]);
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </WizardSection>
+            <ResumeUploadSection
+              file={file}
+              isDragging={isDragging}
+              setIsDragging={setIsDragging}
+              isParsing={isParsing}
+              parsedResumeText={parsedResumeText}
+              handleFileUpload={handleFileUpload}
+              clearFile={clearFile}
+            />
 
             {/* Context */}
             <WizardSection title="Additional Context" index="05b">
@@ -1007,139 +841,16 @@ export default function SetupPage() {
               </div>
             </WizardSection>
 
-            {/* Alignment Analysis */}
-            <WizardSection title="Resume Alignment" index="05c">
-              
-              {!alignmentReport ? (
-                <div className="p-8 rounded-[28px] border border-slate-200/60 bg-white/40 backdrop-blur-sm flex flex-col items-center justify-center text-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100">
-                    <ChartLineUp className="w-8 h-8 text-indigo-500" weight="duotone" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-800">Analyze Fit Before Starting</h3>
-                    <p className="text-slate-500 text-sm max-w-sm mt-1 mx-auto">Upload a resume and provide a JD above to see how well you match, and let our AI interviewer automatically adjust its focus.</p>
-                  </div>
-                  <Button 
-                    onClick={analyzeAlignment}
-                    disabled={!parsedResumeText || !context || isAnalyzing}
-                    className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-8 shadow-sm transition-all"
-                  >
-                    {isAnalyzing ? (
-                      <><CircleNotch className="w-4 h-4 mr-2 animate-spin" /> Analyzing...</>
-                    ) : (
-                      <><Lightning className="w-4 h-4 mr-2" weight="fill" /> Analyze Alignment</>
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="p-8 rounded-[28px] border border-indigo-200/60 bg-indigo-50/30 backdrop-blur-sm space-y-6"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-800">Alignment Report</h3>
-                      <p className="text-sm text-slate-500">Based on your resume and JD</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Button onClick={analyzeAlignment} disabled={isAnalyzing} variant="outline" size="sm" className="rounded-full h-8 text-xs font-semibold">
-                        {isAnalyzing ? "Re-analyzing..." : "Re-analyze"}
-                      </Button>
-                      <div className="relative w-16 h-16 flex items-center justify-center">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                          <path
-                            className="text-indigo-100"
-                            strokeWidth="3"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                          <path
-                            className={`${alignmentReport.matchScore >= 80 ? 'text-emerald-500' : alignmentReport.matchScore >= 50 ? 'text-amber-500' : 'text-rose-500'}`}
-                            strokeDasharray={`${alignmentReport.matchScore}, 100`}
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                        </svg>
-                        <span className="absolute text-sm font-bold text-slate-800">{alignmentReport.matchScore}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" weight="fill" /> Key Strengths
-                      </h4>
-                      <ul className="space-y-2">
-                        {alignmentReport.strengths.map((s, i) => (
-                          <li key={i} className="text-sm text-slate-700 bg-emerald-100/50 px-3 py-1.5 rounded-lg border border-emerald-200/50">{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-semibold text-rose-700 flex items-center gap-2">
-                        <ChartLineUp className="w-4 h-4" weight="fill" /> Potential Gaps
-                      </h4>
-                      <ul className="space-y-2">
-                        {alignmentReport.gaps.map((g, i) => (
-                          <li key={i} className="text-sm text-slate-700 bg-rose-100/50 px-3 py-1.5 rounded-lg border border-rose-200/50">{g}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Phase 4: evidence grounding — document lines behind strengths/gaps. */}
-                  {alignmentReport.evidence && alignmentReport.evidence.length > 0 && (
-                    <div className="mt-4 rounded-xl border border-slate-200/70 bg-white/60 p-4">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                        Basis in your documents{alignmentReport.confidence ? ` · Evaluator confidence: ${alignmentReport.confidence}` : ""}
-                      </h4>
-                      <ul className="space-y-1.5">
-                        {alignmentReport.evidence.map((q, i) => (
-                          <li key={i} className="text-[13px] text-slate-600 border-l-2 border-indigo-300 pl-3 italic">“{q}”</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Interview Plan preview (Phase 7: deterministic from alignment + type) */}
-                  {(() => {
-                    const type = getInterviewType(selectedInterviewType);
-                    const rubric = RUBRICS[type.rubricId];
-                    const plan: InterviewPlan = buildInterviewPlan({
-                      interviewTypeId: type.id,
-                      rubricId: type.rubricId,
-                      rubricDimensions: rubric.dimensions.map((d) => ({ id: d.id, name: d.name })),
-                      difficulty: selectedDifficulty,
-                      timeBudgetSec: selectedDurationSec,
-                      strengths: alignmentReport.strengths,
-                      gaps: alignmentReport.gaps,
-                    });
-                    return (
-                      <div className="mt-6 p-5 rounded-[20px] border border-sky-200/50 bg-sky-50/40">
-                        <h4 className="text-sm font-bold text-sky-800 mb-3">
-                          Your interview plan · {type.name} · {selectedDifficulty} · {Math.round(selectedDurationSec / 60)} min
-                        </h4>
-                        <p className="text-[13px] text-slate-600 mb-2 font-semibold">Focus areas (highest-value gaps first):</p>
-                        <ul className="space-y-1.5">
-                          {plan.focusAreas.map((f, i) => (
-                            <li key={i} className="text-[13px] text-slate-700 flex items-start gap-2">
-                              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
-                              {f}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  })()}
-                </motion.div>
-              )}
-            </WizardSection>
+            <ResumeAlignmentSection
+              context={context}
+              parsedResumeText={parsedResumeText}
+              alignmentReport={alignmentReport}
+              isAnalyzing={isAnalyzing}
+              analyzeAlignment={analyzeAlignment}
+              selectedInterviewType={selectedInterviewType}
+              selectedDifficulty={selectedDifficulty}
+              selectedDurationSec={selectedDurationSec}
+            />
 
             {/* Technical Assessment */}
             <WizardSection title="Technical Assessment" index="05d">

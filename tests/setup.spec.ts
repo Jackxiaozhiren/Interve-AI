@@ -58,6 +58,31 @@ test.describe('Setup and Model Selection', () => {
 
     // Step 5: Resume Integration
     await expect(page.getByText('Resume Integration')).toBeVisible();
+
+    // Step 5 is four wizard sections, and two of them moved to
+    // components/setup/ResumeIntegrationSections.tsx while the job-description
+    // textarea stayed on the page. Asserting the order, rather than just the
+    // presence of each heading, is what keeps that split honest: collapsing the
+    // upload and the alignment report into one block would still render every
+    // title, just in the wrong sequence.
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Array.from(document.querySelectorAll('h2'))
+            .map((h) => (h.textContent ?? '').trim())
+            .filter((text) =>
+              ['Resume Integration', 'Additional Context', 'Resume Alignment', 'Technical Assessment'].includes(text),
+            ),
+        ),
+      )
+      .toEqual(['Resume Integration', 'Additional Context', 'Resume Alignment', 'Technical Assessment']);
+
+    // The alignment preflight refuses to run without both halves of its input.
+    // Nothing has been uploaded or typed at this point, so it must be disabled —
+    // a prop wired to the wrong value would make it look enabled and then fail
+    // with a "Missing Data" toast on click.
+    await expect(page.getByRole('button', { name: /Analyze Alignment/i })).toBeDisabled();
+
     await page.getByRole('button', { name: /Next Step/i }).click();
 
     // Step 6: Hardware Check
