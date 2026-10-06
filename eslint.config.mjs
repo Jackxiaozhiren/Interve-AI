@@ -13,7 +13,12 @@ const eslintConfig = defineConfig([
   // 单点注释放行，调用处照查）、log 区 tabindex（LiveCaptions 单点注释）、
   // tablist 可聚焦。刻意未进：anchor-is-valid（landing/footer 14 处 href="#"
   // 占位链，需产品定真实去向或移除，见 PAIN 登记）、click-events-have-key-events
-  // + no-static-element-interactions（setup:1092 在他人脏树，禁碰，等 owner 修）。
+  // + no-static-element-interactions: 刻意未进, 但理由已换。原由是 setup:1092 在他人脏树——
+  // 该行随 #42 迁入 components/setup/ResumeIntegrationSections.tsx, 且已按可键盘操作修复(div onClick
+  // 打开的是 display:none 的 input, 键盘根本到不了)。现在挡住启用的是存量计数, 而它已经有机器看守:
+  // debt.mouseOnlyInteractions (docs/audit/facts.limits.json, 2026-10-06 实测 9, 只降不升)。
+  // 另须记住: jsx-a11y 两条规则只解析简单标识符, 看不见 motion.div —— 本仓 9 处里 6 处是 motion.div,
+  // 所以"启用规则"≠"覆盖了这类缺陷"; 计数以 scripts/audit-facts.mjs 的 AST 走查为准。
   // The `files` scope is load-bearing, not cosmetic. Flat config resolves a
   // `plugin/rule` reference only against plugins declared in an object that also
   // matches the file, and `eslint-config-next` registers `jsx-a11y` solely for

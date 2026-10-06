@@ -11,7 +11,8 @@
     "debt.longestSourceFileLines": "size of the single largest file under src/ \u2014 the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
     "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
     "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",
-    "debt.unreferencedProductionDeps": "production dependencies no file under src/ imports. Adjudicated 2026-10-06 at 4: `dexie`, `dexie-react-hooks`, `geist`, `mermaid` \u2014 zero references repo-wide outside generated `*.tsbuildinfo`, verified with a scan that counts CSS `@import` and lazy `import()`. They stay installed because dropping a dependency is an owner decision, not a cleanup an audit makes alone; each removal should lower this ceiling, and nothing should raise it. A new entry here is a manifest claim, not a feature."
+    "debt.unreferencedProductionDeps": "production dependencies no file under src/ imports. Adjudicated 2026-10-06 at 4: `dexie`, `dexie-react-hooks`, `geist`, `mermaid` \u2014 zero references repo-wide outside generated `*.tsbuildinfo`, verified with a scan that counts CSS `@import` and lazy `import()`. They stay installed because dropping a dependency is an owner decision, not a cleanup an audit makes alone; each removal should lower this ceiling, and nothing should raise it. A new entry here is a manifest claim, not a feature.",
+    "debt.mouseOnlyInteractions": "clickable host elements with a pointer handler and no keyboard handler. An inventory, not a verdict that all 9 are defects: 6 are `motion.div` backdrops/rows whose keyboard route may already exist (Escape-closed dialogs), and each needs reading in context before it is fixed. What is established is the shape \u2014 the resume dropzone in setup was exactly this and made PDF upload keyboard-unreachable while axe stayed silent. The number may only go down. Measured 2026-10-06: this AST walk finds 9; `jsx-a11y/click-events-have-key-events` reports 3 of them, because eslint-plugin-jsx-a11y resolves only simple identifiers and cannot see a `motion.div` tag \u2014 in a framer-motion codebase the eslint rules under-count by two thirds, which is why enabling them is not the same as being covered."
   },
   "ceiling": {
     "debt.deprecatedObjectGenFiles": 12,
@@ -25,7 +26,8 @@
     "debt.unreferencedProductionDeps": 4,
     "capabilities.untestedChatCallbacks": 0,
     "capabilities.networkLayer.rawFetchCalls": 17,
-    "debt.hardInternalNavigations": 1
+    "debt.hardInternalNavigations": 1,
+    "debt.mouseOnlyInteractions": 9
   },
   "floor": {}
 }

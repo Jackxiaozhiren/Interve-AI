@@ -15,6 +15,7 @@ import path from "node:path";
 import {
   collectFacts,
   countHardInternalNavigations,
+  countMouseOnlyInteractions,
   findUnreferencedProductionDeps,
   evaluateRatchet,
   numericLeaves,
@@ -276,5 +277,47 @@ describe("production dependencies the code does not back", () => {
     for (const name of facts.debt.unreferencedProductionDeps) {
       expect(note, `the ledger note never names ${name}`).toContain(`\`${name}\``);
     }
+  });
+});
+
+describe("countMouseOnlyInteractions", () => {
+  const count = (body: string) =>
+    countMouseOnlyInteractions(`export const C = () => (\n${body}\n);\n`, "probe.tsx");
+
+  it.each([
+    ["a bare click on a div", `<div onClick={go} />`, 1],
+    ["a click on a div that also answers keys", `<div onClick={go} onKeyDown={keys} />`, 0],
+    ["a native button", `<button onClick={go} />`, 0],
+    ["a native anchor", `<a onClick={go} />`, 0],
+    ["a custom component (it may forward to a real control)", `<Toggle onClick={go} />`, 0],
+    ["a press-and-drag handler on a span", `<span onMouseDown={go} />`, 1],
+    ["a div given a role but no key handler", `<div role="button" tabIndex={0} onClick={go} />`, 1],
+  ])("counts %s", (_label, body, want) => {
+    expect(count(body)).toBe(want);
+  });
+
+  it("sees a motion.div, which is the point", () => {
+    // eslint-plugin-jsx-a11y resolves only simple identifiers, so in a codebase that
+    // renders `motion.div` everywhere its two a11y rules under-count the class badly:
+    // measured on 2026-10-06, the eslint pair reported 11 errors over 8 elements while
+    // this walk finds 9 *narrower* cases, 6 of them `motion.div`.
+    expect(count(`<motion.div onClick={go} />`)).toBe(1);
+    expect(count(`<motion.div role="dialog" onClick={backdrop} onKeyDown={keys} />`)).toBe(0);
+  });
+
+  it("stays blind to prose, so the note about the rule cannot raise the number", () => {
+    const prose = `// A <div onClick={x} /> here would be counted; this comment is not one.\n`;
+    expect(countMouseOnlyInteractions(prose, "notes.ts")).toBe(0);
+    expect(count(`${prose}<div onClick={go} />`)).toBe(1);
+  });
+
+  it("is not vacuous: it counts the repo, and the repo is at its ceiling today", () => {
+    // `<=`, not `===`: a fix must lower the count without breaking this test, and the
+    // ledger is lowered deliberately afterwards. An equality here would punish the very
+    // change the ratchet exists to invite.
+    expect(facts.debt.mouseOnlyInteractions).toBeGreaterThan(0);
+    expect(facts.debt.mouseOnlyInteractions).toBeLessThanOrEqual(
+      limits.ceiling["debt.mouseOnlyInteractions"],
+    );
   });
 });
