@@ -97,9 +97,9 @@ export function createWhisperDispatch(deps: WhisperDispatchDeps) {
       // browser draft — owns the hesitation count for this answer.
       setFillerWordsCount(deliveryLedgerRef.current.commitFinalFromWhisper(text));
 
-      // Send transcribed text to API
+      // Send transcribed text to API; void-marked because a rejected send must not surface as an unhandled rejection while the transcript is already the candidate's turn.
       if (handleUserInputRef.current) {
-        handleUserInputRef.current(text.trim());
+        void handleUserInputRef.current(text.trim());
       }
 
       const trimmedText = text.trim();
