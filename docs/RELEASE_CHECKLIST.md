@@ -24,6 +24,18 @@
   forged `x-middleware-subrequest` still gated).
 - [x] `npm audit --audit-level=critical` exit 0 (Next 16.3.6; 0 critical,
   SECURITY_REPORT §1 re-audit).
+  - [ ] 2026-10-06: superseded. The line above was true when it was written, then
+    the advisory feed moved under it: the *same lockfile* passed
+    `npm audit --audit-level=critical` in CI at 2026-10-05T10:36Z and failed it at
+    2026-10-06T02:56Z, which turned both open PR branches red on that one step and
+    nothing else — `gh run view --log-failed` returned only
+    `Run npm audit --audit-level=critical`. And
+    the shipped tree did in fact carry a critical — because `shadcn`, a scaffolding
+    CLI, sat in `dependencies` and dragged `express`/`proxy-addr` (276 packages) in
+    with it. The gate is now `npm run audit:deps`: zero criticals in the shipped
+    tree with no exception path, and the developer tree's criticals must match
+    `docs/audit/deps-critical.json` in both directions. The two vitest-side
+    criticals stay open pending a vitest 5 decision.
 
 ## Env & secrets
 

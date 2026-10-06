@@ -12,7 +12,7 @@ Pyramid: unit → integration → API/DB/RLS → AI eval → E2E → a11y → vi
 | E2E journey | `npm run test:e2e:mock` | `mock-journey.spec.ts` + `chat.spec.ts`, keyless against a dev server booted with `AI_MOCK=1` |
 | Full E2E (local only) | `npm run test:e2e` | 12-project matrix (chrome/edge/firefox/safari × 3 viewports). **Not a CI lane, and not one that could be**: the workflow installs chromium only, `chrome`/`edge` select proprietary channels and `safari` maps to WebKit, and at the smoke lane's measured 5.4 s/test on the single CI worker the matrix's 420 executions need ~38 min against a 30-min job ceiling |
 | a11y | `npm run test:a11y` | convenience wrapper for `accessibility.spec.ts` alone; CI already gets that file through smoke. Full AT pass tracked |
-| Security | `npm audit`, secret scan, gateway/upload/abuse suites | 39 (1L/30M/8H/0C) triaged; 0 secret hits; abuse extras green |
+| Security | `npm run audit:deps`, secret scan, gateway/upload/abuse suites | `audit:deps` splits the tree by reachability: zero criticals in the shipped tree (no exception path), and the developer tree's criticals must equal `docs/audit/deps-critical.json` in both directions. Live counts come from `npm audit --json` and are not restated here. 0 secret hits; abuse extras green |
 | Perf | Lighthouse + `scripts/perf-probe.mjs` | `/` 92/100/100/100; misses explained in `docs/audit/PERF_REPORT.md` |
 
 ### Specs no CI lane collects
