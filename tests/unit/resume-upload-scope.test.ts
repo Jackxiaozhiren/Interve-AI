@@ -5,7 +5,10 @@
  * excepted) and routes images straight into the OCR fallback — a scanned resume
  * photographed on a phone would work. The only caller in the product is the
  * `/setup` wizard, which sets `accept="application/pdf"`, gates `handleFileUpload`
- * on the same exact string, and tells the candidate "PDF format up to 5MB". So
+ * on the same exact string (its picker now lives in
+ * `components/setup/ResumeIntegrationSections.tsx` and its gate in
+ * `hooks/useResumeIntegration.ts`, so the read below walks all three files rather
+ * than the page alone), and tells the candidate "PDF format up to 5MB". So
  * the image branch is unreachable from the UI, and also unreachable from any
  * keyless test: `isMockEnabled()` returns before validation, so driving that
  * branch for real needs a provider call, which this project does not spend.
@@ -26,7 +29,11 @@ import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const ROUTE = "src/app/api/parse-resume/route.ts";
-const WIZARD = "src/app/setup/page.tsx";
+const WIZARD_SOURCES = [
+  "src/app/setup/page.tsx",
+  "src/components/setup/ResumeIntegrationSections.tsx",
+  "src/hooks/useResumeIntegration.ts",
+];
 const DOC = "docs/SECURITY.md";
 
 const read = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
@@ -55,23 +62,40 @@ function routeAcceptedTypes(): { pdf: boolean; image: boolean; svgRefused: boole
   return seen;
 }
 
-function wizardAccepts(): { acceptAttr: string | null; gateAllowsImage: boolean } {
-  const src = read(WIZARD);
-  const accept = /accept="([^"]*)"/.exec(src);
-  const sf = ts.createSourceFile(WIZARD, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+function wizardAccepts(): { acceptAttr: string | null; gateAllowsImage: boolean; pickers: number } {
+  // The wizard is no longer one file: the `<input type="file">` moved to
+  // components/setup/ResumeIntegrationSections.tsx and the `uploadedFile.type`
+  // gate to hooks/useResumeIntegration.ts. Reading only the page would report
+  // "no file input on the wizard" — a red that means "my corpus went stale", not
+  // "the product drifted". `pickers` is counted so a second, divergent upload
+  // control cannot hide behind the first one this guard happened to read.
+  let acceptAttr: string | null = null;
+  let pickers = 0;
   let gateAllowsImage = false;
-  const visit = (node: ts.Node) => {
-    if (ts.isBinaryExpression(node) && node.getText(sf).includes("uploadedFile.type")) {
-      // The gate is the whole condition, so the widest expression that mentions
-      // the field is the one that decides. Assigning here instead of OR-ing let an
-      // inner `!== "application/pdf"` overwrite the outer `&& startsWith("image/")`,
-      // and a widened gate read as PDF-only — a plant caught it doing exactly that.
-      gateAllowsImage = gateAllowsImage || /image\//.test(node.getText(sf));
+  for (const rel of WIZARD_SOURCES) {
+    const src = read(rel);
+    // Every picker in every file, not the first per file: a second `accept=` in
+    // the same component is exactly the drift `pickers` exists to catch, and
+    // `/…/.exec()` was planted red-free until it was switched to `matchAll`.
+    const accepts = Array.from(src.matchAll(/accept="([^"]*)"/g), (m) => m[1] ?? "");
+    if (accepts.length) {
+      pickers += accepts.length;
+      acceptAttr = acceptAttr ?? accepts[0] ?? "";
     }
-    node.forEachChild(visit);
-  };
-  visit(sf);
-  return { acceptAttr: accept ? accept[1] : null, gateAllowsImage };
+    const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const visit = (node: ts.Node) => {
+      if (ts.isBinaryExpression(node) && node.getText(sf).includes("uploadedFile.type")) {
+        // The gate is the whole condition, so the widest expression that mentions
+        // the field is the one that decides. Assigning here instead of OR-ing let an
+        // inner `!== "application/pdf"` overwrite the outer `&& startsWith("image/")`,
+        // and a widened gate read as PDF-only — a plant caught it doing exactly that.
+        gateAllowsImage = gateAllowsImage || /image\//.test(node.getText(sf));
+      }
+      node.forEachChild(visit);
+    };
+    visit(sf);
+  }
+  return { acceptAttr, gateAllowsImage, pickers };
 }
 
 const route = routeAcceptedTypes();
@@ -81,6 +105,12 @@ describe("the resume-upload surface is stated as it is", () => {
   it("reads the route and the wizard it claims to describe (instrument sanity)", () => {
     expect(route.pdf, "the route no longer mentions application/pdf at all").toBe(true);
     expect(wizard.acceptAttr, "no file input on the wizard").not.toBeNull();
+    expect(
+      wizard.pickers,
+      wizard.pickers > 1
+        ? `${wizard.pickers} upload pickers across the wizard's files, and this guard only reads the first`
+        : "expected exactly one upload picker",
+    ).toBe(1);
   });
 
   it("keeps the wizard's gate and its picker in step with the route", () => {
