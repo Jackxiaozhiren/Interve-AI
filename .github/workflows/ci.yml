@@ -72,7 +72,15 @@ jobs:
           npm run perf:assert; status=$?
           pkill -f "next start -p 3100" || true
           exit $status
-      - run: npm audit --audit-level=critical
+      # Dependency surface, split by reachability. `npm audit --audit-level=critical`
+      # alone folded the shipped bundle and the developer's test runner into one
+      # number, so a critical in vitest's worker pool blocked a docs-only PR exactly
+      # like a critical in the deployed code — and on 2026-10-06 it turned every open
+      # branch red at once with no code change, because the advisory feed moved.
+      # Now: zero criticals in the shipped tree is a hard bar with no exception path;
+      # criticals in the developer tree must match docs/audit/deps-critical.json
+      # exactly, in both directions. See scripts/audit-deps.mjs.
+      - run: npm run audit:deps
       # Phase G2: deploy-surface consistency (Vercel uses `next build` with
       # output:standalone; Docker must ship the same node major + no secrets).
       - name: deploy consistency (vercel.json / standalone / docker / engines)
