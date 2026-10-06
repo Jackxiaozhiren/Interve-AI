@@ -420,6 +420,73 @@ function importedSpecifiersInSrc() {
   return found;
 }
 
+/**
+ * Clickable elements that no keyboard event reaches, counted on the parse tree.
+ *
+ * Why an AST and not the two eslint rules this stands in for: enabling
+ * `click-events-have-key-events` and `no-static-element-interactions` today would
+ * fail CI on 11 pre-existing errors, and a permanently-red gate is not a gate — the
+ * config comment that defers them says so out loud. This counts the same defect so a
+ * *new* one goes red immediately, while the ceiling can only move down.
+ *
+ * Comment-blind by construction: prose about a click handler is not a JSX element, so
+ * the note that adjudicates this debt cannot raise its own number.
+ *
+ * The class is real, not theoretical: `jsx-a11y/click-events-have-key-events` caught
+ * the setup wizard's resume dropzone (`<div onClick>` opening a `display:none` file
+ * input), which made PDF upload keyboard-unreachable, and axe reported nothing.
+ */
+const NATIVE_INTERACTIVE_TAGS = new Set([
+  "a",
+  "abbr",
+  "audio",
+  "button",
+  "details",
+  "input",
+  "label",
+  "option",
+  "select",
+  "summary",
+  "textarea",
+  "video",
+]);
+const POINTER_HANDLER_ATTRS = new Set(["onClick", "onMouseDown", "onPointerDown"]);
+const KEY_HANDLER_ATTRS = new Set(["onKeyDown", "onKeyUp", "onKeyPress"]);
+
+export function countMouseOnlyInteractions(sourceText, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  let hits = 0;
+  const visit = (node) => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = node.tagName.getText(sourceFile).split(".").pop();
+      const attrs = node.attributes.properties.filter(ts.isJsxAttribute).map((a) => a.name.getText(sourceFile));
+      const clickable = attrs.some((a) => POINTER_HANDLER_ATTRS.has(a));
+      const keyboardReachable = attrs.some((a) => KEY_HANDLER_ATTRS.has(a));
+      const component = /^[A-Z]/.test(node.tagName.getText(sourceFile));
+      // A custom component may forward the handler to a real button, so it is not
+      // evidence either way; only a host element we cannot click with a keyboard counts.
+      if (clickable && !keyboardReachable && !component && !NATIVE_INTERACTIVE_TAGS.has(tag)) hits += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return hits;
+}
+
+function countMouseOnlyInteractionsInSrc() {
+  return sourceFiles().reduce((sum, f) => {
+    const name = path.relative(ROOT, f);
+    if (!name.endsWith(".tsx")) return sum;
+    return sum + countMouseOnlyInteractions(fs.readFileSync(f, "utf8"), name);
+  }, 0);
+}
+
 function collectDebt() {
   const files = sourceFiles();
   const withLines = files
@@ -440,6 +507,7 @@ function collectDebt() {
     tsIgnoreHits: countHits(/@ts-(?:ignore|expect-error)/g),
     todoMarkers: countHits(/\b(?:TODO|FIXME|HACK|XXX)\b/g),
     hardInternalNavigations: countHardInternalNavigationsInSrc(),
+    mouseOnlyInteractions: countMouseOnlyInteractionsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
     longestSourceFiles: withLines,
     // Scalar sibling, because numericLeaves maps an array to its length: a
@@ -603,6 +671,16 @@ export const RATCHET_KEYS = {
     + "were accidental — both are now router.push). The 1 that stays is useInterviewSettlement's end-of-interview exit, kept "
     + "deliberate because a full reload guarantees the microphone and both speech engines are torn down with the page; a client "
     + "transition would have to prove that teardown, and nothing here can observe it keyless. Reopens only with a verified teardown.",
+  "debt.mouseOnlyInteractions":
+    "clickable host elements with a pointer handler and no keyboard handler. An inventory, not a "
+    + "verdict that all 9 are defects: 6 are `motion.div` backdrops/rows whose keyboard route may already "
+    + "exist (Escape-closed dialogs), and each needs reading in context before it is fixed. What is "
+    + "established is the shape — the resume dropzone in setup was exactly this and made PDF upload "
+    + "keyboard-unreachable while axe stayed silent. The number may only go down. "
+    + "Measured 2026-10-06: this AST walk finds 9; `jsx-a11y/click-events-have-key-events` reports 3 of "
+    + "them, because eslint-plugin-jsx-a11y resolves only simple identifiers and cannot see a "
+    + "`motion.div` tag — in a framer-motion codebase the eslint rules under-count by two thirds, which "
+    + "is why enabling them is not the same as being covered.",
   "debt.anyEscapes": "explicit `any` escaping the strict config",
   "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
   "debt.unreferencedProductionDeps":
