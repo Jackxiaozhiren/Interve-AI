@@ -23,6 +23,7 @@
     "quota": "node scripts/quota-ledger.mjs status",
     "facts": "node scripts/audit-facts.mjs --write",
     "facts:check": "node scripts/audit-facts.mjs --check",
+    "audit:deps": "node scripts/audit-deps.mjs",
     "facts:seed": "node scripts/audit-facts.mjs --seed",
     "test:e2e:smoke": "playwright test --project=chrome-1280x720 tests/landing.spec.ts tests/setup.spec.ts tests/interview.spec.ts tests/interview-flow.spec.ts tests/dashboard.spec.ts tests/replay.spec.ts tests/settings.spec.ts tests/accessibility.spec.ts tests/chat.spec.ts tests/privacy.spec.ts tests/clipboard-disclosure.spec.ts tests/selection-a11y.spec.ts tests/e2e/interview-greenroom.spec.ts tests/e2e/interview-interactive.spec.ts",
     "test:e2e:axe": "playwright test --project=chrome-1280x720 --grep-invert \"Visual regression\" tests/a11y-visual.spec.ts",
@@ -63,7 +64,6 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "recharts": "^3.10.1",
-    "shadcn": "^4.21.0",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "tldraw": "^4.5.10",
@@ -82,6 +82,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "playwright": "^1.59.1",
+    "shadcn": "^4.21.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.7"
