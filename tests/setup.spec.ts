@@ -83,6 +83,19 @@ test.describe('Setup and Model Selection', () => {
     // with a "Missing Data" toast on click.
     await expect(page.getByRole('button', { name: /Analyze Alignment/i })).toBeDisabled();
 
+    // The picker `<input>` is `display: none`, so it is not in the tab order and the
+    // dropzone is a keyboard user's only way in. Until this commit the dropzone was a
+    // `div onClick` with no key handler, which made resume upload on step 5 mouse-only.
+    // Asserting the chooser actually opens is the difference between "has a key
+    // handler" and "the handler reaches the control".
+    const dropzone = page.getByRole('button', { name: /Drag & drop your resume/i });
+    await expect(dropzone).toBeVisible();
+    await dropzone.focus();
+    await expect(dropzone).toBeFocused();
+    const chooser = page.waitForEvent('filechooser');
+    await dropzone.press('Enter');
+    await (await chooser).setFiles([]);
+
     await page.getByRole('button', { name: /Next Step/i }).click();
 
     // Step 6: Hardware Check

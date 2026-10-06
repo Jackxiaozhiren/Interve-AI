@@ -47,6 +47,13 @@ export function ResumeUploadSection({
   handleFileUpload,
   clearFile,
 }: UploadProps) {
+  // The picker input is `className="hidden"` — `display: none`, so it is not in the
+  // tab order and cannot be reached by a keyboard. The dropzone was therefore a
+  // `div onClick` with no keyboard path at all: mouse-only resume upload on step 5.
+  // Sonar's reliability rule (S1082) caught it when this markup moved here; it existed
+  // in the page before, un-flagged because the rule only reports on new code.
+  const openPicker = () => document.getElementById("resume-upload")?.click();
+
   return (
     <WizardSection title="Resume Integration" index="05a">
               
@@ -98,7 +105,20 @@ export function ResumeUploadSection({
               </button>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-4 cursor-pointer" onClick={() => document.getElementById("resume-upload")?.click()}>
+            <div
+              role="button"
+              tabIndex={0}
+              aria-controls="resume-upload"
+              className="flex flex-col items-center gap-4 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
+              onClick={openPicker}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  // Space activates a button and must not scroll the page away.
+                  e.preventDefault();
+                  openPicker();
+                }
+              }}
+            >
               <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shadow-sm group-hover:scale-105 transition-transform duration-300">
                 <UploadSimple className="w-8 h-8 text-slate-500 group-hover:text-sky-500 transition-colors" weight="duotone" />
               </div>

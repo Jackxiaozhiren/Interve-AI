@@ -121,7 +121,9 @@ export function useResumeIntegration({
   };
 
   const handleFileUpload = async (uploadedFile: File) => {
-    if (!uploadedFile || uploadedFile.type !== "application/pdf") {
+    // One optional chain rather than a null test plus a property read: `undefined`
+    // fails the same branch, so a missing file is still refused.
+    if (uploadedFile?.type !== "application/pdf") {
       toast.error("Invalid file", {
         description: "Please upload a valid PDF file.",
       });
