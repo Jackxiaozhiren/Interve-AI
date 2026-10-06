@@ -34,7 +34,6 @@ import { type AIExpert } from "@/components/interview/MultiAgentVisualizer";
 import { DynamicLoader } from "@/components/ui/DynamicLoader";
 import { getMessageText, getTextFromFinishEvent } from "@/lib/message-text";
 import { useInterveStore } from "@/store/useInterveStore";
-import { runTurnAnalysis } from "@/lib/interview/turn-analysis";
 import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { loopBadge } from "@/lib/interview/difficulty-label";
@@ -43,8 +42,9 @@ import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
 import { useVADInterruption } from "@/hooks/useVADInterruption";
 import { createSttSession } from "@/lib/audio/stt";
 // Phase E1: pure slices extracted from this God component (unit-tested).
-import { computeWpm, countFillers, shouldRunAnalysis } from "@/lib/interview/delivery-metrics";
+import { computeWpm, countFillers } from "@/lib/interview/delivery-metrics";
 import { createDeliveryLedger } from "@/lib/interview/delivery-ledger";
+import { createWhisperDispatch, createKokoroDispatch } from "@/lib/interview/engine-dispatch";
 import { startSpeechSession, type SpeechRecognitionLike, type WindowWithSpeech } from "@/lib/interview/speech-session";
 import { saveSession, loadSession, clearSession } from "@/lib/interview/session-persistence";
 import { readDesignCanvas, readScratchpadCodeContext, readScratchpadContent } from "@/lib/interview/board-state";
@@ -517,86 +517,30 @@ function InterviewRoomContent() {
 
     audioContext.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ sampleRate: 24000 });
 
-    const handleWhisperMessage = (e: MessageEvent) => {
-      const { status, text, error } = e.data;
-      if (status === 'ready') {
-        console.log("Whisper ready");
-      } else if (status === 'complete' && text) {
-        // Phase 13: STT latency turnaround.
-        whisperSpanRef.current.collectInto(whisperTurnaroundsRef.current);
-        setModelStatus("");
-        
-        // Delivery Analysis Logic (E1: pure helpers, behavior-identical)
-        if (recordingStartTimeRef.current) {
-           const durationMinutes = (Date.now() - recordingStartTimeRef.current) / 60000;
-           const currentWpm = computeWpm(text, durationMinutes);
-           if (currentWpm !== null) setWpm(currentWpm);
-           recordingStartTimeRef.current = null;
-        }
+    const handleWhisperMessage = createWhisperDispatch({
+      deliveryLedgerRef,
+      whisperSpanRef,
+      whisperTurnaroundsRef,
+      recordingStartTimeRef,
+      lastAnalysisTimeRef,
+      activeCodeContextRef,
+      activeSystemDesignContextRef,
+      handleUserInputRef,
+      setWpm,
+      setFillerWordsCount,
+      setModelStatus,
+      getAnalysisSinks: () => useInterveStore.getState(),
+      toast,
+    });
 
-        // The Whisper final is the answer's authoritative text, so it — not the
-        // browser draft — owns the hesitation count for this answer.
-        setFillerWordsCount(deliveryLedgerRef.current.commitFinalFromWhisper(text));
-
-        // Send transcribed text to API
-        if (handleUserInputRef.current) {
-          handleUserInputRef.current(text.trim());
-        }
-
-        const trimmedText = text.trim();
-        const now = Date.now();
-
-        // Only trigger heavy STAR and Behavioral analysis if the utterance is substantial and sufficient time has passed (Throttle)
-        // This acts as a cooling mechanism to save API calls and prevent backend congestion from rapid rapid stop-start recordings.
-        // E1: gate ported verbatim to shouldRunAnalysis (unit-tested).
-        if (shouldRunAnalysis({
-          textLen: trimmedText.length,
-          nowMs: now,
-          lastMs: lastAnalysisTimeRef.current,
-          hasCodeCtx: Boolean(activeCodeContextRef.current),
-          hasDesignCtx: Boolean(activeSystemDesignContextRef.current),
-        })) {
-          
-          lastAnalysisTimeRef.current = now;
-
-          // Phase 35 + 31: STAR progress and behavioral tracking for this
-          // utterance. Extracted to runTurnAnalysis so the dispatch has tests;
-          // fire-and-forget as before, because a degraded analysis route must
-          // not cost the candidate their turn.
-          void runTurnAnalysis(
-            {
-              transcript: trimmedText,
-              codeContext: activeCodeContextRef.current,
-              systemDesignContext: activeSystemDesignContextRef.current,
-            },
-            useInterveStore.getState()
-          );
-        }
-        
-      } else if (status === 'error') {
-        console.error("Whisper Error:", error);
-        setModelStatus("语音识别出错");
-        toast.error("语音识别加载失败", { description: "硬件加速或模型资源不可用，请刷新重试" });
-      }
-    };
-
-    const handleKokoroMessage = async (e: MessageEvent) => {
-      const { status, audio, sampleRate, error } = e.data;
-      if (status === 'ready') {
-        setModelsReady(true);
-        setModelStatus("");
-      } else if (status === 'complete' && audio) {
-        setModelStatus("");
-        await playAudio(audio, sampleRate || 24000);
-      } else if (status === 'error') {
-        console.warn("Kokoro模型加载失败，已切换至浏览器原生语音:", error);
-        setIsUsingNativeTTS(true);
-        setModelsReady(true); // Make the app usable even if Kokoro fails
-        setModelStatus("");
-        setIsAiSpeaking(false);
-        toast.info("已切换至基础语音模式", { description: "高级语音模型加载失败，但不影响核心面试流程" });
-      }
-    };
+    const handleKokoroMessage = createKokoroDispatch({
+      setModelsReady,
+      setModelStatus,
+      setIsUsingNativeTTS,
+      setIsAiSpeaking,
+      playAudio,
+      toast,
+    });
 
     whisperWorker.current.addEventListener('message', handleWhisperMessage);
     kokoroWorker.current.addEventListener('message', handleKokoroMessage);
