@@ -14,7 +14,16 @@ const eslintConfig = defineConfig([
   // tablist 可聚焦。刻意未进：anchor-is-valid（landing/footer 14 处 href="#"
   // 占位链，需产品定真实去向或移除，见 PAIN 登记）、click-events-have-key-events
   // + no-static-element-interactions（setup:1092 在他人脏树，禁碰，等 owner 修）。
+  // The `files` scope is load-bearing, not cosmetic. Flat config resolves a
+  // `plugin/rule` reference only against plugins declared in an object that also
+  // matches the file, and `eslint-config-next` registers `jsx-a11y` solely for
+  // **/*.{js,jsx,mjs,ts,tsx,mts,cts}. Ungrouped here, these rules were applied to
+  // every file ESLint walks — so a single `.cjs` script anywhere in the tree made
+  // `npm run lint` die with "could not find plugin jsx-a11y": a hard config-load
+  // crash that reads like a rule problem and invites someone to delete the rules.
+  // Pinned by tests/unit/eslint-config-survives-every-linted-extension.test.ts.
   {
+    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
     rules: {
       "jsx-a11y/no-autofocus": "error",
       "jsx-a11y/tabindex-no-positive": "error",
