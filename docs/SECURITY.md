@@ -41,4 +41,14 @@
   `session.id + client IP` (`user-budget.ts`), which is why it is bound to the IP
   and not the session alone.
 - Secrets/PII: 0 secret hits; server-only keys (import-graph verified); PII-free structured logs (`requestId/aiCallId/sessionId/latency/provider/model/tokens/retries`, never raw resume/transcript/keys); JD-out-of-URL, transcript session-scoped.
-- Deps: `npm audit` 39 post-fix (sharp/onnx chains aliased out of browser, never imported server-side; postcss/ws/uuid/etc. build/dev-nested) — upgrade lane Next 16.3.4. SAST today = `tsc` strict + ESLint hooks + Zod I/O + POST-only surface test; CodeQL/Semgrep lane tracked for CI.
+- Deps: the gate is `npm run audit:deps` (`scripts/audit-deps.mjs`), and it splits the
+  tree by reachability instead of by severity alone — a critical in the shipped tree
+  fails with no exception path, while criticals in the developer tree must match
+  `docs/audit/deps-critical.json` in both directions, so a new one cannot land
+  undisclosed and a fixed one cannot linger as a claim about a risk the repo no
+  longer carries. Counts are deliberately not restated here: they come from
+  `npm audit --json`, and a number in prose is a number nobody can re-check.
+  Historical triage notes (pre-split): sharp/onnx chains aliased out of the browser,
+  never imported server-side; postcss/ws/uuid/etc. build/dev-nested — upgrade lane
+  Next 16.3.4. SAST today = `tsc` strict + ESLint hooks + Zod I/O + POST-only surface
+  test; CodeQL/Semgrep lane tracked for CI.
