@@ -219,4 +219,28 @@ describe("the gate end to end, as the runner invokes it", () => {
     expect(code).toBe(1);
     expect(out).toMatch(/no longer is/);
   });
+
+  it("refuses to guess when it was given no reports", () => {
+    // Called without the two documents — the shape a broken wrapper would produce.
+    // Defaulting to "clean" here would be the same failure as the no-op entry guard
+    // this script already shipped once.
+    try {
+      const stdout = execFileSync("node", ["scripts/audit-deps.mjs"], { cwd: REPO, encoding: "utf8" });
+      throw new Error(`expected a non-zero exit, got 0 with: ${stdout}`);
+    } catch (err) {
+      const e = err as { status?: number; stdout?: string; stderr?: string; message?: string };
+      if (e.status === undefined) throw err; // a real failure of the expectation itself
+      expect(e.status).toBe(2);
+      expect(`${e.stderr ?? ""}${e.stdout ?? ""}`).toMatch(/usage: node scripts\/audit-deps\.mjs/);
+    }
+  });
+
+  it("collects the documents in the wrapper rather than spawning npm from the gate", () => {
+    const shell = readFileSync(resolve(REPO, "scripts/audit-deps.sh"), "utf8");
+    expect(shell).toContain("npm audit --json --omit=dev");
+    expect(shell).toContain("--prod-doc");
+    expect(shell).toContain("--full-doc");
+    const gate = readFileSync(resolve(REPO, "scripts/audit-deps.mjs"), "utf8");
+    expect(gate).not.toMatch(/child_process/);
+  });
 });

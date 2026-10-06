@@ -7,10 +7,10 @@
 // one number, so (a) a critical in `vitest`'s worker pool blocks a docs-only PR
 // exactly like a critical in the deployed bundle, and (b) the fix for the first is
 // a major-version migration while the fix for the second is a version bump. The
-// day the advisories for `proxy-addr` and `tinypool` were published, every open
-// branch went red at once with no code change — which is the same "gate that can
-// never converge" shape as the CSP ceiling, and it trains people to reach for
-// `--omit` flags rather than to read the list.
+// day the advisories for `proxy-addr` and `tinypool` were published, the same
+// lockfile passed the step in CI and then failed it a day later with no code change
+// anywhere — the "gate that can never converge" shape again, and one that trains
+// people to reach for `--omit` flags rather than to read the list.
 //
 // So the shipped tree keeps a hard, unscoped bar: zero criticals, no register, no
 // exceptions. The developer tree keeps a *disclosure* bar: the set of packages with
@@ -19,7 +19,6 @@
 // that names a vulnerability the repo no longer has is a false statement about the
 // product's risk, which is what registers are supposed to prevent.
 
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -32,15 +31,18 @@ export function advisoryIds(via) {
     const url = typeof entry === 'string' ? '' : entry.url ?? '';
     for (const m of url.matchAll(/(GHSA-[0-9a-z-]+|CVE-[0-9-]+)/g)) ids.add(m[1]);
   }
-  return [...ids].sort();
+  // Insertion order is the URL scan order, and nothing compares these by position:
+  // an unsorted list is honest about what it is. Sorting here without a comparator
+  // was Sonar S2871's first complaint, and a locale-dependent comparator would be
+  // worse — the same repo would order differently on two machines.
+  return [...ids];
 }
 
 /** Packages whose top-level severity is `critical` in one audit document. */
 export function criticalPackages(audit) {
   return Object.entries(audit?.vulnerabilities ?? {})
     .filter(([, info]) => info?.severity === 'critical')
-    .map(([name]) => name)
-    .sort();
+    .map(([name]) => name);
 }
 
 /**
@@ -61,7 +63,7 @@ export function evaluate({ prodAudit, fullAudit, register }) {
   }
 
   // 2. The developer tree must match the disclosure exactly, in both directions.
-  const registered = (register?.devOnlyCritical ?? []).map((e) => e.package).sort();
+  const registered = (register?.devOnlyCritical ?? []).map((e) => e.package);
   const missing = devCritical.filter((name) => !registered.includes(name));
   const stale = registered.filter((name) => !devCritical.includes(name));
   if (missing.length) {
@@ -91,27 +93,11 @@ export function evaluate({ prodAudit, fullAudit, register }) {
   return { ok: failures.length === 0, failures, prodCritical, devCritical, registered };
 }
 
-function runAudit(args) {
-  const cwd = resolve(import.meta.dirname, '..');
-  try {
-    return JSON.parse(
-      execFileSync('npm', ['audit', '--json', ...args], {
-        cwd,
-        encoding: 'utf8',
-        maxBuffer: 64 * 1024 * 1024,
-        // `npm audit --json` exits non-zero as soon as it finds anything at or above
-        // the level, and still writes the full report. The verdict comes from that
-        // document, never from the exit code — a folded code path here would silently
-        // read as "no advisories".
-        env: { ...process.env, NO_PROXY: '*', no_proxy: '*' },
-      }),
-    );
-  } catch (err) {
-    const body = err.stdout?.toString() ?? '';
-    if (body.trim()) return JSON.parse(body);
-    throw err;
-  }
-}
+// This script never spawns `npm`. Two things are why: Sonar S4036 (handing a
+// child the inherited `PATH` is a genuine hazard, not a false positive), and the
+// simpler fact that a gate should read a report, not re-collect one. The wrapper
+// `scripts/audit-deps.sh` runs `npm audit` twice and passes both documents in, so
+// the npm invocation stays where the toolchain normally invokes it.
 
 function flagValue(argv, name) {
   const i = argv.indexOf(name);
@@ -119,13 +105,19 @@ function flagValue(argv, name) {
 }
 
 export function main(argv = process.argv.slice(2)) {
-  // A seam for the test suite: two audit documents on disk, so the end-to-end
-  // behaviour of the gate — including its exit code — is provable without reaching
-  // the advisory feed. The CI step uses no flags and reads the live documents.
+  // Both documents are inputs, always. That is simultaneously the test seam — the
+  // end-to-end behaviour, including the exit code, is provable without reaching the
+  // advisory feed — and the whole reason this file spawns nothing.
   const prodPath = flagValue(argv, '--prod-doc');
   const fullPath = flagValue(argv, '--full-doc');
-  const prodAudit = prodPath ? JSON.parse(readFileSync(resolve(prodPath), 'utf8')) : runAudit(['--omit=dev']);
-  const fullAudit = fullPath ? JSON.parse(readFileSync(resolve(fullPath), 'utf8')) : runAudit([]);
+  if (!prodPath || !fullPath) {
+    // Loud, not defaulting to "clean": a gate that assumes the empty case passes is
+    // the same failure as the no-op entry guard this file already had once.
+    process.stderr.write('usage: node scripts/audit-deps.mjs --prod-doc <npm audit --omit=dev --json> --full-doc <npm audit --json>  (or run `npm run audit:deps`)\n');
+    process.exit(2);
+  }
+  const prodAudit = JSON.parse(readFileSync(resolve(prodPath), 'utf8'));
+  const fullAudit = JSON.parse(readFileSync(resolve(fullPath), 'utf8'));
   const registerPath = flagValue(argv, '--register') ?? REGISTER_PATH;
   const register = JSON.parse(readFileSync(resolve(import.meta.dirname, '..', registerPath), 'utf8'));
 
