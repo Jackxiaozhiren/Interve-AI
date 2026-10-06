@@ -73,14 +73,14 @@ Central registry `src/ai/providers/registry.ts` (ONE construction site/vendor, O
 | AI eval full (31+3 calls, nightly) | `npm run test:eval` with free key (golden MAE/adjacent/ρ/κ provisional + stability + injection + fairness; 1-concurrency free quota, never per-PR) |
 | Supabase free live | `npm run verify:supabase-free` (anon read-only; skips keyless) |
 | E2E smoke / full / a11y | `npm run test:e2e:smoke`, `npm run test:e2e`, `npm run test:a11y` |
-| E2E journey | `Landing→Signup→Setup→resume+JD→Preflight→answer→complete→analysis→Replay→Drill→delete` (Playwright `chrome-1280x720` + 12-project matrix in CI) |
+| E2E journey | `Landing→Signup→Setup→resume+JD→Preflight→answer→complete→analysis→Replay→Drill→delete` (Playwright `chrome-1280x720` in CI; the 12-project matrix is local-only — see `docs/TESTING.md`, the runner installs chromium alone) |
 
-CI (`.github/workflows/ci.yml`, all free): install → lint → typecheck → unit+integration → build → eval keyless → supabase-free (skips without secrets) → Playwright chromium smoke → `npm audit --audit-level=critical`, plus a secret-gated `free-eval-smoke` job (≤3 calls, skips on forks). CodeQL SAST (`.github/workflows/codeql.yml`): push + PR + weekly. PR red blocks merge.
+CI (`.github/workflows/ci.yml`, all free): install → lint → typecheck → unit+integration → build → eval keyless → supabase-free (skips without secrets) → Playwright chromium smoke → `npm run audit:deps` (shipped tree: zero criticals, no exception path; developer tree: must match `docs/audit/deps-critical.json` exactly), plus a secret-gated `free-eval-smoke` job (≤3 calls, skips on forks). CodeQL SAST (`.github/workflows/codeql.yml`): push + PR + weekly. PR red blocks merge.
 
 ## Security & privacy / Responsible AI
 
-- Every AI route: session-required (401) + Zod I/O (400) + byte caps 128KB-8MB (413) + per-IP limits + `Retry-After`/`RateLimit-*` (429) + client+server abort + explicit retries + `x-request-id` + PII-free JSON logs. Uploads: 5MB/60k-char caps, SVG refusal, MIME+size double-check. `proxy.ts` (named `export function proxy`, nodejs-only) guards app pages + headers (CSP tightening tracked).
-- XSS: LLM markdown via safe rendering path (strict allowlist tracked); secrets: 0 hits scan; deps: `npm audit` 37 (1L/31M/5H/0C) triaged non-reachable + upgrade lane.
+- Every AI route: session-required (401) + Zod I/O (400) + byte caps 128KB-8MB (413) + per-IP limits + `Retry-After`/`RateLimit-*` (429) + client+server abort + explicit retries + `x-request-id` + PII-free JSON logs. Uploads: 5MB/60k-char caps, SVG refusal, MIME+size double-check. `src/proxy.ts` (named `export function proxy`, nodejs-only) guards app pages + headers (CSP tightening tracked).
+- XSS: LLM markdown via safe rendering path (strict allowlist tracked); secrets: 0 hits scan; deps: `npm run audit:deps` gates the shipped tree at zero criticals and pins every developer-tree critical in `docs/audit/deps-critical.json`, so no advisory is called unreachable without a name attached.
 - Responsible AI: readiness (`Needs Foundation/Developing/Interview Ready/Strongly Prepared`) + training-estimate disclaimer, never hire verdicts; role-relevant competency alignment only (JD-explicit items); banned list enforced by tests (`tests/integration/prohibitions.test.ts` + `truthfulness.test.ts`): no face/voice→emotion/personality/honesty/intelligence/hireability/culture-fit, no accent→competence, no protected attributes.
 - Evals (`evals/` + `src/ai/evals/metrics.ts`): 12 synthetic goldens (6 tracks × strong/weak) + injection (4 vectors) + fairness (surface-token swaps, no protected profiling); bars provisional until free-key nightlies + multi-rater labels.
 
