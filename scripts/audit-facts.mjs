@@ -335,6 +335,91 @@ function collectRuntime() {
   };
 }
 
+/**
+ * A production dependency that no tracked source file imports is a claim in the
+ * shipped manifest that the code does not back: it survives `npm audit --omit=dev`,
+ * it is installed into every deploy, and it tells the next auditor the app has a
+ * capability it does not have.
+ *
+ * The corpus is `src/**` in .ts/.tsx **and** .css, and both import forms count.
+ * `.css` is not decoration: `@import "tw-animate-css"` is the only place that
+ * package is used, and a specifier-only scan files it as dead. Dynamic
+ * `import("canvas-confetti")` counts for the same reason — the settlement confetti
+ * is lazily loaded on purpose.
+ */
+// One line per specifier. `[^"']+` without the newline ban matched a quote pair that
+  // straddled several statements, and every junk "package name" it produced then made
+  // a real `readFileSync` fail below — the existing probe-blindness invariant caught it
+  // on the first run, which is exactly why that invariant exists.
+const MODULE_SPECIFIER_RE =
+  /(?:from|require)\s*\(?\s*["']([^"'\n]+)["']|import\s*\(\s*["']([^"'\n]+)["']|@import\s+(?:url\()?["']([^"'\n]+)["']/g;
+
+const packageRoot = (specifier) =>
+  specifier.startsWith("@")
+    ? specifier.split("/").slice(0, 2).join("/")
+    : specifier.split("/")[0];
+
+/**
+ * @param {string[]} dependencies the `dependencies` keys of package.json
+ * @param {string[]} specifiers every module specifier found in `src/`
+ * @param {(name: string) => string[]} [peersOf] peer requirements of an installed
+ *        package; typed here because the strict TS config reads this JS module's
+ *        signature off its defaults, and a bare `() => []` default narrowed the
+ *        parameter to `() => never[]` and failed the typecheck of the test that
+ *        passes a real function.
+ */
+export function findUnreferencedProductionDeps(dependencies, specifiers, peersOf = () => []) {
+  const roots = new Set(specifiers.map(packageRoot));
+  // A framework pulls its own runtime in by peer dependency rather than by an import
+  // statement in this repo: `next` declares react and react-dom, and neither appears in
+  // a source file. Treating "no src/ import" as the whole test flagged `react-dom` as
+  // dead weight, which is the kind of false positive that teaches people to distrust a
+  // ratchet, so the referenced set is closed over the peer requirements of what is used.
+  for (const name of [...roots]) for (const peer of peersOf(name)) roots.add(packageRoot(peer));
+  return dependencies.filter((name) => !roots.has(packageRoot(name)));
+}
+
+/**
+ * Peer requirements of an installed package, or nothing at all when it is not a
+ * package: `@/lib/db` and `./x` are this repo's own specifiers, and a missing
+ * manifest here is the correct answer, not a probe that read nothing — so it goes
+ * through a local read rather than `readJson`, which records every failure as a
+ * blind path.
+ */
+function installedPeerDependencies(name) {
+  if (name.startsWith("@/") || name.startsWith(".") || name.startsWith("/")) return [];
+  try {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(ROOT, "node_modules", name, "package.json"), "utf8"),
+    );
+    return Object.keys(manifest.peerDependencies ?? {});
+  } catch {
+    return [];
+  }
+}
+
+function importedSpecifiersInSrc() {
+  const src = path.join(ROOT, "src");
+  if (!fs.existsSync(src)) return [];
+  const files = [];
+  const walkAll = (abs) => {
+    for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+      const full = path.join(abs, entry.name);
+      if (entry.isDirectory()) walkAll(full);
+      else if (/\.(ts|tsx|css)$/.test(entry.name)) files.push(full);
+    }
+  };
+  walkAll(src);
+  const found = [];
+  for (const f of files) {
+    for (const m of fs.readFileSync(f, "utf8").matchAll(MODULE_SPECIFIER_RE)) {
+      const spec = m[1] ?? m[2] ?? m[3] ?? "";
+      if (spec) found.push(spec);
+    }
+  }
+  return found;
+}
+
 function collectDebt() {
   const files = sourceFiles();
   const withLines = files
@@ -361,6 +446,13 @@ function collectDebt() {
     // ceiling on longestSourceFiles would bound how many rows this report
     // prints, not how long the code is. See tests/unit/facts-ratchet.test.ts.
     longestSourceFileLines: withLines[0]?.lines ?? 0,
+    // An array, because the number a ceiling needs is its length and the names are
+    // what makes the next removal a decision rather than a guess.
+    unreferencedProductionDeps: findUnreferencedProductionDeps(
+      Object.keys(readJson("package.json")?.dependencies ?? {}),
+      importedSpecifiersInSrc(),
+      installedPeerDependencies,
+    ),
     auditDocsLines,
   };
 }
@@ -513,6 +605,13 @@ export const RATCHET_KEYS = {
     + "transition would have to prove that teardown, and nothing here can observe it keyless. Reopens only with a verified teardown.",
   "debt.anyEscapes": "explicit `any` escaping the strict config",
   "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
+  "debt.unreferencedProductionDeps":
+    "production dependencies no file under src/ imports. Adjudicated 2026-10-06 at 4: `dexie`, "
+    + "`dexie-react-hooks`, `geist`, `mermaid` — zero references repo-wide outside generated "
+    + "`*.tsbuildinfo`, verified with a scan that counts CSS `@import` and lazy `import()`. They "
+    + "stay installed because dropping a dependency is an owner decision, not a cleanup an audit "
+    + "makes alone; each removal should lower this ceiling, and nothing should raise it. A new "
+    + "entry here is a manifest claim, not a feature.",
   "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
   "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
   "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",

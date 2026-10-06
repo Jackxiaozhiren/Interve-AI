@@ -14,6 +14,7 @@ import path from "node:path";
 import {
   collectFacts,
   countHardInternalNavigations,
+  findUnreferencedProductionDeps,
   evaluateRatchet,
   numericLeaves,
   RATCHET_KEYS,
@@ -207,6 +208,44 @@ describe("countHardInternalNavigations", () => {
     ] as [string, number][]) {
       const body = fs.readFileSync(path.join(process.cwd(), file), "utf8");
       expect(countHardInternalNavigations(body, file), file).toBe(expected);
+    }
+  });
+});
+
+describe("production dependencies the code does not back", () => {
+  it("counts a CSS @import and a lazy import() as real use", () => {
+    // Both were false positives while the scan looked only at static `from "x"`.
+    const deps = ["tw-animate-css", "canvas-confetti", "mermaid"];
+    // `findUnreferencedProductionDeps` receives specifiers already extracted from the
+    // source text, so they are bare here: passing the quotes was my fixture's bug, and
+    // it read as a live false positive on the first run.
+    const specs = ["tw-animate-css", "canvas-confetti", "next/navigation"];
+    expect(findUnreferencedProductionDeps(deps, specs, () => [])).toEqual(["mermaid"]);
+  });
+
+  it("closes over the peer requirements of what is used, so the framework runtime is not called dead", () => {
+    // `react-dom` appears in no source file: `next` requires it as a peer. A ratchet
+    // that flags the runtime teaches people to distrust the ratchet.
+    const peersOf = (name: string) => (name === "next" ? ["react", "react-dom"] : []);
+    expect(findUnreferencedProductionDeps(["react-dom", "mermaid"], ["next/navigation"], peersOf)).toEqual([
+      "mermaid",
+    ]);
+  });
+
+  it("names exactly the four this ledger was opened for, and no more", () => {
+    expect(facts.debt.unreferencedProductionDeps.sort()).toEqual([
+      "dexie",
+      "dexie-react-hooks",
+      "geist",
+      "mermaid",
+    ]);
+  });
+
+  it("keeps the adjudication text about the packages the metric actually found", () => {
+    // A note that describes last cycle's list is how a ceiling becomes a formality.
+    const note = limits._keys["debt.unreferencedProductionDeps"];
+    for (const name of facts.debt.unreferencedProductionDeps) {
+      expect(note, `the ledger note never names ${name}`).toContain(`\`${name}\``);
     }
   });
 });

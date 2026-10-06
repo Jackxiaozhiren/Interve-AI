@@ -3,14 +3,15 @@
   "_keys": {
     "debt.deprecatedObjectGenFiles": "call sites on @deprecated AI SDK object APIs",
     "debt.experimentalRepairTextHits": "deprecated experimental_repairText aliases",
-    "debt.selectStarHits": "SELECT '*' — adjudicated 2026-09-19, re-verified 2026-09-26: dashboard list rows feed blob readers (SessionDetailModal councilDebate, KnowledgeMatchLoader resumeText/jobDescription). Reopens only with a lazy-get refactor of those two open paths, never blind.",
+    "debt.selectStarHits": "SELECT '*' \u2014 adjudicated 2026-09-19, re-verified 2026-09-26: dashboard list rows feed blob readers (SessionDetailModal councilDebate, KnowledgeMatchLoader resumeText/jobDescription). Reopens only with a lazy-get refactor of those two open paths, never blind.",
     "debt.tsIgnoreHits": "type-check suppressions",
     "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
     "debt.anyEscapes": "explicit `any` escaping the strict config",
-    "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
-    "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
+    "debt.auditDocsLines": "docs/audit prose volume \u2014 the audit apparatus must not outgrow the product",
+    "debt.longestSourceFileLines": "size of the single largest file under src/ \u2014 the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
     "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
-    "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)"
+    "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",
+    "debt.unreferencedProductionDeps": "production dependencies no file under src/ imports. Adjudicated 2026-10-06 at 4: `dexie`, `dexie-react-hooks`, `geist`, `mermaid` \u2014 zero references repo-wide outside generated `*.tsbuildinfo`, verified with a scan that counts CSS `@import` and lazy `import()`. They stay installed because dropping a dependency is an owner decision, not a cleanup an audit makes alone; each removal should lower this ceiling, and nothing should raise it. A new entry here is a manifest claim, not a feature."
   },
   "ceiling": {
     "debt.deprecatedObjectGenFiles": 12,
@@ -21,6 +22,7 @@
     "debt.anyEscapes": 0,
     "debt.auditDocsLines": 3145,
     "debt.longestSourceFileLines": 1300,
+    "debt.unreferencedProductionDeps": 4,
     "capabilities.untestedChatCallbacks": 0,
     "capabilities.networkLayer.rawFetchCalls": 17,
     "debt.hardInternalNavigations": 1
