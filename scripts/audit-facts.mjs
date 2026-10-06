@@ -297,12 +297,16 @@ function collectGit() {
     // touch for a file that may be years old.
     const probe = (p) => git(["log", "-1", "--format=%H|%aI", "--", p]);
     const sha = probe(file) || (renamedFrom ? probe(renamedFrom) : "");
-    if (!sha) return { path: file, status, lastTouch: null, ageDays: null };
+    // `renamedFrom` travels with the record on purpose: "this path has no commit yet"
+    // is a fact a consumer has to be able to check independently, and without it a
+    // rename looks like a history-less entry to anything downstream.
+    if (!sha) return { path: file, status, renamedFrom: renamedFrom ?? null, lastTouch: null, ageDays: null };
       const [shaOnly, when] = sha.split("|");
       const ts = Date.parse(when);
       return {
         path: file,
         status,
+        renamedFrom: renamedFrom ?? null,
         lastTouch: shaOnly.slice(0, 7),
         ageDays: Number.isNaN(ts) ? null : Math.max(0, Math.round((Date.now() - ts) / DAY_MS)),
       };

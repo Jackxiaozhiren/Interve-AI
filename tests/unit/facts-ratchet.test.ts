@@ -8,6 +8,7 @@
 //   2. a guard went blind   -> a ratchet key stopped being measured (renamed or
 //      deleted probe), which would otherwise leave the ledger quietly guarding
 //      nothing at all.
+import { execFileSync } from "node:child_process";
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
@@ -38,11 +39,39 @@ describe("audit-facts baseline derivation (V11 Phase 0)", () => {
     expect(facts.meta.dirtyEntries).toBe(facts.git.dirty.length);
   });
 
-  it("attributes every dirty entry to a last touch, or null when untracked", () => {
+  // Which entries may legitimately have no commit to attribute? Asked of git itself,
+  // with a different command than the collector uses (`cat-file -e HEAD:<path>` rather
+  // than `log -1 -- <path>`), so the check is an outside oracle and not a restatement.
+  const existsInHead = (p: string) => {
+    try {
+      execFileSync("git", ["cat-file", "-e", `HEAD:${p}`], { stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  it("attributes every dirty entry to a last touch, or null when it has no history", () => {
+    // The old rule was `status.includes("?")`, which made `git add` of a new file —
+    // the ordinary state of a half-finished commit — fail `npm run verify` with
+    // "toMatch() expects to receive a string, but got object", because a staged-new
+    // entry (`A`) has no commit yet either. Measured in a worktree, and again with a
+    // conflicted merge in progress, where every `A` row hit it.
     for (const entry of facts.git.dirty) {
-      if (entry.status.includes("?")) {
-        expect(entry.lastTouch).toBeNull();
+      const historyless =
+        entry.status.includes("?") ||
+        (!existsInHead(entry.path) && !(entry.renamedFrom && existsInHead(entry.renamedFrom)));
+      if (historyless) {
+        expect(entry.lastTouch, `${entry.path} (${entry.status}) has no commit to attribute`).toBeNull();
       } else {
+        // Checked as a type first: `toMatch()` on `null` raises its own TypeError and
+        // buries the path and status this message exists to name, which is how this
+        // assertion read for a whole session before anyone looked.
+        if (typeof entry.lastTouch !== "string") {
+          throw new Error(
+            `${entry.path} (${entry.status}) has a commit in HEAD, but the collector attributed ${String(entry.lastTouch)}`,
+          );
+        }
         expect(entry.lastTouch).toMatch(/^[0-9a-f]{7}$/);
         expect(entry.ageDays).toBeTypeOf("number");
       }
