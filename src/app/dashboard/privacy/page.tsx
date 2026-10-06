@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { ShieldCheck, DownloadSimple, Trash, WarningCircle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { db, type Interview } from "@/lib/db";
+import { deleteKnowledgeHub, resetKnowledgeHub } from "@/lib/orama-client";
 import { downloadFile } from "@/lib/utils/export";
 import { toast } from "sonner";
 
@@ -18,6 +19,7 @@ const INVENTORY: { data: string; where: string; why: string; retention: string }
   { data: "Delivery metrics (WPM, fillers, durations)", where: "Database (interviews.delivery_stats)", why: "Observable speaking feedback on your report", retention: "Until you delete the session" },
   { data: "Evaluation + evidence quotes", where: "Database (interviews.evaluation_v2)", why: "Rubric scores with cited evidence for your review", retention: "Until you delete the session" },
   { data: "Practice answers + scores", where: "Database (practice_sessions)", why: "Retry-and-compare practice loop", retention: "Until you delete the session" },
+  { data: "Resume search index", where: "Database (orama_index) — one serialized row per signed-in account", why: "Retrieve resume context per answer without re-reading the whole document", retention: "Until you delete everything (per-session delete leaves it: it is not tied to one session)" },
   { data: "系统设计白板截图", where: "Only sent when you click analyze — never stored", why: "Give feedback on the architecture diagram you drew", retention: "Not stored (on demand)" },
   { data: "Raw microphone audio", where: "Nowhere permanent — transcribed in-memory, then discarded", why: "Speech-to-text needs audio; storage does not", retention: "Not stored (default)" },
   { data: "Camera video / frames", where: "This device only (self-view preview)", why: "Self-view while speaking; never analyzed, never uploaded", retention: "Never stored (default)" },
@@ -131,11 +133,19 @@ export default function PrivacyPage() {
         }
       }
     } catch { /* practice export/delete is best-effort offline */ }
+    // The resume search index is a second copy of the whole document, serialized.
+    // It is partitioned per account rather than per session, so it is erased here and
+    // not with the session rows above. A refusal is reported, never swallowed.
+    try {
+      await deleteKnowledgeHub();
+    } catch {
+      failures.push("orama_index");
+    }
     await reload();
     setConfirmAll(false);
     setBusy(null);
     if (failures.length === 0) {
-      toast.success("已全部删除", { description: "云端面试与练习数据已清空。" });
+      toast.success("已全部删除", { description: "云端面试、练习数据与简历索引已清空。" });
     } else {
       toast.error("部分删除失败", { description: `${failures.length} 项未能删除，请重试。` });
     }
@@ -159,6 +169,7 @@ export default function PrivacyPage() {
       toast.error("清理失败", { description: "浏览器拒绝访问本地存储。" });
       return;
     }
+    resetKnowledgeHub();
     toast.success("本地数据已清理", { description: `移除了 ${removed} 项（登录状态与语言偏好保留）。` });
   };
 

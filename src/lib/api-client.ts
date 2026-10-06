@@ -359,6 +359,10 @@ const oramaIndex = {
     const snakeData = await stampOwner(toSnakeCase(data as unknown as Record<string, unknown>), 'orama_index');
     const { error } = await supabase.from('orama_index').upsert(snakeData);
     if (error) throw error;
+  },
+  async remove(id: string): Promise<void> {
+    const { error } = await supabase.from('orama_index').delete().eq('id', id);
+    if (error) throw error;
   }
 };
 

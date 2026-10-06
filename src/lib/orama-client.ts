@@ -86,7 +86,7 @@ export async function restoreKnowledgeHub(userId: string | null = localHubUserId
       return true;
     }
   } catch (error) {
-    console.error('Failed to restore Orama index from Dexie:', error);
+    console.error('Failed to restore Orama index from orama_index:', error);
   }
   return false;
 }
@@ -150,4 +150,26 @@ export async function queryKnowledgeHub(prompt: string, limit = 5): Promise<stri
  */
 export function resetKnowledgeHub() {
   oramaInstance = null;
+}
+
+/**
+ * Erase this account's serialized resume index.
+ *
+ * The row is a second copy of the candidate's resume — the whole document,
+ * chunked and serialized — so `orama_index` has to answer to "delete my data"
+ * like every other table the Privacy Center lists. Only the caller's own
+ * partition is removed: the pre-partition legacy row is shared between
+ * accounts, and deleting it from here would destroy other people's data. That
+ * row is an administrator's migration, not a user action.
+ *
+ * Throws when the server refuses, so the Privacy Center reports the failure
+ * instead of claiming the account is clean.
+ */
+export async function deleteKnowledgeHub(userId: string | null = localHubUserId()): Promise<void> {
+  const hubId = hubIdForUser(userId);
+  try {
+    await db.oramaIndex.remove(hubId);
+  } finally {
+    resetKnowledgeHub();
+  }
 }
