@@ -10,6 +10,7 @@ import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { db, type Interview } from "@/lib/db";
 import { sessionScore, toEvaluationView } from "@/lib/eval-compat";
+import { summarizeReadiness } from "@/lib/dashboard-stats";
 import { READINESS_META, type ReadinessLevel } from "@/ai/evaluation-contract";
 import { bentoContainerVariant, bentoCardVariant, fadeUpVariant } from "@/lib/motion";
 
@@ -61,17 +62,13 @@ export default function DashboardPage() {
 
   const completedSessions = sessions.filter(s => s.status === 'completed');
   const totalSessions = sessions.length;
-  // Phase 4: unified score — V2 dimension mean, else legacy radar mean.
-  const avgScore = completedSessions.length > 0
-    ? Math.round(completedSessions.reduce((acc, s) => acc + (sessionScore(s) ?? 0), 0) / completedSessions.length)
-    : 0;
-
-  // Growth trend data
-  const trendData: TrendDataPoint[] = completedSessions
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    .map((s, i) => {
-      return { name: `Session ${i + 1}`, score: sessionScore(s) ?? 0, sessionId: String(s.id) };
-    });
+  // One owner for the headline and the trend: average over the sessions that
+  // actually have a renderable evaluation, with that count surfaced next to the
+  // number. `sessionScore(s) ?? 0` here used to count an unevaluated session as
+  // a zero, while `progress.ts` beside it excluded the same row from its own
+  // averages — two answers to one question on one screen.
+  const readiness = summarizeReadiness(sessions);
+  const trendData: TrendDataPoint[] = readiness.trend;
 
   // Radar data from latest and first session
   const latestCompleted = completedSessions.length > 0
@@ -191,18 +188,24 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Average Score</h3>
-                  <p className="text-[11px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">Composite</p>
+                  <p className="text-[11px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">
+                    {readiness.scoredCount}/{readiness.totalCount} evaluated
+                  </p>
                 </div>
               </div>
               <div className="text-[3.5rem] font-light text-[#111111] leading-none mb-2">
-                <AnimatedCounter value={avgScore} />
-                <span className="text-xl text-slate-400 ml-1">/100</span>
+                {readiness.average === null ? (
+                  <span aria-label="No evaluated sessions yet">—</span>
+                ) : (
+                  <AnimatedCounter value={readiness.average} />
+                )}
+                {readiness.average !== null && <span className="text-xl text-slate-400 ml-1">/100</span>}
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-4">
                 <motion.div
                   className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-sky-500"
                   initial={{ width: 0 }}
-                  animate={{ width: `${avgScore}%` }}
+                  animate={{ width: `${readiness.average ?? 0}%` }}
                   transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
                 />
               </div>
