@@ -16,6 +16,7 @@ import { DynamicLoader } from "@/components/ui/DynamicLoader";
 import { ReplayTimeline } from "@/components/interview/ReplayTimeline";
 import { BookOpen, ChatTeardropText, Compass, Users } from "@phosphor-icons/react";
 import { toEvaluationView } from "@/lib/eval-compat";
+import { WPM_REFERENCE_BAND } from "@/lib/interview/delivery-metrics";
 import { retryPracticeHref } from "@/lib/retry-link";
 import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills, DrillPlan } from "@/components/evaluation/EvaluationView";
 
@@ -523,12 +524,13 @@ function DeliveryCoach({ stats }: {
   // Phase 8 (19.3): observable delivery notes only. WPM/filler counts are
   // measurements against a conventional 100–160 band — never evidence of
   // nervousness, confidence, or authority.
-  if (wpm > 160) {
-    advices.push(`语速 ${wpm}，高于 100–160 参考带。关键论点处有意停顿，听众更容易跟上。`);
-  } else if (wpm > 0 && wpm < 100) {
-    advices.push(`语速 ${wpm}，低于 100–160 参考带。检查是否有过长停顿或断句，必要时做模拟录音对比。`);
+  const band = `${WPM_REFERENCE_BAND.low}–${WPM_REFERENCE_BAND.high}`;
+  if (wpm > WPM_REFERENCE_BAND.high) {
+    advices.push(`语速 ${wpm}，高于 ${band} 参考带。关键论点处有意停顿，听众更容易跟上。`);
+  } else if (wpm > 0 && wpm < WPM_REFERENCE_BAND.low) {
+    advices.push(`语速 ${wpm}，低于 ${band} 参考带。检查是否有过长停顿或断句，必要时做模拟录音对比。`);
   } else if (wpm > 0) {
-    advices.push(`语速 ${wpm}，落在 100–160 参考带内，节奏稳定。`);
+    advices.push(`语速 ${wpm}，落在 ${band} 参考带内，节奏稳定。`);
   }
 
   // Filler Words Evaluation

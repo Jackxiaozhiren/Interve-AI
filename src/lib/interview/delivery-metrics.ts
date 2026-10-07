@@ -68,6 +68,20 @@ export function countFillers(text: string): number {
   return count;
 }
 
+/**
+ * The pacing reference band the product shows users, in words per minute.
+ *
+ * It had two owners before this: the report page advised against "100–160 参考带"
+ * while the dashboard's Speaking Rate card asserted `Optimal: 120-150`. A user
+ * who read both got two answers to the same question, and the narrower one was
+ * the stronger claim — "optimal" is a verdict, while the band here is what the
+ * Phase 8 note calls it: a conventional reference, never evidence of
+ * nervousness, confidence, or authority.
+ *
+ * Deliberately one object, read by every surface that prints a number.
+ */
+export const WPM_REFERENCE_BAND = { low: 100, high: 160 } as const;
+
 export interface AnalysisGateInput {
   textLen: number;
   nowMs: number;

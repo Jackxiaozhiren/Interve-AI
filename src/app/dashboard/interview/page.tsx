@@ -35,7 +35,7 @@ export default function InterviewDashboard() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
           </div>
           <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">近期概览</h3>
-          <p className="text-sm text-[var(--interve-text-secondary)]">本周已完成 3 次模拟面试，综合得分上升 5%。</p>
+          <p className="text-sm text-[var(--interve-text-secondary)]">查看本周的面试次数与得分变化。</p>
           <InterveButton variant="secondary" className="w-full mt-2">详细数据</InterveButton>
         </div>
       </div>
