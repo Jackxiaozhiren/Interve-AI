@@ -5,7 +5,12 @@ import type { MouseHandlerDataParam } from "recharts";
 
 export interface TrendDataPoint {
   name: string;
-  score: number;
+  /**
+   * null when this session has no renderable evaluation. The line gaps over it
+   * (`connectNulls={false}`) and the tooltip says so, because plotting it as 0
+   * told the candidate they scored nothing on a session that was never scored.
+   */
+  score: number | null;
   sessionId?: string;
 }
 
@@ -49,8 +54,19 @@ export function GrowthTrendChart({ trendData, isCalmMode = false, onSessionClick
           contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(8px)' }} 
           itemStyle={{ fontFamily: 'var(--font-sans)', fontWeight: 600, color: '#0284c7' }}
           labelStyle={{ color: '#64748b', fontSize: '12px' }}
+          formatter={(value: unknown) => (value === null || value === undefined ? "no evaluation" : Number(value))}
         />
-        <Area type="monotone" dataKey="score" stroke="#0284c7" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" isAnimationActive={!isCalmMode} activeDot={{ r: 6, fill: '#0ea5e9', stroke: '#fff', strokeWidth: 2 }} />
+        <Area
+          type="monotone"
+          dataKey="score"
+          stroke="#0284c7"
+          strokeWidth={3}
+          fillOpacity={1}
+          fill="url(#colorScore)"
+          isAnimationActive={!isCalmMode}
+          connectNulls={false}
+          activeDot={{ r: 6, fill: '#0ea5e9', stroke: '#fff', strokeWidth: 2 }}
+        />
       </AreaChart>
     </ResponsiveContainer>
   );
