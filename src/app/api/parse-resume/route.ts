@@ -7,6 +7,7 @@ import { zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry"
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildOcrInstruction } from "@/ai/prompts/resume";
 import { PDFParse } from "pdf-parse";
+import { MAX_RESUME_BYTES } from "@/lib/uploads";
 import { shouldOcrFallback, stripPageMarkers } from "@/lib/resume/text-quality";
 
 export const runtime = 'nodejs';
@@ -17,7 +18,7 @@ export const maxDuration = 100;
 
 const ROUTE = "parse-resume";
 // Matches the "5MB" claim already shown in the setup UI.
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_BYTES = MAX_RESUME_BYTES;
 
 export async function POST(req: Request) {
   const requestId = getRequestId(req);

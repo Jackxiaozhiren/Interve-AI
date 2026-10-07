@@ -1,5 +1,6 @@
 "use client";
 
+import { WPM_REFERENCE_BAND } from "@/lib/interview/delivery-metrics";
 import React, { useEffect, useState } from "react";
 import { db, Interview } from "@/lib/db";
 import { 
@@ -130,7 +131,7 @@ export function ContinuousLearning() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-700 tracking-wide">Speaking Rate (WPM)</h3>
-              <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mt-1">Optimal: 120-150</p>
+              <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mt-1">Reference band: {WPM_REFERENCE_BAND.low}&ndash;{WPM_REFERENCE_BAND.high}</p>
             </div>
             <div className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${wpmDiff >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
               <TrendUp weight="bold" className={wpmDiff < 0 ? "rotate-180" : ""} />
