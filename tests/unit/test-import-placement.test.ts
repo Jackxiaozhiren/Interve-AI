@@ -34,13 +34,20 @@ function analyzeText(file: string, text: string): string[] {
   const visit = (node: ts.Node) => {
     const isCall = ts.isCallExpression(node);
     const callee = isCall ? node.expression : null;
-    // `it(...)` is an Identifier callee and `test.skip(...)` is a property access;
-    // matching only the latter made the walker report zero for every file, which
-    // the control against the pre-fix source is what caught.
-    const calleeName =
-      callee && ts.isIdentifier(callee) ? callee.text
-      : callee && ts.isPropertyAccessExpression(callee) ? callee.name.text
-      : "";
+    /**
+     * The callee's *root* name, so the qualified forms count too. Two shapes were
+     * caught by the control, in sequence: matching only a property-access callee
+     * (`test.skip`) reported zero for every file, and then taking the LAST name of
+     * the chain reported `skip` instead of `it`, which let `it.skip(...)` hide a
+     * violation. Leftmost identifier is the only reading that gets both right.
+     */
+    let calleeName = "";
+    if (callee && ts.isIdentifier(callee)) calleeName = callee.text;
+    else if (callee && ts.isPropertyAccessExpression(callee)) {
+      let node: ts.Expression = callee;
+      while (ts.isPropertyAccessExpression(node)) node = node.expression;
+      if (ts.isIdentifier(node)) calleeName = node.text;
+    }
     // `describe` is deliberately absent: its callback runs at collection, so an
     // import there is the position this rule asks for, not a violation.
     const entersTest = isCall && ["it", "test", "beforeEach", "afterEach"].includes(calleeName);
@@ -68,18 +75,47 @@ const testFiles = execFileSync("git", ["ls-files", "tests"], { encoding: "utf8" 
 const offenders = testFiles.flatMap(routeImportsInsideTestBodies);
 
 describe("heavy imports sit at module scope in test files", () => {
-  it("the walker can fail, against the shape it was written for", () => {
+  /**
+   * A self-contained bad-shape source, deliberately NOT read from git.
+   *
+   * The first version of this control ran `git show HEAD:` on the file this
+   * commit fixes, and the gate caught it: in CI, `HEAD` is the commit being
+   * tested, in which the import is already hoisted, so the control asserted
+   * `0 >= 3` and failed. A check that keys its own baseline to the revision under
+   * test is only green before it lands. Same class of bug as the extraction
+   * harness that compared `HEAD`'s page against itself an hour earlier.
+   */
+  const BAD_SHAPE = `
+import { describe, expect, it, beforeEach } from "vitest";
+const atModuleScope = await import("@/app/api/health/route");
+describe("shapes", () => {
+  const insideDescribeButOutsideATest = await import("@/app/api/health/route");
+  beforeEach(async () => {
+    const a = await import("@/app/api/health/route");
+    expect(a).toBeTruthy();
+  });
+  it("plain identifier callee", async () => {
+    const b = await import("@/app/api/parse-resume/route");
+    expect(b).toBeTruthy();
+  });
+  it.skip("property access callee", async () => {
+    const c = await import("@/app/api/parse-resume/route");
+    expect(c).toBeTruthy();
+  });
+});
+`;
+
+  it("the walker can fail, and can tell the two positions apart", () => {
     expect(testFiles.length, "no test files found — the check would be vacuous").toBeGreaterThan(80);
 
-    // The control is the real pre-fix file, not a hand-written string: this
-    // commit's parent still has the route imported inside three `it()` bodies,
-    // so if the walker cannot see those it cannot see a regression either.
-    const before = execFileSync("git", ["show", "HEAD:tests/unit/parse-resume-budget.test.ts"], { encoding: "utf8" });
-    expect(analyzeText("parse-resume-budget.test.ts(prev)", before).length).toBeGreaterThanOrEqual(3);
+    const findings = analyzeText("bad-shape.ts", BAD_SHAPE);
+    // Both callee shapes are caught, and the three collection-time imports
+    // (module scope and the describe body) are not.
+    expect(findings.length, `found ${findings.join(", ")}`).toBe(3);
+    expect(findings.some((f) => f.includes("@/app/api/parse-resume/route"))).toBe(true);
 
-    // And the module-scope position this fix moves them to must be clean,
-    // otherwise the rule would forbid the very thing it asks for.
-    expect(analyzeText("parse-resume-budget.test.ts(now)", readFileSync("tests/unit/parse-resume-budget.test.ts", "utf8"))).toEqual([]);
+    // The shape this repo now uses must be clean, or the rule forbids its own fix.
+    expect(analyzeText("parse-resume-budget.test.ts", readFileSync("tests/unit/parse-resume-budget.test.ts", "utf8"))).toEqual([]);
   });
 
   it("finds no app-route import inside a test body", () => {
