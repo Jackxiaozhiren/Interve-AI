@@ -10,6 +10,17 @@ vi.mock("@/lib/api/logging", () => ({
 
 const { signSession } = await import("@/lib/api/session");
 const { resetRateLimits: resetRl } = await import("@/lib/api/rate-limit");
+/**
+ * Hoisted deliberately: this route pulls `pdf-parse`, and the cold import costs
+ * ~7-9s of transform. Imported from inside a test body that cost is charged to
+ * vitest's 5s default `testTimeout`, so the guard fails on load speed rather
+ * than on the property it exists to check — `npx vitest run
+ * tests/unit/parse-resume-budget.test.ts` did exactly that on unmodified main
+ * (7023ms, "runs on the Node runtime"). Module collection has no per-test budget,
+ * so the same import here pays the cost once, outside any assertion. The timeout
+ * was not raised and nothing was skipped.
+ */
+const parseResumeRoute = await import("@/app/api/parse-resume/route");
 
 async function cookie(): Promise<string> {
   const signed = await signSession(
@@ -46,14 +57,12 @@ beforeEach(() => {
  */
 describe("parse-resume function budget", () => {
   it("runs on the Node runtime, which pdf-parse requires", async () => {
-    const route = await import("@/app/api/parse-resume/route");
-    expect(route.runtime).toBe("nodejs");
+    expect(parseResumeRoute.runtime).toBe("nodejs");
   });
 
   it("declares a duration that can outlast an OCR round trip", async () => {
-    const route = await import("@/app/api/parse-resume/route");
-    expect(typeof route.maxDuration).toBe("number");
-    expect(route.maxDuration).toBeGreaterThanOrEqual(60);
+    expect(typeof parseResumeRoute.maxDuration).toBe("number");
+    expect(parseResumeRoute.maxDuration).toBeGreaterThanOrEqual(60);
   });
 });
 
@@ -61,7 +70,7 @@ describe("parse-resume failure reporting", () => {
   it("answers a corrupted PDF with the JSON envelope, not a thrown body", async () => {
     // Green before the fix as well: it is a guard on the contract the client
     // depends on, not the change driver. The next test is the one that binds.
-    const route = await import("@/app/api/parse-resume/route");
+    const route = parseResumeRoute;
     const req = pdfReq([0x25, 0x50, 0x44, 0x46, 0x00, 0x00]);
     req.headers.set("cookie", await cookie());
     const res = await route.POST(req);
@@ -74,7 +83,7 @@ describe("parse-resume failure reporting", () => {
     // The route's catch block was `catch { ... }` with a fixed reason of
     // "internal", so a production 500 left nothing to diagnose — which is
     // exactly how the Chinese-resume timeout stayed invisible.
-    const route = await import("@/app/api/parse-resume/route");
+    const route = parseResumeRoute;
     const req = pdfReq([0x25, 0x50, 0x44, 0x46, 0x00, 0x00]);
     req.headers.set("cookie", await cookie());
     await route.POST(req);
