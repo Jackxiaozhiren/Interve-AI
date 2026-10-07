@@ -1,0 +1,50 @@
+{
+  "_about": "The live-RLS half of PAIN-#5. Everything under `anonProbe` was measured; everything under `pgPolicies` is a claim about the production catalog and is deliberately empty until someone pastes the query in scripts/sql/verify-anon-bridge.sql.",
+  "_readerWarning": "An empty `rows` here means NOT YET COLLECTED. It does not mean the database has no policies, and it must never be read as evidence that migration 006 ran. The gate that reads this file treats an empty pgPolicies as 'unproven' and requires docs/SECURITY.md to say so.",
+  "status": "PENDING",
+  "recheckBy": null,
+  "projectRef": "bfgglzjltfvfpobzscet",
+  "query": "SELECT tablename, policyname, permissive, roles, cmd, qual FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname",
+  "pgPolicies": {
+    "collectedAt": null,
+    "rows": []
+  },
+  "anonProbe": {
+    "measuredAt": "2026-10-07",
+    "method": "GET {NEXT_PUBLIC_SUPABASE_URL}/rest/v1/{table}?select=id&limit=5, plus ?select=id&user_id=is.null&limit=5 on the two bridge-retained tables, authenticated only with the publishable key the browser already holds. Read-only; no row content was recorded, only counts.",
+    "whyItCannotSettleTheQuestion": "RLS filters rows, so an anon read returning [] is exactly what a closed bridge looks like AND what a table with no ownerless rows looks like. Production currently returns [] for all seven tables, so this probe is consistent with both states and proves neither.",
+    "tables": {
+      "interviews": {
+        "http": 200,
+        "rows": 0
+      },
+      "evaluations": {
+        "http": 200,
+        "rows": 0
+      },
+      "practice_sessions": {
+        "http": 200,
+        "rows": 0
+      },
+      "assessments": {
+        "http": 200,
+        "rows": 0
+      },
+      "orama_index": {
+        "http": 200,
+        "rows": 0
+      },
+      "telemetry": {
+        "http": 200,
+        "rows": 0,
+        "ownerlessFilterRows": 0
+      },
+      "achievements": {
+        "http": 200,
+        "rows": 0,
+        "ownerlessFilterRows": 0
+      }
+    }
+  },
+  "_numbersNotOwnedHere": "Expected policy counts are derived from supabase/migrations/*.sql by scripts/derive-policy-state.mjs and asserted by tests/unit/anon-bridge-status.test.ts. They are not stored in this file, so a migration edit cannot leave a stale number behind."
+}

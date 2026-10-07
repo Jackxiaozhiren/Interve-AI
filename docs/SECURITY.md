@@ -2,7 +2,21 @@
 
 > Details: `docs/audit/SECURITY_REPORT.md` + `docs/audit/MASTER_AUDIT.md` P0-2/P0-3/P0-6/P0-7. Exceptions below are release-accepted with reachability notes.
 
-- AuthN/Z: signed HMAC sessions + `proxy.ts` page guards + per-route `guardRequest` (401 anon, forged-cookie rejection, tamper rejection). Row ownership is `003_per_operation_policies.sql`'s per-operation `(select auth.uid()) = user_id`, not the older `002` `authenticated=auth.uid()` some notes still cite; `006_close_anon_bridge_content_tables.sql` then closed the anon-readable content tables. **Open, and not closable from here:** that 005+006 are actually applied to the production project is asserted by the migration files only — it needs `select * from pg_policies where tablename like 'interview%'` run against the live database, which no keyless local path can reach.
+- AuthN/Z: signed HMAC sessions + `proxy.ts` page guards + per-route `guardRequest` (401 anon, forged-cookie rejection, tamper rejection). Row ownership is `003_per_operation_policies.sql`'s per-operation `(select auth.uid()) = user_id`, not the older `002` `authenticated=auth.uid()` some notes still cite.
+- Legacy anon bridge, stated as a decision rather than a discovery: `anon-bridge: `unproven``.
+  `006_close_anon_bridge_content_tables.sql` is the file that closes the bridge on the five
+  content tables, and whether production has it applied is still unproven — 006's own header
+  reads "STATUS: DRAFT — NOT APPLIED ANYWHERE", so the file and the deployment notes disagree
+  and neither is evidence about the live database. `docs/audit/anon-bridge-evidence.json`
+  records what was measured on 2026-10-07 with the publishable key the browser already holds:
+  anon reads return HTTP 200 with zero rows on all seven tables. That is exactly what a closed
+  bridge looks like, and also exactly what a project with no ownerless rows looks like, so it
+  proves neither and the item stays PENDING. `scripts/sql/verify-anon-bridge.sql` is the
+  read-only catalog query that settles it; pasting its output into the evidence artifact and
+  flipping `status` to `PROVEN` makes `tests/unit/anon-bridge-status.test.ts` check the dump
+  against the policy set derived from the migrations, and this marker to `proven`.
+  `scripts/derive-policy-state.mjs` computes that expected set (36 policies: 28 owner
+  per-operation + the 8 the migration deliberately keeps on `telemetry` and `achievements`).
 - Demo auth, stated as a decision rather than a discovery: `demo-auth: `unverified-mint``.
   `POST /api/session` (`src/app/api/session/route.ts`) still signs a session cookie for any
   well-formed identity, so "authenticated" on the AI routes means "asked and was given". Two
