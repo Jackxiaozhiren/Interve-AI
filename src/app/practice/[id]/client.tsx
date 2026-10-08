@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mic, Send, CheckCircle2, History } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -163,13 +163,9 @@ export default function PracticeSessionClient({ question }: { question: Intervie
               <CardContent className="p-8 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h2 className="font-medium text-slate-900">Your Answer</h2>
-                  <Button variant="outline" size="sm" className="gap-2 rounded-full h-8 px-3">
-                    <Mic className="w-3.5 h-3.5" />
-                    Record Audio
-                  </Button>
                 </div>
                 <Textarea 
-                  placeholder="Type your answer here or use the microphone to dictate..." 
+                  placeholder="Type your answer here..." 
                   className="min-h-[200px] resize-none bg-white/50 border-slate-200 focus-visible:ring-emerald-500 text-base"
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}

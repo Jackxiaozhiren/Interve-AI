@@ -1,8 +1,18 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { InterveButton } from "@/components/interve-ui";
 
+/**
+ * Three of this page's calls to action were inert — `开始面试`, `查看记录` and
+ * `详细数据` rendered as buttons with no handler, no form and no link — and the
+ * section under them claimed "最新面试记录 / 暂无记录" from a constant, which is
+ * a statement about the signed-in user that nothing here measures. The real
+ * destinations are the setup wizard and `/dashboard`, whose `sessions.map(...)`
+ * row list is where records actually live, so the buttons are now links and the
+ * unverifiable list claim is gone.
+ */
 export default function InterviewDashboard() {
   return (
     <div className="flex flex-col gap-8">
@@ -18,7 +28,9 @@ export default function InterviewDashboard() {
           </div>
           <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">新建模拟面试</h3>
           <p className="text-sm text-[var(--interve-text-secondary)]">自选技术栈、难度与职位，AI 将为您定制一场专属面试。</p>
-          <InterveButton className="w-full mt-2">开始面试</InterveButton>
+          <Link href="/setup" className="mt-auto">
+            <InterveButton className="w-full mt-2">开始面试</InterveButton>
+          </Link>
         </div>
 
         <div className="interve-glass p-6 rounded-[var(--radius-xl)] flex flex-col gap-4 border border-[var(--interve-border-light)] shadow-sm">
@@ -27,7 +39,9 @@ export default function InterviewDashboard() {
           </div>
           <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">历史记录与报告</h3>
           <p className="text-sm text-[var(--interve-text-secondary)]">查看过去所有的面试录音、对话回顾以及多维能力评估。</p>
-          <InterveButton variant="secondary" className="w-full mt-2">查看记录</InterveButton>
+          <Link href="/dashboard" className="mt-auto">
+            <InterveButton variant="secondary" className="w-full mt-2">前往控制台</InterveButton>
+          </Link>
         </div>
 
         <div className="interve-glass p-6 rounded-[var(--radius-xl)] flex flex-col gap-4 border border-[var(--interve-border-light)] shadow-sm">
@@ -36,17 +50,9 @@ export default function InterviewDashboard() {
           </div>
           <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">近期概览</h3>
           <p className="text-sm text-[var(--interve-text-secondary)]">查看本周的面试次数与得分变化。</p>
-          <InterveButton variant="secondary" className="w-full mt-2">详细数据</InterveButton>
-        </div>
-      </div>
-      
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold text-[var(--interve-text-title)] mb-4">最新面试记录</h2>
-        <div className="interve-glass rounded-xl border border-[var(--interve-border-light)] overflow-hidden">
-          <div className="p-8 text-center text-[var(--interve-text-secondary)]">
-            <svg className="w-12 h-12 mx-auto text-[var(--interve-text-placeholder)] mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            <p>暂无记录，立即开始您的第一次面试吧</p>
-          </div>
+          <Link href="/dashboard" className="mt-auto">
+            <InterveButton variant="secondary" className="w-full mt-2">查看统计</InterveButton>
+          </Link>
         </div>
       </div>
     </div>

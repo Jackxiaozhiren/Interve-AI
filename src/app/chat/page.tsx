@@ -16,6 +16,24 @@ const ChatBackground = dynamic(() => import("@/components/interve-ui/backgrounds
 
 import { motion, AnimatePresence } from "framer-motion";
 
+/**
+ * The opening turn has one owner: useChat takes it as initial state and the
+ * sidebar's new-conversation button restores it. Duplicating the string would
+ * let the two drift, and the button would then not produce a fresh chat.
+ */
+const OPENING_GREETING = "您好！我是 Interve AI。准备好开始今天的技术面试模拟了吗？我们可以先从 React 状态管理聊起。";
+
+function openingMessages() {
+  return [
+    {
+      id: "1",
+      role: "assistant" as const,
+      content: OPENING_GREETING,
+      parts: [{ type: "text" as const, text: OPENING_GREETING }],
+    },
+  ];
+}
+
 export default function ChatPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedModel, setSelectedModel] = useState("glm-4-flash");
@@ -32,16 +50,9 @@ export default function ChatPage() {
     }
   }), [selectedModel]);
   
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, setMessages, status } = useChat({
     transport,
-    messages: [
-      {
-        id: "1",
-        role: "assistant" as const,
-        content: "您好！我是 Interve AI。准备好开始今天的技术面试模拟了吗？我们可以先从 React 状态管理聊起。",
-        parts: [{ type: "text" as const, text: "您好！我是 Interve AI。准备好开始今天的技术面试模拟了吗？我们可以先从 React 状态管理聊起。" }]
-      }
-    ]
+    messages: openingMessages()
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
@@ -70,7 +81,8 @@ export default function ChatPage() {
         className="shrink-0 z-10 shadow-[var(--interve-shadow-md)]"
         header={
           <InterveButton 
-            variant="secondary" 
+            variant="secondary"
+            onClick={() => setMessages(openingMessages())}
             className="w-full justify-start border-dashed bg-transparent shadow-none"
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -151,15 +163,6 @@ export default function ChatPage() {
               value={selectedModel}
               onChange={setSelectedModel}
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <InterveButton variant="text" size="sm" icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                <polyline points="16 6 12 2 8 6"></polyline>
-                <line x1="12" y1="2" x2="12" y2="15"></line>
-              </svg>
-            }>分享</InterveButton>
           </div>
         </header>
 
