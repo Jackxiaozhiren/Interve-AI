@@ -491,6 +491,122 @@ function countMouseOnlyInteractionsInSrc() {
   }, 0);
 }
 
+/**
+ * Controls a user can click but that cannot do anything.
+ *
+ * This is the shape `/dashboard/settings` shipped for months: a `Save Profile`
+ * button with no handler, `defaultChecked` toggles with no store, an
+ * `Update Password` form on an app that stores no credential. The settings page
+ * is now clean and pinned by `tests/unit/settings-controls-are-real.test.ts`;
+ * this count is what stops the same shape reappearing on another page, where no
+ * page-specific guard will look at it.
+ *
+ * A control counts only when nothing in the surrounding tree could carry the
+ * event: no handler attribute of its own, no `{...spread}` (props unknown, so no
+ * claim either way), no `href`/`type=submit`/`form`/`disabled` escape, no
+ * `form`/`Link`/`a`/`Label` ancestor, and not an element handed to a primitive
+ * through a `render=`/`child=`/`asChild` prop — base-ui injects the click there,
+ * which is why `DialogPrimitive.Close render={<Button/>}` is not a finding.
+ *
+ * Without that last resolution the walk reported 26 and the truth is 8: the
+ * landing page wraps every CTA in a `Link`, and `JsxElement` (not
+ * `JsxOpeningElement`) is the parent of a wrapped child, so an ancestor walk that
+ * only inspects opening elements silently dismisses nothing and reports the whole
+ * homepage as broken.
+ */
+const DEAD_CONTROL_TAGS = /^(Button|InterveButton|button|select)$/;
+const DEAD_CONTROL_INPUT_TYPES = new Set(["checkbox", "radio", "range"]);
+const CONTROL_HANDLER_ATTRS = new Set([
+  "onClick",
+  "onMouseDown",
+  "onPointerDown",
+  "onChange",
+  "onInput",
+  "onSubmit",
+  "onKeyDown",
+  "onKeyUp",
+]);
+const CONTROL_ESCAPE_ATTRS = new Set(["disabled", "href", "form", "formAction", "asChild"]);
+const CONTROL_ANCHOR_TAGS = new Set(["form", "Link", "a", "Label"]);
+const RENDER_PROPS = new Set(["render", "child", "asChild"]);
+
+export function findDeadControls(sourceText, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const hits = [];
+
+  const ancestorEscape = (node) => {
+    for (let p = node.parent; p; p = p.parent) {
+      if (ts.isJsxAttribute(p) && RENDER_PROPS.has(p.name.getText(sourceFile))) return "render-prop";
+      let tag = null;
+      if (ts.isJsxOpeningElement(p) || ts.isJsxSelfClosingElement(p)) tag = p.tagName.getText(sourceFile);
+      // A wrapped child's parent is the JsxElement, so the opening element has to
+      // be reached through it or no Link is ever seen.
+      else if (ts.isJsxElement(p)) tag = p.openingElement.tagName.getText(sourceFile);
+      if (!tag) continue;
+      const name = tag.split(".").pop();
+      if (CONTROL_ANCHOR_TAGS.has(name) || /(?:^|\.)Close$/.test(tag)) return name;
+    }
+    return null;
+  };
+
+  const visit = (node) => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = node.tagName.getText(sourceFile).split(".").pop();
+      const attrs = new Map();
+      let spread = false;
+      for (const prop of node.attributes.properties) {
+        if (ts.isJsxSpreadAttribute(prop)) {
+          spread = true;
+          continue;
+        }
+        if (ts.isJsxAttribute(prop)) {
+          const init = prop.initializer;
+          attrs.set(
+            prop.name.getText(sourceFile),
+            init && ts.isStringLiteral(init) ? init.text : init ? "<expr>" : null,
+          );
+        }
+      }
+      const isToggle = tag === "input" && DEAD_CONTROL_INPUT_TYPES.has(attrs.get("type") ?? "");
+      const isControl = DEAD_CONTROL_TAGS.test(tag) || isToggle;
+      const hasHandler = [...attrs.keys()].some((a) => CONTROL_HANDLER_ATTRS.has(a));
+      // `type="button"` is the opposite of an escape: it is a button that submits
+      // nothing and, with no handler, does nothing.
+      const hasEscape = [...attrs.keys()].some(
+        (a) => (CONTROL_ESCAPE_ATTRS.has(a) && a !== "type") || (a === "type" && attrs.get(a) === "submit")
+      );
+      if (isControl && !hasHandler && !hasEscape && !spread && !ancestorEscape(node)) {
+        hits.push({
+          line: sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1,
+          tag,
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  ts.forEachChild(sourceFile, visit);
+  return hits;
+}
+
+function collectDeadControlsInSrc() {
+  const perFile = [];
+  for (const f of sourceFiles()) {
+    const name = path.relative(ROOT, f);
+    if (!name.endsWith(".tsx")) continue;
+    const hits = findDeadControls(fs.readFileSync(f, "utf8"), name);
+    if (hits.length > 0) perFile.push({ file: name, count: hits.length });
+  }
+  perFile.sort((a, b) => a.file.localeCompare(b.file));
+  return perFile;
+}
+
 function collectDebt() {
   const files = sourceFiles();
   const withLines = files
@@ -498,6 +614,7 @@ function collectDebt() {
     .sort((a, b) => b.lines - a.lines)
     .slice(0, 5);
   const auditDir = path.join(ROOT, "docs/audit");
+  const dead = collectDeadControlsInSrc();
   const auditDocsLines = fs.existsSync(auditDir)
     ? fs
         .readdirSync(auditDir)
@@ -513,6 +630,11 @@ function collectDebt() {
     hardInternalNavigations: countHardInternalNavigationsInSrc(),
     mouseOnlyInteractions: countMouseOnlyInteractionsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
+    // Array + scalar siblings, same reason as longestSourceFiles: the ceiling has
+    // to bound how many dead controls exist, and the names are what makes fixing
+    // one a decision instead of a guess.
+    deadControlFiles: dead.map((d) => d.file),
+    deadControls: dead.reduce((sum, d) => sum + d.count, 0),
     longestSourceFiles: withLines,
     // Scalar sibling, because numericLeaves maps an array to its length: a
     // ceiling on longestSourceFiles would bound how many rows this report
@@ -675,6 +797,19 @@ export const RATCHET_KEYS = {
     + "were accidental — both are now router.push). The 1 that stays is useInterviewSettlement's end-of-interview exit, kept "
     + "deliberate because a full reload guarantees the microphone and both speech engines are torn down with the page; a client "
     + "transition would have to prove that teardown, and nothing here can observe it keyless. Reopens only with a verified teardown.",
+  "debt.deadControls":
+    "controls a user can click that cannot do anything: no handler, no `{...spread}`, no "
+    + "`href`/`type=submit`/`form`/`disabled` escape, no `form`/`Link`/`a`/`Label` ancestor, and not a "
+    + "`render=`/`child=`/`asChild` prop handed to a primitive. Seeded at 0 on 2026-10-08 because the "
+    + "eight that existed were all adjudicated and fixed, not parked: three inert calls to action and a "
+    + "hardcoded '暂无记录' claim on /dashboard/interview, an upload surface on /dashboard/resume whose "
+    + "dropzone discarded the dropped File and whose 选择文件 button had no input, the chat sidebar's "
+    + "new-conversation button and a 分享 button with no share target, a Record Audio button on a "
+    + "practice page with no recorder, and a Filter button on /recruiter with no filter to open. "
+    + "Ceiling 0 is the point: the shape that made /dashboard/settings a mock for months must not be "
+    + "reintroduced on a page no page-specific guard looks at. Without the ancestor resolution the walk "
+    + "reports 26 and the truth is 8 — the homepage wraps every CTA in a Link, and a wrapped child's "
+    + "parent is the JsxElement, not its opening element.",
   "debt.mouseOnlyInteractions":
     "clickable host elements with a pointer handler and no keyboard handler. An inventory, not a "
     + "verdict that all 9 are defects: 6 are `motion.div` backdrops/rows whose keyboard route may already "

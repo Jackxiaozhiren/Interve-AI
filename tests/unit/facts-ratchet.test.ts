@@ -16,6 +16,7 @@ import {
   collectFacts,
   countHardInternalNavigations,
   countMouseOnlyInteractions,
+  findDeadControls,
   findUnreferencedProductionDeps,
   evaluateRatchet,
   numericLeaves,
@@ -319,5 +320,47 @@ describe("countMouseOnlyInteractions", () => {
     expect(facts.debt.mouseOnlyInteractions).toBeLessThanOrEqual(
       limits.ceiling["debt.mouseOnlyInteractions"],
     );
+  });
+});
+
+describe("findDeadControls", () => {
+  const find = (body: string) =>
+    findDeadControls(`export const C = () => (\n${body}\n);\n`, "probe.tsx").length;
+
+  it.each([
+    ["a Button with nothing behind it", `<Button>Save Profile</Button>`, 1],
+    ["the same button once it has a handler", `<Button onClick={save}>Save Profile</Button>`, 0],
+    ["a button wrapped in a Link", `<Link href="/setup"><Button>Start</Button></Link>`, 0],
+    ["a submit button inside a form", `<form onSubmit={go}><Button type="submit">Send</Button></form>`, 0],
+    ["a button handed to a primitive through render=", `<Close render={<Button>Close</Button>} />`, 0],
+    ["a button that spreads props it may receive a handler through", `<Button {...props}>Go</Button>`, 0],
+    ["a disabled button", `<Button disabled>Soon</Button>`, 0],
+    ["type=button is not an escape", `<button type="button">Noop</button>`, 1],
+    ["a checkbox with no onChange", `<input type="checkbox" defaultChecked />`, 1],
+    ["a wired checkbox", `<input type="checkbox" checked={on} onChange={toggle} />`, 0],
+    ["a select with no onChange", `<select><option value="a">a</option></select>`, 1],
+  ])("counts %s", (_label, body, want) => {
+    expect(find(body)).toBe(want);
+  });
+
+  it("is not vacuous: the walk that reads the clean repo finds a control planted in it", () => {
+    const file = "src/app/dashboard/settings/page.tsx";
+    const page = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+    expect(findDeadControls(page, file), "the shipped settings page must be clean").toHaveLength(0);
+
+    // Un-wire the sign-out button in memory. The plant has to be proven to have
+    // removed something, or a green result here would only mean the fixture and
+    // the source had drifted apart.
+    const anchor = "                onClick={() => void logout()}\n";
+    expect(page.split(anchor).length - 1, "the wired sign-out handler moved").toBe(1);
+    const planted = page.replace(anchor, "");
+    expect(planted.length, "the plant did not land").toBeLessThan(page.length);
+    expect(findDeadControls(planted, file)).toHaveLength(1);
+  });
+
+  it("holds the repo at its ceiling of zero, by name", () => {
+    expect(limits.ceiling["debt.deadControls"]).toBe(0);
+    expect(facts.debt.deadControls).toBe(0);
+    expect(facts.debt.deadControlFiles).toEqual([]);
   });
 });

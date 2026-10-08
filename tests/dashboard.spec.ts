@@ -65,3 +65,37 @@ test.describe('Onboarding tour scope', () => {
     await expect(tour.getByRole('button', { name: 'Next' })).toBeVisible();
   });
 });
+
+test.describe("Dashboard launcher pages navigate instead of sitting inert", () => {
+  // /dashboard/interview and /dashboard/resume rendered buttons with no
+  // handler, no form and no link behind them — including a 选择文件 button on a
+  // page titled 上传简历文件, whose dropzone discarded whatever was dropped on it.
+  // The `debt.deadControls` ratchet catches that shape statically; these assert
+  // the behaviour the fix replaced it with.
+  test("the interview hall's cards route to real destinations", async ({ page }) => {
+    await loginAs(page);
+    await page.goto("/dashboard/interview");
+    await page.waitForLoadState("networkidle");
+
+    // Scoped to <main>: the top nav also carries a 开始面试 → /setup link, so an
+    // unscoped locator resolves to two elements and proves nothing about the card.
+    const main = page.getByRole("main");
+    await expect(main.getByRole("link", { name: "开始面试" })).toHaveAttribute("href", "/setup");
+    await main.getByRole("link", { name: "前往控制台" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+  });
+
+  test("the resume page points at the step that actually parses a file", async ({ page }) => {
+    await loginAs(page);
+    await page.goto("/dashboard/resume");
+    await page.waitForLoadState("networkidle");
+
+    // This copy used to render the literal text "{MAX_RESUME_MB}MB": it was a
+    // plain string, not a template, so the bound the page promised was noise.
+    await expect(page.locator("main")).not.toContainText("{MAX_RESUME_MB}");
+    await expect(page.getByText(/最大 5MB/)).toBeVisible();
+
+    await page.getByRole("link", { name: "前往面试准备向导" }).click();
+    await expect(page).toHaveURL(/\/setup/);
+  });
+});
