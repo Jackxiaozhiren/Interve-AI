@@ -1,19 +1,21 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { User, Bell, ShieldCheck, LockKey, SignOut, EnvelopeSimple, DeviceMobile, GlobeHemisphereWest, PersonArmsSpread } from "@phosphor-icons/react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { User, Bell, ShieldCheck, LockKey, SignOut, GlobeHemisphereWest, PersonArmsSpread } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useAccessibilityStore } from "@/store/useAccessibilityStore";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SettingsPage() {
   // Phase 6 (V2): preferences wired to real, persisted stores — no
   // decorative toggles. LanguageContext persists `interve-lang`;
   // useAccessibilityStore persists `accessibility-storage`.
   const { lang, setLang, t } = useLanguage();
+  const { user, logout } = useAuth();
   const {
     isCalmMode,
     toggleCalmMode,
@@ -103,80 +105,57 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Profile Information */}
+        {/*
+          Sign-in identity. This card used to prefill a whole stranger: "Alex",
+          "Chen", alex.chen@example.com and a five-year React/Node bio, above a
+          "Save Profile" button with no handler, no form and no store — the file
+          has no useState and no persistence call anywhere in it. So the page a
+          signed-in user opens to see what the product knows about them showed
+          invented personal data as if it were theirs, next to an action that
+          could not happen. Two fields is all the session carries; both are shown
+          read-only, and the edit path is named as absent instead of faked.
+        */}
         <Card className="bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
           <CardHeader className="border-b border-slate-100/50 pb-4">
             <CardTitle className="text-lg font-serif flex items-center gap-2 text-slate-800">
               <User className="w-5 h-5 text-sky-500" />
-              Profile Information
+              Sign-in identity
             </CardTitle>
-            <CardDescription>Update your personal details and resume profile.</CardDescription>
+            <CardDescription>What this browser&apos;s session carries. Editing waits for credential sign-in.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" defaultValue="Alex" placeholder="Your first name" className="bg-white" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" defaultValue="Chen" placeholder="Your last name" className="bg-white" />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="identityEmail">Email</Label>
+              <Input id="identityEmail" type="email" value={user?.email ?? "not signed in"} readOnly aria-readonly className="bg-slate-50 text-slate-600" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" defaultValue="alex.chen@example.com" placeholder="Your email address" className="bg-white" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bio">Professional Bio</Label>
-              <textarea 
-                id="bio" 
-                className="w-full min-h-[100px] p-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all resize-y"
-                defaultValue="Software Engineer with 5+ years of experience in React and Node.js. Looking for senior frontend roles."
-                placeholder="A brief summary about yourself..."
-              />
+              <Label htmlFor="identityUsername">Display name</Label>
+              <Input id="identityUsername" value={user?.username ?? ""} readOnly aria-readonly className="bg-slate-50 text-slate-600" />
             </div>
           </CardContent>
-          <CardFooter className="border-t border-slate-100/50 pt-4 bg-slate-50/50 justify-end">
-            <Button variant="default" className="bg-slate-900 hover:bg-slate-800 text-white">Save Profile</Button>
-          </CardFooter>
         </Card>
 
-        {/* Notifications */}
+        {/*
+          The two toggles here were `defaultChecked` checkboxes with no onChange,
+          no handler and no store — they held a value only until the page
+          reloaded, and the app has no mailer and no SMS provider, so no alert can
+          be sent by any path in it. The accessibility and language toggles above
+          are the real ones: they write to persisted stores. Deleting the section
+          is a product call; claiming a channel the product cannot use is not.
+        */}
         <Card className="bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
           <CardHeader className="border-b border-slate-100/50 pb-4">
             <CardTitle className="text-lg font-serif flex items-center gap-2 text-slate-800">
               <Bell className="w-5 h-5 text-emerald-500" />
               Notifications
             </CardTitle>
-            <CardDescription>Manage how you receive alerts and interview reminders.</CardDescription>
+            <CardDescription>Nothing is sent yet.</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="font-medium text-sm text-slate-800 flex items-center gap-2">
-                  <EnvelopeSimple className="w-4 h-4 text-slate-500" /> Email Notifications
-                </div>
-                <div className="text-sm text-slate-500">Receive weekly summaries and interview transcripts.</div>
-              </div>
-              <label htmlFor="emailNotifications" aria-label="Email Notifications" className="relative inline-flex items-center cursor-pointer">
-                <input id="emailNotifications" type="checkbox" defaultChecked className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="font-medium text-sm text-slate-800 flex items-center gap-2">
-                  <DeviceMobile className="w-4 h-4 text-slate-500" /> SMS Reminders
-                </div>
-                <div className="text-sm text-slate-500">Get text message alerts 30 minutes before scheduled mock interviews.</div>
-              </div>
-              <label htmlFor="smsReminders" aria-label="SMS Reminders" className="relative inline-flex items-center cursor-pointer">
-                <input id="smsReminders" type="checkbox" className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
-            </div>
+          <CardContent className="pt-6">
+            <p className="text-sm text-slate-500">
+              This app has no email sender and no SMS provider, so there are no reminders to switch on.
+              Weekly summaries, transcripts and interview results appear in the dashboard instead.
+            </p>
           </CardContent>
         </Card>
 
@@ -189,32 +168,40 @@ export default function SettingsPage() {
             </CardTitle>
             <CardDescription>Manage your password and active sessions.</CardDescription>
           </CardHeader>
+          {/*
+            "Change Password" and "Sign out of all devices" were both inert. The
+            first had two password inputs and a button with no handler, on an app
+            that stores no credential at all — the `demo-auth: unverified-mint`
+            line in docs/SECURITY.md is the record — which is the most damaging
+            kind of dead control, because a user who clicked it would reasonably
+            believe a password had been rotated. The second promised to revoke
+            sessions on other devices, but the model is one HttpOnly cookie per
+            browser with no way to enumerate or revoke another one. Signing this
+            browser out is real, so that is what stays, and it is wired.
+          */}
           <CardContent className="pt-6 space-y-6">
-            <div className="space-y-4 border-b border-slate-100/50 pb-6">
+            <div className="space-y-1">
               <h3 className="font-medium text-sm text-slate-800 flex items-center gap-2">
-                <LockKey className="w-4 h-4 text-slate-500" /> Change Password
+                <LockKey className="w-4 h-4 text-slate-500" /> Password
               </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input id="currentPassword" type="password" placeholder="••••••••" className="bg-white" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input id="newPassword" type="password" placeholder="••••••••" className="bg-white" />
-                </div>
-              </div>
-              <Button variant="outline" className="mt-2 text-sm">Update Password</Button>
+              <p className="text-sm text-slate-500">
+                There is no password to change yet: sign-in is a demo session, not a credential.
+                Passwords and email verification arrive together, with the account cutover.
+              </p>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <div className="font-medium text-sm text-slate-800">Sign out of all devices</div>
-                <div className="text-sm text-slate-500">This will log you out of any active sessions on other browsers or devices.</div>
+                <div className="font-medium text-sm text-slate-800">Sign out of this browser</div>
+                <div className="text-sm text-slate-500">Clears this device&apos;s session. Other browsers keep theirs — this app cannot see or revoke them.</div>
               </div>
-              <Button variant="outline" className="text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700">
-                <SignOut className="w-4 h-4 mr-2" />
-                Sign Out All
+              <Button
+                variant="outline"
+                className="shrink-0 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                onClick={() => void logout()}
+              >
+                <SignOut className="w-4 h-4 mr-2" aria-hidden />
+                Sign out
               </Button>
             </div>
           </CardContent>
@@ -240,7 +227,7 @@ export default function SettingsPage() {
                 { keys: "Esc", desc: "关闭当前弹窗 / 抽屉" },
                 { keys: "Enter", desc: "发送消息" },
                 { keys: "Shift + Enter", desc: "输入框换行" },
-                { keys: "Ctrl / ⌘ + S", desc: "保存设置" },
+                { keys: "Ctrl / ⌘ + S", desc: "提交本页表单（有提交按钮时）" },
               ].map(({ keys, desc }) => (
                 <div key={keys} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/50">
                   <span className="text-sm text-slate-600">{desc}</span>

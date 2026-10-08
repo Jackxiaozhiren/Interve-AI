@@ -100,11 +100,6 @@ const VERIFIED: Record<string, Entry> = {
 
 /** Claims that need an owner decision rather than a code change. May only shrink. */
 const OPEN: Record<string, Entry & { needsOwner: string }> = {
-  "src/app/dashboard/settings/page.tsx": {
-    digits: ["30"],
-    why: "'Get text message alerts 30 minutes before scheduled mock interviews' — there is no SMS provider, no phone number field, and no scheduler in the app",
-    needsOwner: "remove the SMS Reminders row, or build the feature; a settings toggle that stores a preference nothing reads is a phantom capability",
-  },
   "src/app/landing/page.tsx": {
     digits: ["2.0"],
     why: "'Interve AI 2.0 现已发布' while package.json says 1.0.0 and EVALUATION_VERSION 2.0 is the evaluation schema, not the product",
@@ -152,7 +147,10 @@ describe("user-visible digits have an owner", () => {
   });
 
   it("keeps the unadjudicated list from growing", () => {
-    expect(Object.keys(OPEN).length).toBeLessThanOrEqual(3);
+    // 2 today, and the ceiling is the point: the SMS row this entry covered was
+    // resolved in the settings-page fix, which is the only direction the number
+    // is allowed to move.
+    expect(Object.keys(OPEN).length).toBeLessThanOrEqual(2);
     for (const [file, entry] of Object.entries(OPEN)) {
       expect(entry.needsOwner, `${file} is OPEN but says what the owner must decide`).not.toBe("");
     }

@@ -120,12 +120,3 @@ export function useKeyboardShortcuts(shortcuts: ShortcutConfig[]) {
   }, []);
 }
 
-/* ─── Shortcut Definitions ─── */
-export const GLOBAL_SHORTCUT_LIST = [
-  { keys: "Ctrl/⌘ + K", description: "聚焦搜索框" },
-  { keys: "Ctrl/⌘ + N", description: "新建对话" },
-  { keys: "Esc", description: "关闭当前弹窗" },
-  { keys: "Enter", description: "发送消息" },
-  { keys: "Shift + Enter", description: "输入框换行" },
-  { keys: "Ctrl/⌘ + S", description: "保存设置" },
-] as const;
