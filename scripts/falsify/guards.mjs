@@ -50,6 +50,8 @@ const RESUME_PAGE = "src/app/dashboard/resume/page.tsx";
 const SHELL = "src/app/dashboard/dashboard-shell.tsx";
 const STATE_BLOCKS = "src/components/data/StateBlocks.tsx";
 const RESUME_SECTION = "src/components/setup/ResumeIntegrationSections.tsx";
+const SPECS_UNIT = "tests/unit/specs-must-assert.test.ts";
+const SWEEP = "tests/e2e/core-visual-consistency.spec.ts";
 
 const NL = "\n";
 
@@ -265,6 +267,46 @@ const PLANTS = [
     test: UPLOAD_UNIT,
     pattern: "reaches that component from /setup",
   },
+  // ── specs must be able to fail ───────────────────────────────────────────
+  {
+    name: "V1",
+    desc: "a new spec with no assertions appears",
+    kind: "vitest",
+    file: "tests/_falsify_noassert.spec.ts",
+    create:
+      "import { test } from '@playwright/test';" + NL +
+      "test('silently does nothing', async ({ page }) => {" + NL +
+      "  await page.goto('/');" + NL + "});" + NL,
+    anchor: "",
+    replacement: "",
+    test: SPECS_UNIT,
+    pattern: "names every assertion-less spec",
+  },
+  {
+    name: "V2",
+    desc: "the sweep gains an assertion but keeps its 'zero assertions' row",
+    kind: "vitest",
+    file: SWEEP,
+    anchor: "      await page.goto('/', { waitUntil: 'domcontentloaded' });",
+    replacement:
+      "      expect(1).toBe(1);" + NL +
+      "      await page.goto('/', { waitUntil: 'domcontentloaded' });",
+    test: SPECS_UNIT,
+    pattern: "keeps the table honest",
+  },
+  {
+    name: "V3",
+    desc: "the sweep points again at a route that does not exist",
+    kind: "vitest",
+    file: SWEEP,
+    anchor: "      { url: '/practice', name: 'practice' },",
+    replacement:
+      "      { url: '/practice', name: 'practice' }," + NL +
+      "      { url: '/history', name: 'history' },",
+    test: SPECS_UNIT,
+    pattern: "does not let the sweep claim routes",
+  },
+
   // ── the launcher links, in a browser ─────────────────────────────────────
   {
     name: "D1",
@@ -360,20 +402,22 @@ if (baselineBad) {
 const rows = [];
 for (const plant of selected) {
   const abs = P(plant.file);
-  const original = plant.kind === "gate" ? null : readFileSync(abs, "utf8");
+  const original = plant.create ? null : readFileSync(abs, "utf8");
   const count = plant.count ?? 1;
 
-  if (plant.kind === "gate") {
+  if (plant.create) {
+    // A plant that has to exist as its own file (a new spec, a stray control).
     if (existsSync(abs)) {
       rows.push({ plant, verdict: "REFUSED", note: `${plant.file} already exists` });
       continue;
     }
     writeFileSync(abs, plant.create, "utf8");
-    const { rc, summary } = commandFor(plant)();
+    const { rc, summary, ran } = commandFor(plant)();
     rmSync(abs, { force: true });
+    const caught = rc !== 0 || ran === 0;
     rows.push({
       plant,
-      verdict: rc !== 0 ? "red ✓" : "ESCAPED",
+      verdict: caught ? (rc !== 0 ? "red ✓" : "RED VIA NO-MATCH") : "ESCAPED",
       note: `${summary}; removed=${!existsSync(abs)}`,
     });
     continue;

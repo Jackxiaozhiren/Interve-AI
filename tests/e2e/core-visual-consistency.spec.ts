@@ -3,10 +3,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { loginAs } from '../helpers';
 
-test.describe('Core Functionality & Visual Consistency', () => {
+/**
+ * Cross-browser screenshot sweep, artifacts only: it writes PNGs under
+ * `artifacts/screenshots/<browser>/<resolution>/` for the 12-project matrix and
+ * compares nothing. It has no assertions, which is why `docs/TESTING.md` lists it
+ * as not collected by CI and why `tests/unit/specs-must-assert.test.ts` names it
+ * — the title used to claim "full validation flow" while every step was wrapped
+ * in a try/catch that logged PASS regardless, and it visited `/history` and
+ * `/settings`, routes this app does not have.
+ */
+test.describe('Cross-browser screenshot sweep (artifacts only, no comparison)', () => {
   test.setTimeout(180000); // 3 minutes per browser-resolution combo
 
-  test('run full validation flow', async ({ page }, testInfo) => {
+  test('captures each core surface at this project\'s viewport', async ({ page }, testInfo) => {
     // Authenticate first so guarded pages (dashboard/chat/...) render
     // instead of redirecting to /login.
     await loginAs(page);
@@ -91,9 +100,10 @@ test.describe('Core Functionality & Visual Consistency', () => {
 
     // --- 3. Auxiliary Pages ---
     const pages = [
-      { url: '/history', name: 'history' },
       { url: '/dashboard', name: 'dashboard' },
-      { url: '/settings', name: 'settings' },
+      { url: '/dashboard/settings', name: 'settings' },
+      { url: '/dashboard/resume', name: 'resume' },
+      { url: '/practice', name: 'practice' },
       { url: '/login', name: 'login' },
       { url: '/signup', name: 'signup' }
     ];
