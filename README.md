@@ -75,7 +75,7 @@ Central registry `src/ai/providers/registry.ts` (ONE construction site/vendor, O
 | E2E smoke / full / a11y | `npm run test:e2e:smoke`, `npm run test:e2e`, `npm run test:a11y` |
 | E2E journey | `Landing→Signup→Setup→resume+JD→Preflight→answer→complete→analysis→Replay→Drill→delete` (Playwright `chrome-1280x720` in CI; the 12-project matrix is local-only — see `docs/TESTING.md`, the runner installs chromium alone) |
 
-CI (`.github/workflows/ci.yml`, all free): install → lint → typecheck → unit+integration → build → eval keyless → supabase-free (skips without secrets) → Playwright chromium smoke → `npm run audit:deps` (shipped tree: zero criticals, no exception path; developer tree: must match `docs/audit/deps-critical.json` exactly), plus a secret-gated `free-eval-smoke` job (≤3 calls, skips on forks). CodeQL SAST (`.github/workflows/codeql.yml`): push + PR + weekly. PR red blocks merge.
+CI (`.github/workflows/ci.yml`, all free): install → lint → typecheck → unit+integration → falsify (every guard must be able to fail) → build → eval keyless → supabase-free (skips without secrets) → Playwright chromium smoke → `npm run audit:deps` (shipped tree: zero criticals, no exception path; developer tree: must match `docs/audit/deps-critical.json` exactly), plus a secret-gated `free-eval-smoke` job (≤3 calls, skips on forks). CodeQL SAST (`.github/workflows/codeql.yml`): push + PR + weekly. PR red blocks merge.
 
 ## Security & privacy / Responsible AI
 
