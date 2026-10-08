@@ -23,6 +23,9 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
+      # Every guard here must be able to fail: plant a defect, expect red, restore.
+      # A guard that cannot go red is decoration, and CI is where that shows up.
+      - run: npm run falsify
       - run: npm run build
       - run: npm run test:eval
         env:

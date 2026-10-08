@@ -45,13 +45,32 @@ function infoOf(node: ts.JsxOpeningElement | ts.JsxSelfClosingElement): NodeInfo
   return { tag: node.tagName.getText(sf), attrs, hasSpread };
 }
 
+/**
+ * `onClick={() => undefined}` satisfies "has a handler" and still does nothing,
+ * which is the whole defect with a prop bolted on. A presence check alone lets it
+ * pass — this file's own falsification battery planted exactly that shape and
+ * watched the wiring case stay green, so the body has to be read too.
+ */
+function isNoopHandler(text: string | null): boolean {
+  if (text === null) return true;
+  // The initializer text of a JSX attribute keeps its braces: `onClick={…}` is
+  // stored as `{() => undefined}`, so unwrap before judging the body.
+  let t = text.replace(/\s+/g, " ").trim();
+  if (t.startsWith("{") && t.endsWith("}")) t = t.slice(1, -1).trim();
+  return (
+    /^(?:async\s+)?\(\s*\)\s*=>\s*undefined$/.test(t) ||
+    /^(?:async\s+)?\(\s*\)\s*=>\s*\{\s*\}$/.test(t) ||
+    /^(?:async\s+)?function\s*\(\s*\)\s*\{\s*\}$/.test(t)
+  );
+}
+
 /** Every actionable control in the file, with whether anything wires it. */
 const controls: { tag: string; line: number; wired: boolean; why: string }[] = [];
 (function walk(node: ts.Node): void {
   if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
     const info = infoOf(node);
     if (CONTROL_TAGS.test(info.tag)) {
-      const own = [...info.attrs.keys()].some((k) => HANDLERS.has(k));
+      const own = [...info.attrs.entries()].some(([k, v]) => HANDLERS.has(k) && !isNoopHandler(v));
       const escaped = [...info.attrs.keys()].some((k) => ESCAPES.has(k)) || info.hasSpread;
       // A wrapping <form onSubmit> or <label htmlFor> also wires a control.
       let ancestorWired = false;

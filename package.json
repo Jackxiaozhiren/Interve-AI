@@ -23,6 +23,8 @@
     "quota": "node scripts/quota-ledger.mjs status",
     "facts": "node scripts/audit-facts.mjs --write",
     "facts:check": "node scripts/audit-facts.mjs --check",
+    "falsify": "node scripts/falsify/guards.mjs",
+    "falsify:all": "node scripts/falsify/guards.mjs --slow",
     "audit:deps": "sh scripts/audit-deps.sh",
     "facts:seed": "node scripts/audit-facts.mjs --seed",
     "test:e2e:smoke": "playwright test --project=chrome-1280x720 tests/landing.spec.ts tests/setup.spec.ts tests/interview.spec.ts tests/interview-flow.spec.ts tests/dashboard.spec.ts tests/replay.spec.ts tests/settings.spec.ts tests/accessibility.spec.ts tests/chat.spec.ts tests/privacy.spec.ts tests/clipboard-disclosure.spec.ts tests/selection-a11y.spec.ts tests/e2e/interview-greenroom.spec.ts tests/e2e/interview-interactive.spec.ts tests/e2e/dashboard-average-card.spec.ts",
