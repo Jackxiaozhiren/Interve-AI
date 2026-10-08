@@ -8,6 +8,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/data";
 
+/**
+ * `/setup` is the only upload surface in the app: exactly one `type="file"`
+ * input exists across `src/`, in `components/setup/ResumeIntegrationSections.tsx`,
+ * and it is reached from the preparation wizard. Both CTAs here used to send
+ * users to `/` — the marketing homepage, which has no upload control of any kind.
+ */
 export default function KnowledgePage() {
   const { resumeText, jobDescription, topPredictions } = useInterveStore();
 
@@ -21,7 +27,7 @@ export default function KnowledgePage() {
         description="Manage your uploaded resumes, technical context, and parsed documents."
         actions={
           hasData ? (
-            <Link href="/">
+            <Link href="/setup">
               <Button variant="outline" className="gap-2 rounded-xl border-slate-200">
                 <Plus className="w-4 h-4" /> New Context
               </Button>
@@ -43,10 +49,10 @@ export default function KnowledgePage() {
               </div>
               <h2 className="text-xl font-serif text-slate-800 mb-2">Your Knowledge Hub is empty</h2>
               <p className="text-slate-500 font-medium max-w-[320px] mx-auto leading-relaxed mb-8">
-                Upload your documents from the homepage to start building your personalized interview context.
+                Upload your documents in the interview preparation wizard to start building your personalized interview context.
               </p>
               
-              <Link href="/">
+              <Link href="/setup">
                 <Button className="bg-slate-900 text-white hover:bg-slate-800 gap-2 rounded-xl h-11 px-6 shadow-sm">
                   Go to Upload <ArrowRight className="w-4 h-4" />
                 </Button>
