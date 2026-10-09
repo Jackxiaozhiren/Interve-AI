@@ -1,4 +1,4 @@
-import { streamText, type ModelMessage } from "ai";
+import { streamText, convertToModelMessages, type UIMessage } from "ai";
 import { z } from "zod";
 import { guardRequest, errorResponse } from "@/lib/api/guard";
 import { logApi, logStreamUsage } from "@/lib/api/logging";
@@ -14,6 +14,19 @@ export const runtime = 'edge';
 export const maxDuration = 60;
 
 const ROUTE = "interview-chat";
+
+/**
+ * Accept either transport shape. The chat page's hand-written greeting carries
+ * both `content` and `parts`; a restored snapshot may carry only `content`, and
+ * `convertToModelMessages` reads `parts`. Deriving one text part from the other
+ * keeps the adapter total instead of trading one crash for another.
+ */
+function toUiMessage(m: { role: string; content?: unknown; parts?: unknown }): UIMessage {
+  const parts = Array.isArray(m.parts) && m.parts.length > 0
+    ? (m.parts as UIMessage["parts"])
+    : [{ type: "text", text: typeof m.content === "string" ? m.content : "" }];
+  return { role: m.role as "system" | "user" | "assistant", parts } as UIMessage;
+}
 
 // Input contract mirrors what useChat transports send today. Unknown keys
 // are stripped; `model` is length-bounded and unknown values fall through
@@ -88,10 +101,20 @@ export async function POST(req: Request) {
     const safeSystemDesignContext = safeTruncate(systemDesignContext || "");
     const safeContext = safeTruncate(context || "");
     
-    // Message Compression: retain only the most recent N messages (e.g., 20) to save context window
-    // Cast: transports send UI messages (role/content/parts superset); the
-    // provider only reads role + content/parts at runtime.
-    const recentMessages = (messages.length > 20 ? messages.slice(-20) : messages) as ModelMessage[];
+    // Message Compression: retain only the most recent N messages (e.g., 20) to save context window.
+    //
+    // The shape has to be CONVERTED, not cast. `useChat` transports send
+    // UIMessages ({id, role, parts:[{type:"text",text}]}); `streamText` validates
+    // `messages` against the ModelMessage schema, which wants {role, content}. The
+    // previous `as ModelMessage[]` silenced the type error and left the shape wrong,
+    // so every real turn died as AI_InvalidPromptError before a provider was ever
+    // contacted — reproduced keyless: a parts-shaped body yields the schema error,
+    // a content-shaped body reaches the (expected) missing-key error. Both callers
+    // — /interview and /chat — go through useChat, so the core dialogue loop could
+    // not answer even with a valid API key. The mock lane hides this because it
+    // returns a canned stream before any validation happens.
+    const recentUi = (messages.length > 20 ? messages.slice(-20) : messages).map(toUiMessage);
+    const recentMessages = await convertToModelMessages(recentUi);
 
     // Phase 5: system prompt owned by the versioned registry
     // (src/ai/prompts/interview.ts). Content moved byte-identically.

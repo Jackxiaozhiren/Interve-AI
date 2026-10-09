@@ -52,6 +52,8 @@ const STATE_BLOCKS = "src/components/data/StateBlocks.tsx";
 const RESUME_SECTION = "src/components/setup/ResumeIntegrationSections.tsx";
 const SPECS_UNIT = "tests/unit/specs-must-assert.test.ts";
 const SWEEP = "tests/e2e/core-visual-consistency.spec.ts";
+const CHAT_ROUTE = "src/app/api/interview-chat/route.ts";
+const CHAT_SHAPE = "tests/integration/chat-message-shape.test.ts";
 
 const NL = "\n";
 
@@ -305,6 +307,28 @@ const PLANTS = [
       "      { url: '/history', name: 'history' },",
     test: SPECS_UNIT,
     pattern: "does not let the sweep claim routes",
+  },
+
+  // ── transport messages must be converted, never cast ─────────────────────
+  {
+    name: "C1",
+    desc: "the route goes back to casting UIMessages as ModelMessage[]",
+    kind: "vitest",
+    file: CHAT_ROUTE,
+    anchor: "const recentMessages = await convertToModelMessages(recentUi);",
+    replacement: "const recentMessages = recentUi as unknown as ModelMessage[];",
+    test: CHAT_SHAPE,
+    pattern: "reaches the provider as a ModelMessage",
+  },
+  {
+    name: "C2",
+    desc: "an empty transcript is accepted instead of refused",
+    kind: "vitest",
+    file: CHAT_ROUTE,
+    anchor: "}).passthrough()).min(1).max(100),",
+    replacement: "}).passthrough()).min(0).max(100),",
+    test: CHAT_SHAPE,
+    pattern: "refuses an empty transcript",
   },
 
   // ── the launcher links, in a browser ─────────────────────────────────────
