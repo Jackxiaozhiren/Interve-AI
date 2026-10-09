@@ -58,6 +58,9 @@ const CI_LANES_UNIT = "tests/unit/ci-lane-claims.test.ts";
 const BRIDGE = "src/lib/message-text.ts";
 const INTERVIEW_LAUNCHER = "src/app/interview/page.tsx";
 const BRIDGE_UNIT = "tests/unit/ui-message-bridge.test.ts";
+const DASHBOARD_PAGE = "src/app/dashboard/page.tsx";
+const DASH_STATS = "src/lib/dashboard-stats.ts";
+const RADAR_UNIT = "tests/unit/radar-series.test.ts";
 
 const NL = "\n";
 
@@ -452,6 +455,28 @@ const PLANTS = [
     replacement: "`/dashboard/reply/${session.id}`",
     test: ANCHOR_UNIT,
     pattern: "every literal href / router target resolves to a page or a public asset",
+  },
+
+  // ── the radar may not draw a number nobody measured ──────────────────────
+  {
+    name: "D3",
+    desc: "the card decides the comparison series from a session count again",
+    kind: "vitest",
+    file: DASHBOARD_PAGE,
+    anchor: "showFirst={radar.comparable}",
+    replacement: "showFirst={completedSessions.length > 1}",
+    test: RADAR_UNIT,
+    pattern: "shows the comparison only when the series has one",
+  },
+  {
+    name: "D4",
+    desc: "an absent radar axis goes back to being drawn as zero",
+    kind: "vitest",
+    file: DASH_STATS,
+    anchor: '    .filter((e): e is { id: string; subject: string; A: number } => typeof e.A === "number");',
+    replacement: '    .filter((e): e is { id: string; subject: string; A: number } => true);',
+    test: RADAR_UNIT,
+    pattern: "omits an axis that has no measurement instead of drawing 0",
   },
 ];
 
