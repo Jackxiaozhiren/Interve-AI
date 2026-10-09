@@ -568,6 +568,52 @@ const PLANTS = [
     test: "tests/unit/mock-hygiene.test.ts",
     pattern: "calls importOriginal",
   },
+
+  // ── copy may only name a store the module actually opens ─────────────────
+  {
+    name: "SC1",
+    desc: "the stats strip names a browser store the app never opens",
+    kind: "vitest",
+    file: "src/components/home/StatsStrip.tsx",
+    anchor: `"记录保存在你的账户数据库中"`,
+    replacement: `"记录保存在浏览器 IndexedDB 中"`,
+    test: "tests/unit/no-unverifiable-claims.test.ts",
+    pattern: "no module's copy names a mechanism that module does not use",
+  },
+  {
+    name: "SC2",
+    desc: "the card goes back to calling account data local",
+    kind: "vitest",
+    file: "src/components/home/StatsStrip.tsx",
+    anchor: `label="我的模拟面试"`,
+    replacement: `label="本地模拟面试"`,
+    test: "tests/unit/no-unverifiable-claims.test.ts",
+    pattern: "the stats strip says where the rows are",
+  },
+  {
+    name: "SC3",
+    desc: "a comment re-attributes the Orama restore to Dexie",
+    kind: "vitest",
+    file: "src/lib/orama-client.ts",
+    anchor: `from the account's orama_index`,
+    replacement: `from Dexie`,
+    test: "tests/unit/no-unverifiable-claims.test.ts",
+    pattern: "the four comments that named a store the code never opens",
+  },
+  {
+    // The e2e half is browser-bound, so it joins the --slow set rather than the
+    // fast lane. Proves the rendered-DOM assertion has teeth: a source-level
+    // plant would not fail it, because only the signed-in branch changes.
+    name: "SC4",
+    desc: "the signed-out strip stops saying it cannot know",
+    kind: "playwright",
+    file: "src/components/home/StatsStrip.tsx",
+    anchor: `"登录后查看你的面试记录"`,
+    replacement: `"记录保存在你的账户数据库中"`,
+    test: "tests/landing.spec.ts",
+    pattern: "the data strip admits",
+    slow: true,
+  },
 ];
 
 function run(cmd, args) {
