@@ -24,8 +24,11 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npm ci --ignore-scripts
+      # The local playwright binary, not `npx playwright`: nothing is fetched by
+      # version range at run time, and the browser build always matches the
+      # pinned @playwright/test in the lockfile.
+      - run: npm run e2e:install-browser
       - run: npm run visual:baselines
         env:
           CI: true
