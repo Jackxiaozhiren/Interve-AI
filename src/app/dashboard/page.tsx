@@ -10,7 +10,7 @@ import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { db, type Interview } from "@/lib/db";
 import { sessionScore, toEvaluationView } from "@/lib/eval-compat";
-import { summarizeReadiness } from "@/lib/dashboard-stats";
+import { radarSeries, summarizeReadiness } from "@/lib/dashboard-stats";
 import { READINESS_META, type ReadinessLevel } from "@/ai/evaluation-contract";
 import { bentoContainerVariant, bentoCardVariant, fadeUpVariant } from "@/lib/motion";
 
@@ -78,7 +78,11 @@ export default function DashboardPage() {
     ? completedSessions.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0]
     : null;
 
-  // Radar data: V2 dimensions when available, else legacy subjects.
+  // Radar data: V2 dimensions when available, else legacy subjects. The axes
+  // themselves come from `radarSeries`, which drops any subject nobody scored —
+  // the card used to `?? 0` every absent axis, so a candidate with three
+  // dimensions saw three invented ones, and a first session that predates an
+  // axis was shown as having scored 0 on it.
   const latestView = latestCompleted ? toEvaluationView(latestCompleted) : null;
   const firstView = firstCompleted ? toEvaluationView(firstCompleted) : null;
   const radarSubjects: { id: string; name: string }[] =
@@ -92,20 +96,18 @@ export default function DashboardPage() {
           { id: "bodyLanguage", name: "Body Lang" },
           { id: "professionalism", name: "Professional" },
         ];
-  const radarData: RadarDataPoint[] = latestView && latestView.dimensions.length > 0
-    ? radarSubjects.map(({ id, name }) => ({
-        subject: name,
-        A: latestView.dimensions.find((d) => d.id === id)?.score100 ?? 0,
-        B: firstView?.dimensions.find((d) => d.id === id)?.score100 ?? 0,
-      }))
-    : latestCompleted?.radarScores ? [
-      { subject: 'Logic', A: latestCompleted.radarScores.logic || 0, B: firstCompleted?.radarScores?.logic || 0 },
-      { subject: 'Expression', A: latestCompleted.radarScores.expression || 0, B: firstCompleted?.radarScores?.expression || 0 },
-      { subject: 'Confidence', A: latestCompleted.radarScores.confidence || 0, B: firstCompleted?.radarScores?.confidence || 0 },
-      { subject: 'Pressure', A: latestCompleted.radarScores.pressure || 0, B: firstCompleted?.radarScores?.pressure || 0 },
-      { subject: 'Body Lang', A: latestCompleted.radarScores.bodyLanguage || 0, B: firstCompleted?.radarScores?.bodyLanguage || 0 },
-      { subject: 'Professional', A: latestCompleted.radarScores.professionalism || 0, B: firstCompleted?.radarScores?.professionalism || 0 },
-    ] : [];
+  const scoresOf = (
+    view: { dimensions: { id: string; score100?: number }[] } | null,
+    legacy: Interview["radarScores"] | undefined
+  ): Record<string, number | null | undefined> | undefined =>
+    view && view.dimensions.length > 0
+      ? Object.fromEntries(view.dimensions.map((d) => [d.id, d.score100]))
+      : legacy;
+  const radar = radarSeries(
+    scoresOf(latestView, latestCompleted?.radarScores),
+    scoresOf(firstView, firstCompleted?.radarScores),
+    radarSubjects
+  );
 
   const handleStartMock = () => router.push("/setup");
 
@@ -295,17 +297,25 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-serif text-[#111111]">Skill Breakdown</h3>
-                    <p className="text-xs font-mono text-slate-500 uppercase tracking-widest">Latest vs First</p>
+                    <p className="text-xs font-mono text-slate-500 uppercase tracking-widest">
+                      {radar.axes.length === 0
+                        ? "Nothing scored yet"
+                        : radar.comparable
+                          ? "Latest vs First"
+                          : "Latest session"}
+                    </p>
                   </div>
                 </div>
-                {radarData.length > 0 ? (
+                {radar.axes.length > 0 ? (
                   <SkillBreakdownChart
-                    radarData={radarData}
-                    showFirst={completedSessions.length > 1}
+                    radarData={radar.axes}
+                    showFirst={radar.comparable}
                   />
                 ) : (
-                  <div className="h-[280px] flex items-center justify-center text-slate-400 text-sm">
-                    Complete a session to see your skill breakdown
+                  <div className="h-[280px] flex items-center justify-center text-slate-400 text-sm px-6 text-center">
+                    {completedSessions.length > 0
+                      ? "This session has no scored dimensions yet — the breakdown appears once an evaluation lands."
+                      : "Complete a session to see your skill breakdown"}
                   </div>
                 )}
               </SpotlightCard>

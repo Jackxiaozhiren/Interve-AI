@@ -64,3 +64,42 @@ export function summarizeReadiness(sessions: Interview[]): ReadinessSummary {
     })),
   };
 }
+
+export interface RadarAxis {
+  subject: string;
+  A: number;
+  B?: number;
+}
+
+/**
+ * The skill-breakdown card's axes, measured-only.
+ *
+ * Same rule as `summarizeReadiness` above, applied to the chart that used to
+ * `?? 0` every absent axis: an axis nobody scored is left out, a score of 0
+ * stays in (0 is a measurement), and the "First Session" series appears only when
+ * the first session has a number for every axis being shown. Partial comparison is
+ * not salvageable per axis — one invented baseline point drags the whole legend
+ * into fiction, so the series is dropped and the card says "Latest session".
+ */
+export function radarSeries(
+  latest: Record<string, number | null | undefined> | null | undefined,
+  first: Record<string, number | null | undefined> | null | undefined,
+  subjects: readonly { id: string; name: string }[]
+): { axes: RadarAxis[]; comparable: boolean } {
+  const measured = subjects
+    .map((s) => ({ id: s.id, subject: s.name, A: latest?.[s.id] }))
+    .filter((e): e is { id: string; subject: string; A: number } => typeof e.A === "number");
+
+  if (measured.length === 0) return { axes: [], comparable: false };
+
+  const paired = measured
+    .map((e) => ({ subject: e.subject, A: e.A, B: first?.[e.id] }))
+    .filter((e): e is { subject: string; A: number; B: number } => typeof e.B === "number");
+
+  // The comparison holds only if *every* shown axis has a first-session number.
+  const comparable = paired.length === measured.length;
+  return {
+    axes: comparable ? paired : measured.map((e) => ({ subject: e.subject, A: e.A })),
+    comparable,
+  };
+}

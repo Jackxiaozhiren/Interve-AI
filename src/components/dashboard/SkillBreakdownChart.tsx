@@ -1,12 +1,14 @@
 "use client";
 
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, Legend } from "recharts";
+import type { RadarAxis } from "@/lib/dashboard-stats";
 
-export interface RadarDataPoint {
-  subject: string;
-  A: number;
-  B?: number;
-}
+/**
+ * `B` is only ever present when `radarSeries` found a first-session measurement
+ * for every axis being drawn, so an absent `B` means "no comparison existed",
+ * never "scored zero".
+ */
+export type RadarDataPoint = RadarAxis;
 
 interface SkillBreakdownChartProps {
   radarData: RadarDataPoint[];
