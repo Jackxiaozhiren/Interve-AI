@@ -236,7 +236,10 @@ const PLANTS = [
     file: INTERVIEW_PAGE,
     anchor: 'href="/dashboard"',
     replacement: 'href="/api/session"',
-    count: 2,
+    // Was 2: the hall's third card duplicated the second card's destination, and
+    // `/dashboard/resume` was unreachable. The reachability rule fixed both, so
+    // only one of these links is left to point at an API route.
+    count: 1,
     test: ANCHOR_UNIT,
     pattern: "resolves to a page",
   },
@@ -389,6 +392,31 @@ const PLANTS = [
     replacement: '<Link href="/nowhere">',
     test: DASH_SPEC,
     pattern: "points at the step that actually parses",
+  },
+
+  // ── who navigates where, in both directions ──────────────────────────────
+  {
+    name: "R1",
+    desc: "the sidebar stops linking to the knowledge base (a page goes dark)",
+    kind: "vitest",
+    file: SHELL,
+    anchor: '{ name: "Knowledge Base", href: "/dashboard/knowledge", icon: CloudArrowUp },',
+    // Repointed at a route that exists, so the outbound rule stays green and only
+    // the inbound rule can fire — a plant that trips two guards proves nothing
+    // about either one.
+    replacement: '{ name: "Knowledge Base", href: "/dashboard", icon: CloudArrowUp },',
+    test: ANCHOR_UNIT,
+    pattern: "no route is orphaned beyond the declared list",
+  },
+  {
+    name: "R2",
+    desc: "a typo inside a templated router.push",
+    kind: "vitest",
+    file: "src/components/dashboard/SessionDetailModal.tsx",
+    anchor: "`/dashboard/replay/${session.id}`",
+    replacement: "`/dashboard/reply/${session.id}`",
+    test: ANCHOR_UNIT,
+    pattern: "every literal href / router target resolves to a page or a public asset",
   },
 ];
 

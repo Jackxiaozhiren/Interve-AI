@@ -31,6 +31,25 @@ function walk(dir: string): string[] {
   return out;
 }
 
+/**
+ * The same corpus plus `.ts`.
+ *
+ * Navigation is not confined to JSX: `useInterviewSettlement` assigns
+ * `window.location.href` from inside a plain `.ts` hook, and the sidebar's
+ * destinations live in an array of objects rather than in `href` attributes. A
+ * collector that reads only `.tsx` `href` attributes therefore could not see half
+ * of the app's navigations — which is why the reachability rule below uses this.
+ */
+function walkNavigable(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
+    const rel = `${dir}/${entry}`;
+    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) out.push(...walkNavigable(rel));
+    else if (/\.(ts|tsx)$/.test(entry)) out.push(rel);
+  }
+  return out;
+}
+
 interface AnchorInfo {
   bare: number[];
   unresolved: { line: number; href: string }[];
@@ -188,26 +207,74 @@ const NAV_CALLS = /\.(push|replace|prefetch|assign)$/;
 
 function internalTargets(file: string): Target[] {
   const src = readFileSync(new URL(`../../${file}`, import.meta.url), "utf8");
-  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const sf = ts.createSourceFile(
+    file,
+    src,
+    ts.ScriptTarget.Latest,
+    true,
+    file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
   const out: Target[] = [];
+  const line = (node: ts.Node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+
+  /**
+   * A navigation destination is a static string, a whole template with nothing
+   * substituted, or the literal head of a template. The third is the one a text
+   * scan and the old collector both missed: 13 of the app's 58 destinations are
+   * built as `/dashboard/replay/${session.id}`, so a typo inside one of those
+   * prefixes used to be invisible to the guard that exists to catch typos.
+   *
+   * A head that stops at a segment boundary is given one dummy segment, so
+   * `/dashboard/replay/` is resolved as if it addressed a real id rather than
+   * being thrown away for wanting a value.
+   */
+  const push = (node: ts.Node | undefined, rawText: string | null): void => {
+    if (!node || rawText === null) return;
+    if (!rawText.startsWith("/") || rawText.startsWith("//")) return;
+    const href = rawText !== "/" && rawText.endsWith("/") ? `${rawText}1` : rawText;
+    out.push({ file, line: line(node), href });
+  };
+
+  /**
+   * Every destination spelled inside an expression, not just the expression
+   * itself: `window.location.href = isReport ? `/dashboard/report/${id}` :
+   * "/dashboard"` puts its route inside a conditional, so a reader that only
+   * looked at the top node would call that page unreachable while the code right
+   * there navigates to it. Object literals and nested functions are not entered —
+   * an object's `href:` is its own navigation site, visited from `visit`.
+   */
+  const pushAll = (site: ts.Node, expr: ts.Expression | ts.JsxAttribute["initializer"] | undefined): void => {
+    if (!expr) return;
+    const top = ts.isJsxExpression(expr) ? expr.expression : expr;
+    if (!top) return;
+    const scan = (n: ts.Node): void => {
+      if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) return push(site, n.text);
+      if (ts.isTemplateExpression(n)) return push(site, n.head.text);
+      if (ts.isFunctionLike(n) || ts.isObjectLiteralExpression(n)) return;
+      ts.forEachChild(n, scan);
+    };
+    scan(top);
+  };
+
   const visit = (node: ts.Node): void => {
     if (ts.isJsxAttribute(node) && node.name.getText(sf) === "href") {
-      const init = node.initializer;
-      const lit =
-        init && ts.isStringLiteral(init)
-          ? init
-          : init && ts.isJsxExpression(init) && init.expression && ts.isStringLiteralLike(init.expression)
-            ? init.expression
-            : null;
-      if (lit && lit.text.startsWith("/") && !lit.text.startsWith("//")) {
-        out.push({ file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, href: lit.text });
-      }
+      pushAll(node, node.initializer);
+    }
+    // `{ name: "Knowledge Base", href: "/dashboard/knowledge" }` — the sidebar's
+    // destinations are data, and data navigates.
+    if (ts.isPropertyAssignment(node) && node.name.getText(sf) === "href") {
+      pushAll(node, node.initializer);
+    }
+    // `window.location.href = ...` — the deliberate whole-document exit.
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      /\.href$/.test(node.left.getText(sf))
+    ) {
+      pushAll(node, node.right);
     }
     if (ts.isCallExpression(node) && NAV_CALLS.test(node.expression.getText(sf))) {
-      const first = node.arguments[0];
-      if (first && ts.isStringLiteralLike(first) && first.text.startsWith("/") && !first.text.startsWith("//")) {
-        out.push({ file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, href: first.text });
-      }
+      pushAll(node, node.arguments[0]);
     }
     ts.forEachChild(node, visit);
   };
@@ -215,7 +282,8 @@ function internalTargets(file: string): Target[] {
   return out;
 }
 
-const ALL_TARGETS = ALL_TSX.flatMap(internalTargets);
+const NAV_FILES = walkNavigable("src");
+const ALL_TARGETS = NAV_FILES.flatMap(internalTargets);
 
 describe("internal targets name a route that exists", () => {
   it("every literal href / router target resolves to a page or a public asset", () => {
@@ -235,12 +303,95 @@ describe("internal targets name a route that exists", () => {
   });
 
   it("sees targets, and its resolver discriminates", () => {
-    expect(ALL_TARGETS.length).toBeGreaterThanOrEqual(40);
+    // 58 measured 2026-10-09, once `.ts` files, `href:` data properties and
+    // template heads are included. The floor sits below that so widening the
+    // collector cannot be mistaken for the guard going quiet.
+    expect(ALL_TARGETS.length).toBeGreaterThanOrEqual(50);
     expect(ALL_TARGETS.some((t) => t.href === "/setup")).toBe(true);
     // dynamic segment matches one value; a missing route and an API endpoint do not
     expect(resolves("/dashboard/report/42")).toBe(true);
     expect(resolves("/dashboard/reports")).toBe(false);
     expect(resolves("/api/session")).toBe(false);
     expect(resolves("/definitely-not-a-route")).toBe(false);
+  });
+});
+
+/* ── Rule 4: a page nobody navigates to is a page that does not exist ───────
+ * Rule 3 asks whether a destination names a route. It cannot answer the
+ * opposite question, and the opposite question was worth four routes: on
+ * 2026-10-09 nothing in `src/` navigated to `/dashboard/interview`,
+ * `/dashboard/knowledge`, `/dashboard/resume` or `/dashboard/report/[id]`
+ * while `/dashboard/interview` — a whole launcher page with three cards — sat
+ * unreachable, reachable only by typing the URL. Two of those four were the
+ * collector's fault (data-driven nav and a `location.href` assignment in a `.ts`
+ * hook); the other two were real, and this rule is what made them visible.
+ *
+ * A route counts as reached when a navigation-shaped destination names it from
+ * a file that is not that page's own `page.tsx`: a page linking to itself is not
+ * a way in. `resolves()` is deliberately not reused here — it answers "could any
+ * route take this string", and this rule needs the specific route it took it to.
+ */
+const ROUTE_OWN_FILE = new Map<string, string>();
+(function ownFiles(rel: string, prefix: string): void {
+  for (const dir of appEntries(rel)) {
+    const childRel = rel ? `${rel}/${dir}` : dir;
+    const childPrefix = dir.startsWith("(") ? prefix : `${prefix}/${dir}`;
+    const files = appFiles(childRel);
+    if (files.includes("page.tsx") || files.includes("page.ts")) {
+      ROUTE_OWN_FILE.set(childPrefix || "/", `src/app/${childRel}/page.tsx`);
+    }
+    ownFiles(childRel, childPrefix);
+  }
+})("", "");
+if (appFiles("").includes("page.tsx")) ROUTE_OWN_FILE.set("/", "src/app/page.tsx");
+
+function reachedFrom(route: string): string[] {
+  const rs = route.split("/").filter(Boolean);
+  const hits = new Set<string>();
+  for (const t of ALL_TARGETS) {
+    if (t.file === ROUTE_OWN_FILE.get(route)) continue;
+    const clean = (t.href.split(/[?#]/)[0] ?? "").replace(/\/+$/, "") || "/";
+    const segs = clean.split("/").filter(Boolean);
+    if (rs.length === segs.length && rs.every((s, i) => s.startsWith("[") || s === segs[i])) hits.add(t.file);
+  }
+  return [...hits].sort();
+}
+
+/**
+ * Routes that are reachable by URL and by design, and nothing more. May only
+ * shrink. Each entry must say why, in terms a reader can check.
+ */
+const UNLINKED: Record<string, string> = {
+  "/recruiter":
+    "kept as the labelled recruiter demo (docs/audit decision 2026-10-08, PR #15): it is a " +
+    "showcase surface, so the candidate product deliberately has no link into it. Its own page " +
+    "links to /recruiter/assessments, which this rule confirms is reached.",
+};
+
+const deadRoutes = [...ROUTE_OWN_FILE.keys()].filter((r) => r !== "/" && reachedFrom(r).length === 0);
+
+describe("every page route can be navigated to", () => {
+  it("no route is orphaned beyond the declared list", () => {
+    expect(deadRoutes.sort(), `unreachable: ${deadRoutes.join(", ")}`).toEqual(
+      Object.keys(UNLINKED).sort()
+    );
+  });
+
+  it("is not passing because the corpus is empty", () => {
+    // 21 routes measured 2026-10-09. Without this the rule above could be green
+    // on a route set of zero, which is the standard way a guard becomes ornament.
+    expect(ROUTE_OWN_FILE.size).toBeGreaterThanOrEqual(20);
+    expect(reachedFrom("/setup").length, "/setup is the wizard every launcher links to").toBeGreaterThan(3);
+    expect(reachedFrom("/dashboard/settings")).not.toEqual([]);
+    // a dynamic route reached only through a template head
+    expect(reachedFrom("/dashboard/report/[id]"), "window.location.href in useInterviewSettlement").not.toEqual([]);
+  });
+
+  it("declares only routes that really are unlinked, and says why", () => {
+    for (const [route, why] of Object.entries(UNLINKED)) {
+      expect(ROUTE_OWN_FILE.has(route), `${route} is declared but has no page`).toBe(true);
+      expect(reachedFrom(route), `${route} is declared unlinked but something navigates to it`).toEqual([]);
+      expect(why.length).toBeGreaterThan(40);
+    }
   });
 });
