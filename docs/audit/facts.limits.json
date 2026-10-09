@@ -8,7 +8,7 @@
     "debt.todoMarkers": "TODO/FIXME/HACK/XXX left behind",
     "debt.anyEscapes": "explicit `any` escaping the strict config",
     "debt.neverCasts": "`as never` assertions in production source: the bottom type ends the check instead of describing the value. Seeded at 0 on 2026-10-09 (the /interview session restore crossing localStorage into useChat's setMessages). Tests excluded — a fixture cast there is deliberate.",
-    "debt.deadControls": "clickable controls with no handler, no escape and no Link/form ancestor. Seeded at 0 on 2026-10-08: the 8 that existed were each adjudicated and fixed rather than parked (see the collector note). A new one is red immediately; ceiling 0 is the point.",
+    "debt.deadControls": "clickable controls with no handler, no escape and no Link/form ancestor — and a handler whose body does nothing counts as none (`onClick={() => {}}`, `() => undefined`), the arm added 2026-10-09. Seeded at 0 on 2026-10-08: the 8 that existed were each adjudicated and fixed rather than parked (see the collector note). A new one is red immediately; ceiling 0 is the point.",
     "debt.auditDocsLines": "docs/audit prose volume \u2014 the audit apparatus must not outgrow the product",
     "debt.longestSourceFileLines": "size of the single largest file under src/ \u2014 the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
     "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",

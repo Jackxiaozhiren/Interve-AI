@@ -598,10 +598,33 @@ export function findDeadControls(sourceText, fileName) {
     return null;
   };
 
+  /**
+   * A handler that does nothing is not an escape from being a dead control.
+   *
+   * `onClick={() => {}}` satisfies "has a handler" and satisfies nothing else:
+   * the click lands, the closure runs, the world is unchanged. The eight controls
+   * removed on 2026-10-08 were all the *absent*-handler shape, so this ratchet was
+   * never exercised against it — and the settings page's own guard already
+   * rejects the shape there, which means a page rule was stricter than the
+   * repo-wide rule meant to back it up.
+   *
+   * Conservative in one direction: `onClick={submit}` counts as alive, because its
+   * body lives elsewhere and a name is not a no-op.
+   */
+  const isNoopHandler = (expr) => {
+    if (!expr) return true;
+    if (!ts.isArrowFunction(expr) && !ts.isFunctionExpression(expr)) return false;
+    const body = expr.body;
+    if (ts.isBlock(body)) return body.statements.length === 0;
+    const text = body.getText(sourceFile).trim();
+    return text === "undefined" || text === "void 0" || text === "null";
+  };
+
   const visit = (node) => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const tag = node.tagName.getText(sourceFile).split(".").pop();
       const attrs = new Map();
+      const handlers = [];
       let spread = false;
       for (const prop of node.attributes.properties) {
         if (ts.isJsxSpreadAttribute(prop)) {
@@ -614,11 +637,15 @@ export function findDeadControls(sourceText, fileName) {
             prop.name.getText(sourceFile),
             init && ts.isStringLiteral(init) ? init.text : init ? "<expr>" : null,
           );
+          if (CONTROL_HANDLER_ATTRS.has(prop.name.getText(sourceFile))) {
+            const expr = init && ts.isJsxExpression(init) ? init.expression : init;
+            handlers.push(expr);
+          }
         }
       }
       const isToggle = tag === "input" && DEAD_CONTROL_INPUT_TYPES.has(attrs.get("type") ?? "");
       const isControl = DEAD_CONTROL_TAGS.test(tag) || isToggle;
-      const hasHandler = [...attrs.keys()].some((a) => CONTROL_HANDLER_ATTRS.has(a));
+      const hasHandler = handlers.some((expr) => !isNoopHandler(expr));
       // `type="button"` is the opposite of an escape: it is a button that submits
       // nothing and, with no handler, does nothing.
       const hasEscape = [...attrs.keys()].some(
@@ -844,7 +871,12 @@ export const RATCHET_KEYS = {
   "debt.deadControls":
     "controls a user can click that cannot do anything: no handler, no `{...spread}`, no "
     + "`href`/`type=submit`/`form`/`disabled` escape, no `form`/`Link`/`a`/`Label` ancestor, and not a "
-    + "`render=`/`child=`/`asChild` prop handed to a primitive. Seeded at 0 on 2026-10-08 because the "
+    + "`render=`/`child=`/`asChild` prop handed to a primitive. A handler that does nothing is "
+    + "also dead: `onClick={() => {}}`, `() => undefined`, `() => void 0` and an empty "
+    + "`function(){}` body satisfy 'has a handler' and nothing else, so the arm was added on "
+    + "2026-10-09 after the shape turned out to be unmeasured — the settings-page guard had "
+    + "rejected it since PR #52, so a page rule was stricter than this one. Seeded at 0 on "
+    + "2026-10-08 because the "
     + "eight that existed were all adjudicated and fixed, not parked: three inert calls to action and a "
     + "hardcoded '暂无记录' claim on /dashboard/interview, an upload surface on /dashboard/resume whose "
     + "dropzone discarded the dropped File and whose 选择文件 button had no input, the chat sidebar's "

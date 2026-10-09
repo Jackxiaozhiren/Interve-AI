@@ -212,6 +212,14 @@ const PLANTS = [
     anchor: "",
     replacement: "",
   },
+  {
+    name: "G2",
+    desc: "a real handler rewired to a no-op closure",
+    kind: "gate",
+    file: SETTINGS_PAGE,
+    anchor: "onClick={() => void logout()}",
+    replacement: "onClick={() => {}}",
+  },
   // ── link-target guard ────────────────────────────────────────────────────
   {
     name: "L1",
