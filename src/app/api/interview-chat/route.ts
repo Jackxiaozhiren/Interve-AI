@@ -3,7 +3,7 @@ import { z } from "zod";
 import { UI_MESSAGE_ROLES, toUiMessages } from "@/lib/message-text";
 import { guardRequest, errorResponse } from "@/lib/api/guard";
 import { logApi, logStreamUsage } from "@/lib/api/logging";
-import { classifyUpstreamError } from "@/lib/api/classify-error";
+import { classifyUpstreamError, streamErrorNotice } from "@/lib/api/classify-error";
 import { resolveChatModel, zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockTextStream, MOCK_STREAMS } from "@/ai/providers/mock";
 import { buildInterviewSystemPrompt } from "@/ai/prompts/interview";
@@ -172,7 +172,12 @@ export async function POST(req: Request) {
         abortSignal: signal,
       });
       
-      const response = result.toUIMessageStreamResponse();
+      // The 200 below only means "a stream was handed back". Generation can still
+      // die after this line, and onError is the only place that sees it — without
+      // it the request produced one log line claiming success for a failed turn.
+      const response = result.toUIMessageStreamResponse({
+        onError: streamErrorNotice(ROUTE, requestId, model || "zhipu"),
+      });
       const endTime = performance.now();
       logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(endTime - startTime), model: model || 'zhipu' });
       // H3.2: stream usage resolves post-consumption — deferred line, never blocks.
@@ -181,8 +186,8 @@ export async function POST(req: Request) {
       response.headers.set('X-Response-Time', `${(endTime - startTime).toFixed(2)}ms`);
       response.headers.set('x-request-id', requestId);
       return response;
-    } catch {
-      logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: model || 'zhipu', fallback: true });
+    } catch (primaryError) {
+      logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: model || 'zhipu', fallback: true, reason: classifyUpstreamError(primaryError) });
       const fallbackStartTime = performance.now();
       // Fallback model
       const fallbackResult = await streamText({
@@ -192,7 +197,9 @@ export async function POST(req: Request) {
         messages: recentMessages,
         abortSignal: signal,
       });
-      const response = fallbackResult.toUIMessageStreamResponse();
+      const response = fallbackResult.toUIMessageStreamResponse({
+        onError: streamErrorNotice(ROUTE, requestId, MODEL_IDS.zhipuFlash),
+      });
       const fallbackEndTime = performance.now();
       logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(fallbackEndTime - fallbackStartTime), model: MODEL_IDS.zhipuFlash, fallback: true });
       logStreamUsage(ROUTE, requestId, MODEL_IDS.zhipuFlash, fallbackResult.usage, { fallback: true, started: fallbackStartTime });
