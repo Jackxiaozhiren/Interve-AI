@@ -65,8 +65,9 @@ function chunkText(text: string, chunkSize = 500, overlap = 50): string[] {
 }
 
 /**
- * Attempts to restore the Orama in-memory index from Dexie.
- * Returns true if successful, false otherwise.
+ * Attempts to restore the Orama in-memory index from the account's orama_index
+ * row (read through `db.oramaIndex`, i.e. the hosted database — no browser
+ * storage is involved). Returns true if successful, false otherwise.
  */
 export async function restoreKnowledgeHub(userId: string | null = localHubUserId()): Promise<boolean> {
   try {

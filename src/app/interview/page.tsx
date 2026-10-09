@@ -157,7 +157,7 @@ function InterviewRoomContent() {
   }, [activeSystemDesignContext]);
 
   useEffect(() => {
-    // Restore Orama index from IndexedDB for copilot hints
+    // Restore the Orama index from the account's orama_index row for copilot hints
     restoreKnowledgeHub().then(success => {
       if (!success) console.warn("Orama index could not be restored.");
     });
