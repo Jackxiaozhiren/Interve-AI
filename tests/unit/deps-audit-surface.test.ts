@@ -98,14 +98,41 @@ describe("the register as shipped", () => {
   };
   const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
 
-  it("names every dev-only critical with an id, a reason, a fix and a decision", () => {
-    expect(parsed.devOnlyCritical.length).toBeGreaterThan(0);
-    for (const entry of parsed.devOnlyCritical) {
-      expect(entry.advisories.every((a) => /^GHSA-/.test(a)), `${entry.package} advisories`).toBe(true);
-      expect(entry.why_dev_only.length, `${entry.package} has no reachability reason`).toBeGreaterThan(20);
-      expect(entry.what_actually_fixes_it.length, `${entry.package} has no fix path`).toBeGreaterThan(10);
-      expect(["OPEN", "ACCEPTED"].includes(entry.decision.split(" ")[0]), `${entry.package} decision`).toBe(true);
-    }
+  // An empty register is the goal, not an anomaly: vitest 5 retired both entries on
+  // 2026-10-09. So the requirement is "whatever is here is explained", and the
+  // non-vacuity of that check is proved against fixtures rather than against today's
+  // row count — which is what the previous `length > 0` assertion really was.
+  function expectEntryExplained(entry: {
+    package: string;
+    advisories: string[];
+    why_dev_only: string;
+    what_actually_fixes_it: string;
+    decision: string;
+  }) {
+    expect(entry.advisories.every((a) => /^GHSA-/.test(a)), `${entry.package} advisories`).toBe(true);
+    expect(entry.why_dev_only.length, `${entry.package} has no reachability reason`).toBeGreaterThan(20);
+    expect(entry.what_actually_fixes_it.length, `${entry.package} has no fix path`).toBeGreaterThan(10);
+    expect(["OPEN", "ACCEPTED"].includes(entry.decision.split(" ")[0]), `${entry.package} decision`).toBe(true);
+  }
+
+  const complete = {
+    package: "example",
+    advisories: ["GHSA-0000-0000-0000"],
+    why_dev_only: "reachable only through the test runner, never the shipped tree",
+    what_actually_fixes_it: "a major upgrade of the runner",
+    decision: "OPEN — owner call",
+  };
+
+  it("accepts a fully explained entry and rejects each incomplete shape", () => {
+    expect(() => expectEntryExplained(complete)).not.toThrow();
+    expect(() => expectEntryExplained({ ...complete, advisories: ["CVE-2020-0000"] })).toThrow();
+    expect(() => expectEntryExplained({ ...complete, why_dev_only: "dev only" })).toThrow();
+    expect(() => expectEntryExplained({ ...complete, what_actually_fixes_it: "" })).toThrow();
+    expect(() => expectEntryExplained({ ...complete, decision: "TODO" })).toThrow();
+  });
+
+  it("explains every dev-only critical the shipped register names", () => {
+    for (const entry of parsed.devOnlyCritical) expectEntryExplained(entry);
   });
 
   it("discloses nothing that lives in the shipped dependency list", () => {
@@ -160,23 +187,53 @@ describe("the CI gate is the split, not the folded command", () => {
   });
 });
 
+/** A register that discloses the two advisories vitest 3 carried. */
+const disclosed = {
+  devOnlyCritical: [
+    {
+      package: "vitest",
+      installed: "3.2.7",
+      advisories: ["GHSA-82fw-gwwq-j7x9"],
+      why_dev_only: "the test runner itself, not in the shipped tree",
+      what_actually_fixes_it: "vitest 5",
+      decision: "OPEN — owner call",
+    },
+    {
+      package: "tinypool",
+      installed: "1.1.1",
+      advisories: ["GHSA-5gmw-xhrv-c9v3", "GHSA-85c8-ppgw-ccpr"],
+      why_dev_only: "vitest's worker pool, unreachable from product code",
+      what_actually_fixes_it: "a vitest major that accepts tinypool 2",
+      decision: "OPEN — blocked on the same upgrade",
+    },
+  ],
+  closed: [],
+};
+
 describe("the gate end to end, as the runner invokes it", () => {
   // A first version of this script compared `import.meta.url` to a *relative*
   // argv[1], which never matched under `npm run`: the CLI quietly skipped its own
   // `main()` and exited 0 whatever the advisories said. These cases run the file
   // the way CI does and read its exit code, so a no-op gate cannot ship again.
   const dir = mkdtempSync(resolve(tmpdir(), "deps-audit-"));
-  const runCli = (prod: unknown, full: unknown) => {
+  let cases = 0;
+  const runCli = (prod: unknown, full: unknown, register?: unknown) => {
     const prodPath = resolve(dir, "prod.json");
     const fullPath = resolve(dir, "full.json");
     writeFileSync(prodPath, JSON.stringify({ vulnerabilities: prod }));
     writeFileSync(fullPath, JSON.stringify({ vulnerabilities: full }));
+    // Which register the gate compares against is a parameter of the case, not of
+    // today's shipped file. Reading only the live one made these cases pass or fail
+    // on whether the register happened to be empty that week — and it went green
+    // for exactly that reason once vitest 5 retired both disclosures.
+    const args = ["scripts/audit-deps.mjs", "--prod-doc", prodPath, "--full-doc", fullPath];
+    if (register !== undefined) {
+      const registerPath = resolve(dir, `register-${cases++}.json`);
+      writeFileSync(registerPath, JSON.stringify(register));
+      args.push("--register", registerPath);
+    }
     try {
-      const stdout = execFileSync(
-        "node",
-        ["scripts/audit-deps.mjs", "--prod-doc", prodPath, "--full-doc", fullPath],
-        { cwd: REPO, encoding: "utf8" },
-      );
+      const stdout = execFileSync("node", args, { cwd: REPO, encoding: "utf8" });
       return { code: 0, out: stdout };
     } catch (err) {
       const e = err as { status?: number; stdout?: string; stderr?: string };
@@ -191,6 +248,7 @@ describe("the gate end to end, as the runner invokes it", () => {
     const { code, out } = runCli(
       {},
       { vitest: { severity: "critical", via: [] }, tinypool: { severity: "critical", via: [] } },
+      disclosed,
     );
     expect(out).toContain("deps audit: OK");
     expect(code).toBe(0);
@@ -209,13 +267,16 @@ describe("the gate end to end, as the runner invokes it", () => {
     const { code, out } = runCli(
       {},
       { vitest: { severity: "critical", via: [] }, "new-thing": { severity: "critical", via: [] } },
+      disclosed,
     );
     expect(code).toBe(1);
     expect(out).toMatch(/undisclosed/);
   });
 
   it("exits 1 when a disclosure was never retired", () => {
-    const { code, out } = runCli({}, {});
+    // The fixture names a critical the audits no longer contain: this is the
+    // direction that keeps the register from becoming a list of past fears.
+    const { code, out } = runCli({}, {}, disclosed);
     expect(code).toBe(1);
     expect(out).toMatch(/no longer is/);
   });

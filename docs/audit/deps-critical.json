@@ -5,35 +5,39 @@
     "npm ls vitest --omit=dev  ->  `-- (empty)`  (the runner is not in the installed production tree)",
     "no file under src/ imports vitest, and next.config sets output: 'standalone', so the deployed trace never contains it"
   ],
-  "devOnlyCritical": [
-    {
-      "package": "vitest",
-      "installed": "3.2.7",
-      "advisories": ["GHSA-82fw-gwwq-j7x9"],
-      "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker redirect mock",
-      "why_dev_only": "The test runner itself. Exploiting it means running a test file that mocks a redirect to an arbitrary path, so the attacker already has commit access to this repo's tests.",
-      "what_actually_fixes_it": "vitest 5 (npm reports the fix as a semver-major). No in-range patch exists: the whole advisory range is 0.0.95 - 4.1.10.",
-      "decision": "OPEN — a major test-runner migration is an owner call, not something to fold into a refactor branch. Same class as the green Dependabot queue."
-    },
-    {
-      "package": "tinypool",
-      "installed": "1.1.1",
-      "advisories": ["GHSA-5gmw-xhrv-c9v3", "GHSA-85c8-ppgw-ccpr"],
-      "title": "Tinypool: prototype-pollution gadget in worker options / run() options leads to RCE",
-      "why_dev_only": "vitest's worker pool. The gadget needs attacker-controlled task options passed to the pool; the only caller here is vitest scheduling this repo's own test files.",
-      "what_actually_fixes_it": "tinypool > 2.1.1, which vitest 3.2.7 does not accept — it pins ^1.1.1, so a forced override would put an unsupported major under the runner. Reaches the same vitest 5 upgrade as the entry above.",
-      "decision": "OPEN — blocked on the same vitest 5 decision. Deliberately NOT overridden: a test runner that silently runs an unsupported worker pool can produce green that means nothing."
-    }
-  ],
+  "devOnlyCritical": [],
   "closed": [
     {
       "package": "proxy-addr",
       "was": "2.0.7",
       "now": "2.0.8",
-      "advisories": ["GHSA-jqcg-44mw-7w3h"],
+      "advisories": [
+        "GHSA-jqcg-44mw-7w3h"
+      ],
       "how_it_got_into_production": "It did not get there by accident: `shadcn`, a scaffolding CLI, sat in `dependencies`, so `@modelcontextprotocol/sdk` -> `express` -> `proxy-addr` was 276 packages of server stack in the shipped tree. Moved to `devDependencies` in the same change that added this gate.",
       "scope_note": "The advisory is about a trust-subnet check in `proxy-addr`, which the app's own per-IP limits do not use: `npm ls proxy-addr` resolves it only under the shadcn CLI path, and this repo's request path is Next.js middleware (`src/proxy.ts`), not express. Bumping it to 2.0.8 is still the right move — it removes the critical from the developer tree too.",
       "note": "Listed here so the reason the shipped tree is empty is readable, not because anything is open. scripts/audit-deps.mjs does not read this array."
+    },
+    {
+      "package": "vitest",
+      "was": "3.2.7",
+      "now": "5.0.3",
+      "advisories": [
+        "GHSA-82fw-gwwq-j7x9"
+      ],
+      "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker redirect mock",
+      "note": "Closed by the vitest 5 major on 2026-10-09. The runner's own test suite passed unchanged except three constructor mocks (`vi.fn(() => x)` -> `vi.fn(function () { return x; })`): vitest 5 no longer lets an arrow-built mock be `new`-ed, and the products under test construct AudioContext."
+    },
+    {
+      "package": "tinypool",
+      "was": "1.1.1",
+      "now": "(no longer in the tree)",
+      "advisories": [
+        "GHSA-5gmw-xhrv-c9v3",
+        "GHSA-85c8-ppgw-ccpr"
+      ],
+      "title": "Tinypool: prototype-pollution gadget in worker options / run() options leads to RCE",
+      "note": "Closed by removing the dependency: vitest 5.0.3 no longer depends on tinypool at all (`grep '\"node_modules/tinypool\"' package-lock.json` -> 0 hits), so there is no vulnerable version in the tree. The fix for this row was never an override — vitest 3.2.7 pins ^1.1.1, and putting an unsupported worker pool under the runner is how a green stops meaning anything."
     }
   ]
 }
