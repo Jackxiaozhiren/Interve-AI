@@ -38,7 +38,7 @@ git clone https://github.com/Jackxiaozhiren/Interve-AI.git
 cd Interve-AI
 npm ci
 cp .env.example .env.local   # fill ZHIPU_API_KEY; generate SESSION_SECRET below
-npm run verify               # lint + typecheck + 369 tests (50 files) + build (keyless)
+npm run verify               # lint + typecheck + the vitest suite + build (keyless)
 npm run dev                  # http://localhost:3000
 ```
 
@@ -66,7 +66,7 @@ Central registry `src/ai/providers/registry.ts` (ONE construction site/vendor, O
 
 | Lane | Command |
 |---|---|
-| All keyless ($0) | `npm run verify` (lint 0 errors + typecheck + 369 vitest (50 files) + build 44/44) |
+| All keyless ($0) | `npm run verify` (lint 0 errors → typecheck → unit+integration → build; counts come from the run, they are not restated here) |
 | Unit / integration | `npm run test:unit`, `npm run test:integration` |
 | AI eval keyless | `npm run test:eval` (all suites self-skip, exit 0 — harness + datasets still validated) |
 | AI eval free live (≤3 flash calls) | `npm run test:eval:free` (needs free `ZHIPU_API_KEY`; golden weak-case + smallest injection vector; CI runs it only when the secret exists) |
@@ -86,7 +86,7 @@ CI (`.github/workflows/ci.yml`, all free): install → lint → typecheck → un
 
 ## Deploy
 
-Vercel (`vercel.json`: `npm install`) or Docker (`Dockerfile`: `node:24-alpine`, `npm ci`, `output:standalone`). Set `ZHIPU_API_KEY` + `SESSION_SECRET` + (optional) Supabase vars in the host env. Release gate: engineering all-green, zero fake AI, every score has evidence+uncertainty, injection/fairness/stability pass, RLS/auth/rate-limit pass, Lighthouse达标或有解释 (`/` desktop 99/100/96/100, mobile 86 — fresh numbers in `docs/audit/LIGHTHOUSE_V10.md`), docs let a newcomer run clean-room.
+Vercel (`vercel.json`: `npm install`) or Docker (`Dockerfile`: `node:24-alpine`, `npm ci`, `output:standalone`). Set `ZHIPU_API_KEY` + `SESSION_SECRET` + (optional) Supabase vars in the host env. Release gate: engineering all-green, zero fake AI, every score has evidence+uncertainty, injection/fairness/stability pass, RLS/auth/rate-limit pass, Lighthouse 达标或有解释 (the dated scores live in `docs/audit/LIGHTHOUSE_V10.md`, which is their only home), docs let a newcomer run clean-room.
 
 ## Roadmap / Limitations
 
