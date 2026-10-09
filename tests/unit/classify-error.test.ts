@@ -2,6 +2,7 @@
 /// the real NoObjectGeneratedError brand is exercised).
 import { describe, it, expect } from "vitest";
 import { NoObjectGeneratedError } from "ai";
+import { ZodError } from "zod";
 import { classifyUpstreamError } from "../../src/lib/api/classify-error";
 
 // Whether a route actually calls the classifier. Keyed on the call, not on the
@@ -28,6 +29,20 @@ describe("classifyUpstreamError (PII-free reason tokens)", () => {
     expect(classifyUpstreamError(err)).toBe("no_object_generated");
   });
 
+  it("separates an unreadable answer from an answer that fails the schema", () => {
+    // Both used to reach a route-level token only (`output_coerced`,
+    // `json_coerced`), which could not tell a prompt bug from a model
+    // regression. The distinction is the whole point of naming the cause.
+    const unparseable = new SyntaxError(`Unexpected token 'X', "X" is not valid JSON`);
+    expect(classifyUpstreamError(unparseable)).toBe("output_unparseable");
+    expect(classifyUpstreamError(unparseable)).not.toMatch(/Unexpected|token/);
+
+    const schema = new ZodError([
+      { code: "invalid_type", path: ["trends"], message: "Expected array, received string" },
+    ] as never);
+    expect(classifyUpstreamError(schema)).toBe("output_schema");
+  });
+
   it("maps provider throws to status tokens, never error text", () => {
     expect(classifyUpstreamError(Object.assign(new Error("x"), { statusCode: 429 }))).toBe("upstream_429");
     expect(classifyUpstreamError(Object.assign(new Error("x"), { statusCode: 500 }))).toBe("upstream_500");
@@ -37,12 +52,13 @@ describe("classifyUpstreamError (PII-free reason tokens)", () => {
     expect(classifyUpstreamError(undefined)).toBe("upstream_error");
   });
 
-  it("all 14 AI routes wire it (static pin against bare upstream_error)", async () => {
+  it("every route that can fail upstream names how it failed", async () => {
     const { readFileSync, readdirSync } = await import("node:fs");
     const { join } = await import("node:path");
     const { fileURLToPath } = await import("node:url");
     const apiDir = fileURLToPath(new URL("../../src/app/api/", import.meta.url));
-    const wired: string[] = [];
+    const generators: string[] = [];
+    const unwired: string[] = [];
     for (const r of readdirSync(apiDir)) {
       let src: string;
       try {
@@ -50,11 +66,17 @@ describe("classifyUpstreamError (PII-free reason tokens)", () => {
       } catch {
         continue;
       }
-      if (callsClassifier(src)) wired.push(r);
+      // The inventory is derived from what the route calls, so adding an AI lane
+      // cannot slip past this check the way a typed count would: 14 was already
+      // stale the day it was written, and 16 is what the tree holds today.
+      if (/\b(generateText|streamText|generateObject)\s*\(/.test(src)) {
+        generators.push(r);
+        if (!callsClassifier(src)) unwired.push(r);
+      }
       expect(src, `${r}: bare upstream_error`).not.toContain('reason: "upstream_error"');
     }
-    // 14 AI lanes (parse-resume/trends/session keep their distinct reasons).
-    expect(wired.length).toBe(14);
+    expect(generators.length, "no AI route found at all").toBeGreaterThan(0);
+    expect(unwired, "these routes call a model and never classify the failure").toEqual([]);
   });
 
   it("counts the call whatever the argument is called, and never a mention", () => {

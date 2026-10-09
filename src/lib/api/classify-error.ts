@@ -16,6 +16,7 @@ import {
   NoOutputGeneratedError,
 } from "ai";
 import { logApi } from "./logging";
+import { ZodError } from "zod";
 
 export function classifyUpstreamError(e: unknown): string {
   if (NoObjectGeneratedError.isInstance(e)) return "no_object_generated";
@@ -25,6 +26,13 @@ export function classifyUpstreamError(e: unknown): string {
   if (NoOutputGeneratedError.isInstance(e)) return "no_output_generated";
   if (MessageConversionError.isInstance(e)) return "message_conversion";
   if (InvalidMessageRoleError.isInstance(e)) return "invalid_message_role";
+  // The two below are the model's *answer* failing, not the provider: routes
+  // that coerce malformed output into a fallback used to log only their policy
+  // token (`output_coerced`, `json_coerced`), which could not tell an unreadable
+  // blob apart from a schema miss — the difference between a prompt bug and a
+  // model regression.
+  if (e instanceof SyntaxError) return "output_unparseable";
+  if (e instanceof ZodError) return "output_schema";
   const status = (e as { statusCode?: unknown })?.statusCode;
   if (typeof status === "number" && Number.isInteger(status)) return `upstream_${status}`;
   if ((e as { name?: unknown })?.name === "AbortError") return "upstream_timeout";

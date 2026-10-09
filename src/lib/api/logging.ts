@@ -9,6 +9,10 @@ export interface ApiLogFields {
   model?: string;
   fallback?: boolean;
   reason?: string;
+  // What actually failed, as a PII-free token from classifyUpstreamError. `reason` is the
+  // route's decision (fallback / coerced / rejected); without `cause` the two
+  // together could not tell a 429 from an abort from an unreadable completion.
+  cause?: string;
   // H2.4 token 维度（为 H3.2 per-路由成本账供数）：AI SDK usage 实测，
   // input/output 分开记；缺失（mock/旧路径）即不记，永不编数。
   inputTokens?: number;

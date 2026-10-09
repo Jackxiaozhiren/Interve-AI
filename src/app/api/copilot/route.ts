@@ -60,8 +60,8 @@ export async function POST(req: Request) {
       } else {
         hints = [String(parsed)];
       }
-    } catch {
-      logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId, reason: "json_coerced" });
+    } catch (e) {
+      logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: modelId, reason: "json_coerced", cause: classifyUpstreamError(e) });
       hints = result.text.split('\n').filter(l => l.trim().length > 0).map(l => l.replace(/^[-*•]\s*/, '').replace(/^"|"$/g, ''));
     }
 

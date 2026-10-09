@@ -2,6 +2,7 @@ import { generateText } from "ai";
 import { z } from "zod";
 import { guardRequest, okResponse } from "@/lib/api/guard";
 import { logApi, usageOf } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { zhipu, MODEL_IDS, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildTrendsPrompt } from "@/ai/prompts/trends";
@@ -91,8 +92,11 @@ export async function POST(req: Request) {
       let body = fallbackData;
       try {
         body = TrendsOutputSchema.parse(JSON.parse(jsonText));
-      } catch {
-        logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash, reason: "output_coerced" });
+      } catch (e) {
+        // `output_coerced` is what the route decided; `cause` is what the model
+        // actually sent, which is the half that tells a prompt bug from a
+        // provider regression.
+        logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash, reason: "output_coerced", cause: classifyUpstreamError(e) });
       }
 
       const latency = (performance.now() - startTime).toFixed(2);
@@ -102,16 +106,16 @@ export async function POST(req: Request) {
         headers: { "X-Response-Time": `${latency}ms` },
       });
       
-    } catch {
-      logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash, reason: "fallback" });
+    } catch (e) {
+      logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash, reason: "fallback", cause: classifyUpstreamError(e) });
       return okResponse(fallbackData, requestId, {
         headers: { "X-Response-Time": `${(performance.now() - startTime).toFixed(2)}ms` },
       });
     }
 
-  } catch {
+  } catch (e) {
     // Behavior preserved: request-level failures also degrade to fallbackData.
-    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), reason: "fallback" });
+    logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), reason: "fallback", cause: classifyUpstreamError(e) });
     return okResponse(fallbackData, requestId, {
       headers: { "X-Response-Time": `${(performance.now() - startTime).toFixed(2)}ms` },
     });

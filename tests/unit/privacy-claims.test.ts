@@ -135,7 +135,7 @@ describe("「日志不含你输入的内容」", () => {
     expect(fields, "ApiLogFields shape").not.toBeNull();
     const names = [...fields![1].matchAll(/^\s+(\w+)\??:/gm)].map((m) => m[1]);
     expect(names.sort()).toEqual(
-      ["fallback", "inputTokens", "latencyMs", "model", "outputTokens", "reason", "requestId", "status"].sort()
+      ["cause", "fallback", "inputTokens", "latencyMs", "model", "outputTokens", "reason", "requestId", "status"].sort()
     );
     // Anything transcript-shaped in this list would make the sentence false.
     expect(names.join(",")).not.toMatch(/text|body|content|transcript|prompt|resume/i);
