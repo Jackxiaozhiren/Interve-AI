@@ -24,7 +24,12 @@ function mockMediaStack() {
     return stream as unknown as MediaStream;
   });
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
-  const AudioContextCtor = vi.fn(() => ctx);
+  // A function expression, not an arrow: the product constructs this, and a mock
+  // built from an arrow has no [[Construct]] (vitest 5 dropped the behaviour that
+  // let one be `new`-ed).
+  const AudioContextCtor = vi.fn(function () {
+    return ctx;
+  });
   vi.stubGlobal("window", { AudioContext: AudioContextCtor });
   return { stop, stream, connect, analyser, close, ctx, getUserMedia, AudioContextCtor };
 }

@@ -13,7 +13,9 @@ function fakeContext(overrides: Partial<AudioContext> = {}) {
   const decodeAudioData = vi.fn(async () => ({
     getChannelData: () => new Float32Array([0.1, 0.2, 0.3]),
   }));
-  const ctor = vi.fn(() => ({ close, decodeAudioData, ...overrides }) as unknown as AudioContext);
+  const ctor = vi.fn(function () {
+    return { close, decodeAudioData, ...overrides } as unknown as AudioContext;
+  });
   return { ctor, close, decodeAudioData };
 }
 
@@ -45,7 +47,7 @@ describe("decodeRecordingToMono16k", () => {
   it("closes the context when the browser refuses to create one", async () => {
     // The cap is reached mid-session, not at startup — after enough answers the
     // constructor itself throws.
-    const ctor = vi.fn(() => {
+    const ctor = vi.fn(function () {
       throw new Error("Failed to construct 'AudioContext': too many active contexts");
     }) as unknown as (new (o?: AudioContextOptions) => AudioContext);
 
