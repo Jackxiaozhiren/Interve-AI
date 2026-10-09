@@ -99,18 +99,13 @@ const VERIFIED: Record<string, Entry> = {
 };
 
 /** Claims that need an owner decision rather than a code change. May only shrink. */
-const OPEN: Record<string, Entry & { needsOwner: string }> = {
-  "src/app/landing/page.tsx": {
-    digits: ["2.0"],
-    why: "'Interve AI 2.0 现已发布' while package.json says 1.0.0 and EVALUATION_VERSION 2.0 is the evaluation schema, not the product",
-    needsOwner: "cut the version badge or start versioning the product; either way it should come from one place",
-  },
-  "src/components/home/HeroSection.tsx": {
-    digits: ["2.0"],
-    why: "same badge as /landing",
-    needsOwner: "same decision as src/app/landing/page.tsx",
-  },
-};
+const OPEN: Record<string, Entry & { needsOwner: string }> = {};
+// Empty as of 2026-10-09. The last two rows were the launch badge on / and
+// /landing, which stated a major the manifest did not agree with; both now
+// interpolate src/lib/app-version's constant, and
+// tests/unit/app-version-claim.test.ts pins that constant to package.json — so
+// the digit left the copy instead of getting an allowlist entry. A .ts constant
+// is invisible to this scan on purpose: it has a stronger owner than a row here.
 
 const ALL = { ...VERIFIED, ...OPEN };
 
@@ -130,7 +125,13 @@ const stale = Object.keys(ALL).filter((f) => !(f in measured));
 describe("user-visible digits have an owner", () => {
   it("reads real copy out of the parse tree (instrument sanity)", () => {
     expect(files.length, "no tsx files found — the scan would be vacuous").toBeGreaterThan(100);
-    expect(Object.keys(measured).length).toBeGreaterThanOrEqual(15);
+    // Derived, not typed. This was `>= 15` while the truth was 16 — a slack of one
+    // that the version-badge fix turned into a false failure the moment a digit
+    // legitimately left the copy. The declared inventory is the same owner the
+    // set-equality case below already enforces, so a scan that goes blind still
+    // goes red here (measured would be 0 against a non-empty ALL) and removing a
+    // real claim only ever moves the floor by deleting its row.
+    expect(Object.keys(measured).length).toBeGreaterThanOrEqual(Object.keys(ALL).length);
     // Attributes are not copy: a class like `text-[3.5rem]` must not appear.
     expect(JSON.stringify(measured)).not.toContain("3.5");
     // And JSX text is: the scale denominator does.
