@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { InterveButton } from "@/components/interve-ui";
+import { APP_VERSION } from "@/lib/app-version";
 
 export function HeroSection() {
   // Phase 13: no entrance animation on the LCP element. The 1s fade/slide
@@ -13,7 +14,7 @@ export function HeroSection() {
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--interve-brand-accent)] opacity-40"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--interve-brand-accent)]"></span>
         </span>
-        Interve AI 2.0 现已发布
+        {`Interve AI v${APP_VERSION} 现已发布`}
       </div>
       <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-[var(--interve-text-title)] max-w-4xl mb-6 leading-[1.1]">
         面试从未如此 <br />

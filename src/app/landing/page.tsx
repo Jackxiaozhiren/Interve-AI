@@ -5,6 +5,7 @@ import Link from "next/link";
 import { InterveTopNav, InterveNavLink, InterveButton } from "@/components/interve-ui";
 import { InterveMessageCard } from "@/components/interve-ui/chat";
 import { EXTERNAL_LINKS } from "@/utils/constants";
+import { APP_VERSION } from "@/lib/app-version";
 
 export default function LandingPage() {
   return (
@@ -51,7 +52,7 @@ export default function LandingPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--interve-brand-accent)] opacity-40"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--interve-brand-accent)]"></span>
             </span>
-            Interve AI 2.0 现已发布
+            {`Interve AI v${APP_VERSION} 现已发布`}
           </div>
           <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-[var(--interve-text-title)] max-w-4xl mb-6 leading-[1.1]">
             面试从未如此 <br />

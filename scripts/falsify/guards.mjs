@@ -364,6 +364,28 @@ const PLANTS = [
     pattern: "still yields a total message when there is no text anywhere",
   },
 
+  // ── the version the landing badge states ─────────────────────────────────
+  {
+    name: "B1",
+    desc: "a hero retypes the version instead of interpolating it",
+    kind: "vitest",
+    file: "src/components/home/HeroSection.tsx",
+    anchor: "{`Interve AI v${APP_VERSION} 现已发布`}",
+    replacement: "Interve AI 2.0 现已发布",
+    test: "tests/unit/app-version-claim.test.ts",
+    pattern: "finds no hardcoded brand-plus-number text node anywhere in src/",
+  },
+  {
+    name: "B2",
+    desc: "the version constant drifts from the manifest",
+    kind: "vitest",
+    file: "src/lib/app-version.ts",
+    anchor: 'export const APP_VERSION = "1.0.0";',
+    replacement: 'export const APP_VERSION = "1.0.1";',
+    test: "tests/unit/app-version-claim.test.ts",
+    pattern: "is the version the manifest declares",
+  },
+
   // ── the launcher links, in a browser ─────────────────────────────────────
   {
     name: "D1",
