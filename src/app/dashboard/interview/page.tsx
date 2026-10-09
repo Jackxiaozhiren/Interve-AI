@@ -12,6 +12,13 @@ import { InterveButton } from "@/components/interve-ui";
  * destinations are the setup wizard and `/dashboard`, whose `sessions.map(...)`
  * row list is where records actually live, so the buttons are now links and the
  * unverifiable list claim is gone.
+ *
+ * 2026-10-09: nothing in `src/` navigated *here* either — the sidebar's "My
+ * Interviews" row pointed at `/dashboard`, the same route as the row above it.
+ * That row now points at this page, and the third card, which duplicated the
+ * second card's destination, points at `/dashboard/resume` (also unreachable,
+ * also a working signpost). `anchor-integrity`'s fourth rule keeps any future
+ * page from going dark again.
  */
 export default function InterviewDashboard() {
   return (
@@ -48,10 +55,10 @@ export default function InterviewDashboard() {
           <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--interve-warning-surface)] text-[var(--interve-warning-text)] flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
           </div>
-          <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">近期概览</h3>
-          <p className="text-sm text-[var(--interve-text-secondary)]">查看本周的面试次数与得分变化。</p>
-          <Link href="/dashboard" className="mt-auto">
-            <InterveButton variant="secondary" className="w-full mt-2">查看统计</InterveButton>
+          <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">简历分析</h3>
+          <p className="text-sm text-[var(--interve-text-secondary)]">上传简历并解析，结果保存在该场面试的记录里。</p>
+          <Link href="/dashboard/resume" className="mt-auto">
+            <InterveButton variant="secondary" className="w-full mt-2">前往简历分析</InterveButton>
           </Link>
         </div>
       </div>

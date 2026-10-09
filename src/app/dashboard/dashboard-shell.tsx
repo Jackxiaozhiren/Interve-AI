@@ -37,7 +37,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: SquaresFour },
-    { name: "My Interviews", href: "/dashboard", icon: FileText },
+    { name: "My Interviews", href: "/dashboard/interview", icon: FileText },
     { name: "Knowledge Base", href: "/dashboard/knowledge", icon: CloudArrowUp },
     { name: "Privacy", href: "/dashboard/privacy", icon: ShieldCheck },
     { name: "Settings", href: "/dashboard/settings", icon: Gear },

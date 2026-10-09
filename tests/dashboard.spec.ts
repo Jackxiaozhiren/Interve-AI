@@ -85,6 +85,23 @@ test.describe("Dashboard launcher pages navigate instead of sitting inert", () =
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 
+  test("the sidebar reaches both launcher pages", async ({ page }) => {
+    // "My Interviews" pointed at /dashboard — the same route as the row above it
+    // — so the hall page had no way in from the product at all, and
+    // /dashboard/resume had none either. The static rule in anchor-integrity
+    // names that shape; this proves the click actually lands.
+    await loginAs(page);
+    await page.goto("/dashboard");
+    await page.waitForLoadState("networkidle");
+
+    await page.getByRole("link", { name: "My Interviews" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/interview$/);
+
+    await page.getByRole("main").getByRole("link", { name: "前往简历分析" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/resume$/);
+    await expect(page.getByRole("heading", { name: "上传简历文件" })).toBeVisible();
+  });
+
   test("the resume page points at the step that actually parses a file", async ({ page }) => {
     await loginAs(page);
     await page.goto("/dashboard/resume");
