@@ -10,6 +10,8 @@
 // to `onFinish(event)` with the message nested at `event.message`. That is why
 // `getTextFromFinishEvent` exists — see its comment.
 
+import type { UIMessage } from "ai";
+
 interface MaybePart {
   type?: unknown;
   text?: unknown;
@@ -51,6 +53,65 @@ export function getMessageText(msg: MaybeMessage | null | undefined): string {
 export function getTextFromFinishEvent(event: { message?: unknown } | null | undefined): string {
   if (!event || typeof event !== "object") return "";
   return getMessageText(event.message as MaybeMessage | undefined);
+}
+
+/**
+ * The one bridge from "some JSON" to a UIMessage the v7 transport reads.
+ *
+ * Two boundaries need it and were written independently, which is how the same
+ * shape question got answered twice: POST /api/interview-chat bridged with
+ * `messages as ModelMessage[]` (every real turn then died in schema validation
+ * before a provider was contacted — PR #58), and the localStorage session
+ * restore on /interview bridged with `snapshot.messages as never[]`, the bottom
+ * type, which stops the checker looking at the value at all.
+ *
+ * Both inputs are untrusted *and* versioned: a snapshot was written by whatever
+ * the app shipped up to 30 days ago. So the bridge is total over shape and
+ * strict about the one thing it cannot derive — `role`. A part list it cannot
+ * recognise is repaired into a single text part from the legacy fields, because
+ * dropping a turn would silently shorten the transcript the model reads.
+ */
+/**
+ * The roles a UIMessage can carry, owned here so the request contract and the
+ * bridge cannot drift: a role this list allows but the bridge rejects would
+ * pass validation and then silently lose its turn.
+ */
+export const UI_MESSAGE_ROLES = ["system", "user", "assistant"] as const;
+
+function isUiRole(value: unknown): value is UIMessage["role"] {
+  return typeof value === "string" && (UI_MESSAGE_ROLES as readonly string[]).includes(value);
+}
+
+function isRecognisablePart(value: unknown): boolean {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    typeof (value as { type?: unknown }).type === "string"
+  );
+}
+
+function toUiMessage(source: unknown, fallbackId: string): UIMessage | null {
+  if (source === null || typeof source !== "object") return null;
+  const raw = source as Record<string, unknown>;
+  if (!isUiRole(raw.role)) return null;
+  const parts =
+    Array.isArray(raw.parts) && raw.parts.length > 0 && raw.parts.every(isRecognisablePart)
+      ? (raw.parts as UIMessage["parts"])
+      : [{ type: "text" as const, text: getMessageText(raw) }];
+  return {
+    id: typeof raw.id === "string" && raw.id ? raw.id : fallbackId,
+    role: raw.role,
+    parts,
+  };
+}
+
+export function toUiMessages(list: readonly unknown[]): UIMessage[] {
+  const restored: UIMessage[] = [];
+  list.forEach((entry, index) => {
+    const message = toUiMessage(entry, `restored-${index}`);
+    if (message) restored.push(message);
+  });
+  return restored;
 }
 
 /**

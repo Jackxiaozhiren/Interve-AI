@@ -54,6 +54,9 @@ const SPECS_UNIT = "tests/unit/specs-must-assert.test.ts";
 const SWEEP = "tests/e2e/core-visual-consistency.spec.ts";
 const CHAT_ROUTE = "src/app/api/interview-chat/route.ts";
 const CHAT_SHAPE = "tests/integration/chat-message-shape.test.ts";
+const BRIDGE = "src/lib/message-text.ts";
+const INTERVIEW_LAUNCHER = "src/app/interview/page.tsx";
+const BRIDGE_UNIT = "tests/unit/ui-message-bridge.test.ts";
 
 const NL = "\n";
 
@@ -329,6 +332,36 @@ const PLANTS = [
     replacement: "}).passthrough()).min(0).max(100),",
     test: CHAT_SHAPE,
     pattern: "refuses an empty transcript",
+  },
+
+  // ── the one bridge that answers a message-shape question ─────────────────
+  {
+    name: "N1",
+    desc: "the session restore goes back to `as never[]`",
+    kind: "gate",
+    file: INTERVIEW_LAUNCHER,
+    anchor: "setMessages(toUiMessages(snapshot.messages));",
+    replacement: "setMessages(snapshot.messages as never[]);",
+  },
+  {
+    name: "N2",
+    desc: "the bridge stops checking role",
+    kind: "vitest",
+    file: BRIDGE,
+    anchor: "if (!isUiRole(raw.role)) return null;",
+    replacement: "if (typeof raw.role !== \"string\") return null;",
+    test: BRIDGE_UNIT,
+    pattern: "rejects a role the transport cannot carry",
+  },
+  {
+    name: "N3",
+    desc: "a message with no text loses its parts array instead of getting an empty one",
+    kind: "vitest",
+    file: BRIDGE,
+    anchor: ": [{ type: \"text\" as const, text: getMessageText(raw) }];",
+    replacement: ": [];",
+    test: BRIDGE_UNIT,
+    pattern: "still yields a total message when there is no text anywhere",
   },
 
   // ── the launcher links, in a browser ─────────────────────────────────────
