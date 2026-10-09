@@ -76,6 +76,16 @@ const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
  * against a 3% limit on nothing else — a table-shaped addition wants a builder,
  * not a template.
  */
+const CATCH_UNIT = "tests/unit/catch-reason-resolution.test.ts";
+
+/** Same reason as `claimsPlant`: three records, one shape, no repeated keys. */
+const causePlant = (over) => ({
+  kind: "vitest",
+  test: CATCH_UNIT,
+  pattern: "has no logging catch left unclassified",
+  ...over,
+});
+
 const claimsPlant = (over) => ({
   kind: "vitest",
   file: STRIP,
@@ -561,7 +571,7 @@ const PLANTS = [
     replacement: `reason: String(e) });`,
     test: "tests/unit/classify-error.test.ts",
     // `-t` is a regex, so the pattern stops before the title's parentheses.
-    pattern: "all 14 AI routes wire it",
+    pattern: "every route that can fail upstream names how it failed",
   },
 
   // ── the mock of the SDK must not enumerate the SDK ────────────────────────
@@ -621,6 +631,30 @@ const PLANTS = [
     kind: "playwright",
     test: "tests/landing.spec.ts",
     slow: true,
+  }),
+  // ── a catch that logs has to name what it caught ─────────────────────────
+  causePlant({
+    name: "CR1",
+    desc: "the trends route decides to coerce but stops saying what arrived",
+    file: "src/app/api/analyze-trends/route.ts",
+    anchor: `reason: "output_coerced", cause: classifyUpstreamError(e) });`,
+    replacement: `reason: "output_coerced" });`,
+  }),
+  causePlant({
+    name: "CR2",
+    desc: "the OCR fallback un-binds its error, hiding the cause behind done()",
+    file: "src/app/api/parse-resume/route.ts",
+    anchor: `} catch (ocrError) {`,
+    replacement: `} catch {`,
+  }),
+  causePlant({
+    name: "CR3",
+    desc: "an unreadable answer and a schema miss collapse into one token again",
+    file: CLASSIFIER,
+    test: "tests/unit/classify-error.test.ts",
+    pattern: "separates an unreadable answer from an answer that fails the schema",
+    anchor: `  if (e instanceof ZodError) return "output_schema";`,
+    replacement: `  if (e instanceof ZodError) return "output_unparseable";`,
   }),
 ];
 
