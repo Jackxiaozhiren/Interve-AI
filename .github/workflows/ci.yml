@@ -52,6 +52,21 @@ jobs:
       # visual-baselines` refreshes the ubuntu pair. This lane is what catches a
       # copy change that moves pixels — the hero's version badge did exactly that
       # and no other lane noticed.
+      # TEMPORARY, one run only: the ubuntu baselines have to come from an ubuntu
+      # runner, and GitHub will not dispatch a workflow whose file is not on the
+      # default branch yet. This renders them and uploads them for a human to
+      # commit; the next commit on this branch deletes it. The compare step below
+      # is left in place, so the run still executes the real assertion (against
+      # what was just written), and the following push compares against the
+      # committed files instead.
+      - run: npm run visual:baselines
+        env:
+          CI: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines-ubuntu-temp
+          path: tests/a11y-visual.spec.ts-snapshots/*-linux.png
+          if-no-files-found: error
       - run: npm run test:e2e:visual
         env:
           CI: true
