@@ -54,6 +54,7 @@ const SPECS_UNIT = "tests/unit/specs-must-assert.test.ts";
 const SWEEP = "tests/e2e/core-visual-consistency.spec.ts";
 const CHAT_ROUTE = "src/app/api/interview-chat/route.ts";
 const CHAT_SHAPE = "tests/integration/chat-message-shape.test.ts";
+const CI_LANES_UNIT = "tests/unit/ci-lane-claims.test.ts";
 const BRIDGE = "src/lib/message-text.ts";
 const INTERVIEW_LAUNCHER = "src/app/interview/page.tsx";
 const BRIDGE_UNIT = "tests/unit/ui-message-bridge.test.ts";
@@ -313,6 +314,18 @@ const PLANTS = [
       "      { url: '/history', name: 'history' },",
     test: SPECS_UNIT,
     pattern: "does not let the sweep claim routes",
+  },
+
+  // ── the visual tier actually has a lane ──────────────────────────────────
+  {
+    name: "W1",
+    desc: "CI stops running the snapshot legs, leaving them uncollected and undeclared",
+    kind: "vitest",
+    file: ".github/workflows/ci.yml",
+    anchor: "      - run: npm run test:e2e:visual",
+    replacement: "      - run: npm run test:eval",
+    test: CI_LANES_UNIT,
+    pattern: "tests no lane runs",
   },
 
   // ── transport messages must be converted, never cast ─────────────────────

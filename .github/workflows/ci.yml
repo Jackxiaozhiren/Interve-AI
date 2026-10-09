@@ -40,10 +40,19 @@ jobs:
         env:
           CI: true
 
-      # axe legs only. The two snapshot tests in the same file are deliberately
-      # excluded: their baselines are captured on darwin and Playwright keys the
-      # baseline filename by platform, so this runner could never resolve them.
+      # axe legs only. The two snapshot tests in the same file have their own
+      # lane below, so the axe scan is not gated on a picture matching.
       - run: npm run test:e2e:axe
+        env:
+          CI: true
+
+      # The visual tier, on the platform this runner is. Baselines are keyed by
+      # host platform, so `*-linux.png` lives beside the `*-darwin.png` a local
+      # dev regenerates; both are committed and `gh workflow run
+      # visual-baselines` refreshes the ubuntu pair. This lane is what catches a
+      # copy change that moves pixels — the hero's version badge did exactly that
+      # and no other lane noticed.
+      - run: npm run test:e2e:visual
         env:
           CI: true
 

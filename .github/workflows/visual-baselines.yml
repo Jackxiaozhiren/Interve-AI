@@ -1,0 +1,39 @@
+name: Visual baselines
+# Dispatch-only on purpose. This workflow never writes to the branch: it renders
+# the two snapshots on the ubuntu runner and hands them back as an artifact, so a
+# human decides what the product is supposed to look like and commits it. An
+# auto-committing baseline job is a gate that can be silently re-pointed at the
+# defect it just started to tolerate.
+#
+#   gh workflow run visual-baselines.yml --ref <branch>
+#   gh run download <run-id> -n visual-baselines-ubuntu
+#   cp ./visual-baselines-ubuntu/* tests/a11y-visual.spec.ts-snapshots/
+#
+# The committed ubuntu pair is what `npm run test:e2e:visual` compares against in
+# CI; a local dev regenerates the darwin pair with `npm run visual:baselines`.
+on:
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # The local playwright binary, not `npx playwright`: nothing is fetched by
+      # version range at run time, and the browser build always matches the
+      # pinned @playwright/test in the lockfile.
+      - run: npm run e2e:install-browser
+      - run: npm run visual:baselines
+        env:
+          CI: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines-ubuntu
+          path: tests/a11y-visual.spec.ts-snapshots/*-linux.png
+          if-no-files-found: error
