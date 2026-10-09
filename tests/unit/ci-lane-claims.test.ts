@@ -154,45 +154,104 @@ function testTitles(rel: string): string[] {
   return titles;
 }
 
-/** `--grep-invert "P" file.spec.ts` pairs, straight out of package.json. */
-const filters: { file: string; pattern: string }[] = [];
-for (const script of ciScripts) {
-  const cmd = pkg.scripts[script] ?? "";
-  const m = /--grep-invert\s+"([^"]+)"\s+(tests\/[^\s]+\.spec\.ts)/.exec(cmd);
-  if (m) filters.push({ pattern: m[1], file: m[2] });
+/**
+ * Which CI commands run which spec files, and how each one filters.
+ *
+ * The rule used to be per command: "if a lane greps a file down, the doc must
+ * declare a partial row". That premise died with the split of `a11y-visual` into
+ * an axe lane (`--grep-invert "Visual regression"`) and a visual lane
+ * (`--grep "Visual regression"`): each command excludes titles the other
+ * collects, so a per-command rule demanded a doc row for a gap that no longer
+ * existed. What is actually worth checking is per title — is there any lane at
+ * all that runs this test?
+ */
+interface Lane {
+  script: string;
+  files: string[];
+  grep: string | null;
+  invert: string | null;
 }
 
-describe("the excluded-test counts in TESTING.md are derived", () => {
-  it("finds at least one grep filter, so the checks below are not vacuous", () => {
-    expect(filters.length).toBeGreaterThan(0);
+const lanes: Lane[] = [];
+for (const script of ciScripts) {
+  const cmd = pkg.scripts[script] ?? "";
+  if (!/\bplaywright\b/.test(cmd)) continue;
+  lanes.push({
+    script,
+    files: [...cmd.matchAll(/(tests\/[^\s]+\.spec\.ts)/g)].map((m) => m[1]),
+    grep: /--grep\s+"([^"]+)"/.exec(cmd)?.[1] ?? null,
+    invert: /--grep-invert\s+"([^"]+)"/.exec(cmd)?.[1] ?? null,
+  });
+}
+
+/** Titles some CI lane selects, unioned across the lanes that name the file. */
+function collectedTitles(file: string): Set<string> {
+  const out = new Set<string>();
+  const all = testTitles(file);
+  for (const lane of lanes) {
+    if (!lane.files.includes(file)) continue;
+    for (const title of all) {
+      if (lane.grep && !new RegExp(lane.grep).test(title)) continue;
+      if (lane.invert && new RegExp(lane.invert).test(title)) continue;
+      out.add(title);
+    }
+  }
+  return out;
+}
+
+function uncollected(file: string): string[] {
+  const hit = collectedTitles(file);
+  return testTitles(file).filter((t) => !hit.has(t));
+}
+
+const gaps = new Map<string, string[]>();
+for (const file of specFilesOnDisk) {
+  const miss = uncollected(file);
+  if (miss.length > 0) gaps.set(file, miss);
+}
+
+describe("every test title is either run by CI or declared in the doc", () => {
+  it("has lanes and filters to reason about, so nothing below is vacuous", () => {
+    expect(lanes.length).toBeGreaterThan(1);
+    expect(lanes.filter((l) => l.grep || l.invert).length, "no lane filters, so the union test is trivial").toBeGreaterThan(0);
+    // The union must be able to be non-empty: a lane that selects nothing would
+    // make every file look uncollected and the next two cases would agree with
+    // each other instead of with CI.
+    expect(collectedTitles("tests/a11y-visual.spec.ts").size).toBe(5);
   });
 
-  it.each(filters.map((f) => [`${f.file} excluding /${f.pattern}/`, f] as const))(
-    "%s",
-    (_label, { file, pattern }) => {
-      const excluded = testTitles(file).filter((t) => new RegExp(pattern).test(t));
-      // Non-vacuity: the pattern must really exclude something in that file.
-      expect(excluded.length, `no title in ${file} matches /${pattern}/`).toBeGreaterThan(0);
+  it("collects a filtered file's titles across the lanes that split it", () => {
+    // The visual tier: axe's lane drops the snapshot legs, the visual lane runs
+    // only them. Neither command covers the file, the pair covers it completely.
+    expect(uncollected("tests/a11y-visual.spec.ts")).toEqual([]);
+    expect(
+      gaps.has("tests/a11y-visual.spec.ts"),
+      "the doc still declares a gap for a file both lanes together cover"
+    ).toBe(false);
+  });
 
-      const row = doc
-        .split("\n")
-        .find((line) => line.includes(`\`${file}\``) && /→/.test(line));
-      expect(row, `no partial row for ${file}`).toBeDefined();
-
+  it.each([...gaps].map(([file, miss]) => [file, miss] as const))(
+    "%s has exactly the declared number of tests no lane runs",
+    (file, miss) => {
+      const row = doc.split("\n").find((line) => line.includes(`\`${file}\``) && /→|\(\d+\)/.test(line));
+      expect(row, `no row in "Specs no CI lane collects" for ${file}: ${miss.join(" | ")}`).toBeDefined();
       const declared = /\((\d+)\)/.exec(row ?? "");
       expect(declared, `the ${file} row states no count`).not.toBeNull();
       expect(
         Number(declared?.[1]),
-        `doc says ${(declared?.[1])} but ${pattern} excludes ${excluded.length}: ${excluded.join(" | ")}`
-      ).toBe(excluded.length);
-
-      // Whatever the row quotes must be a title the pattern really excludes.
+        `doc says ${declared?.[1]} but no CI lane runs ${miss.length}: ${miss.join(" | ")}`
+      ).toBe(miss.length);
       for (const quoted of [...row!.matchAll(/"([^"]+)"/g)].map((m) => m[1])) {
         expect(
-          excluded.some((t) => t.includes(quoted)),
-          `row quotes "${quoted}", which /${pattern}/ does not exclude`
+          miss.some((t) => t.includes(quoted)),
+          `row quotes "${quoted}", which no lane actually skips`
         ).toBe(true);
       }
     }
   );
+
+  it("refuses a row whose gap has been closed", () => {
+    const stale = [...declaredUncollected.keys()].filter((f) => !gaps.has(f));
+    expect(stale, `declared uncollected but every title is now run: ${stale.join(", ")}`).toEqual([]);
+  });
 });
