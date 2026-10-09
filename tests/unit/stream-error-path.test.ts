@@ -30,6 +30,50 @@ import {
   streamErrorNotice,
 } from "../../src/lib/api/classify-error";
 
+// One console capture for the whole file, and one way to run a stream. Spelling
+// these out per describe is how a lane accumulates duplicated lines — which is
+// not a style preference here: the project's quality gate fails a PR over
+// new-code duplication above 3%.
+let lines: string[];
+beforeEach(() => {
+  lines = [];
+  vi.spyOn(console, "error").mockImplementation((...args) => lines.push(String(args[0])));
+  vi.spyOn(console, "log").mockImplementation((...args) => lines.push(String(args[0])));
+});
+afterEach(() => vi.restoreAllMocks());
+
+/**
+ * Only the lines this module writes. The SDK prints the raw provider error to
+ * the server console on its own — measured here, not assumed — so a PII
+ * assertion has to name its own sink rather than the whole console.
+ */
+const ours = () =>
+  lines
+    .map((l) => {
+      try {
+        return JSON.parse(l) as Record<string, unknown>;
+      } catch {
+        return null;
+      }
+    })
+    .filter((j): j is Record<string, unknown> => j?.route === "interview-chat");
+
+const modelThatThrows = (message: string, extra?: Record<string, unknown>) =>
+  new MockLanguageModelV3({
+    doStream: async () => {
+      throw Object.assign(new Error(message), extra);
+    },
+  });
+
+/** The route's exact call shape, with or without the hook under test. */
+async function streamOnce(model: MockLanguageModelV3, requestId: string, hooked: boolean) {
+  const result = streamText({ model, prompt: "hi", maxRetries: 0 });
+  const response = result.toUIMessageStreamResponse(
+    hooked ? { onError: streamErrorNotice("interview-chat", requestId, "glm-4-flash") } : undefined
+  );
+  return await response.text();
+}
+
 describe("the classifier names the classes the streaming route can throw", () => {
   it("distinguishes no-output from no-object", () => {
     const noOutput = new NoOutputGeneratedError({ cause: new Error("provider sent nothing") });
@@ -73,14 +117,6 @@ describe("the classifier names the classes the streaming route can throw", () =>
 });
 
 describe("the stream's terminal log line", () => {
-  let lines: string[];
-  beforeEach(() => {
-    lines = [];
-    vi.spyOn(console, "error").mockImplementation((...args) => lines.push(String(args[0])));
-    vi.spyOn(console, "log").mockImplementation((...args) => lines.push(String(args[0])));
-  });
-  afterEach(() => vi.restoreAllMocks());
-
   it("records one warn-level line with the reason and the requestId", () => {
     streamErrorNotice("interview-chat", "req-7", "glm-4-flash")(
       new NoOutputGeneratedError({ cause: new Error("empty completion") })
@@ -114,45 +150,13 @@ describe("the stream's terminal log line", () => {
 });
 
 describe("the hook fires for real, on a stream that dies", () => {
-  // Source-shape assertions above prove the wiring is present; this proves it
-  // works, against the SDK's own mock model and with no API key: the route's
-  // exact call (`toUIMessageStreamResponse({ onError: streamErrorNotice(...) })`)
-  // run over a stream that fails mid-generation.
-  let lines: string[];
-  beforeEach(() => {
-    lines = [];
-    vi.spyOn(console, "error").mockImplementation((...args) => lines.push(String(args[0])));
-    vi.spyOn(console, "log").mockImplementation((...args) => lines.push(String(args[0])));
-  });
-  afterEach(() => vi.restoreAllMocks());
-
-  // Only lines this module writes: the SDK prints the raw provider error to the
-  // server console on its own, which is pre-existing behaviour measured here
-  // rather than assumed — `ours()` scopes every PII assertion to our sink.
-  const ours = () =>
-    lines
-      .map((l) => {
-        try {
-          return JSON.parse(l) as Record<string, unknown>;
-        } catch {
-          return null;
-        }
-      })
-      .filter((j): j is Record<string, unknown> => j?.route === "interview-chat");
+  // Source-shape assertions at the bottom of this file prove the wiring is
+  // present; these prove it works, against the SDK's own mock model and with no
+  // API key — a stream that fails, and a completion that yields nothing.
 
   it("logs the failure and puts only the fixed sentence on the wire", async () => {
     const secret = "HTTP error 429 from open.bigmodel.cn for key sk-abc123def456";
-    const model = new MockLanguageModelV3({
-      doStream: async () => {
-        throw Object.assign(new Error(secret), { statusCode: 429 });
-      },
-    });
-
-    const result = streamText({ model, prompt: "hi", maxRetries: 0 });
-    const response = result.toUIMessageStreamResponse({
-      onError: streamErrorNotice("interview-chat", "req-live", "glm-4-flash"),
-    });
-    const body = await response.text();
+    const body = await streamOnce(modelThatThrows(secret, { statusCode: 429 }), "req-live", true);
 
     // 1. Exactly one terminal line, and it carries a token instead of text.
     const logged = ours();
@@ -171,7 +175,7 @@ describe("the hook fires for real, on a stream that dies", () => {
   it("names a completion that produced no output", async () => {
     // The audit item this lane closes was an `AI_NoOutputGeneratedError`, so the
     // token has to survive the real streaming path, not just the fixture.
-    const model = new MockLanguageModelV3({
+    const empty = new MockLanguageModelV3({
       doStream: async () => ({
         stream: new ReadableStream({
           start(controller) {
@@ -180,11 +184,7 @@ describe("the hook fires for real, on a stream that dies", () => {
         }),
       }),
     });
-    const result = streamText({ model, prompt: "hi", maxRetries: 0 });
-    const response = result.toUIMessageStreamResponse({
-      onError: streamErrorNotice("interview-chat", "req-empty", "glm-4-flash"),
-    });
-    await response.text();
+    await streamOnce(empty, "req-empty", true);
 
     const logged = ours();
     expect(logged, "an empty completion must be reported, not counted as a success").toHaveLength(1);
@@ -194,13 +194,7 @@ describe("the hook fires for real, on a stream that dies", () => {
   it("control: without onError the same failure logs nothing at all", async () => {
     // Without this, the test above could be proving that the line is emitted by
     // something other than the hook.
-    const model = new MockLanguageModelV3({
-      doStream: async () => {
-        throw new Error("provider gave up");
-      },
-    });
-    const result = streamText({ model, prompt: "hi", maxRetries: 0 });
-    await result.toUIMessageStreamResponse().text();
+    await streamOnce(modelThatThrows("provider gave up"), "req-none", false);
     expect(ours()).toEqual([]);
   });
 });
