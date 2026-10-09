@@ -76,3 +76,68 @@ describe("every Playwright spec can fail", () => {
     expect(src).not.toMatch(/url: ['"]\/settings['"]/);
   });
 });
+
+/**
+ * An assertion whose subject is a literal cannot fail, so it is not an assertion
+ * — it is a token that satisfies "this file contains `expect(`".
+ *
+ * `tests/integration/zz-probe.test.ts` ended with `expect(true).toBe(true)` after
+ * five live provider calls whose results it printed and never checked. The rule
+ * above (a file must contain an `expect(`) rated it as asserting, which is how I
+ * first measured this corpus and reported zero offenders: the presence of the word
+ * was the whole test. A file can now satisfy "has assertions" only by constraining
+ * something the product produced.
+ */
+const TEST_FILES = (() => {
+  const out: string[] = [];
+  (function walk(dir: string): void {
+    for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
+      const rel = `${dir}/${entry}`;
+      if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) walk(rel);
+      else if (/\.tsx?$/.test(entry)) out.push(rel);
+    }
+  })("tests");
+  return out.sort();
+})();
+
+// `expect(<literal>).<matcher>(<literal or nothing>)` — both sides fixed, so the
+// verdict is decided at write time. A computed matcher argument (`expect(false)`
+// `.toBe(hasQuota)`) is a real question and is not matched.
+const LITERAL = "(?:true|false|null|undefined|[-+]?\\d+(?:\\.\\d+)?|\"\"|''|``)";
+const TAUTOLOGY = new RegExp(
+  "\\bexpect(?:\\s*<[^>]*>)?\\s*\\(\\s*" + LITERAL + "\\s*\\)\\s*\\.\\w+\\s*\\(\\s*" + LITERAL + "?[\\s,)]",
+  "g"
+);
+
+describe("no test asserts against a literal", () => {
+  const offenders = TEST_FILES.filter((f) =>
+    TAUTOLOGY.test(codeOnly(readFileSync(new URL(`../../${f}`, import.meta.url), "utf8")))
+  );
+
+  it("recognises the shape it is looking for (the scan is not decoration)", () => {
+    // The samples are assembled rather than written out: a scanner whose fixture
+    // contains the offending text reports its own file as an offender, which is
+    // how a guard ends up needing an exemption for itself.
+    const yes = "expect" + "(true).toBe(true);";
+    const yesToo = "expect" + "(true).toBeTruthy();";
+    const no = "expect(rows.length)" + ".toBe(3);";
+    const noEither = "expect(false)" + ".toBe(subject.hasQuota);";
+    expect(TAUTOLOGY.test(yes)).toBe(true);
+    TAUTOLOGY.lastIndex = 0;
+    expect(TAUTOLOGY.test(yesToo)).toBe(true);
+    TAUTOLOGY.lastIndex = 0;
+    // a real question: the subject is product output, not a typed literal
+    expect(TAUTOLOGY.test(no)).toBe(false);
+    TAUTOLOGY.lastIndex = 0;
+    expect(TAUTOLOGY.test(noEither)).toBe(false);
+    TAUTOLOGY.lastIndex = 0;
+  });
+
+  it("finds no tautological assertion in any test file", () => {
+    expect(offenders, `assert on something the code produced: ${offenders.join(", ")}`).toEqual([]);
+  });
+
+  it("is judging real files, not an empty list", () => {
+    expect(TEST_FILES.length).toBeGreaterThanOrEqual(100);
+  });
+});
