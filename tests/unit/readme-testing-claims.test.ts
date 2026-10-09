@@ -42,6 +42,18 @@ describe("the README's testing claims match the machinery they describe", () => 
     expect(readme).not.toMatch(/\d+\s*\((?:[\d]+[LMH]\/)+[\d]+C\)/);
   });
 
+  it("does not restate a count that only a run can know", () => {
+    // "369 vitest (50 files)" and "build 44/44" were both wrong by the time they
+    // were read: the suite is ~1000 tests in ~120 files, and a count written into a
+    // README starts decaying on the next commit. The advisory-count rule above made
+    // the same argument and this is the rest of it — a number nobody can re-derive
+    // from the line it sits on is an attribution risk, not documentation.
+    expect(readme).not.toMatch(/\d+\s+(?:vitest\s+)?tests?/i);
+    expect(readme).not.toMatch(/\(\d+ files\)/);
+    expect(readme).not.toMatch(/build \d+\/\d+/);
+    expect(readme).not.toMatch(/desktop \d+\/\d+\/\d+\/\d+/);
+  });
+
   it("describes the dependency gate with the command CI really runs", () => {
     const auditLine = ciRunLines.filter((line) => /\baudit\b/.test(line));
     expect(auditLine.length, "CI has no dependency-audit step to describe").toBe(1);
