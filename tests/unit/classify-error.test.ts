@@ -4,6 +4,17 @@ import { describe, it, expect } from "vitest";
 import { NoObjectGeneratedError } from "ai";
 import { classifyUpstreamError } from "../../src/lib/api/classify-error";
 
+// Whether a route actually calls the classifier. Keyed on the call, not on the
+// spelling of its argument: `interview-chat` now passes `primaryError` on the
+// fallback line, and a predicate written as the literal `classifyUpstreamError(e)`
+// would silently stop counting a route that is wired. The scan strips comments
+// first, so prose about the classifier is not a call site — including the
+// sentence above.
+const stripComments = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const callsClassifier = (source: string) =>
+  /classifyUpstreamError\s*\(\s*[A-Za-z_$][\w$]*\s*\)/.test(stripComments(source));
+
 describe("classifyUpstreamError (PII-free reason tokens)", () => {
   it("identifies real NoObjectGeneratedError instances", () => {
     const err = new NoObjectGeneratedError({
@@ -39,10 +50,23 @@ describe("classifyUpstreamError (PII-free reason tokens)", () => {
       } catch {
         continue;
       }
-      if (src.includes("classifyUpstreamError(e)")) wired.push(r);
+      if (callsClassifier(src)) wired.push(r);
       expect(src, `${r}: bare upstream_error`).not.toContain('reason: "upstream_error"');
     }
     // 14 AI lanes (parse-resume/trends/session keep their distinct reasons).
     expect(wired.length).toBe(14);
+  });
+
+  it("counts the call whatever the argument is called, and never a mention", () => {
+    // The predicate above is only honest if it discriminates both ways: a route
+    // wired with a differently-named argument still counts, and prose about the
+    // classifier does not. Samples assembled from pieces, so the file that owns
+    // this rule cannot satisfy its own scan.
+    const name = "classify" + "UpstreamError";
+    expect(callsClassifier(`logApi(R, { reason: ${name}(e) })`)).toBe(true);
+    expect(callsClassifier(`logApi(R, { reason: ${name}(primaryError) })`)).toBe(true);
+    expect(callsClassifier(`// TODO: use ${name}(e) here`)).toBe(false);
+    expect(callsClassifier(`/* see ${name}(e) */`)).toBe(false);
+    expect(callsClassifier(`// ${name}(e)`)).toBe(false);
   });
 });

@@ -61,6 +61,8 @@ const BRIDGE_UNIT = "tests/unit/ui-message-bridge.test.ts";
 const DASHBOARD_PAGE = "src/app/dashboard/page.tsx";
 const DASH_STATS = "src/lib/dashboard-stats.ts";
 const RADAR_UNIT = "tests/unit/radar-series.test.ts";
+const STREAM_UNIT = "tests/unit/stream-error-path.test.ts";
+const CLASSIFIER = "src/lib/api/classify-error.ts";
 
 const NL = "\n";
 
@@ -485,6 +487,86 @@ const PLANTS = [
     replacement: '    .filter((e): e is { id: string; subject: string; A: number } => true);',
     test: RADAR_UNIT,
     pattern: "omits an axis that has no measurement instead of drawing 0",
+  },
+
+  // ── a stream that dies after the handler returned still has to say so ─────
+  {
+    name: "SE1",
+    desc: "the primary stream goes back to reporting nothing on failure",
+    kind: "vitest",
+    file: CHAT_ROUTE,
+    anchor: `\
+      const response = result.toUIMessageStreamResponse({
+        onError: streamErrorNotice(ROUTE, requestId, model || "zhipu"),
+      });`,
+    replacement: `      const response = result.toUIMessageStreamResponse();`,
+    test: STREAM_UNIT,
+    pattern: "reports the error on both the primary and the fallback stream",
+  },
+  {
+    name: "SE2",
+    desc: "the fallback line loses the reason the primary failed",
+    kind: "vitest",
+    file: CHAT_ROUTE,
+    anchor: `model: model || 'zhipu', fallback: true, reason: classifyUpstreamError(primaryError) });`,
+    replacement: `model: model || 'zhipu', fallback: true });`,
+    test: STREAM_UNIT,
+    pattern: "names the reason when the first model call fails and the fallback takes over",
+  },
+  {
+    name: "SE3",
+    desc: "the notice is replaced by the provider's own error text",
+    kind: "vitest",
+    file: CLASSIFIER,
+    anchor: `    return STREAM_ERROR_NOTICE;`,
+    replacement: `    return String(error);`,
+    test: STREAM_UNIT,
+    pattern: "tells the client a fixed sentence that contains no provider detail",
+  },
+  {
+    name: "SE4",
+    desc: "no-output collapses back into the structured-output token",
+    kind: "vitest",
+    file: CLASSIFIER,
+    anchor: `  if (NoOutputGeneratedError.isInstance(e)) return "no_output_generated";`,
+    replacement: `  if (NoOutputGeneratedError.isInstance(e)) return "no_object_generated";`,
+    test: STREAM_UNIT,
+    pattern: "distinguishes no-output from no-object",
+  },
+  {
+    // The wiring count is the other half of this lane's guard, and it is keyed on
+    // a call rather than on an argument name (see classify-error.test.ts).
+    name: "SE5",
+    desc: "a route stops classifying its upstream failure",
+    kind: "vitest",
+    file: "src/app/api/generate-hint/route.ts",
+    anchor: `reason: classifyUpstreamError(e) });`,
+    replacement: `reason: String(e) });`,
+    test: "tests/unit/classify-error.test.ts",
+    // `-t` is a regex, so the pattern stops before the title's parentheses.
+    pattern: "all 14 AI routes wire it",
+  },
+
+  // ── the mock of the SDK must not enumerate the SDK ────────────────────────
+  {
+    name: "MH1",
+    desc: "the SDK mock goes back to a closed factory",
+    kind: "vitest",
+    file: "tests/unit/degradation-matrix.test.ts",
+    anchor: `  return { ...actual, generateObject: vi.fn(), generateText: vi.fn() };`,
+    replacement: `  return { generateObject: vi.fn(), generateText: vi.fn() };`,
+    test: "tests/unit/mock-hygiene.test.ts",
+    pattern: "calls importOriginal and spreads it",
+  },
+  {
+    name: "MH2",
+    desc: "the factory keeps the spread but stops calling importOriginal",
+    kind: "vitest",
+    file: "tests/unit/degradation-matrix.test.ts",
+    anchor: `  const actual = await importOriginal<typeof import("ai")>();`,
+    replacement: `  const actual = {} as typeof import("ai");`,
+    test: "tests/unit/mock-hygiene.test.ts",
+    pattern: "calls importOriginal",
   },
 ];
 
