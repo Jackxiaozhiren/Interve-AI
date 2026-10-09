@@ -21,7 +21,7 @@ import { SessionDetailModal } from "@/components/dashboard/SessionDetailModal";
 import { ContinuousLearning } from "@/components/dashboard/ContinuousLearning";
 import { AchievementShowcase } from "@/components/dashboard/AchievementShowcase";
 import { GrowthTrendChart, type TrendDataPoint } from "@/components/dashboard/GrowthTrendChart";
-import { SkillBreakdownChart, type RadarDataPoint } from "@/components/dashboard/SkillBreakdownChart";
+import { SkillBreakdownChart } from "@/components/dashboard/SkillBreakdownChart";
 import { SystemTelemetry } from "@/components/dashboard/SystemTelemetry";
 import { ProgressInsights } from "@/components/dashboard/ProgressInsights";
 
