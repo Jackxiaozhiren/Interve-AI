@@ -25,13 +25,16 @@ import { POST as practicePost } from "../../src/app/api/analyze-practice/route";
 import { POST as interviewPost } from "../../src/app/api/analyze-interview/route";
 import { POST as trendsPost } from "../../src/app/api/analyze-trends/route";
 
-vi.mock("ai", () => ({
-  generateObject: vi.fn(),
-  generateText: vi.fn(),
-  // Real-brand coverage lives in classify-error.test.ts (unmocked);
-  // here the predicate only needs to exist and decline.
-  NoObjectGeneratedError: { isInstance: () => false },
-}));
+// Partial mock: only the two generation entry points are stubbed, everything
+// else comes from the real module. A closed factory here broke the suite on
+// 2026-10-09 — the classifier gained `NoOutputGeneratedError` /
+// `MessageConversionError` / `InvalidMessageRoleError` imports, `ai` resolved to
+// undefined for them, and three route-tier tests died inside production code.
+// The mock must not have to know what `src/lib/api/classify-error.ts` imports.
+vi.mock("ai", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("ai")>();
+  return { ...actual, generateObject: vi.fn(), generateText: vi.fn() };
+});
 
 process.env.SESSION_SECRET = "c2-test-secret-0123456789abcdef";
 
