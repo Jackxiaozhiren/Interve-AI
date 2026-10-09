@@ -32,7 +32,7 @@ import { CopilotHints } from "@/components/interview/CopilotHints";
 import { useKeyboardShortcuts, createCtrlCmdShortcut } from "@/hooks/useKeyboardShortcuts";
 import { type AIExpert } from "@/components/interview/MultiAgentVisualizer";
 import { DynamicLoader } from "@/components/ui/DynamicLoader";
-import { getMessageText, getTextFromFinishEvent } from "@/lib/message-text";
+import { getMessageText, getTextFromFinishEvent, toUiMessages } from "@/lib/message-text";
 import { useInterveStore } from "@/store/useInterveStore";
 import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -471,7 +471,7 @@ function InterviewRoomContent() {
       action: {
         label: "恢复",
         onClick: () => {
-          setMessages(snapshot.messages as never[]);
+          setMessages(toUiMessages(snapshot.messages));
           if (snapshot.wpm) setWpm(snapshot.wpm);
           if (snapshot.fillerWordsCount) setFillerWordsCount(deliveryLedgerRef.current.seed(snapshot.fillerWordsCount));
           toast.success("已恢复对话记录");

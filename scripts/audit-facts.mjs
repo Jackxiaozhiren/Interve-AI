@@ -176,6 +176,41 @@ export function countAnyEscapes(sourceText, fileName) {
 }
 
 /**
+ * Count `as never` / `as never[]` assertions in one source text, by parse tree.
+ *
+ * `never` is the bottom type: asserting to it does not describe the value, it
+ * stops the checker looking at the value at all. The one that this key seeded
+ * against was the session restore on /interview — `snapshot.messages as never[]`
+ * crossed a localStorage boundary into `useChat`'s `setMessages`, the same
+ * crossing that PR #58 proved was fatal when answered with a cast.
+ *
+ * Deliberately narrower than a NeverKeyword count. `showLatency?: never` in
+ * SystemHealthIndicator is a legitimate "do not pass this prop" declaration, and
+ * a key that counted it would train the next reader to raise the ceiling instead
+ * of reading the site. Only an AsExpression whose type is `never` (optionally
+ * arrayed) counts.
+ */
+export function countNeverAssertions(sourceText, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  let hits = 0;
+  const visit = (node) => {
+    if (node.kind === ts.SyntaxKind.AsExpression) {
+      const text = node.type.getText(sourceFile).replace(/\s+/g, "");
+      if (/^(readonly)?never(\[\])*$/.test(text)) hits += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return hits;
+}
+
+/**
  * Whole-document navigations to an app route, measured on the parse tree.
  *
  * The first version counted a regex over raw text, which cannot tell code from
@@ -240,6 +275,14 @@ function countAnyEscapesInSrc() {
   let total = 0;
   for (const file of sourceFiles()) {
     total += countAnyEscapes(fs.readFileSync(file, "utf8"), file);
+  }
+  return total;
+}
+
+function countNeverAssertionsInSrc() {
+  let total = 0;
+  for (const file of sourceFiles()) {
+    total += countNeverAssertions(fs.readFileSync(file, "utf8"), file);
   }
   return total;
 }
@@ -630,6 +673,7 @@ function collectDebt() {
     hardInternalNavigations: countHardInternalNavigationsInSrc(),
     mouseOnlyInteractions: countMouseOnlyInteractionsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
+    neverCasts: countNeverAssertionsInSrc(),
     // Array + scalar siblings, same reason as longestSourceFiles: the ceiling has
     // to bound how many dead controls exist, and the names are what makes fixing
     // one a decision instead of a guess.
@@ -821,6 +865,16 @@ export const RATCHET_KEYS = {
     + "`motion.div` tag — in a framer-motion codebase the eslint rules under-count by two thirds, which "
     + "is why enabling them is not the same as being covered.",
   "debt.anyEscapes": "explicit `any` escaping the strict config",
+  "debt.neverCasts":
+    "`as never` assertions in production source. `never` is the bottom type, so the assertion "
+    + "does not describe the value — it ends the check. Seeded at 0 on 2026-10-09: the one site "
+    + "was the /interview session restore (`snapshot.messages as never[]` into useChat's " +
+    "setMessages), which is a localStorage boundary crossed into a transport shape, the same "
+    + "crossing whose cast version made every turn of the core dialogue loop die in schema "
+    + "validation (PR #58). Restoring through src/lib/message-text's toUiMessages answers the "
+    + "shape question with code that a test can exercise. Tests are excluded on purpose: a "
+    + "fixture cast there is how you build an impossible input on purpose, and counting it "
+    + "would only train the next reader to raise this ceiling.",
   "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
   "debt.unreferencedProductionDeps":
     "production dependencies no file under src/ imports. Adjudicated 2026-10-06 at 4: `dexie`, "

@@ -1,5 +1,6 @@
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
+import { streamText, convertToModelMessages } from "ai";
 import { z } from "zod";
+import { UI_MESSAGE_ROLES, toUiMessages } from "@/lib/message-text";
 import { guardRequest, errorResponse } from "@/lib/api/guard";
 import { logApi, logStreamUsage } from "@/lib/api/logging";
 import { classifyUpstreamError } from "@/lib/api/classify-error";
@@ -15,23 +16,13 @@ export const maxDuration = 60;
 
 const ROUTE = "interview-chat";
 
-/**
- * Accept either transport shape. The chat page's hand-written greeting carries
- * both `content` and `parts`; a restored snapshot may carry only `content`, and
- * `convertToModelMessages` reads `parts`. Deriving one text part from the other
- * keeps the adapter total instead of trading one crash for another.
- */
-function toUiMessage(m: { role: string; content?: unknown; parts?: unknown }): UIMessage {
-  const parts = Array.isArray(m.parts) && m.parts.length > 0
-    ? (m.parts as UIMessage["parts"])
-    : [{ type: "text", text: typeof m.content === "string" ? m.content : "" }];
-  return { role: m.role as "system" | "user" | "assistant", parts } as UIMessage;
-}
-
 // Input contract mirrors what useChat transports send today. Unknown keys
 // are stripped; `model` is length-bounded and unknown values fall through
 // to the Zhipu default (same behavior as before, without unbounded input).
-const BodySchema = z.object({  messages: z.array(z.object({ role: z.string().min(1).max(32) }).passthrough()).min(1).max(100),
+const BodySchema = z.object({
+  // role is the one field the transport cannot recover from, so the contract
+  // names it instead of accepting any 32 chars and hoping the SDK agrees.
+  messages: z.array(z.object({ role: z.enum(UI_MESSAGE_ROLES) }).passthrough()).min(1).max(100),
   context: z.string().max(12000).optional(),
   codeContext: z.string().max(12000).optional(),
   systemDesignContext: z.string().max(12000).optional(),
@@ -113,7 +104,7 @@ export async function POST(req: Request) {
     // — /interview and /chat — go through useChat, so the core dialogue loop could
     // not answer even with a valid API key. The mock lane hides this because it
     // returns a canned stream before any validation happens.
-    const recentUi = (messages.length > 20 ? messages.slice(-20) : messages).map(toUiMessage);
+    const recentUi = toUiMessages(messages.length > 20 ? messages.slice(-20) : messages);
     const recentMessages = await convertToModelMessages(recentUi);
 
     // Phase 5: system prompt owned by the versioned registry

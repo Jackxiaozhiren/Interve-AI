@@ -41,6 +41,7 @@ export interface Facts {
     tsIgnoreHits: number;
     todoMarkers: number;
     anyEscapes: number;
+    neverCasts: number;
     auditDocsLines: number;
     longestSourceFiles: Array<{ path: string; lines: number }>;
   };
