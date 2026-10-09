@@ -8,6 +8,7 @@
  * text the codebase must not contain, and as text it must.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const read = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
@@ -130,8 +131,8 @@ describe("the homepage asserts nothing it cannot show", () => {
   const HOME = SOURCE_FILES.filter((f) => f.startsWith("src/components/home/"));
 
   it("renders no invented metric: no literal number carrying a + or % suffix", () => {
-    // Derived values are safe here — StatsStrip interpolates a rate it read from
-    // IndexedDB, so `${rate}%` contains no numeric literal to ban.
+    // Derived values are safe here — StatsStrip interpolates a rate it computed
+    // from the account's own rows, so `${rate}%` contains no numeric literal to ban.
     const hits = HOME.flatMap((f) =>
       [...prose(f).matchAll(/([0-9][0-9,]*)\s*[+%]/g)].map((m) => `${f}: ${m[0]}`)
     );
@@ -198,5 +199,114 @@ describe("the homepage asserts nothing it cannot show", () => {
     for (const id of ["behavioral", "technical", "system-design", "business-case"]) {
       expect(ids, id).toContain(id);
     }
+  });
+});
+
+/**
+ * Where the data actually lives.
+ *
+ * The stats strip told every visitor — including the signed-out ones, who are
+ * shown a hard `0` — that their interviews are "保存在本地 IndexedDB，无需上传".
+ * They are not. `db` is `dbClient` (`src/lib/db.ts:182`) and the read behind that
+ * number is `supabase.from('interviews').eq('user_id', uid)`
+ * (`src/lib/api-client.ts:160-166`), which returns `[]` for an anonymous session:
+ * the rows exist server-side precisely because they were uploaded. Observed in
+ * the production DOM rather than inferred from the source — the hydrated
+ * homepage renders "本地模拟面试 | 0 | 保存在本地 IndexedDB，无需上传".
+ *
+ * The general rule below is scoped to copy: a module may not name a storage
+ * mechanism in text a human reads unless that module touches the mechanism.
+ * Comments are deliberately outside it — this repo's comments legitimately
+ * describe *other* modules' storage ("Storage is injected: localStorage in
+ * prod"), and a gate that indicts accurate prose gets reworded around instead of
+ * obeyed. The comments that were simply wrong are therefore pinned by name.
+ */
+describe("storage mechanisms are named only where they are used", () => {
+  const TOKENS: { re: RegExp; key: string }[] = [
+    { re: /\bIndexedDB\b|\bindexedDB\b/, key: "indexeddb" },
+    { re: /\blocalStorage\b/, key: "localstorage" },
+    { re: /\bDexie\b|\bdexie\b/, key: "dexie" },
+  ];
+
+  /**
+   * Mechanisms the module really touches, from the parse tree: identifiers with
+   * those exact names (so `interface SessionStorage` and a `useLocalStorageState`
+   * helper do not count) and the `dexie` module specifier. Comments never reach
+   * the token tree, which is why an AST and not a text scan.
+   */
+  const touched = (rel: string): Set<string> => {
+    const src = read(rel);
+    const sf = ts.createSourceFile(
+      rel,
+      src,
+      ts.ScriptTarget.Latest,
+      true,
+      rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+    );
+    const used = new Set<string>();
+    const visit = (n: ts.Node) => {
+      if (ts.isIdentifier(n)) {
+        if (n.text === "indexedDB") used.add("indexeddb");
+        if (n.text === "localStorage") used.add("localstorage");
+      }
+      if (
+        (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) &&
+        /^dexie(\/|$)/.test(n.text)
+      ) {
+        used.add("dexie");
+      }
+      n.forEachChild(visit);
+    };
+    visit(sf);
+    return used;
+  };
+
+  const namedInCopy = (rel: string): string[] => {
+    const body = prose(rel);
+    return TOKENS.filter((t) => t.re.test(body)).map((t) => t.key);
+  };
+
+  it("finds copy that names a mechanism, and code that legitimately does", () => {
+    // Non-vacuity, in both directions, derived from the tree rather than typed:
+    // with no naming site and no using site the rule below would pass on nothing.
+    const namers = SOURCE_FILES.filter((f) => namedInCopy(f).length > 0);
+    const users = SOURCE_FILES.filter((f) => touched(f).size > 0);
+    expect(users.length, "no module touches a storage mechanism at all").toBeGreaterThan(0);
+    expect(namers.length, "no copy names a storage mechanism at all").toBeGreaterThan(0);
+  });
+
+  it("no module's copy names a mechanism that module does not use", () => {
+    const offenders = SOURCE_FILES.flatMap((f) => {
+      const uses = touched(f);
+      return namedInCopy(f).filter((key) => !uses.has(key)).map((key) => `${f}: copy says ${key}`);
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  it("the stats strip says where the rows are and does not count for a stranger", () => {
+    const copy = prose("src/components/home/StatsStrip.tsx");
+    expect(copy).not.toMatch(/IndexedDB|无需上传|本地模拟面试/);
+    // The number is the signed-in account's, so the card has to say account.
+    expect(copy).toMatch(/账户/);
+    const body = read("src/components/home/StatsStrip.tsx");
+    // An anonymous read answers `[]`, which would render as a hard zero. Neither
+    // the fetch nor the number may run without a session.
+    expect(body).toMatch(/if \(!isAuthenticated\) return;/);
+    expect(body).toMatch(/isAuthenticated \? counts : null/);
+  });
+
+  it("the four comments that named a store the code never opens admit the truth", () => {
+    // Measured: `grep -rn "indexedDB" src` returns 0 hits in source positions —
+    // no module in this app opens IndexedDB, and none imports dexie.
+    for (const f of [
+      "src/app/interview/page.tsx",
+      "src/components/home/AboutSection.tsx",
+      "src/components/home/StatsStrip.tsx",
+    ]) {
+      expect(read(f), `${f} still claims IndexedDB`).not.toMatch(/\bIndexedDB\b/);
+    }
+    // Its own catch names the table it failed to read, so the docstring can too.
+    expect(read("src/lib/orama-client.ts")).toMatch(/orama_index/);
+    expect(read("src/lib/orama-client.ts")).not.toMatch(/from Dexie/);
   });
 });

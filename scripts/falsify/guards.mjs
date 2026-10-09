@@ -66,6 +66,23 @@ const CLASSIFIER = "src/lib/api/classify-error.ts";
 
 const NL = "\n";
 
+const STRIP = "src/components/home/StatsStrip.tsx";
+const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
+
+/**
+ * Builder for the storage-claim plants, which differ only in the line they
+ * break. Written as four object literals, their key-name lines are identical
+ * runs, and SonarCloud's new-code gate failed this PR at 20.9% duplication
+ * against a 3% limit on nothing else — a table-shaped addition wants a builder,
+ * not a template.
+ */
+const claimsPlant = (over) => ({
+  kind: "vitest",
+  file: STRIP,
+  test: CLAIMS_UNIT,
+  ...over,
+});
+
 /** @type {Array<{name:string,desc:string,kind:"vitest"|"playwright"|"gate",file:string,anchor:string,replacement:string,count?:number,test?:string,pattern?:string,slow?:boolean,create?:string}>} */
 const PLANTS = [
   // ── the settings page: nothing may pretend to be a control ────────────────
@@ -568,6 +585,43 @@ const PLANTS = [
     test: "tests/unit/mock-hygiene.test.ts",
     pattern: "calls importOriginal",
   },
+
+  // ── copy may only name a store the module actually opens ─────────────────
+  claimsPlant({
+    name: "SC1",
+    desc: "the stats strip names a browser store the app never opens",
+    anchor: `"记录保存在你的账户数据库中"`,
+    replacement: `"记录保存在浏览器 IndexedDB 中"`,
+    pattern: "no module's copy names a mechanism that module does not use",
+  }),
+  claimsPlant({
+    name: "SC2",
+    desc: "the card goes back to calling account data local",
+    anchor: `label="我的模拟面试"`,
+    replacement: `label="本地模拟面试"`,
+    pattern: "the stats strip says where the rows are",
+  }),
+  claimsPlant({
+    name: "SC3",
+    desc: "a comment re-attributes the Orama restore to Dexie",
+    file: "src/lib/orama-client.ts",
+    anchor: `from the account's orama_index`,
+    replacement: `from Dexie`,
+    pattern: "the four comments that named a store the code never opens",
+  }),
+  // Browser-bound, so it joins the --slow set. No source-level plant can fail
+  // it: only the signed-in branch changes, and the rendered strip is what this
+  // plant proves has teeth.
+  claimsPlant({
+    name: "SC4",
+    desc: "the signed-out strip stops saying it cannot know",
+    anchor: `"登录后查看你的面试记录"`,
+    replacement: `"记录保存在你的账户数据库中"`,
+    pattern: "the data strip admits",
+    kind: "playwright",
+    test: "tests/landing.spec.ts",
+    slow: true,
+  }),
 ];
 
 function run(cmd, args) {

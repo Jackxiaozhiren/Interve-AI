@@ -6,7 +6,8 @@ import React from "react";
  * satisfaction rate and a testimonial attributed to a named engineer at a named
  * employer. None of it had a source — there is no analytics store, no survey,
  * and no customer. StatsStrip above renders the numbers this app can actually
- * read (local IndexedDB session counts, with an em dash when unavailable), so
+ * read (the signed-in account's own session rows, with an em dash when nobody is
+ * signed in or the read fails), so
  * this section carries intent only. tests/unit/no-unverifiable-claims.test.ts
  * keeps it that way.
  */
