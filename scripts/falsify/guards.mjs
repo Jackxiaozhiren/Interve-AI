@@ -709,6 +709,37 @@ const PLANTS = [
     replacement: `          endRef={messagesEndRef}\n          endRef={messagesEndRef}`,
     pattern: "hands the scroll anchor",
   }),
+  // ── the README's architecture counts are the measured ones ───────────────
+  {
+    name: "RA1",
+    desc: "the README's prompt count drifts from the registry by one",
+    kind: "vitest",
+    file: "README.md",
+    anchor: `(17 registered prompts, each carrying its own version`,
+    replacement: `(18 registered prompts, each carrying its own version`,
+    test: "tests/unit/readme-architecture-claims.test.ts",
+    pattern: "counts versioned prompts the way the registry counts them",
+  },
+  {
+    name: "RA2",
+    desc: "the README counts generateObject routes a route too high",
+    kind: "vitest",
+    file: "README.md",
+    anchor: "`generateObject` (10 routes,",
+    replacement: "`generateObject` (11 routes,",
+    test: "tests/unit/readme-architecture-claims.test.ts",
+    pattern: "counts the routes still on generateObject",
+  },
+  {
+    name: "RA3",
+    desc: "the README overstates how many prompt files carry the untrusted-input fence",
+    kind: "vitest",
+    file: "README.md",
+    anchor: "(15 prompt files carry the `UNTRUSTED` markers",
+    replacement: "(16 prompt files carry the `UNTRUSTED` markers",
+    test: "tests/unit/readme-architecture-claims.test.ts",
+    pattern: "counts the prompt files that fence untrusted input",
+  },
   // ── a rendered record time must be the record's own ──────────────────────
   {
     name: "CT1",
