@@ -107,6 +107,14 @@ const roomPlant = (over) => ({
 const THINK_LIB = "src/lib/interview/think-time.ts";
 const WINDOW_UNIT = "tests/unit/think-time-window.test.ts";
 const FIRST_RENDER_UNIT = "tests/unit/first-render-is-server-computable.test.ts";
+const PRIVACY_PAGE = "src/app/dashboard/privacy/page.tsx";
+
+/** Again the same shape (see `claimsPlant`): three records, one builder. */
+const rightsPlant = (over) => ({
+  kind: "vitest",
+  test: CLAIMS_UNIT,
+  ...over,
+});
 
 /** Again: the window plants share a test and differ only in what they break. */
 const windowPlant = (over) => ({
@@ -747,6 +755,31 @@ const PLANTS = [
     test: FIRST_RENDER_UNIT,
     pattern: "names every production component",
   },
+  // ── the homepage's "export or delete, any time" is a two-store promise ────
+  rightsPlant({
+    name: "DR1",
+    desc: "the export button is rendered but no longer wired",
+    file: PRIVACY_PAGE,
+    anchor: `onClick={exportAll}`,
+    replacement: `onClick={() => {}}`,
+    pattern: "exported file carries every store",
+  }),
+  rightsPlant({
+    name: "DR2",
+    desc: "the exported JSON quietly drops the practice sessions",
+    file: PRIVACY_PAGE,
+    anchor: `interviews, practiceSessions: practice }`,
+    replacement: `interviews }`,
+    pattern: "exported file carries every store",
+  }),
+  rightsPlant({
+    name: "DR3",
+    desc: "the wipe leaves the practice sessions in the cloud",
+    file: PRIVACY_PAGE,
+    anchor: `await db.practiceSessions.remove(p.id);`,
+    replacement: `await Promise.resolve(p.id);`,
+    pattern: "delete reaches every store",
+  }),
 ];
 
 function run(cmd, args) {

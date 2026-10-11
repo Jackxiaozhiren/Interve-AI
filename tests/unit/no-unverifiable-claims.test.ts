@@ -310,3 +310,134 @@ describe("storage mechanisms are named only where they are used", () => {
     expect(read("src/lib/orama-client.ts")).not.toMatch(/from Dexie/);
   });
 });
+
+/**
+ * The homepage sells a data right — 所有记录随时可以导出或删除. The sentence has two
+ * verbs and a scope word, so it is checkable rather than a vibe: the Privacy Center
+ * has to bind a real click to a handler that reaches BOTH stores an account holds.
+ * Taken off the parse tree, because a page that only mentions `exportAll` in prose
+ * would satisfy a text scan.
+ */
+describe("the export-or-delete promise is backed by a wired handler", () => {
+  const PRIVACY = "src/app/dashboard/privacy/page.tsx";
+  const CLAIM = /所有记录随时可以导出或删除/;
+  // "所有记录" is what makes this two stores and not one: an export that quietly
+  // drops the practice sessions would still pass a single-store check.
+  const STORES = ["interviews", "practiceSessions"];
+
+  type Reach = { payload: Set<string>; removed: Set<string> };
+
+  /**
+   * What each locally-defined click handler really does, from its parse tree:
+   * `payload` is the key set of the object handed to `downloadFile`, `removed`
+   * the stores it calls `.remove(...)` on. Both are read off the call shapes, not
+   * off identifiers in scope — a handler that fetches the practice sessions and
+   * then leaves them out of the file must not count as exporting them.
+   */
+  const rightsHandlers = (src: string) => {
+    const file = ts.createSourceFile(PRIVACY, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const onClickNames = new Set<string>();
+    const bodies = new Map<string, Reach>();
+    const walk = (n: ts.Node) => {
+      if (ts.isJsxAttribute(n) && n.name.getText(file) === "onClick" && n.initializer) {
+        const bound = /^\{([A-Za-z_$][\w$]*)\}$/.exec(n.initializer.getText(file));
+        if (bound) onClickNames.add(bound[1]);
+      }
+      if (
+        ts.isVariableDeclaration(n) &&
+        ts.isIdentifier(n.name) &&
+        n.initializer &&
+        (ts.isArrowFunction(n.initializer) || ts.isFunctionExpression(n.initializer))
+      ) {
+        const reach: Reach = { payload: new Set(), removed: new Set() };
+        const grab = (c: ts.Node) => {
+          if (ts.isCallExpression(c)) {
+            const called = ts.isPropertyAccessExpression(c.expression) ? c.expression.name.text : c.expression.getText();
+            if (called === "downloadFile") {
+              c.arguments[0]?.forEachChild((inner) => {
+                if (ts.isObjectLiteralExpression(inner)) {
+                  for (const prop of inner.properties) {
+                    // `interviews,` is a ShorthandPropertyAssignment, so a check on
+                    // PropertyAssignment alone would miss exactly one of the stores.
+                    if (ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop)) {
+                      reach.payload.add(prop.name.getText(file));
+                    }
+                  }
+                }
+              });
+            }
+            if (called === "remove" && ts.isPropertyAccessExpression(c.expression)) {
+              const owner = c.expression.expression;
+              if (ts.isPropertyAccessExpression(owner)) reach.removed.add(owner.name.text);
+              else if (ts.isIdentifier(owner)) reach.removed.add(owner.text);
+            }
+          }
+          c.forEachChild(grab);
+        };
+        grab(n.initializer);
+        bodies.set(n.name.text, reach);
+      }
+      n.forEachChild(walk);
+    };
+    walk(file);
+    return { onClickNames, bodies };
+  };
+
+  const reachOf = (bodies: Map<string, Reach>, name: string) => bodies.get(name);
+
+  /** Pure: given an extraction, which clicked handlers cover every store this way. */
+  const wiredCoveringOf = (
+    handlers: { onClickNames: Set<string>; bodies: Map<string, Reach> },
+    pick: (r: Reach) => Set<string>
+  ) =>
+    [...handlers.onClickNames].filter((name) => {
+      const r = reachOf(handlers.bodies, name);
+      return r !== undefined && STORES.every((s) => pick(r).has(s));
+    });
+
+  const wiredCovering = (pick: (r: Reach) => Set<string>) =>
+    wiredCoveringOf(rightsHandlers(read(PRIVACY)), pick);
+
+  it("still makes the promise, so the backing check has a subject", () => {
+    const promised = SOURCE_FILES.filter(
+      (f) => f.startsWith("src/components/home/") && CLAIM.test(prose(f))
+    );
+    expect(
+      promised.length,
+      "the copy changed wording; re-read the Privacy Center before re-pinning this"
+    ).toBeGreaterThan(0);
+  });
+
+  it("has a click whose exported file carries every store", () => {
+    const exporters = wiredCovering((r) => r.payload);
+    expect(exporters, `no wired download covers ${STORES.join("+")}`).not.toEqual([]);
+  });
+
+  it("has a click whose delete reaches every store", () => {
+    const deleters = wiredCovering((r) => r.removed);
+    expect(deleters, `no wired removal reaches ${STORES.join("+")}`).not.toEqual([]);
+  });
+
+  it("counts only what a click reaches, and only what the file contains", () => {
+    // Control over the extraction, run through the same function as the cases
+    // above. Each arm isolates one reason a real implementation could pass by
+    // accident, so neither case is satisfied by prose or by a dead function.
+    const shape = `
+      const P = () => {
+        const exportAll = async () => { downloadFile(JSON.stringify({ exportedAt: 1, interviews, practiceSessions: practice }), name, "application/json"); };
+        const deleteAll = async () => { db.interviews.remove(1); db.practiceSessions.remove(2); };
+        return <button onClick={exportAll}>Export</button>;
+      };`;
+    const bound = rightsHandlers(shape);
+    expect(wiredCoveringOf(bound, (r) => r.payload)).toEqual(["exportAll"]);
+    expect(wiredCoveringOf(bound, (r) => r.removed)).toEqual([]);
+
+    // same handlers, practice dropped from the file: not an export of 所有记录.
+    const partial = rightsHandlers(shape.replace(", practiceSessions: practice ", " "));
+    expect(wiredCoveringOf(partial, (r) => r.payload), "a one-store file is not a full export").toEqual([]);
+
+    // same handlers, unwired: nothing a candidate can click.
+    const dead = rightsHandlers(shape.replace("onClick={exportAll}", "onClick={() => {}}"));
+    expect(wiredCoveringOf(dead, (r) => r.payload), "an unwired handler is not reachable").toEqual([]);
+  });
+});
