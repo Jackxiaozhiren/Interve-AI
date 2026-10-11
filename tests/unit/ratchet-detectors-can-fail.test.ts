@@ -32,85 +32,54 @@ import {
 
 type Arm = { key: string; measure: (text: string) => number; bad: string; good: string };
 
-/** The five regex-driven keys, each written out so TS can see a real string. */
-const REGEX_ARMS: Arm[] = [
-  {
-    key: "deprecatedObjectGenFiles",
-    measure: (t) => measureDebtRegex("deprecatedObjectGenFiles", t),
-    bad: "const r = await generateObject({ schema, prompt });",
-    good: "const r = await streamText({ model, prompt });",
-  },
-  {
-    key: "experimentalRepairTextHits",
-    measure: (t) => measureDebtRegex("experimentalRepairTextHits", t),
-    bad: "const o = { experimental_repairText: async (t) => t };",
-    good: "const o = { repairText: async (s) => s };",
-  },
-  {
-    key: "selectStarHits",
-    measure: (t) => measureDebtRegex("selectStarHits", t),
-    bad: `await supabase.from("interviews").select("*");`,
-    good: `await supabase.from("interviews").select("id, createdAt");`,
-  },
-  {
-    key: "tsIgnoreHits",
-    measure: (t) => measureDebtRegex("tsIgnoreHits", t),
-    bad: "// @ts-ignore the shape is not typed yet\nconst a = b;",
-    good: "// @ts-check is enabled for this project\nconst a = b;",
-  },
-  {
-    key: "todoMarkers",
-    measure: (t) => measureDebtRegex("todoMarkers", t),
-    bad: "// TODO: replace the stub before shipping\nconst a = 1;",
-    good: "// replaced the stub last sprint\nconst a = 1;",
-  },
+/**
+ * One entry per detector, as a tuple: `[key, how to measure, a violation, a
+ * compliant sample]`. Written as five-field object literals first, and SonarCloud's
+ * new-code duplication gate failed the PR at 12.6% on nothing but the repeated
+ * `key:` / `bad:` / `good:` scaffolding — a table-shaped addition wants tuples, not
+ * a template.
+ */
+const ARM_FIXTURES: [key: string, measure: (text: string) => number, bad: string, good: string][] = [
+  ["deprecatedObjectGenFiles", (t) => measureDebtRegex("deprecatedObjectGenFiles", t),
+    "const r = await generateObject({ schema, prompt });", "const r = await streamText({ model, prompt });"],
+  ["experimentalRepairTextHits", (t) => measureDebtRegex("experimentalRepairTextHits", t),
+    "const o = { experimental_repairText: async (t) => t };", "const o = { repairText: async (s) => s };"],
+  ["selectStarHits", (t) => measureDebtRegex("selectStarHits", t),
+    `await supabase.from("interviews").select("*");`, `await supabase.from("interviews").select("id, createdAt");`],
+  ["tsIgnoreHits", (t) => measureDebtRegex("tsIgnoreHits", t),
+    "// @ts-ignore the shape is not typed yet\nconst a = b;", "// @ts-check is enabled for this project\nconst a = b;"],
+  ["todoMarkers", (t) => measureDebtRegex("todoMarkers", t),
+    "// TODO: replace the stub before shipping\nconst a = 1;", "// replaced the stub last sprint\nconst a = 1;"],
+  ["anyEscapes", (t) => countAnyEscapes(t, "a.ts"),
+    "const parsed: any = JSON.parse(raw);", "const parsed: Record<string, string> = JSON.parse(raw);"],
+  ["neverCasts", (t) => countNeverAssertions(t, "a.ts"),
+    "setMessages(snapshot.messages as never[]);", "setMessages(toUiMessages(snapshot.messages));"],
+  ["mouseOnlyInteractions", (t) => countMouseOnlyInteractions(t, "a.tsx"),
+    "const C = () => <div onClick={() => open()}>drop a file</div>;",
+    "const C = () => <div onClick={() => open()} onKeyDown={() => open()} tabIndex={0}>drop a file</div>;"],
+  // findDeadControls returns the findings themselves, which is what makes the names auditable
+  ["deadControls", (t) => findDeadControls(t, "a.tsx").length,
+    "const C = () => <button onClick={() => {}}>Share</button>;",
+    "const C = () => <button onClick={() => navigator.share({ title: \"x\" })}>Share</button>;"],
+  ["networkLayer.rawFetchCalls", (t) => countRawFetchCallSites(t, "a.ts"),
+    'const r = await fetch("/api/copilot", { method: "POST" });', 'const r = await postJson("/api/copilot", body);'],
 ];
 
-const OTHER_ARMS: Arm[] = [
-  {
-    key: "anyEscapes",
-    measure: (t) => countAnyEscapes(t, "a.ts"),
-    bad: "const parsed: any = JSON.parse(raw);",
-    good: "const parsed: Record<string, string> = JSON.parse(raw);",
-  },
-  {
-    key: "neverCasts",
-    measure: (t) => countNeverAssertions(t, "a.ts"),
-    bad: "setMessages(snapshot.messages as never[]);",
-    good: "setMessages(toUiMessages(snapshot.messages));",
-  },
-  {
-    key: "mouseOnlyInteractions",
-    measure: (t) => countMouseOnlyInteractions(t, "a.tsx"),
-    bad: "const C = () => <div onClick={() => open()}>drop a file</div>;",
-    good: "const C = () => <div onClick={() => open()} onKeyDown={() => open()} tabIndex={0}>drop a file</div>;",
-  },
-  {
-    key: "deadControls",
-    // returns the findings themselves, which is what makes the names auditable
-    measure: (t) => findDeadControls(t, "a.tsx").length,
-    bad: "const C = () => <button onClick={() => {}}>Share</button>;",
-    good: "const C = () => <button onClick={() => navigator.share({ title: \"x\" })}>Share</button>;",
-  },
-  {
-    key: "networkLayer.rawFetchCalls",
-    measure: (t) => countRawFetchCallSites(t, "a.ts"),
-    bad: 'const r = await fetch("/api/copilot", { method: "POST" });',
-    good: 'const r = await postJson("/api/copilot", body);',
-  },
-];
+const ARMS: Arm[] = ARM_FIXTURES.map(([key, measure, bad, good]) => ({ key, measure, bad, good }));
 
-const ARMS: Arm[] = [...REGEX_ARMS, ...OTHER_ARMS];
+/** Read once: two arms credit this sibling, and a second copy of the lookup is
+ *  exactly the duplicated run the quality gate counts. */
+const SIBLING = readFileSync(new URL("../../tests/unit/facts-ratchet.test.ts", import.meta.url), "utf8");
+/** Derived, so the regex-arm check below cannot pass by keeping two lists in sync. */
+const REGEX_KEYS = Object.keys(DEBT_REGEX);
 
 describe("every debt detector can actually fail", () => {
   it("has an arm for every regex it registers", () => {
-    // `measureDebtRegex` throws on an unregistered key, so the table and the arms
-    // have to agree in both directions or a new pattern arrives unchecked.
-    expect(
-      Object.keys(DEBT_REGEX)
-        .filter((k) => !REGEX_ARMS.some((a) => a.key === k))
-        .concat(REGEX_ARMS.filter((a) => !(a.key in DEBT_REGEX)).map((a) => a.key))
-    ).toEqual([]);
+    // The direction that can rot: a new DEBT_REGEX entry arrives with a ceiling and
+    // nobody proved it can move. The other direction is self-policing -- an arm
+    // pointing at an unregistered key makes `measureDebtRegex` throw, so its
+    // violation case goes red on its own.
+    expect(REGEX_KEYS.filter((k) => !ARMS.some((a) => a.key === k))).toEqual([]);
   });
   it.each(ARMS)("$key flags its violation", ({ measure, bad }) => {
     expect(measure(bad), "a real violation went uncounted").toBeGreaterThan(0);
@@ -150,10 +119,7 @@ describe("every debt detector can actually fail", () => {
       ["longestSourceFileLines", "reports the longest source file as a line count"],
       ["untestedChatCallbacks", "flags a callback used in src that no test names"],
     ]);
-    const sibling = readFileSync(
-      new URL("../../tests/unit/facts-ratchet.test.ts", import.meta.url),
-      "utf8"
-    );
+    const sibling = SIBLING;
     const unproven = Object.keys(RATCHET_KEYS)
       .map((k) => k.replace(/^(debt|capabilities)\./, ""))
       .filter((k) => !coveredHere.has(k))
@@ -167,10 +133,7 @@ describe("every debt detector can actually fail", () => {
   it("has a sibling that really does hold the coverage it is credited with", () => {
     // Control for the arm above: it keys on a title in another file, so prove the
     // lookup discriminates rather than matching the whole file trivially.
-    const sibling = readFileSync(
-      new URL("../../tests/unit/facts-ratchet.test.ts", import.meta.url),
-      "utf8"
-    );
+    const sibling = SIBLING;
     expect(sibling).toContain("countHardInternalNavigations");
     expect(sibling, "a string that appears nowhere must not be credited as coverage").not.toContain(
       "countDocsProseLines"
