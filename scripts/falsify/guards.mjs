@@ -709,6 +709,17 @@ const PLANTS = [
     replacement: `          endRef={messagesEndRef}\n          endRef={messagesEndRef}`,
     pattern: "hands the scroll anchor",
   }),
+  // ── a rendered record time must be the record's own ──────────────────────
+  {
+    name: "CT1",
+    desc: "the transcript goes back to stamping every row with the viewer's clock",
+    kind: "vitest",
+    file: "src/app/chat/page.tsx",
+    anchor: `content={getMessageText(msg as { parts?: unknown; content?: unknown; text?: unknown })}`,
+    replacement: `content={getMessageText(msg as { parts?: unknown; content?: unknown; text?: unknown })}\n                    timestamp={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+    test: FIRST_RENDER_UNIT,
+    pattern: "names every component that shows a clock reading",
+  },
   // ── the think-time window: one number, two readers in two files ──────────
   windowPlant({
     name: "TT1",
