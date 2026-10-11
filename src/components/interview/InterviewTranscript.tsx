@@ -8,7 +8,7 @@ import { getMessageText } from "@/lib/message-text";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { CopilotPanel } from "@/components/interview/CopilotPanel";
 
-interface TranscriptMessage {
+export interface TranscriptMessage {
   id?: string | number;
   role?: string;
   parts?: unknown;

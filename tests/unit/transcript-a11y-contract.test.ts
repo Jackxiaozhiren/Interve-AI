@@ -11,14 +11,19 @@
  * `key={m.id}` as `key={idx}`, which would have made every list mutation reuse a
  * DOM node belonging to a different message. tsc, eslint, the build and four
  * browser lanes all accepted it. Only an assertion on the key can fail it.
+ *
+ * A second hop has since appeared (page -> TranscriptPanel -> this component), so
+ * the render-site counts below are taken over both outer layers, not the page alone.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const COMPONENT = "src/components/interview/InterviewTranscript.tsx";
+const PANEL = "src/components/interview/TranscriptPanel.tsx";
 const PAGE = "src/app/interview/page.tsx";
 
 const component = readFileSync(new URL(`../../${COMPONENT}`, import.meta.url), "utf8");
+const panel = readFileSync(new URL(`../../${PANEL}`, import.meta.url), "utf8");
 const page = readFileSync(new URL(`../../${PAGE}`, import.meta.url), "utf8");
 
 describe("the transcript keeps its accessibility contract", () => {
@@ -48,15 +53,22 @@ describe("the transcript keeps its accessibility contract", () => {
     expect(component).not.toMatch(/key=\{idx\}/);
   });
 
-  it("leaves exactly one transcript on the page, and it is the component", () => {
-    expect(page).toMatch(/<InterviewTranscript/);
-    expect(page).not.toMatch(/role="log"/);
-    expect(page).not.toMatch(/<CopilotPanel/);
+  it("leaves exactly one transcript in the room, and it is the component", () => {
+    // The room is now composed over two layers (page -> TranscriptPanel), so the
+    // "exactly one" claim has to be counted across both: a second <InterviewTranscript
+    // in the page, or a hand-rolled log region in either layer, is the regression.
+    const rendered = [page, panel].map((src) => (src.match(/<InterviewTranscript\b/g) || []).length);
+    expect(rendered.reduce((a, b) => a + b, 0), "transcript render sites").toBe(1);
+    for (const [name, src] of [["page", page], ["panel", panel]] as const) {
+      expect(src, `${name} re-implemented the live region`).not.toMatch(/role="log"/);
+      expect(src, `${name} grew a second copilot panel`).not.toMatch(/<CopilotPanel/);
+    }
   });
 
   it("still hands the scroll anchor to the component rather than duplicating it", () => {
     expect(component).toMatch(/ref=\{endRef\}/);
-    expect(page).toMatch(/endRef=\{messagesEndRef\}/);
+    const wired = [page, panel].map((src) => (src.match(/endRef=\{messagesEndRef\}/g) || []).length);
+    expect(wired.reduce((a, b) => a + b, 0), "endRef wiring sites").toBe(1);
     expect((page.match(/messagesEndRef/g) || []).length).toBeLessThan(6);
   });
 });

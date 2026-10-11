@@ -4,15 +4,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { motion, AnimatePresence } from "framer-motion";
-import { PhoneDisconnect, WarningCircle, Clock } from "@phosphor-icons/react";
 import { useAccessibilityStore } from "@/store/useAccessibilityStore";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
-import { LiveStats } from "@/components/interview/LiveStats";
 import dynamic from "next/dynamic";
 // Phase 13: drawer-gated heavies load on demand, not on first paint.
 // tldraw (~1MB+) and the scratchpad wrapper only mount when opened.
@@ -24,10 +20,7 @@ const SystemDesignBoard = dynamic(
   () => import("@/components/interview/SystemDesignBoard").then((m) => m.SystemDesignBoard),
   { ssr: false }
 );
-import { TelemetryWidget } from "@/components/interview/TelemetryWidget";
-import { InterviewTranscript } from "@/components/interview/InterviewTranscript";
 import { RoomStage } from "@/components/interview/RoomStage";
-import { CameraSelfView } from "@/components/interview/CameraSelfView";
 import { CopilotHints } from "@/components/interview/CopilotHints";
 import { useKeyboardShortcuts, createCtrlCmdShortcut } from "@/hooks/useKeyboardShortcuts";
 import { type AIExpert } from "@/components/interview/MultiAgentVisualizer";
@@ -48,6 +41,7 @@ import { createWhisperDispatch, createKokoroDispatch } from "@/lib/interview/eng
 import { startSpeechSession, type SpeechRecognitionLike, type WindowWithSpeech } from "@/lib/interview/speech-session";
 import { saveSession, loadSession, clearSession } from "@/lib/interview/session-persistence";
 import { readDesignCanvas, readScratchpadCodeContext, readScratchpadContent } from "@/lib/interview/board-state";
+import { THINK_TIME_SECONDS } from "@/lib/interview/think-time";
 import { useInterviewSettlement } from "@/components/interview/useInterviewSettlement";
 import { micConstraints, getPreferredMicDevice } from "@/lib/audio/vad";
 import { decodeRecordingToMono16k } from "@/lib/audio/decode-recording";
@@ -59,6 +53,9 @@ import { TextSelectionMenu } from "@/components/interview/TextSelectionMenu";
 import { GreenRoom } from "@/components/interview/GreenRoom";
 import { RoomHeader } from "@/components/interview/RoomHeader";
 import { StandbyOverlay } from "@/components/interview/StandbyOverlay";
+import { PauseOverlay, ThinkTimeOverlay, EndingOverlay } from "@/components/interview/RoomOverlays";
+import { TelemetryRow } from "@/components/interview/TelemetryRow";
+import { TranscriptPanel } from "@/components/interview/TranscriptPanel";
 
 function InterviewRoomContent() {
   const searchParams = useSearchParams();
@@ -809,7 +806,7 @@ function InterviewRoomContent() {
       return;
     }
     if (isThinkTimeEnabled && thinkCountdown === null) {
-      setThinkCountdown(10);
+      setThinkCountdown(THINK_TIME_SECONDS);
     } else {
       setThinkCountdown(null);
       startRecording();
@@ -917,56 +914,14 @@ function InterviewRoomContent() {
 
   return (
     <div className="flex flex-col h-screen bg-transparent text-foreground font-sans selection:bg-primary/10 p-4 gap-4">
-      <AnimatePresence>
-        {isPaused && (
-          <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/30 text-slate-800"
-          >
-            <WarningCircle weight="duotone" className="w-16 h-16 text-rose-500 mb-4 animate-pulse" />
-            <h2 className="text-2xl font-bold font-heading mb-2">面试已暂停</h2>
-            <p className="text-slate-600 font-medium">麦克风已静音，倒计时已暂停。按 <kbd className="px-2 py-1 bg-white shadow-sm rounded-md border border-slate-200 text-slate-800 mx-1">Esc</kbd> 恢复面试。</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PauseOverlay isPaused={isPaused} />
 
-      <AnimatePresence>
-        {thinkCountdown !== null && thinkCountdown > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-white/20 backdrop-blur-sm"
-          >
-            <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 flex flex-col items-center min-w-[300px]">
-              {isCalmMode ? (
-                <div className="w-full min-w-[200px] mb-6 mt-4">
-                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                    <motion.div 
-                      className="h-full bg-amber-400 rounded-full"
-                      initial={{ width: '100%' }}
-                      animate={{ width: `${(thinkCountdown / 10) * 100}%` }}
-                      transition={{ duration: 1, ease: "linear" }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="text-6xl font-mono text-amber-500 mb-2 font-bold tracking-tighter">{thinkCountdown}</div>
-              )}
-              <h3 className="text-lg font-medium text-slate-700 mb-6 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-amber-500" />
-                {isCalmMode ? "正在为您预留思考时间..." : "思考时间"}
-              </h3>
-              <div className="flex gap-3 w-full">
-                <Button variant="outline" onClick={() => setThinkCountdown(null)} className="flex-1 rounded-full border-slate-200">取消录音</Button>
-                <Button onClick={() => setThinkCountdown(0)} className="flex-1 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-sm border-none">直接开始</Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ThinkTimeOverlay
+        seconds={thinkCountdown}
+        isCalmMode={isCalmMode}
+        onCancel={() => setThinkCountdown(null)}
+        onStart={() => setThinkCountdown(0)}
+      />
       
       {/* Top Header */}
       <RoomHeader
@@ -1020,90 +975,30 @@ function InterviewRoomContent() {
              inputRef={inputRef}
            />
 
-            {/* Bottom: Telemetry Bento Row */}
-            <AnimatePresence>
-              {!isFocusMode && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20, height: 0 }}
-                  animate={{ opacity: 1, y: 0, height: 'auto' }}
-                  exit={{ opacity: 0, y: 20, height: 0, transition: { duration: 0.2 } }}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 shrink-0"
-                >
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <LiveStats 
-                      wpm={wpm} 
-                      fillerWordsCount={fillerWordsCount} 
-                      showAiEstimates={showLiveInsights}
-                    />
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <TelemetryWidget isRecording={isRecording} isAiSpeaking={isAiSpeaking} />
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    <CameraSelfView />
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <TelemetryRow
+              isFocusMode={isFocusMode}
+              wpm={wpm}
+              fillerWordsCount={fillerWordsCount}
+              showLiveInsights={showLiveInsights}
+              isRecording={isRecording}
+              isAiSpeaking={isAiSpeaking}
+            />
         </div>
 
-        {/* Right: Transcript / Chat History */}
-        <div className="w-full lg:w-[400px] flex flex-col glass rounded-[32px] overflow-hidden shrink-0 h-[50vh] lg:h-auto mb-2 mr-2">
-          <div className="px-6 py-5 border-b border-white/40 flex justify-between items-center z-10 relative">
-            <h2 className="font-heading font-medium text-slate-800 text-[15px]">实时对话</h2>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-medium text-slate-500">AI Copilot</span>
-            </div>
-          </div>
-          
-          <InterviewTranscript
-            messages={messages}
-            isLoading={isLoading}
-            status={status}
-            latencyPhase={latencyPhase}
-            isDyslexiaMode={isDyslexiaMode}
-            isFocusMode={isFocusMode}
-            latestAiMessage={latestAiMessage}
-            endRef={messagesEndRef}
-            onRegenerate={regenerate}
-            onDeleteMessage={(id) => setMessages(messages.filter((msg) => msg.id !== id))}
-          />
-
-          <div className="p-4 bg-white/40 border-t border-white/40">
-            <Button 
-              variant="outline" 
-              className="w-full rounded-full h-12 font-medium text-rose-700 hover:text-rose-800 hover:bg-rose-50/50 border-white bg-white/50 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-              onClick={handleEndCall}
-              disabled={isEnding}
-              aria-label="结束面试并生成报告"
-            >
-              {isEnding ? (
-                <>
-                  <div className="w-4 h-4 mr-2 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
-                  正在生成报告...
-                </>
-              ) : (
-                <>
-                  <PhoneDisconnect className="w-4 h-4 mr-2" />
-                  结束面试
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+        <TranscriptPanel
+          messages={messages}
+          isLoading={isLoading}
+          status={status}
+          latencyPhase={latencyPhase}
+          isDyslexiaMode={isDyslexiaMode}
+          isFocusMode={isFocusMode}
+          latestAiMessage={latestAiMessage}
+          endRef={messagesEndRef}
+          onRegenerate={regenerate}
+          onDeleteMessage={(id) => setMessages(messages.filter((msg) => msg.id !== id))}
+          onEndCall={handleEndCall}
+          isEnding={isEnding}
+        />
       </div>
 
       <TechnicalScratchpad 
@@ -1133,26 +1028,7 @@ function InterviewRoomContent() {
         onStart={startFromStandby}
       />
 
-      {/* End of Interview Overlay */}
-      <AnimatePresence>
-        {isEnding && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-xl"
-          >
-            <DynamicLoader 
-              phrases={[
-                "Compiling Hiring Committee Feedback...", 
-                "Analyzing delivery metrics...", 
-                "Structuring performance report...", 
-                "Synthesizing AI evaluation..."
-              ]}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <EndingOverlay isEnding={isEnding} />
       <TextSelectionMenu />
     </div>
   );

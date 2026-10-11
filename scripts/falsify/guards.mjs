@@ -93,6 +93,27 @@ const claimsPlant = (over) => ({
   ...over,
 });
 
+const PANEL = "src/components/interview/TranscriptPanel.tsx";
+const A11Y_UNIT = "tests/unit/transcript-a11y-contract.test.ts";
+
+/** Same reason as `claimsPlant`: three records, one shape, no repeated keys. */
+const roomPlant = (over) => ({
+  kind: "vitest",
+  test: A11Y_UNIT,
+  pattern: "exactly one transcript in the room",
+  ...over,
+});
+
+const THINK_LIB = "src/lib/interview/think-time.ts";
+const WINDOW_UNIT = "tests/unit/think-time-window.test.ts";
+
+/** Again: the window plants share a test and differ only in what they break. */
+const windowPlant = (over) => ({
+  kind: "vitest",
+  test: WINDOW_UNIT,
+  ...over,
+});
+
 /** @type {Array<{name:string,desc:string,kind:"vitest"|"playwright"|"gate",file:string,anchor:string,replacement:string,count?:number,test?:string,pattern?:string,slow?:boolean,create?:string}>} */
 const PLANTS = [
   // ── the settings page: nothing may pretend to be a control ────────────────
@@ -655,6 +676,54 @@ const PLANTS = [
     pattern: "separates an unreadable answer from an answer that fails the schema",
     anchor: `  if (e instanceof ZodError) return "output_schema";`,
     replacement: `  if (e instanceof ZodError) return "output_unparseable";`,
+  }),
+  // ── the room is composed over two layers; the transcript must not double ──
+  roomPlant({
+    name: "TP1",
+    desc: "the page re-adds its own transcript next to the panel's",
+    file: INTERVIEW_LAUNCHER,
+    anchor: `      <TextSelectionMenu />`,
+    replacement: `      {isFocusMode && <InterviewTranscript />}\n      <TextSelectionMenu />`,
+  }),
+  roomPlant({
+    name: "TP2",
+    desc: "the panel gives its footer its own live region",
+    file: PANEL,
+    anchor: `      <div className="p-4 bg-white/40 border-t border-white/40">`,
+    replacement: `      <div role="log" className="p-4 bg-white/40 border-t border-white/40">`,
+  }),
+  roomPlant({
+    name: "TP3",
+    desc: "the scroll anchor gets wired from both layers",
+    file: INTERVIEW_LAUNCHER,
+    anchor: `          endRef={messagesEndRef}`,
+    replacement: `          endRef={messagesEndRef}\n          endRef={messagesEndRef}`,
+    pattern: "hands the scroll anchor",
+  }),
+  // ── the think-time window: one number, two readers in two files ──────────
+  windowPlant({
+    name: "TT1",
+    desc: "the bar goes back to dividing by its own ten",
+    file: THINK_LIB,
+    anchor: `seconds / THINK_TIME_SECONDS`,
+    replacement: `seconds / 10`,
+    pattern: "sizes the bar by the window",
+  }),
+  windowPlant({
+    name: "TT2",
+    desc: "the page arms a bare countdown length again",
+    file: INTERVIEW_LAUNCHER,
+    anchor: `setThinkCountdown(THINK_TIME_SECONDS)`,
+    replacement: `setThinkCountdown(10)`,
+    pattern: "arms the countdown from the same owner",
+  }),
+  windowPlant({
+    name: "TT3",
+    desc: "the overlay recomputes the width instead of asking the owner",
+    file: "src/components/interview/RoomOverlays.tsx",
+    anchor: `animate={{ width: thinkTimeBarWidth(seconds) }}`,
+    replacement: `animate={{ width: \`\${(seconds / 10) * 100}%\` }}`,
+    pattern: "asks the owner for the width",
   }),
 ];
 
