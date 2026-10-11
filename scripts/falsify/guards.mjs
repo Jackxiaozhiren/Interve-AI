@@ -106,6 +106,7 @@ const roomPlant = (over) => ({
 
 const THINK_LIB = "src/lib/interview/think-time.ts";
 const WINDOW_UNIT = "tests/unit/think-time-window.test.ts";
+const FIRST_RENDER_UNIT = "tests/unit/first-render-is-server-computable.test.ts";
 
 /** Again: the window plants share a test and differ only in what they break. */
 const windowPlant = (over) => ({
@@ -725,6 +726,27 @@ const PLANTS = [
     replacement: `animate={{ width: \`\${(seconds / 10) * 100}%\` }}`,
     pattern: "asks the owner for the width",
   }),
+  // ── a component must be able to render itself without a browser ──────────
+  {
+    name: "H1",
+    desc: "the health indicator reads navigator.onLine to pick its first paint",
+    kind: "vitest",
+    file: "src/components/interview/SystemHealthIndicator.tsx",
+    anchor: `  const [online, setOnline] = useState(isOnline);`,
+    replacement: `  const [online, setOnline] = useState(\n    () => (typeof navigator !== "undefined" ? navigator.onLine : isOnline) && isOnline\n  );`,
+    test: FIRST_RENDER_UNIT,
+    pattern: "names every production component",
+  },
+  {
+    name: "H2",
+    desc: "the same bug wearing a typeof window guard",
+    kind: "vitest",
+    file: "src/components/interview/SystemHealthIndicator.tsx",
+    anchor: `  const [online, setOnline] = useState(isOnline);`,
+    replacement: `  const [online, setOnline] = useState(typeof window !== "undefined" ? isOnline : false);`,
+    test: FIRST_RENDER_UNIT,
+    pattern: "names every production component",
+  },
 ];
 
 function run(cmd, args) {

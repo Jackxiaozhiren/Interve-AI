@@ -18,9 +18,11 @@ export function SystemHealthIndicator({
   wsLatency?: never;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
-  const [online, setOnline] = useState(
-    () => (typeof navigator !== "undefined" ? navigator.onLine : isOnline) && isOnline
-  );
+  // The first paint has to be computable without a browser: reading
+  // `navigator.onLine` here made the server render the healthy dot and the
+  // client render the offline one. The effect below is what learns the real
+  // connectivity, one paint later.
+  const [online, setOnline] = useState(isOnline);
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine && isOnline);
