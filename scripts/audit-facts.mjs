@@ -86,19 +86,64 @@ function sourceFiles() {
 }
 
 /** Count regex matches across src/, optionally capped to one hit per file. */
+/**
+ * Total prose volume of a docs directory — the "audit apparatus must not outgrow
+ * the product" measurement. Parameterised by directory so the can-fail test can
+ * point it at a fixture instead of only re-reading the real tree.
+ */
+export function countDocsProseLines(dirAbs) {
+  if (!fs.existsSync(dirAbs)) return 0;
+  return fs
+    .readdirSync(dirAbs)
+    .filter((f) => f.endsWith(".md"))
+    .reduce((sum, f) => sum + fs.readFileSync(path.join(dirAbs, f), "utf8").split("\n").length, 0);
+}
+
+/**
+ * The regex-driven debt detectors, each with how it is counted. This object is the
+ * only place these patterns live: `collectDebt` scans the tree through it, and the
+ * can-fail test drives the same two functions, so a test can never certify a copy
+ * of a pattern that the collector does not actually use.
+ */
+export const DEBT_REGEX = {
+  deprecatedObjectGenFiles: { pattern: /\b(?:generateObject|streamObject)\b/, scope: "files" },
+  experimentalRepairTextHits: { pattern: /\bexperimental_repairText\b/g, scope: "hits" },
+  selectStarHits: { pattern: /\bselect\(\s*['"]\*['"]\s*\)/g, scope: "hits" },
+  tsIgnoreHits: { pattern: /@ts-(?:ignore|expect-error)/g, scope: "hits" },
+  todoMarkers: { pattern: /\b(?:TODO|FIXME|HACK|XXX)\b/g, scope: "hits" },
+};
+
+/** Sum one debt regex over a whole source tree, using that key's counting scope. */
+function countDebtAcrossTree(key) {
+  const { pattern, scope } = DEBT_REGEX[key];
+  return countHits(pattern, { perFile: scope === "files" });
+}
+
+/**
+ * One piece of source text measured the way a debt key is counted over the tree.
+ * `hits` counts every occurrence, `files` counts the file once however often it
+ * appears. Exported so the can-fail test drives the *same* semantics the collector
+ * uses: a second copy of these patterns in a test would certify the copy.
+ */
+export function measureDebtRegex(key, sourceText) {
+  const entry = DEBT_REGEX[key];
+  if (!entry) throw new Error(`no debt regex registered for "${key}"`);
+  const { pattern, scope } = entry;
+  if (scope === "files") return pattern.test(sourceText) ? 1 : 0;
+  return sourceText.match(pattern)?.length ?? 0;
+}
+
+function countOne(body, re, perFile) {
+  return perFile ? (re.test(body) ? 1 : 0) : (body.match(re)?.length ?? 0);
+}
+
 function countHits(re, { perFile = false } = {}) {
   let total = 0;
   for (const file of sourceFiles()) {
     const body = fs.readFileSync(file, "utf8");
-    const matches = body.match(re);
-    if (!matches) continue;
-    total += perFile ? 1 : matches.length;
+    total += countOne(body, re, perFile);
   }
   return total;
-}
-
-function fileCountHit(re) {
-  return countHits(re, { perFile: true });
 }
 
 /** How many source files match — the adoption half of "is this layer real?". */
@@ -683,20 +728,14 @@ function collectDebt() {
     .map((f) => ({ path: path.relative(ROOT, f), lines: fs.readFileSync(f, "utf8").split("\n").length }))
     .sort((a, b) => b.lines - a.lines)
     .slice(0, 5);
-  const auditDir = path.join(ROOT, "docs/audit");
   const dead = collectDeadControlsInSrc();
-  const auditDocsLines = fs.existsSync(auditDir)
-    ? fs
-        .readdirSync(auditDir)
-        .filter((f) => f.endsWith(".md"))
-        .reduce((sum, f) => sum + fs.readFileSync(path.join(auditDir, f), "utf8").split("\n").length, 0)
-    : 0;
+  const auditDocsLines = countDocsProseLines(path.join(ROOT, "docs/audit"));
   return {
-    deprecatedObjectGenFiles: fileCountHit(/\b(?:generateObject|streamObject)\b/),
-    experimentalRepairTextHits: countHits(/\bexperimental_repairText\b/g),
-    selectStarHits: countHits(/\bselect\(\s*['"]\*['"]\s*\)/g),
-    tsIgnoreHits: countHits(/@ts-(?:ignore|expect-error)/g),
-    todoMarkers: countHits(/\b(?:TODO|FIXME|HACK|XXX)\b/g),
+    deprecatedObjectGenFiles: countDebtAcrossTree("deprecatedObjectGenFiles"),
+    experimentalRepairTextHits: countDebtAcrossTree("experimentalRepairTextHits"),
+    selectStarHits: countDebtAcrossTree("selectStarHits"),
+    tsIgnoreHits: countDebtAcrossTree("tsIgnoreHits"),
+    todoMarkers: countDebtAcrossTree("todoMarkers"),
     hardInternalNavigations: countHardInternalNavigationsInSrc(),
     mouseOnlyInteractions: countMouseOnlyInteractionsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
