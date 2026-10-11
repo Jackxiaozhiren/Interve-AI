@@ -3,6 +3,7 @@ import { getSessionFromRequest } from "@/lib/api/session";
 import { getRequestId } from "@/lib/api/request-id";
 import { okResponse, errorResponse } from "@/lib/api/errors";
 import { logApi, usageOf } from "@/lib/api/logging";
+import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry";
 import { isMockEnabled, mockJson, MOCK_PAYLOADS } from "@/ai/providers/mock";
 import { buildOcrInstruction } from "@/ai/prompts/resume";
@@ -23,7 +24,7 @@ const MAX_FILE_BYTES = MAX_RESUME_BYTES;
 export async function POST(req: Request) {
   const requestId = getRequestId(req);
   const startTime = performance.now();
-  const done = (status: number, extra?: { reason?: string; model?: string; inputTokens?: number; outputTokens?: number }) =>
+  const done = (status: number, extra?: { reason?: string; cause?: string; model?: string; inputTokens?: number; outputTokens?: number }) =>
     logApi(ROUTE, { requestId, status, latencyMs: Math.round(performance.now() - startTime), ...extra });
 
   // 1. Rate limit (pre-auth).
@@ -113,8 +114,8 @@ export async function POST(req: Request) {
          });
           text = ocrText;
           ocrExtra = { model: MODEL_IDS.zhipuVisionFlash, ...usageOf(ocrUsage) };
-        } catch {
-          done(422, { reason: "ocr_failed" });
+        } catch (ocrError) {
+          done(422, { reason: "ocr_failed", cause: classifyUpstreamError(ocrError) });
           return errorResponse("UPSTREAM_ERROR", "Failed to extract text even with OCR fallback. This might be a corrupted file.", 422, requestId);
         }
      }
@@ -127,7 +128,7 @@ export async function POST(req: Request) {
     // Name the failure: a bare "internal" is why a production 500 on this route
     // stayed undiagnosable. The message goes to the log, not the client.
     const name = err instanceof Error ? err.name : typeof err;
-    done(500, { reason: `internal:${name}` });
+    done(500, { reason: `internal:${name}`, cause: classifyUpstreamError(err) });
     return errorResponse("INTERNAL", "Failed to parse resume", 500, requestId);
   }
 }
