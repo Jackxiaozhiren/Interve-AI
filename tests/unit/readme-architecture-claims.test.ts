@@ -13,6 +13,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PROMPT_REGISTRY } from "@/ai/prompts";
+import { measureDebtRegex } from "../../scripts/audit-facts.mjs";
 
 const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
 
@@ -25,35 +26,30 @@ function claimedNumber(after: string): number | null {
 }
 
 function generateObjectRoutes(): string[] {
-  const found: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-      const rel = `${dir}/${entry}`;
-      const url = new URL(`../../${rel}`, import.meta.url);
-      if (entry.startsWith(".") || entry === "node_modules") continue;
-      try {
-        if (readdirSync(url).length && !entry.endsWith(".ts")) { walk(rel); continue; }
-      } catch { /* a file, not a directory */ }
-      if (entry.endsWith(".ts") && /\bgenerateObject\s*\(/.test(readFileSync(url, "utf8"))) found.push(rel);
-    }
-  };
-  walk("src/app/api");
-  return found;
+  return sourceFiles("src/app/api").filter((rel) => /\bgenerateObject\s*\(/.test(text(rel)));
 }
+
+/** Every .ts/.tsx under `src/`, walked once for the readers below. */
+function sourceFiles(dir = "src"): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
+    const rel = `${dir}/${entry}`;
+    if (!entry.includes(".")) { out.push(...sourceFiles(rel)); continue; }
+    if (/\.tsx?$/.test(entry)) out.push(rel);
+  }
+  return out;
+}
+
+const text = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
 
 /** Occurrences of a token across `src/`, counted the same way for both sides. */
 function countInSrc(re: RegExp): number {
-  let total = 0;
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-      const url = new URL(`../../${dir}/${entry}`, import.meta.url);
-      if (!entry.includes(".")) { walk(`${dir}/${entry}`); continue; }
-      if (!/\.tsx?$/.test(entry)) continue;
-      total += (readFileSync(url, "utf8").match(re) ?? []).length;
-    }
-  };
-  walk("src");
-  return total;
+  return sourceFiles().reduce((n, rel) => n + (text(rel).match(re) ?? []).length, 0);
+}
+
+/** Files the collector's own debt regex matches — the ratchet's counting scope. */
+function debtFiles(key: string): number {
+  return sourceFiles().filter((rel) => measureDebtRegex(key, text(rel)) > 0).length;
 }
 
 /** How many prompt modules carry the untrusted-input fence. */
@@ -113,6 +109,21 @@ describe("the README's architecture counts are the measured ones", () => {
     const claimed = claimedNumber("Untrusted resume/JD/answers are fenced as data");
     expect(claimed, "the README no longer states the fencing count where this test reads it").not.toBeNull();
     expect(claimed, `README says ${claimed}, ${fencedPromptFiles()} prompt files carry the fence`).toBe(fencedPromptFiles());
+  });
+
+  it("names how many files are still on the deprecated object APIs", () => {
+    // This clause used to report what a third-party codemod would print, which
+    // nothing here can observe. It now states the number a ratchet already bounds,
+    // and is checked against both that ceiling and the collector's own regex.
+    const m = /\b(\d+) files still call the deprecated object APIs\b/.exec(readme);
+    const claimed = m ? Number(m[1]) : null;
+    const measured = debtFiles("deprecatedObjectGenFiles");
+    expect(claimed, "the README no longer states the deprecated-API count").not.toBeNull();
+    expect(claimed, `README says ${claimed}, ${measured} files call generateObject/streamObject`).toBe(measured);
+    const ceiling = JSON.parse(
+      readFileSync(new URL("../../docs/audit/facts.limits.json", import.meta.url), "utf8")
+    ).ceiling["debt.deprecatedObjectGenFiles"];
+    expect(measured, "the README's number must be the ceiling it claims to name").toBe(ceiling);
   });
 
   it("registers a version for every prompt it lists", () => {

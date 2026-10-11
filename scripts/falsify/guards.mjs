@@ -740,6 +740,16 @@ const PLANTS = [
     test: "tests/unit/readme-architecture-claims.test.ts",
     pattern: "counts the prompt files that fence untrusted input",
   },
+  {
+    name: "RA4",
+    desc: "the README counts deprecated-API files one above the ratchet ceiling",
+    kind: "vitest",
+    file: "README.md",
+    anchor: "12 files still call the deprecated object APIs",
+    replacement: "13 files still call the deprecated object APIs",
+    test: "tests/unit/readme-architecture-claims.test.ts",
+    pattern: "names how many files are still on the deprecated object APIs",
+  },
   // ── a rendered record time must be the record's own ──────────────────────
   {
     name: "CT1",
