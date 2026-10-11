@@ -191,7 +191,10 @@ export default function ChatPage() {
                     sender={msg.role as 'user' | 'assistant'}
                     // Phase 14: v6 messages carry parts[], not .content.
                     content={getMessageText(msg as { parts?: unknown; content?: unknown; text?: unknown })}
-                    timestamp={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    // No timestamp: a `UIMessage` records no time and nothing here stores
+                    // one, so the only value available at render is the viewer's clock —
+                    // which would restamp every row on each repaint and show the whole
+                    // transcript as having been written this minute.
                     className="!animate-none"
                   />
                 </motion.div>

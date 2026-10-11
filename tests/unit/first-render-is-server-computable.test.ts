@@ -114,3 +114,64 @@ describe("first render is server-computable", () => {
     expect(all, "these initialise state from a browser-only global").toEqual([]);
   });
 });
+
+/**
+ * A timestamp shown next to a record claims to be *that record's* time. When the
+ * value comes from the wall clock at render, it is the viewer's time instead: the
+ * transcript re-stamps its own history every repaint, and every row shows the same
+ * minute. Nothing in this app records a per-message time, so the honest rendering
+ * is no time at all — the same call Phase 3 made when it deleted `visionScore`
+ * rather than dress up a random walk as a measurement.
+ *
+ * Scoped to JSX attributes on purpose. `© {new Date().getFullYear()}` in the
+ * footer is a statement about now, not a per-record value, and `exportedAt:
+ * new Date()` inside an export handler is genuinely when the export happened.
+ */
+describe("rendered record times are the record's own", () => {
+  const TIME_ATTR = /^(timestamp|time|createdAt|updatedAt|sentAt|receivedAt)$/i;
+
+  function clockDerived(node: ts.Node): boolean {
+    let hit = false;
+    const visit = (n: ts.Node) => {
+      if (ts.isNewExpression(n) && n.expression.getText() === "Date") hit = true;
+      if (ts.isPropertyAccessExpression(n) && n.expression.getText() === "Date" && n.name.text === "now") hit = true;
+      n.forEachChild(visit);
+    };
+    visit(node);
+    return hit;
+  }
+
+  const offendersInString = (src: string, rel = "F.tsx"): string[] => {
+    const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const found: string[] = [];
+    const visit = (node: ts.Node) => {
+      if (ts.isJsxAttribute(node) && TIME_ATTR.test(node.name.getText())) {
+        const value = node.initializer;
+        if (value && clockDerived(value)) {
+          const { line } = sf.getLineAndCharacterOfPosition(value.getStart(sf));
+          found.push(`${rel}:${line + 1} ${node.name.getText()}`);
+        }
+      }
+      node.forEachChild(visit);
+    };
+    sf.forEachChild(visit);
+    return found;
+  };
+  const offendersIn = (rel: string) =>
+    offendersInString(readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8"), rel);
+
+  it("detects the shape it was written for, and only that shape", () => {
+    const bad = "const C = ({ m }: any) => <Card timestamp={new Date().toLocaleTimeString()} />;";
+    const okProp = "const C = ({ m }: any) => <Card timestamp={m.createdAt} />;";
+    const okText = "const C = () => <p>© {new Date().getFullYear()}</p>;";
+    const okHandler = "const C = () => <button onClick={() => save({ exportedAt: new Date() })} />;";
+    const count = (src: string) => offendersInString(src).length;
+    expect(count(bad), "the detector no longer detects the bug").toBe(1);
+    expect(count(okProp) + count(okText) + count(okHandler), "a compliant sample was flagged").toBe(0);
+  });
+
+  it("names every component that shows a clock reading as a record's time", () => {
+    const hits = tsxFiles("src").flatMap(offendersIn);
+    expect(hits, "a rendered timestamp is derived from the viewer's clock").toEqual([]);
+  });
+});
