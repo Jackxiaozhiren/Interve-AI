@@ -75,12 +75,12 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * plants exist: deleting one left the run green, and nothing in the repo counted
  * them. The floor is the harness's measured size — 68 when this rule landed, 69
  * with FC1, 73 with the four scans, 75 with the two RLS plants, 78 with the three
- * posture plants below — and it is re-synced in the same commit as any plant that
- * arrives or leaves, so coverage moves with intent rather than drift. FC1 plants
- * a floor one higher than the harness and fails it, which is what keeps this
- * number from quietly becoming a comment.
+ * posture plants, 80 with the two rule-arm witnesses below — and it is re-synced
+ * in the same commit as any plant that arrives or leaves, so coverage moves with
+ * intent rather than drift. FC1 plants a floor one higher than the harness and
+ * fails it, which is what keeps this number from quietly becoming a comment.
  */
-const MIN_PLANTS = 78;
+const MIN_PLANTS = 80;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -164,6 +164,17 @@ const CACHE_UNIT = "tests/unit/cache-discipline.test.ts";
 const SECURITY_UNIT = "tests/unit/security-surface.test.ts";
 const cachePlant = (over) => ({ kind: "vitest", test: CACHE_UNIT, ...over });
 const securityPlant = (over) => ({ kind: "vitest", test: SECURITY_UNIT, ...over });
+
+/**
+ * Two guards whose *rule* arm has no witness anywhere else. Both suites carry a
+ * "the probe itself" arm that proves their parser recognises the shape — which
+ * is not the same as proving the whole-repo assertion can fail. erasure-covers-inventory
+ * exists because `orama_index` was listed in the Privacy Center with no way to
+ * delete it; route-budget exists because parse-resume's guard outwaited its
+ * function. Neither has ever been shown able to bite.
+ */
+const erasurePlant = (over) => ({ kind: "vitest", test: "tests/unit/erasure-covers-inventory.test.ts", ...over });
+const budgetPlant = (over) => ({ kind: "vitest", test: "tests/unit/route-budget.test.ts", ...over });
 
 /**
  * The two guards that read the whole repo and had never been shown able to fail.
@@ -963,6 +974,23 @@ const PLANTS = [
     anchor: `      abortSignal: signal,`,
     replacement: `      maxSteps: 8,\n      abortSignal: signal,`,
     pattern: "agentic loops to the model",
+  }),
+  // ── the two rule arms with no witness at all ─────────────────────────────
+  erasurePlant({
+    name: "ER1",
+    desc: "the Privacy Center lists a table the client cannot delete from",
+    file: "src/app/dashboard/privacy/page.tsx",
+    anchor: `where: "Database (practice_sessions)"`,
+    replacement: `where: "Database (assessments)"`,
+    pattern: "has a delete in the client",
+  }),
+  budgetPlant({
+    name: "RB1",
+    desc: "the guard is prepared to wait ten times what the function is allowed to run",
+    file: "src/app/api/analyze-star/route.ts",
+    anchor: `    timeoutMs: 90000,`,
+    replacement: `    timeoutMs: 900000,`,
+    pattern: "budget that outlasts it",
   }),
 ];
 
