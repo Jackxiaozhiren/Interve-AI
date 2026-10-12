@@ -97,7 +97,10 @@ export function isAnonBridge(row) {
 export function anonBridgeTables(rows, closedTables) {
   return [...new Set(rows.filter(isAnonBridge).map((r) => r.table))]
     .filter((t) => closedTables.includes(t))
-    .sort();
+    // Explicit comparator: these are table names and the default sort would give
+    // the same order, but stating it keeps the result independent of any future
+    // element that is not a string.
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 /**
