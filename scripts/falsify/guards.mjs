@@ -123,6 +123,28 @@ const windowPlant = (over) => ({
   ...over,
 });
 
+const ARCH_CLAIMS_UNIT = "tests/unit/readme-architecture-claims.test.ts";
+
+/**
+ * A README architecture number stated one higher than the code measures.
+ *
+ * All four arms drift the same way — one more registered prompt, one more
+ * `generateObject` route, one more fenced prompt file, one more deprecated-API
+ * file than the paragraph claims — so the wrong number is computed from the
+ * phrase rather than typed next to it. A phrase that stopped carrying a digit
+ * would make the plant a no-op instead of silently passing.
+ */
+const archClaimPlant = (name, desc, anchor, pattern) => ({
+  name,
+  desc,
+  kind: "vitest",
+  file: "README.md",
+  anchor,
+  pattern,
+  replacement: anchor.replace(/\d+/, (digits) => String(Number(digits) + 1)),
+  test: ARCH_CLAIMS_UNIT,
+});
+
 /** @type {Array<{name:string,desc:string,kind:"vitest"|"playwright"|"gate",file:string,anchor:string,replacement:string,count?:number,test?:string,pattern?:string,slow?:boolean,create?:string}>} */
 const PLANTS = [
   // ── the settings page: nothing may pretend to be a control ────────────────
@@ -709,6 +731,11 @@ const PLANTS = [
     replacement: `          endRef={messagesEndRef}\n          endRef={messagesEndRef}`,
     pattern: "hands the scroll anchor",
   }),
+  // ── the README's architecture counts are the measured ones ───────────────
+  archClaimPlant("RA1", "the README's prompt count drifts from the registry by one", "(17 registered prompts, each carrying its own version", "counts versioned prompts the way the registry counts them"),
+  archClaimPlant("RA2", "the README counts generateObject routes a route too high", "`generateObject` (10 routes,", "counts the routes still on generateObject"),
+  archClaimPlant("RA3", "the README overstates how many prompt files carry the untrusted-input fence", "(15 prompt files carry the `UNTRUSTED` markers", "counts the prompt files that fence untrusted input"),
+  archClaimPlant("RA4", "the README counts deprecated-API files one above the ratchet ceiling", "12 files still call the deprecated object APIs", "names how many files are still on the deprecated object APIs"),
   // ── a rendered record time must be the record's own ──────────────────────
   {
     name: "CT1",
