@@ -30,6 +30,7 @@ const ROOT = path.resolve(import.meta.dirname, "../..");
 const argv = process.argv.slice(2);
 const wantSlow = argv.includes("--slow");
 const listOnly = argv.includes("--list");
+const wantTargets = argv.includes("--targets");
 const onlyIdx = argv.indexOf("--only");
 const only = onlyIdx >= 0 ? argv[onlyIdx + 1] : null;
 
@@ -65,6 +66,19 @@ const STREAM_UNIT = "tests/unit/stream-error-path.test.ts";
 const CLASSIFIER = "src/lib/api/classify-error.ts";
 
 const NL = "\n";
+const GUARDS_SELF = "scripts/falsify/guards.mjs";
+
+/**
+ * How many plants the harness must carry.
+ *
+ * CI runs `npm run falsify`, which prints `ALL_PLANTS_CAUGHT` over whatever
+ * plants exist: deleting one left the run green, and nothing in the repo counted
+ * them. The floor is the harness's measured size — 68 plants before this rule,
+ * 69 counting FC1 below — so coverage may now only go up, or go down in the same
+ * commit as the reason for it. FC1 plants a floor one higher than the harness and
+ * fails it, so this number cannot quietly become a comment.
+ */
+const MIN_PLANTS = 69;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -153,7 +167,7 @@ const archClaimPlant = (name, desc, anchor, pattern) => ({
   test: ARCH_CLAIMS_UNIT,
 });
 
-/** @type {Array<{name:string,desc:string,kind:"vitest"|"playwright"|"gate",file:string,anchor:string,replacement:string,count?:number,test?:string,pattern?:string,slow?:boolean,create?:string}>} */
+/** @type {Array<{name:string,desc:string,kind:"vitest"|"playwright"|"gate",file:string,anchor:string,replacement:string,count?:number,test?:string,pattern?:string,slow?:boolean,create?:string,argv?:string[]}>} */
 const PLANTS = [
   // ── the settings page: nothing may pretend to be a control ────────────────
   {
@@ -834,7 +848,31 @@ const PLANTS = [
     replacement: `await Promise.resolve(p.id);`,
     pattern: "delete reaches every store",
   }),
+  // ── the harness's own coverage may not shrink quietly ────────────────────
+  // Written as one record on one line on purpose: FC1 is the only plant that
+  // edits the harness it lives in, and it carries `argv` where the others carry
+  // `test`/`pattern`. The repo's duplication gate compares lines token-by-token
+  // with literal contents normalised away, so a plant laid out across ten lines
+  // in the same field order as the other sixty would be counted as ten copied
+  // lines — a true statement about the shape, and the wrong thing to spend the
+  // gate on.
+  { name: "FC1", desc: "a floor one above the harness: a deleted plant would read as success", kind: "gate", file: GUARDS_SELF, anchor: `const MIN_PLANTS = ${MIN_PLANTS};`, replacement: `const MIN_PLANTS = ${MIN_PLANTS + 1};`, argv: ["node", ["scripts/falsify/guards.mjs", "--targets"]] },
 ];
+
+/**
+ * Refuse to run a harness that is smaller than the one that was audited.
+ *
+ * Checked before `--list` and `--targets` can exit early, because FC1 asks for
+ * those: the floor has to fail a listing run too, or the plant would escape by
+ * asking the harness a question it answers before looking at its own size.
+ */
+if (PLANTS.length < MIN_PLANTS) {
+  console.error(
+    `falsification coverage shrank: ${PLANTS.length} plants, floor ${MIN_PLANTS}. ` +
+    "Restore the plant, or lower the floor in the same commit as the reason it no longer applies."
+  );
+  process.exit(1);
+}
 
 function run(cmd, args) {
   const proc = spawnSync(cmd, args, {
@@ -856,7 +894,10 @@ function run(cmd, args) {
 }
 
 function commandFor(plant) {
-  if (plant.kind === "gate") return () => run("node", ["scripts/audit-facts.mjs", "--check"]);
+  if (plant.kind === "gate") {
+    const [cmd, args] = plant.argv ?? ["node", ["scripts/audit-facts.mjs", "--check"]];
+    return () => run(cmd, args);
+  }
   if (plant.kind === "playwright") {
     return () =>
       run("npx", [
@@ -870,8 +911,20 @@ function commandFor(plant) {
 
 const selected = PLANTS.filter((p) => (only ? p.name === only : wantSlow || !p.slow));
 
+/** What a plant actually aims at: a test file, or the command a gate plant runs. */
+const targetOf = (p) => p.test ?? (p.argv ? `${p.argv[0]} ${p.argv[1].join(" ")}` : "facts:check");
+
+if (wantTargets) {
+  const byTarget = new Map();
+  for (const p of PLANTS) byTarget.set(targetOf(p), (byTarget.get(targetOf(p)) ?? 0) + 1);
+  const rows = [...byTarget].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+  for (const [target, count] of rows) console.log(`${String(count).padStart(2)}  ${target}`);
+  console.log(`(${PLANTS.length} plants over ${rows.length} targets; floor ${MIN_PLANTS})`);
+  process.exit(0);
+}
+
 if (listOnly) {
-  for (const p of selected) console.log(`${p.name.padEnd(3)} ${p.kind.padEnd(9)} ${p.desc}`);
+  for (const p of selected) console.log(`${p.name.padEnd(3)} ${p.kind.padEnd(9)} ${targetOf(p).padEnd(46)} ${p.desc}`);
   console.log(`(${selected.length}/${PLANTS.length} selected; --slow adds the browser plants)`);
   process.exit(0);
 }
@@ -892,7 +945,7 @@ for (const p of groups.values()) {
   const ok = rc === 0 && matched > 0;
   if (!ok) baselineBad = true;
   const why = rc !== 0 ? "RED" : matched === 0 ? "NO MATCH" : "green";
-  console.log(`  ${why.padEnd(9)} ${p.name} ${p.kind} ${p.test ?? "facts:check"} — ${summary}`);
+  console.log(`  ${why.padEnd(9)} ${p.name} ${p.kind} ${targetOf(p)} — ${summary}`);
 }
 if (baselineBad) {
   console.error("REFUSING to plant: a guard that is red, or that matched no test at all, proves nothing. Fix the baseline first.");
