@@ -62,15 +62,55 @@ function expandDropLoop(block) {
 }
 
 /**
+ * 006's second step: drop every anon policy the catalog reports, by predicate.
+ *
+ *   FOR rec IN SELECT policyname, tablename FROM pg_policies WHERE <predicate>
+ *   LOOP EXECUTE format('DROP POLICY %I ON %I', rec.policyname, rec.tablename);
+ *
+ * The names are data, so this cannot enumerate them — which is the point. What it
+ * can do is record the predicate and hand it to the gate, so the guard checks the
+ * predicate against the live `pg_policies` dump rather than trusting a list of
+ * names that production does not use.
+ */
+function expandPredicateDrop(block) {
+  const loop = /FOR\s+(\w+)\s+IN\s+SELECT\s+policyname,\s*tablename\s+FROM\s+pg_policies\s+WHERE([\s\S]*?)LOOP\s+EXECUTE\s+format\(\s*'DROP POLICY %I ON %I'\s*,\s*\1\.policyname\s*,\s*\1\.tablename\s*\)/i.exec(block);
+  if (!loop) return null;
+  const residual = /SELECT\s+count\(\*\)\s+INTO\s+\w+\s+FROM\s+pg_policies\s+WHERE([\s\S]*?);/i.exec(block);
+  return { predicate: loop[2].trim(), residualPredicate: residual ? residual[1].trim() : null, drops: 1 };
+}
+
+/**
+ * Is one `pg_policies` row an anon path to ownerless rows?
+ *
+ * Keyed on what the row *grants*, not on what it is called. The four literal
+ * names in LEGACY_BRIDGE_POLICIES are a historical accident of how 003 was
+ * written; the project this repo deploys to expresses the same bridge as one
+ * `cmd = ALL` policy named "Legacy anon unowned access", and a detector reading
+ * names reported zero bridge rows on a catalog holding five.
+ */
+export function isAnonBridge(row) {
+  const roles = String(row.roles ?? "");
+  return roles.includes("anon") && /user_id\s+IS\s+NULL/i.test(String(row.qual ?? ""));
+}
+
+/** The content tables whose live dump still carries an anon bridge. */
+export function anonBridgeTables(rows, closedTables) {
+  return [...new Set(rows.filter(isAnonBridge).map((r) => r.table))]
+    .filter((t) => closedTables.includes(t))
+    .sort();
+}
+
+/**
  * @param {{sql: string, name?: string}[] | string[]} migrations ordered by filename,
  *   as `run` applies them. Strings are allowed; the name is then positional.
- * @returns {{policies: Map<string,string>, rlsEnabled: Set<string>, tables: Set<string>, unparsed: string[], applied: number}}
+ * @returns {{policies: Map<string,string>, rlsEnabled: Set<string>, tables: Set<string>, unparsed: string[], applied: number, predicateDrops: {file:string,predicate:string,residualPredicate:string|null,drops:number}[]}}
  */
 export function derivePolicyState(migrations) {
   const policies = new Map();
   const rlsEnabled = new Set();
   const tables = new Set();
   const unparsed = [];
+  const predicateDrops = [];
   let applied = 0;
 
   for (const entry of migrations) {
@@ -91,6 +131,7 @@ export function derivePolicyState(migrations) {
     let consumed = 0;
     for (const b of blocks) {
       const expansion = expandDropLoop(b[1]);
+      const predicateDrop = expandPredicateDrop(b[1]);
       const mentions = (b[1].match(/\bPOLICY\b/gi) ?? []).length;
       if (expansion) {
         for (const d of expansion.dropped) {
@@ -98,6 +139,11 @@ export function derivePolicyState(migrations) {
           applied += 1;
         }
         consumed += mentions;
+      }
+      if (predicateDrop) {
+        // Recorded for the gate, which evaluates the predicate against the live
+        // dump. The drop itself cannot be applied statically: the names are data.
+        predicateDrops.push({ file: name, ...predicateDrop });
       }
       // A DO block this cannot expand contributes mentions and no consumption,
       // which the reconciliation below reports as unexplained.
@@ -130,7 +176,7 @@ export function derivePolicyState(migrations) {
     }
   }
 
-  return { policies, rlsEnabled, tables, unparsed, applied };
+  return { policies, rlsEnabled, tables, unparsed, applied, predicateDrops };
 }
 
 /** The bridge policies 006 exists to remove, and the tables it targets. */

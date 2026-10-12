@@ -23,8 +23,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   LEGACY_BRIDGE_POLICIES,
+  anonBridgeTables,
   classifyBridge,
   derivePolicyState,
+  isAnonBridge,
   policyKey,
 } from "../../scripts/derive-policy-state.mjs";
 
@@ -49,7 +51,10 @@ const evidence = JSON.parse(readFileSync(resolve(REPO, EVIDENCE), "utf8")) as {
   status: string;
   recheckBy: string | null;
   projectRef: string;
-  pgPolicies: { collectedAt: string | null; rows: { table: string; policy: string }[] };
+  pgPolicies: {
+    collectedAt: string | null;
+    rows: { table: string; policy: string; roles?: string; cmd?: string; qual?: string }[];
+  };
   anonProbe: { measuredAt: string; tables: Record<string, { http: number; rows: number }> };
 };
 
@@ -91,23 +96,35 @@ describe("the expected policy set is derived, not quoted", () => {
 
 describe("the documentation cannot outpace the evidence", () => {
   it("carries the marker the evidence state requires", () => {
-    const marker = /anon-bridge:\s*`?(unproven|proven)`?/.exec(doc);
+    // Three states, because two were not enough: a dump can settle the question
+    // and the answer can be "the hole is still open". Forcing that into
+    // `unproven` would let the document imply ignorance where the repo holds
+    // evidence.
+    const marker = /anon-bridge:\s*`?(unproven|proven|open)`?/.exec(doc);
     expect(marker, `${DOC} carries no anon-bridge: status`).not.toBeNull();
-    const expected = evidence.status === "PROVEN" ? "proven" : "unproven";
+    const expected =
+      evidence.status === "PROVEN" ? "proven" : evidence.pgPolicies.rows.length > 0 ? "open" : "unproven";
     expect(marker![1], `evidence says ${evidence.status}, doc says ${marker![1]}`).toBe(expected);
   });
 
-  it("hedges every sentence that mentions 006 while the proof is pending", () => {
-    if (evidence.status === "PROVEN") return;
+  it("says the kind of thing about 006 the evidence state allows", () => {
     const sentences = doc
       .split(/(?<=[.!?)])\s+|\n/)
       .map((s) => s.trim())
       .filter((s) => /\b006\b/.test(s));
     expect(sentences.length, "no sentence mentions 006 — the item vanished from the doc").toBeGreaterThan(0);
-    const unhedged = sentences.filter(
-      (s) => !/unproven|PENDING|not applied|never applied|needs .*pg_policies|asserted by the migration files only/i.test(s)
-    );
-    expect(unhedged, `asserted as done while unproven: ${unhedged.join(" || ")}`).toEqual([]);
+
+    if (evidence.status === "PENDING") {
+      const unhedged = sentences.filter(
+        (s) => !/unproven|PENDING|not applied|never applied|needs .*pg_policies|asserted by the migration files only/i.test(s)
+      );
+      expect(unhedged, `asserted as done while unproven: ${unhedged.join(" || ")}`).toEqual([]);
+    } else if (evidence.status === "OPEN") {
+      // A hedge is now the wrong shape of claim: the catalog has been read, and it
+      // says the hole is there. "unproven" would understate a finding.
+      const statesIt = sentences.filter((s) => /not applied|never applied|bridge is live|still open/i.test(s));
+      expect(statesIt.length, "the dump shows the bridge live on the content tables; no 006 sentence says so").toBeGreaterThan(0);
+    }
   });
 
   it("keeps a pending artifact genuinely empty rather than half-filled", () => {
@@ -128,18 +145,61 @@ describe("the documentation cannot outpace the evidence", () => {
     expect(leaking, `anon can read ownerless rows in ${leaking.join(", ")} — the bridge is open in production`).toEqual([]);
   });
 
-  it("checks the dump against the derived set once it is pasted in", () => {
-    if (evidence.status !== "PROVEN") return;
-    const live = evidence.pgPolicies.rows
-      .map((r) => policyKey(r.table, r.policy))
-      .sort();
-    const derived = [...state.policies.keys()].sort();
+  it("holds the live dump the checks below read", () => {
+    // Collected 2026-10-12 by the read-only SELECT in scripts/sql/verify-anon-bridge.sql.
+    // This arm exists so the comparison after it cannot go vacuous: the guard used
+    // to gate the whole comparison on `status === "PROVEN"`, so a dump recorded
+    // under any other label was read by nothing and the suite stayed green on the
+    // strongest evidence the repo owns.
+    expect(evidence.pgPolicies.rows.length, "no dump in the artifact — the comparison below checks nothing").toBeGreaterThan(0);
     expect(ISO_DATE.test(evidence.pgPolicies.collectedAt ?? ""), "collectedAt must be a date").toBe(true);
-    expect(evidence.recheckBy && new Date(evidence.recheckBy) > new Date(), "PROVEN needs a future recheckBy").toBe(true);
-    expect(live, `${derived.length - live.length} expected policies missing from the live catalog`).toEqual(derived);
+  });
+
+  it("evaluates the dump it holds, whatever label the artifact carries", () => {
+    const bridged = anonBridgeTables(evidence.pgPolicies.rows, CLOSED_TABLES);
+    if (bridged.length > 0) {
+      expect(evidence.status, `the catalog still bridges ${bridged.join(", ")} but the artifact says ${evidence.status}`).toBe("OPEN");
+      expect(evidence.recheckBy, "an open finding with no re-check condition is a known hole nobody owns").toBeTruthy();
+    } else {
+      const live = evidence.pgPolicies.rows.map((r) => policyKey(r.table, r.policy)).sort();
+      const derived = [...state.policies.keys()].sort();
+      expect(evidence.status, "the dump shows a closed bridge; the artifact must say PROVEN").toBe("PROVEN");
+      expect(new Date(evidence.recheckBy ?? ""), "PROVEN needs a future recheckBy").toBeInstanceOf(Date);
+      expect(live, `${derived.length} policies derived from the migrations, ${live.length} in the catalog`).toEqual(derived);
+    }
   });
 
   it("names the production project the proof came from", () => {
     expect(evidence.projectRef, "the artifact must say which project was inspected").toMatch(/^[a-z0-9]{15,25}$/);
+  });
+
+  it("detects the bridge by what it grants, not by the four names 003 used", () => {
+    // The shape production actually has: one policy per table, FOR ALL TO anon,
+    // USING (user_id IS NULL). Keyed on names, every check in this repo — the
+    // deriver, classifyBridge, and 006's own DROP list — reported no bridge at all
+    // on a catalog holding five on content tables.
+    const row = { table: "interviews", policy: "Legacy anon unowned access", roles: "{anon}", cmd: "ALL", qual: "(user_id IS NULL)" };
+    expect(isAnonBridge(row), "a cmd=ALL anon grant on ownerless rows is the same hole").toBe(true);
+    // Self-inverting on purpose: if the name list is ever widened to cover this
+    // shape, the predicate becomes the redundant copy and someone must decide
+    // which one is the source of truth — rather than both drifting.
+    expect(LEGACY_BRIDGE_POLICIES.includes(row.policy), "name list now overlaps the predicate; delete the weaker detector").toBe(false);
+    expect(classifyBridge({ policies: new Map([[policyKey(row.table, row.policy), row.policy]]) }, CLOSED_TABLES, BRIDGE_TABLES).closed.filter((b) => b.present)).toEqual([]);
+  });
+
+  it("006 drops by predicate and refuses to succeed with the hole open", () => {
+    const drop = state.predicateDrops.find((p: { file: string }) => p.file.startsWith("006_"));
+    if (!drop) {
+      throw new Error("006 no longer contains a predicate drop — a name list alone saw no bridge on the catalog this repo actually deploys to");
+    }
+    for (const table of CLOSED_TABLES) {
+      expect(drop.predicate, `the drop predicate does not name ${table}`).toContain(`'${table}'`);
+    }
+    expect(drop.predicate, "the drop predicate must key on the anon role").toMatch(/roles\s+@>\s*ARRAY\['anon'\]/i);
+    expect(drop.predicate, "and on the ownerless-row grant, not on a policy name").toMatch(/user_id IS NULL/i);
+    expect(drop.residualPredicate, "006 must count what is left and raise, not assume").toMatch(/roles\s+@>\s*ARRAY\['anon'\]/i);
+    for (const table of CLOSED_TABLES) {
+      expect(drop.residualPredicate, `the residual check does not cover ${table}`).toContain(`'${table}'`);
+    }
   });
 });

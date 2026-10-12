@@ -2,21 +2,31 @@
 
 > Details: `docs/audit/SECURITY_REPORT.md` + `docs/audit/MASTER_AUDIT.md` P0-2/P0-3/P0-6/P0-7. Exceptions below are release-accepted with reachability notes.
 
-- AuthN/Z: signed HMAC sessions + `proxy.ts` page guards + per-route `guardRequest` (401 anon, forged-cookie rejection, tamper rejection). Row ownership is `003_per_operation_policies.sql`'s per-operation `(select auth.uid()) = user_id`, not the older `002` `authenticated=auth.uid()` some notes still cite.
-- Legacy anon bridge, stated as a decision rather than a discovery: `anon-bridge: `unproven``.
-  `006_close_anon_bridge_content_tables.sql` is the file that closes the bridge on the five
-  content tables, and whether production has it applied is still unproven — 006's own header
-  reads "STATUS: DRAFT — NOT APPLIED ANYWHERE", so the file and the deployment notes disagree
-  and neither is evidence about the live database. `docs/audit/anon-bridge-evidence.json`
-  records what was measured on 2026-10-07 with the publishable key the browser already holds:
-  anon reads return HTTP 200 with zero rows on all seven tables. That is exactly what a closed
-  bridge looks like, and also exactly what a project with no ownerless rows looks like, so it
-  proves neither and the item stays PENDING. `scripts/sql/verify-anon-bridge.sql` is the
-  read-only catalog query that settles it; pasting its output into the evidence artifact and
-  flipping `status` to `PROVEN` makes `tests/unit/anon-bridge-status.test.ts` check the dump
-  against the policy set derived from the migrations, and this marker to `proven`.
-  `scripts/derive-policy-state.mjs` computes that expected set (36 policies: 28 owner
-  per-operation + the 8 the migration deliberately keeps on `telemetry` and `achievements`).
+- AuthN/Z: signed HMAC sessions + `proxy.ts` page guards + per-route `guardRequest` (401 anon, forged-cookie rejection, tamper rejection). Row ownership in the *migrations* is `003_per_operation_policies.sql`'s per-operation `(select auth.uid()) = user_id`; in the *deployed* catalog it is one policy per table named `Owner full access` with `cmd = ALL` and the same `auth.uid() = user_id` predicate. The distinction is recorded here because the catalog was read (2026-10-12) and the two do not agree.
+- Legacy anon bridge, settled by a catalog read rather than by inference: `anon-bridge: `open``.
+  On 2026-10-12 the read-only `pg_policies` SELECT in `scripts/sql/verify-anon-bridge.sql` was run
+  against project `bfgglzjltfvfpobzscet` and the whole dump is in
+  `docs/audit/anon-bridge-evidence.json`. It says: 14 policies, seven tables, two per table —
+  `Owner full access` (TO authenticated) and `Legacy anon unowned access` (**TO anon, cmd = ALL,
+  USING (user_id IS NULL)**). The bridge is therefore live on all five content tables, not only on
+  `telemetry`/`achievements`, and 006 is not applied.
+  Two consequences that were not visible before the dump:
+  *006 as written could not have closed it.* The migration drops four names — `Legacy anon
+  select|insert|update|delete unowned` — which this catalog has never contained. It would have
+  reported success over an open bridge, which is why 006 now also drops by predicate
+  (`roles @> ARRAY['anon']` AND `user_id IS NULL`) and raises if any anon grant survives.
+  *The repo's own detector was blind to it.* Everything keyed on those four names
+  (`LEGACY_BRIDGE_POLICIES`, `classifyBridge`) reported zero bridge rows on a catalog holding five;
+  detection is keyed on what a policy grants from now on, and
+  `tests/unit/anon-bridge-status.test.ts` evaluates the dump itself rather than the artifact's
+  label — the comparison used to be gated on `status === "PROVEN"`, so evidence collected under a
+  different label checked nothing.
+  Severity today: no candidate data is exposed because every one of the seven tables holds **0
+  rows** (measured, same session). The live exposure is the write path: the app creates ownerless
+  rows before sign-in by design, and the first such row on `interviews` becomes readable,
+  rewritable and deletable by anyone holding the publishable key. Closing it is a DDL action on
+  production and belongs to the owner; the repo-side half — a migration that closes the hole that
+  exists, and a guard that cannot pass while it does not — is this commit.
 - Demo auth, stated as a decision rather than a discovery: `demo-auth: `unverified-mint``.
   `POST /api/session` (`src/app/api/session/route.ts`) still signs a session cookie for any
   well-formed identity, so "authenticated" on the AI routes means "asked and was given". Two
