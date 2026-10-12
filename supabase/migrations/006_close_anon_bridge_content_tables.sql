@@ -1,14 +1,23 @@
 -- ============================================================================
 -- Migration 006: close the legacy anon bridge on user-content tables
--- VERSION: 6.0 | DATE: 2026-09-27 | STATUS: DRAFT — NOT APPLIED ANYWHERE
+-- VERSION: 6.1 | DATE: 2026-10-12 | STATUS: DRAFT — CONFIRMED NOT APPLIED
 -- ============================================================================
+-- "Confirmed", not "asserted": the pg_policies dump in
+-- docs/audit/anon-bridge-evidence.json (read 2026-10-12 from project
+-- bfgglzjltfvfpobzscet) shows one policy per table, `Legacy anon unowned access`
+-- FOR ALL TO anon USING (user_id IS NULL), on all seven tables. If this file had
+-- been applied, five of those seven rows would not exist. The same dump is why
+-- step 1 below is no longer the whole migration.
 -- Severity: P0 | Owner: full-stack | Depends on: 002, 003, and the OAuth-primary
 -- decision recorded in supabase/migrations/README.md
 --
 -- INTENT
--- 003 added, per table, four `Legacy anon * unowned` policies gated on
--- `user_id IS NULL` so the pre-auth demo identity could keep using the database
--- while the app had no real accounts. 003's own header says the bridge is
+-- The bridge is the set of anon policies gated on `user_id IS NULL` that let the
+-- pre-auth demo identity keep using the database while the app had no real
+-- accounts. 003 wrote it as four per-operation policies per table; the project
+-- this file is meant for has it as a single `cmd = ALL` policy per table under a
+-- different name. Both shapes are the same hole, and a migration that only knows
+-- one of the two names closes neither. 003's own header says the bridge is
 -- temporary: "This bridge is removed at the Supabase Auth cutover (tracked, not
 -- hidden)." This file is that removal, scoped to the tables that hold candidate
 -- content.
@@ -58,7 +67,11 @@
 DO $$
 DECLARE
   t TEXT;
+  rec RECORD;
+  remaining INT;
 BEGIN
+  -- 1. The per-operation names 003 introduced, kept for any project where that
+  --    migration actually ran.
   FOREACH t IN ARRAY ARRAY['interviews', 'evaluations', 'practice_sessions', 'assessments', 'orama_index']
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'Legacy anon select unowned', t);
@@ -66,6 +79,39 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'Legacy anon update unowned', t);
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'Legacy anon delete unowned', t);
   END LOOP;
+
+  -- 2. Any anon policy that still grants access to ownerless rows on those
+  --    tables, whatever it is called. This step was added on 2026-10-12 because
+  --    step 1 alone cannot close the bridge that is actually deployed: project
+  --    bfgglzjltfvfpobzscet has one policy per table named
+  --    "Legacy anon unowned access" with cmd = ALL (see
+  --    docs/audit/anon-bridge-evidence.json). Applying this file before step 2
+  --    existed would have dropped four names that are not there, returned
+  --    "success", and left all five content tables readable and writable by
+  --    anyone holding the publishable key. Detection is a predicate, not a name.
+  FOR rec IN
+    SELECT policyname, tablename
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('interviews', 'evaluations', 'practice_sessions', 'assessments', 'orama_index')
+      AND roles @> ARRAY['anon']::text[]
+      AND qual LIKE '%user_id IS NULL%'
+  LOOP
+    EXECUTE format('DROP POLICY %I ON %I', rec.policyname, rec.tablename);
+  END LOOP;
+
+  -- 3. Refuse to report success while the hole is still open. Without this, a
+  --    third naming drift would again "apply cleanly" and the documentation
+  --    would again be wrong.
+  SELECT count(*) INTO remaining
+  FROM pg_policies
+  WHERE schemaname = 'public'
+    AND tablename IN ('interviews', 'evaluations', 'practice_sessions', 'assessments', 'orama_index')
+    AND roles @> ARRAY['anon']::text[];
+  IF remaining > 0 THEN
+    RAISE EXCEPTION '006 removed the named bridge, but % anon-facing grant remains on the content tables', remaining
+      USING HINT = 'add its name to step 1 or widen step 2; do not let this migration pass with the predicate unmet';
+  END IF;
 END
 $$;
 

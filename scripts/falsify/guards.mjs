@@ -74,12 +74,13 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * CI runs `npm run falsify`, which prints `ALL_PLANTS_CAUGHT` over whatever
  * plants exist: deleting one left the run green, and nothing in the repo counted
  * them. The floor is the harness's measured size — 68 when this rule landed, 69
- * with FC1, 73 with the four scans below — and it is re-synced in the same commit
- * as any plant that arrives or leaves, so coverage moves with intent rather than
- * drift. FC1 plants a floor one higher than the harness and fails it, which is
- * what keeps this number from quietly becoming a comment.
+ * with FC1, 73 with the four scans, 75 with the two RLS plants below — and it is
+ * re-synced in the same commit as any plant that arrives or leaves, so coverage
+ * moves with intent rather than drift. FC1 plants a floor one higher than the
+ * harness and fails it, which is what keeps this number from quietly becoming a
+ * comment.
  */
-const MIN_PLANTS = 73;
+const MIN_PLANTS = 75;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -150,6 +151,10 @@ const defaultRestatedPlant = (over) => ({
 
 const ENV_UNIT = "tests/unit/env-surface.test.ts";
 const CSP_UNIT = "tests/unit/csp-scope.test.ts";
+const ANON_BRIDGE_UNIT = "tests/unit/anon-bridge-status.test.ts";
+
+/** Both anon-bridge plants aim at the same guard and differ only in what they break. */
+const anonBridgePlant = (over) => ({ kind: "vitest", test: ANON_BRIDGE_UNIT, ...over });
 
 /**
  * The two guards that read the whole repo and had never been shown able to fail.
@@ -907,6 +912,23 @@ const PLANTS = [
     anchor: `与 jsDelivr（代码编辑器）。字体不来自第三方`,
     replacement: `与 jsDelivr（代码编辑器）以及 Google Fonts（fonts.googleapis.com）。字体不来自第三方`,
     pattern: "discloses every allowed host on the privacy page",
+  }),
+  // ── the live RLS finding cannot be softened back into a hedge ────────────
+  anonBridgePlant({
+    name: "AB1",
+    desc: "the document reverts to `unproven` while the catalog dump says the bridge is live",
+    file: "docs/SECURITY.md",
+    anchor: "`anon-bridge: `open``",
+    replacement: "`anon-bridge: `unproven``",
+    pattern: "carries the marker the evidence state requires",
+  }),
+  anonBridgePlant({
+    name: "AB2",
+    desc: "006's drop goes back to matching a policy name, the detector shape that saw no bridge",
+    file: "supabase/migrations/006_close_anon_bridge_content_tables.sql",
+    anchor: `      AND roles @> ARRAY['anon']::text[]`,
+    replacement: `      AND policyname LIKE 'Legacy anon select unowned'`,
+    pattern: "006 drops by predicate and refuses to succeed with the hole open",
   }),
 ];
 

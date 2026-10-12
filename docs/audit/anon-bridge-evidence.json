@@ -1,13 +1,126 @@
 {
-  "_about": "The live-RLS half of PAIN-#5. Everything under `anonProbe` was measured; everything under `pgPolicies` is a claim about the production catalog and is deliberately empty until someone pastes the query in scripts/sql/verify-anon-bridge.sql.",
-  "_readerWarning": "An empty `rows` here means NOT YET COLLECTED. It does not mean the database has no policies, and it must never be read as evidence that migration 006 ran. The gate that reads this file treats an empty pgPolicies as 'unproven' and requires docs/SECURITY.md to say so.",
-  "status": "PENDING",
-  "recheckBy": null,
+  "_about": "Live-RLS evidence for PAIN-#5. Collected 2026-10-12 by read-only SELECT over pg_policies / pg_class / information_schema in project bfgglzjltfvfpobzscet. It settles the question that was open, and the answer is the opposite of the one docs/SECURITY.md used to hedge: migration 006 is NOT applied, and the bridge that is live is not the policy 006 drops.",
+  "_readerWarning": "The rows below are the WHOLE anon surface the catalog reports for schema `public`: 14 policies over 7 tables, two per table. Do not read `Owner full access` as safe — the paired `Legacy anon unowned access` is FOR ALL TO anon USING (user_id IS NULL), so an anon key holder can read, insert, update and delete every ownerless row on all five content tables, not only on telemetry/achievements.",
+  "status": "OPEN",
+  "recheckBy": "re-run the same SELECT after the owner applies the corrected 006; the bridge is closed when no row has roles={anon}",
   "projectRef": "bfgglzjltfvfpobzscet",
-  "query": "SELECT tablename, policyname, permissive, roles, cmd, qual FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname",
   "pgPolicies": {
-    "collectedAt": null,
-    "rows": []
+    "collectedAt": "2026-10-12",
+    "query": "SELECT tablename, policyname, permissive, roles, cmd, qual FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname",
+    "rows": [
+      {
+        "table": "achievements",
+        "policy": "Legacy anon unowned access",
+        "permissive": "PERMISSIVE",
+        "roles": "{anon}",
+        "cmd": "ALL",
+        "qual": "(user_id IS NULL)"
+      },
+      {
+        "table": "achievements",
+        "policy": "Owner full access",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "ALL",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)"
+      },
+      {
+        "table": "assessments",
+        "policy": "Legacy anon unowned access",
+        "permissive": "PERMISSIVE",
+        "roles": "{anon}",
+        "cmd": "ALL",
+        "qual": "(user_id IS NULL)"
+      },
+      {
+        "table": "assessments",
+        "policy": "Owner full access",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "ALL",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)"
+      },
+      {
+        "table": "evaluations",
+        "policy": "Legacy anon unowned access",
+        "permissive": "PERMISSIVE",
+        "roles": "{anon}",
+        "cmd": "ALL",
+        "qual": "(user_id IS NULL)"
+      },
+      {
+        "table": "evaluations",
+        "policy": "Owner full access",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "ALL",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)"
+      },
+      {
+        "table": "interviews",
+        "policy": "Legacy anon unowned access",
+        "permissive": "PERMISSIVE",
+        "roles": "{anon}",
+        "cmd": "ALL",
+        "qual": "(user_id IS NULL)"
+      },
+      {
+        "table": "interviews",
+        "policy": "Owner full access",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "ALL",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)"
+      },
+      {
+        "table": "orama_index",
+        "policy": "Legacy anon unowned access",
+        "permissive": "PERMISSIVE",
+        "roles": "{anon}",
+        "cmd": "ALL",
+        "qual": "(user_id IS NULL)"
+      },
+      {
+        "table": "orama_index",
+        "policy": "Owner full access",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "ALL",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)"
+      },
+      {
+        "table": "practice_sessions",
+        "policy": "Legacy anon unowned access",
+        "permissive": "PERMISSIVE",
+        "roles": "{anon}",
+        "cmd": "ALL",
+        "qual": "(user_id IS NULL)"
+      },
+      {
+        "table": "practice_sessions",
+        "policy": "Owner full access",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "ALL",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)"
+      },
+      {
+        "table": "telemetry",
+        "policy": "Legacy anon unowned access",
+        "permissive": "PERMISSIVE",
+        "roles": "{anon}",
+        "cmd": "ALL",
+        "qual": "(user_id IS NULL)"
+      },
+      {
+        "table": "telemetry",
+        "policy": "Owner full access",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "ALL",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)"
+      }
+    ]
   },
   "anonProbe": {
     "measuredAt": "2026-10-07",
@@ -46,5 +159,67 @@
       }
     }
   },
-  "_numbersNotOwnedHere": "Expected policy counts are derived from supabase/migrations/*.sql by scripts/derive-policy-state.mjs and asserted by tests/unit/anon-bridge-status.test.ts. They are not stored in this file, so a migration edit cannot leave a stale number behind."
+  "_numbersNotOwnedHere": "Expected policy counts are derived from supabase/migrations/*.sql by scripts/derive-policy-state.mjs and asserted by tests/unit/anon-bridge-status.test.ts. They are not stored in this file, so a migration edit cannot leave a stale number behind.",
+  "collection": [
+    {
+      "collectedAt": "2026-10-12",
+      "method": "Supabase MCP execute_sql (read-only SELECT; no DDL, no row content read, $0). Statements: the pg_policies query from scripts/sql/verify-anon-bridge.sql verbatim; a pg_class relrowsecurity probe; per-table count(*)/count(*) FILTER (WHERE user_id IS NULL); information_schema.columns for interviews.",
+      "identityNote": "project ref is the same bfgglzjltfvfpobzscet the app's NEXT_PUBLIC_SUPABASE_URL points at; the catalog returns exactly the seven tables the migrations create, which is what makes the dump attributable."
+    }
+  ],
+  "rls": {
+    "collectedAt": "2026-10-12",
+    "allSevenTables": "relrowsecurity = true, relforcerowsecurity = false",
+    "whyItMatters": "RLS being enabled means the anon policy is the effective gate: with it present, the publishable key alone reaches ownerless rows. Forced row security is off, which does not change that for the anon role."
+  },
+  "rowCounts": {
+    "collectedAt": "2026-10-12",
+    "note": "count(*) and count(*) FILTER (WHERE user_id IS NULL), aggregate only — no row content read.",
+    "tables": {
+      "achievements": {
+        "total": 0,
+        "ownerless": 0
+      },
+      "assessments": {
+        "total": 0,
+        "ownerless": 0
+      },
+      "evaluations": {
+        "total": 0,
+        "ownerless": 0
+      },
+      "interviews": {
+        "total": 0,
+        "ownerless": 0
+      },
+      "orama_index": {
+        "total": 0,
+        "ownerless": 0
+      },
+      "practice_sessions": {
+        "total": 0,
+        "ownerless": 0
+      },
+      "telemetry": {
+        "total": 0,
+        "ownerless": 0
+      }
+    },
+    "whatThisDoesToTheSeverity": "No candidate data is exposed today because the project holds no rows at all. The exposure is live and permanent for writes: the anon role has ALL on the five content tables, and the app itself creates ownerless rows before sign-in (that is why 002/003 kept the bridge), so the first ownerless interview written by a visitor is readable and rewritable by anyone holding the publishable key."
+  },
+  "columns005": {
+    "collectedAt": "2026-10-12",
+    "present": [
+      "interview_type",
+      "custom_type_description",
+      "difficulty",
+      "time_budget_sec",
+      "plan",
+      "evaluation_v2"
+    ],
+    "conclusion": "005 IS applied — the six columns it adds are all present. The earlier note in this repo's memory that 'six columns are missing' was a point-in-time probe against a database that has since been migrated; it is superseded by this dump."
+  },
+  "theBlindSpot": [
+    "Every name-keyed check in this repo — LEGACY_BRIDGE_POLICIES, classifyBridge, and 006's own DROP list — looks for four per-operation policies ('Legacy anon select/insert/update/delete unowned'). Production has never had them: the bridge here is one policy per table named 'Legacy anon unowned access' with cmd=ALL. Fed the real dump, the repo's classifier reported 0 bridge rows where 5 exist, and applying 006 as written would DROP POLICY IF EXISTS four names that are not there and report success with the hole wide open. Detection is therefore keyed on (roles includes anon AND qual references user_id IS NULL) from this commit, not on a policy name."
+  ]
 }

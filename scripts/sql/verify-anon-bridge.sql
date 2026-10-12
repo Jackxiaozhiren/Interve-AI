@@ -15,9 +15,10 @@
 -- bfgglzjltfvfpobzscet (the production project the app points at). Read-only:
 -- one SELECT over a catalog view, no DDL, no data access, $0.
 --
--- Then put the result into docs/audit/anon-bridge-evidence.json — set
--- "status": "PROVEN", "collectedAt" to today, "source" to the project ref, and
--- paste each row as {"table": ..., "policy": ...} — and run:
+-- Then put the result into docs/audit/anon-bridge-evidence.json: "collectedAt" to the day, each
+-- row as {"table", "policy", "permissive", "roles", "cmd", "qual"} (roles and qual are what the
+-- gate reads — a name is not enough to classify a grant), and "status" to "PROVEN" only if no
+-- returned row has roles including anon on a content table, otherwise "OPEN". Then run:
 --
 --     npm run test:unit -- anon-bridge-status
 --
@@ -39,17 +40,36 @@ FROM pg_policies
 WHERE schemaname = 'public'
 ORDER BY tablename, policyname;
 
--- Expected: 36 rows.
+-- ANSWER, measured 2026-10-12 by this exact SELECT: 14 rows, seven tables, two
+-- policies per table. `Legacy anon unowned access` FOR ALL TO anon USING
+-- (user_id IS NULL) is live on all five content tables, so 006 has not been
+-- applied. The comment below is what the repo *believed* before the catalog was
+-- read; it is kept so the difference between the migrations and the deployment
+-- stays legible, and the dump in docs/audit/anon-bridge-evidence.json is the
+-- thing the gate now compares against.
+--
+-- Believed expectation: 36 rows.
 --   28 of them are the four per-operation owner policies on each of the seven
 --   tables (Owner select | Owner insert | Owner update | Owner delete, each
 --   USING ((SELECT auth.uid()) = user_id), TO authenticated).
 --   8 are the bridge kept on purpose: Legacy anon {select,insert,update,delete}
 --   unowned on telemetry and on achievements (USING (user_id IS NULL), TO anon).
+--   Production has none of these names. It has one owner policy and one anon
+--   policy per table, both `cmd = ALL`.
 --
--- The discriminator is the missing half: those same four policy names must NOT
--- appear on interviews, evaluations, practice_sessions, assessments or
--- orama_index. If they do, 006 was never applied and every holder of the
--- publishable key can read every ownerless content row.
+-- The discriminator is the missing half: no policy with roles including `anon`
+-- may remain on interviews, evaluations, practice_sessions, assessments or
+-- orama_index. Keyed on names it looked closed; keyed on the grant it is not —
+-- which is why 006 drops by predicate as of 2026-10-12.
+--
+-- Closure check, the one that must return 0 rows when the owner has applied the
+-- corrected 006:
+--
+--   SELECT tablename, policyname FROM pg_policies
+--   WHERE schemaname = 'public'
+--     AND tablename IN ('interviews','evaluations','practice_sessions','assessments','orama_index')
+--     AND roles @> ARRAY['anon']::text[]
+--   ORDER BY tablename, policyname;
 --
 -- Optional second paste, to make the 0-row probe informative rather than
 -- ambiguous — it answers "does ownerless content even exist?":
