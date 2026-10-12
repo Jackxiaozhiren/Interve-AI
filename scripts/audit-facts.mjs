@@ -90,13 +90,26 @@ function sourceFiles() {
  * Total prose volume of a docs directory — the "audit apparatus must not outgrow
  * the product" measurement. Parameterised by directory so the can-fail test can
  * point it at a fixture instead of only re-reading the real tree.
+ *
+ * Non-blank lines only. The ruler claimed prose and got formatting: 598 empty
+ * separators between paragraphs counted, plus one phantom line per file (27) from
+ * `split("\n")` on text ending with a newline — the corpus measured 3145 when it
+ * holds 2520 content lines. That inverted the gate's purpose twice over. A
+ * contributor reflowing markdown (adding a blank line before a list) would have
+ * broken CI, while someone deleting ten blank lines could add ten sentences for
+ * free. With blanks out of scope, a content line costs a content line.
  */
 export function countDocsProseLines(dirAbs) {
   if (!fs.existsSync(dirAbs)) return 0;
   return fs
     .readdirSync(dirAbs)
     .filter((f) => f.endsWith(".md"))
-    .reduce((sum, f) => sum + fs.readFileSync(path.join(dirAbs, f), "utf8").split("\n").length, 0);
+    .reduce(
+      (sum, f) =>
+        sum +
+        fs.readFileSync(path.join(dirAbs, f), "utf8").split("\n").filter((line) => line.trim() !== "").length,
+      0
+    );
 }
 
 /**
@@ -946,7 +959,10 @@ export const RATCHET_KEYS = {
     + "shape question with code that a test can exercise. Tests are excluded on purpose: a "
     + "fixture cast there is how you build an impossible input on purpose, and counting it "
     + "would only train the next reader to raise this ceiling.",
-  "debt.auditDocsLines": "docs/audit prose volume — the audit apparatus must not outgrow the product",
+  "debt.auditDocsLines":
+    "docs/audit prose volume — non-blank lines. The ruler was corrected 2026-10-12: it counted blank "
+    + "separators and one phantom trailing line per file, so the corpus measured 3145 while holding 2520 "
+    + "content lines, and reflowing a paragraph could break CI.",
   "debt.unreferencedProductionDeps":
     "production dependencies no file under src/ imports. Adjudicated 2026-10-06 at 4: `dexie`, "
     + "`dexie-react-hooks`, `geist`, `mermaid` — zero references repo-wide outside generated "
