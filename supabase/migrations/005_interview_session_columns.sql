@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Migration 005: interview session columns the application already writes
--- VERSION: 5.0 | DATE: 2026-09-27 | STATUS: DRAFT — NOT APPLIED ANYWHERE
+-- VERSION: 5.0 | DATE: 2026-09-27 | STATUS: APPLIED — confirmed against the live catalog
 -- ============================================================================
 -- Severity: P0 (silent — every symptom points at the connection, not the schema)
 -- Owner: full-stack
@@ -27,6 +27,17 @@
 --   GET /rest/v1/interviews?select=<col>&limit=1
 -- probes: all six return 400 / 42703, while title, status, match_data and
 -- user_id return 200. So 002 IS applied and these six never were.
+--
+-- SUPERSEDED 2026-10-12, by reading rather than inferring: `information_schema.columns`
+-- for `interviews` in bfgglzjltfvfpobzscet lists all six of these columns, and the
+-- same nine columns returned 200 to the read-only probe on 2026-10-02. The file was
+-- run in the Supabase SQL Editor on 2026-09-29; the "Success. No rows returned" it
+-- answered was, for 005, an accurate report. The same answer from 006 on the same
+-- day was not: the 2026-10-12 dump still shows the anon bridge on all seven tables,
+-- because 006 named four policies this catalog never contained (see 006's header
+-- and docs/audit/anon-bridge-evidence.json). Everything below this line is the
+-- reasoning as it stood on 2026-09-27, kept because the ordering argument it makes
+-- about the anon bridge is still the reason 006 is not applied.
 --
 -- WHAT THIS FIXES
 -- Persistence only. Reads already work — every select is '*', so a column that
@@ -71,8 +82,12 @@ ALTER TABLE interviews ADD COLUMN IF NOT EXISTS evaluation_v2 JSONB;
 -- returns a row instead of the local-only fallback.
 --
 -- ---------------------------------------------------------------------------
--- DO NOT APPLY ALONE — 42703 is currently hiding a second blocker
+-- DO NOT RUN 006 ALONE — the 42703 that used to hide the second blocker is gone
 -- ---------------------------------------------------------------------------
+-- Written 2026-09-27, when these columns were missing: the error stopped every
+-- `interviews` write before RLS was consulted, so the exposure described below had
+-- no rows to leak on this table. The columns exist now (2026-10-12), which means
+-- the argument below is live rather than hypothetical for `interviews` too.
 -- The publishable/anon key the browser uses (src/lib/supabase.ts is
 -- createClient(url, anonKey) with no setSession call anywhere in src/) means
 -- every browser request runs as Postgres role `anon`, and currentOwnerId() ->

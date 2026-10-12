@@ -2,11 +2,11 @@
  * The anon bridge: keep the claim and the evidence at the same strength.
  *
  * `docs/SECURITY.md` said migration 006 "closed the anon-readable content
- * tables". `006_close_anon_bridge_content_tables.sql`'s own header says
- * "STATUS: DRAFT — NOT APPLIED ANYWHERE". A keyless local path cannot reach the
- * live catalog to settle it — the publishable key reads through PostgREST, which
- * applies RLS but never reports it — and the probe that can be run is
- * self-ambiguous: anon reads return 0 rows on all seven tables today, which is
+ * tables" while `006_close_anon_bridge_content_tables.sql`'s own header called
+ * itself a draft. For six weeks no path in the repo could settle it — the
+ * publishable key reads through PostgREST, which applies RLS but never reports
+ * it — and the probe that could be run was self-ambiguous: anon reads return 0
+ * rows on all seven tables, which is
  * what a closed bridge looks like *and* what a database with no ownerless rows
  * looks like.
  *
