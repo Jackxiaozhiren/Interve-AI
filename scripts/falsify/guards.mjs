@@ -73,12 +73,13 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  *
  * CI runs `npm run falsify`, which prints `ALL_PLANTS_CAUGHT` over whatever
  * plants exist: deleting one left the run green, and nothing in the repo counted
- * them. The floor is the harness's measured size — 68 plants before this rule,
- * 69 counting FC1 below — so coverage may now only go up, or go down in the same
- * commit as the reason for it. FC1 plants a floor one higher than the harness and
- * fails it, so this number cannot quietly become a comment.
+ * them. The floor is the harness's measured size — 68 when this rule landed, 69
+ * with FC1, 73 with the four scans below — and it is re-synced in the same commit
+ * as any plant that arrives or leaves, so coverage moves with intent rather than
+ * drift. FC1 plants a floor one higher than the harness and fails it, which is
+ * what keeps this number from quietly becoming a comment.
  */
-const MIN_PLANTS = 69;
+const MIN_PLANTS = 73;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -146,6 +147,22 @@ const defaultRestatedPlant = (over) => ({
   pattern: "leaves src/ with nothing to explain",
   ...over,
 });
+
+const ENV_UNIT = "tests/unit/env-surface.test.ts";
+const CSP_UNIT = "tests/unit/csp-scope.test.ts";
+
+/**
+ * The two guards that read the whole repo and had never been shown able to fail.
+ *
+ * `env-surface` and `csp-scope` are scans with expectations of `[]`: a rule whose
+ * regex stopped matching anything, or a disclosure map edited down to nothing,
+ * would report success. Each was written against a mistake that actually
+ * happened, so the plants below recreate that mistake rather than a synthetic
+ * one — the missing key for env-surface, the phantom Google Fonts origin for
+ * csp-scope.
+ */
+const envRulePlant = (over) => ({ kind: "vitest", test: ENV_UNIT, ...over });
+const cspRulePlant = (over) => ({ kind: "vitest", test: CSP_UNIT, ...over });
 
 /**
  * A README architecture number stated one higher than the code measures.
@@ -857,6 +874,40 @@ const PLANTS = [
   // lines — a true statement about the shape, and the wrong thing to spend the
   // gate on.
   { name: "FC1", desc: "a floor one above the harness: a deleted plant would read as success", kind: "gate", file: GUARDS_SELF, anchor: `const MIN_PLANTS = ${MIN_PLANTS};`, replacement: `const MIN_PLANTS = ${MIN_PLANTS + 1};`, argv: ["node", ["scripts/falsify/guards.mjs", "--targets"]] },
+  // ── the env surface stays declared to whoever sets the app up ─────────────
+  envRulePlant({
+    name: "EV1",
+    desc: "the setup document stops declaring a key three routes cannot run without",
+    file: ".env.example",
+    anchor: `ZHIPU_API_KEY=your_zhipu_api_key_here`,
+    replacement: `# ZHIPU_API_KEY is provided by the platform, not by you`,
+    pattern: "every env name the code reads is declared or excluded",
+  }),
+  envRulePlant({
+    name: "EV2",
+    desc: "the session secret moves to a NEXT_PUBLIC_ name, which ships to the browser",
+    file: "src/lib/api/session.ts",
+    anchor: `  const env = process.env.SESSION_SECRET;`,
+    replacement: `  const env = process.env.NEXT_PUBLIC_SESSION_SECRET;`,
+    pattern: "every credential-shaped name the code reads is in the ledger",
+  }),
+  // ── the CSP's external hosts stay disclosed, and none undisclosed ────────
+  cspRulePlant({
+    name: "CS1",
+    desc: "a host joins script-src with no disclosure decision behind it",
+    file: "src/proxy.ts",
+    anchor: `    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net;`,
+    replacement: `    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://unreviewed.example;`,
+    pattern: "allows exactly the external hosts that are disclosed and justified",
+  }),
+  cspRulePlant({
+    name: "CS2",
+    desc: "the privacy page goes back to naming a font origin the app never loads",
+    file: "src/app/privacy/page.tsx",
+    anchor: `与 jsDelivr（代码编辑器）。字体不来自第三方`,
+    replacement: `与 jsDelivr（代码编辑器）以及 Google Fonts（fonts.googleapis.com）。字体不来自第三方`,
+    pattern: "discloses every allowed host on the privacy page",
+  }),
 ];
 
 /**
