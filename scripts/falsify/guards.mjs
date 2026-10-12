@@ -74,13 +74,13 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * CI runs `npm run falsify`, which prints `ALL_PLANTS_CAUGHT` over whatever
  * plants exist: deleting one left the run green, and nothing in the repo counted
  * them. The floor is the harness's measured size — 68 when this rule landed, 69
- * with FC1, 73 with the four scans, 75 with the two RLS plants below — and it is
- * re-synced in the same commit as any plant that arrives or leaves, so coverage
- * moves with intent rather than drift. FC1 plants a floor one higher than the
- * harness and fails it, which is what keeps this number from quietly becoming a
- * comment.
+ * with FC1, 73 with the four scans, 75 with the two RLS plants, 78 with the three
+ * posture plants below — and it is re-synced in the same commit as any plant that
+ * arrives or leaves, so coverage moves with intent rather than drift. FC1 plants
+ * a floor one higher than the harness and fails it, which is what keeps this
+ * number from quietly becoming a comment.
  */
-const MIN_PLANTS = 75;
+const MIN_PLANTS = 78;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -155,6 +155,15 @@ const ANON_BRIDGE_UNIT = "tests/unit/anon-bridge-status.test.ts";
 
 /** Both anon-bridge plants aim at the same guard and differ only in what they break. */
 const anonBridgePlant = (over) => ({ kind: "vitest", test: ANON_BRIDGE_UNIT, ...over });
+
+/** Two posture guards that assert absence. A plant that recreates the prohibited
+ * shape is the only way to show the regex still matches something: `cache-discipline`
+ * looks for `'use cache'` and `cacheComponents: true`, `security-surface` for the
+ * agentic-loop options, and an empty result and a blind scan look identical. */
+const CACHE_UNIT = "tests/unit/cache-discipline.test.ts";
+const SECURITY_UNIT = "tests/unit/security-surface.test.ts";
+const cachePlant = (over) => ({ kind: "vitest", test: CACHE_UNIT, ...over });
+const securityPlant = (over) => ({ kind: "vitest", test: SECURITY_UNIT, ...over });
 
 /**
  * The two guards that read the whole repo and had never been shown able to fail.
@@ -929,6 +938,31 @@ const PLANTS = [
     anchor: `      AND roles @> ARRAY['anon']::text[]`,
     replacement: `      AND policyname LIKE 'Legacy anon select unowned'`,
     pattern: "006 drops by predicate and refuses to succeed with the hole open",
+  }),
+  // ── posture guards that assert absence have to be shown matching something ─
+  cachePlant({
+    name: "CA1",
+    desc: "'use cache' arrives without the cacheLife + cacheTag the iron law requires",
+    file: "src/lib/api/session.ts",
+    anchor: `  const env = process.env.SESSION_SECRET;`,
+    replacement: `  'use cache';\n  const env = process.env.SESSION_SECRET;`,
+    pattern: "carries explicit cacheLife",
+  }),
+  cachePlant({
+    name: "CA2",
+    desc: "partial-prerendering is switched on with no Suspense audit recorded",
+    file: "next.config.ts",
+    anchor: `  output: 'standalone',`,
+    replacement: `  experimental: { cacheComponents: true },\n  output: 'standalone',`,
+    pattern: "cacheComponents stays off until a Suspense audit lands",
+  }),
+  securityPlant({
+    name: "SS1",
+    desc: "an agentic step budget reappears on a generation route",
+    file: "src/app/api/analyze-star/route.ts",
+    anchor: `      abortSignal: signal,`,
+    replacement: `      maxSteps: 8,\n      abortSignal: signal,`,
+    pattern: "agentic loops to the model",
   }),
 ];
 
