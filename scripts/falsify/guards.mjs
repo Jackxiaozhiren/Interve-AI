@@ -123,6 +123,28 @@ const windowPlant = (over) => ({
   ...over,
 });
 
+const ARCH_CLAIMS_UNIT = "tests/unit/readme-architecture-claims.test.ts";
+
+/**
+ * A README architecture number stated one higher than the code measures.
+ *
+ * All four arms drift the same way — one more registered prompt, one more
+ * `generateObject` route, one more fenced prompt file, one more deprecated-API
+ * file than the paragraph claims — so the wrong number is computed from the
+ * phrase rather than typed next to it. A phrase that stopped carrying a digit
+ * would make the plant a no-op instead of silently passing.
+ */
+const archClaimPlant = (name, desc, anchor, pattern) => ({
+  name,
+  desc,
+  kind: "vitest",
+  file: "README.md",
+  anchor,
+  pattern,
+  replacement: anchor.replace(/\d+/, (digits) => String(Number(digits) + 1)),
+  test: ARCH_CLAIMS_UNIT,
+});
+
 /** @type {Array<{name:string,desc:string,kind:"vitest"|"playwright"|"gate",file:string,anchor:string,replacement:string,count?:number,test?:string,pattern?:string,slow?:boolean,create?:string}>} */
 const PLANTS = [
   // ── the settings page: nothing may pretend to be a control ────────────────
@@ -710,46 +732,10 @@ const PLANTS = [
     pattern: "hands the scroll anchor",
   }),
   // ── the README's architecture counts are the measured ones ───────────────
-  {
-    name: "RA1",
-    desc: "the README's prompt count drifts from the registry by one",
-    kind: "vitest",
-    file: "README.md",
-    anchor: `(17 registered prompts, each carrying its own version`,
-    replacement: `(18 registered prompts, each carrying its own version`,
-    test: "tests/unit/readme-architecture-claims.test.ts",
-    pattern: "counts versioned prompts the way the registry counts them",
-  },
-  {
-    name: "RA2",
-    desc: "the README counts generateObject routes a route too high",
-    kind: "vitest",
-    file: "README.md",
-    anchor: "`generateObject` (10 routes,",
-    replacement: "`generateObject` (11 routes,",
-    test: "tests/unit/readme-architecture-claims.test.ts",
-    pattern: "counts the routes still on generateObject",
-  },
-  {
-    name: "RA3",
-    desc: "the README overstates how many prompt files carry the untrusted-input fence",
-    kind: "vitest",
-    file: "README.md",
-    anchor: "(15 prompt files carry the `UNTRUSTED` markers",
-    replacement: "(16 prompt files carry the `UNTRUSTED` markers",
-    test: "tests/unit/readme-architecture-claims.test.ts",
-    pattern: "counts the prompt files that fence untrusted input",
-  },
-  {
-    name: "RA4",
-    desc: "the README counts deprecated-API files one above the ratchet ceiling",
-    kind: "vitest",
-    file: "README.md",
-    anchor: "12 files still call the deprecated object APIs",
-    replacement: "13 files still call the deprecated object APIs",
-    test: "tests/unit/readme-architecture-claims.test.ts",
-    pattern: "names how many files are still on the deprecated object APIs",
-  },
+  archClaimPlant("RA1", "the README's prompt count drifts from the registry by one", "(17 registered prompts, each carrying its own version", "counts versioned prompts the way the registry counts them"),
+  archClaimPlant("RA2", "the README counts generateObject routes a route too high", "`generateObject` (10 routes,", "counts the routes still on generateObject"),
+  archClaimPlant("RA3", "the README overstates how many prompt files carry the untrusted-input fence", "(15 prompt files carry the `UNTRUSTED` markers", "counts the prompt files that fence untrusted input"),
+  archClaimPlant("RA4", "the README counts deprecated-API files one above the ratchet ceiling", "12 files still call the deprecated object APIs", "names how many files are still on the deprecated object APIs"),
   // ── a rendered record time must be the record's own ──────────────────────
   {
     name: "CT1",
