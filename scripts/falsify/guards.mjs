@@ -125,6 +125,14 @@ const windowPlant = (over) => ({
 
 const ARCH_CLAIMS_UNIT = "tests/unit/readme-architecture-claims.test.ts";
 
+/** The default-restatement guard: one file, one arm, so one builder with a default. */
+const defaultRestatedPlant = (over) => ({
+  kind: "vitest",
+  test: "tests/unit/no-redundant-prop-literals.test.ts",
+  pattern: "leaves src/ with nothing to explain",
+  ...over,
+});
+
 /**
  * A README architecture number stated one higher than the code measures.
  *
@@ -778,8 +786,8 @@ const PLANTS = [
     desc: "the health indicator reads navigator.onLine to pick its first paint",
     kind: "vitest",
     file: "src/components/interview/SystemHealthIndicator.tsx",
-    anchor: `  const [online, setOnline] = useState(isOnline);`,
-    replacement: `  const [online, setOnline] = useState(\n    () => (typeof navigator !== "undefined" ? navigator.onLine : isOnline) && isOnline\n  );`,
+    anchor: `  const [online, setOnline] = useState(true);`,
+    replacement: `  const [online, setOnline] = useState(\n    () => (typeof navigator !== "undefined" ? navigator.onLine : true)\n  );`,
     test: FIRST_RENDER_UNIT,
     pattern: "names every production component",
   },
@@ -788,11 +796,19 @@ const PLANTS = [
     desc: "the same bug wearing a typeof window guard",
     kind: "vitest",
     file: "src/components/interview/SystemHealthIndicator.tsx",
-    anchor: `  const [online, setOnline] = useState(isOnline);`,
-    replacement: `  const [online, setOnline] = useState(typeof window !== "undefined" ? isOnline : false);`,
+    anchor: `  const [online, setOnline] = useState(true);`,
+    replacement: `  const [online, setOnline] = useState(typeof window !== "undefined" ? navigator.onLine : true);`,
     test: FIRST_RENDER_UNIT,
     pattern: "names every production component",
   },
+  // ── passing a component its own default is not a decision ────────────────
+  defaultRestatedPlant({
+    name: "PD1",
+    desc: "the streaming card is made to say it is not streaming, which is the default",
+    file: "src/app/chat/page.tsx",
+    anchor: `                    streaming={true}`,
+    replacement: `                    streaming={false}`,
+  }),
   // ── the homepage's "export or delete, any time" is a two-store promise ────
   rightsPlant({
     name: "DR1",

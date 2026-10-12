@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { WifiHigh, Warning, Checks } from '@phosphor-icons/react';
 
 export function SystemHealthIndicator({ 
-  isOnline = true,
   stressTest = false
 }: { 
-  isOnline?: boolean;
-  stressTest?: boolean;
+  // `isOnline` was dropped with it: the only caller passed `isOnline={true}`,
+  // which is what the prop defaulted to, so the AND it fed was a no-op and the
+  // knob had no owner. Connectivity is the browser's, read below, and nothing
+  // else in this app claims to know better.
   // Phase 3: `wsLatency` prop removed — it was animated with unseeded
   // randomness ("Mock latency fluctuations") and presented as a live
   // measurement.
@@ -15,6 +16,7 @@ export function SystemHealthIndicator({
   // (navigator.onLine, live-updated) plus the explicit stress-test flag.
   // Per-call API latency remains visible in Dashboard > System Telemetry,
   // which measures real fetch durations.
+  stressTest?: boolean;
   wsLatency?: never;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -22,10 +24,10 @@ export function SystemHealthIndicator({
   // `navigator.onLine` here made the server render the healthy dot and the
   // client render the offline one. The effect below is what learns the real
   // connectivity, one paint later.
-  const [online, setOnline] = useState(isOnline);
+  const [online, setOnline] = useState(true);
 
   useEffect(() => {
-    const update = () => setOnline(navigator.onLine && isOnline);
+    const update = () => setOnline(navigator.onLine);
     update();
     window.addEventListener("online", update);
     window.addEventListener("offline", update);
@@ -33,7 +35,7 @@ export function SystemHealthIndicator({
       window.removeEventListener("online", update);
       window.removeEventListener("offline", update);
     };
-  }, [isOnline]);
+  }, []);
 
   // Determine status
   const status = !online ? 'offline' : stressTest ? 'stress' : 'healthy';
