@@ -223,8 +223,11 @@ domain, no service worker need, and "no global-error needed").
   `NO_OWNER` refusal (`src/lib/api-client.ts:91`), not the schema error — and every
   one of the seven tables still measures **0 rows**.
   Two-part fix in flight: migration `006_close_anon_bridge_content_tables.sql`
-  (drafted, drops the 20 anon policies on the five owner-gated content tables,
-  keeps telemetry/achievements bridged) and explicit `user_id` scoping in the
+  (drafted. Its scope is stated in deployed grants, not in 003's name arithmetic:
+  the `pg_policies` dump holds one `FOR ALL TO anon USING (user_id IS NULL)` grant
+  per content table, so the 20 per-operation names step 1 carries match nothing
+  here and step 2's predicate drop is what closes it. Telemetry and achievements
+  stay bridged on purpose.) and explicit `user_id` scoping in the
   read wrappers (`tests/unit/read-ownership-scope.test.ts` pins it; written
   first and observed red against the current code, which is the proof the
   predicates were missing). RLS remains the enforcement point — the client filter
