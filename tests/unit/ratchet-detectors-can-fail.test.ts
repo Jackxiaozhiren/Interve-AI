@@ -91,18 +91,23 @@ describe("every debt detector can actually fail", () => {
 
   it("counts prose lines over a docs directory, and would notice one more file", () => {
     // auditDocsLines reads the tree, so it gets a directory fixture rather than a
-    // source string: two files of 2 and 3 lines must total 5, and a stray .txt in
-    // the same directory must not be counted.
+    // source string. The fixture is written the way markdown actually is — a blank
+    // separator inside a file, a trailing newline on every file — because that is
+    // exactly what the old ruler counted as prose: 598 separators and 27 phantom
+    // tail lines, 625 lines of formatting presented as content.
     const dir = mkdtempSync(path.join(tmpdir(), "docs-prose-"));
     try {
       writeFileSync(path.join(dir, "A.md"), "one\ntwo\n");
       writeFileSync(path.join(dir, "B.md"), "one\ntwo\nthree\n");
       writeFileSync(path.join(dir, "notes.txt"), "ignored\nignored\nignored\nignored\n");
-      const lines = (s: string) => s.split("\n").length;
-      expect(countDocsProseLines(dir)).toBe(lines("one\ntwo\n") + lines("one\ntwo\nthree\n"));
+      expect(countDocsProseLines(dir), "blank separators, trailing newlines and non-.md files are not prose").toBe(5);
+
+      writeFileSync(path.join(dir, "A.md"), "one\n\n\n\ntwo\n");
+      expect(countDocsProseLines(dir), "reflowing markdown must not move a debt measurement")
+        .toBe(5);
+
       writeFileSync(path.join(dir, "C.md"), "added\n");
-      expect(countDocsProseLines(dir), "the ceiling cannot notice new audit prose")
-        .toBe(lines("one\ntwo\n") + lines("one\ntwo\nthree\n") + lines("added\n"));
+      expect(countDocsProseLines(dir), "the ceiling cannot notice new audit prose").toBe(6);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
