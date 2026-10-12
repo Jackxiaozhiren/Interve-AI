@@ -10,12 +10,13 @@
  *
  * So every number in that paragraph is now read from the artifact that owns it.
  */
-import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PROMPT_REGISTRY } from "@/ai/prompts";
 import { measureDebtRegex } from "../../scripts/audit-facts.mjs";
+import { readRepo, walkRepo } from "./repo-tree";
 
-const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
+const readme = readRepo("README.md");
+const sourceFiles = (dir = "src"): string[] => walkRepo(dir, (rel) => /\.tsx?$/.test(rel));
 
 /** The integer inside the parentheses that follow a phrase in the README. */
 function claimedNumber(after: string): number | null {
@@ -25,52 +26,50 @@ function claimedNumber(after: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-function generateObjectRoutes(): string[] {
-  return sourceFiles("src/app/api").filter((rel) => /\bgenerateObject\s*\(/.test(text(rel)));
+/**
+ * A README number and the measurement that owns it, compared.
+ *
+ * Four arms below need exactly this pair of assertions — "the sentence is still
+ * there to read" and "it matches". Written inline four times it is the shape this
+ * repo's duplication gate counts, so it lives here once.
+ */
+function expectClaim(claimed: number | null, measured: number, what: string): void {
+  expect(claimed, `the README no longer states the ${what} count where this test reads it`).not.toBeNull();
+  expect(claimed, `README says ${claimed}, the code measures ${measured} for ${what}`).toBe(measured);
 }
 
-/** Every .ts/.tsx under `src/`, walked once for the readers below. */
-function sourceFiles(dir = "src"): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (!entry.includes(".")) { out.push(...sourceFiles(rel)); continue; }
-    if (/\.tsx?$/.test(entry)) out.push(rel);
-  }
-  return out;
+function generateObjectRoutes(): number {
+  return sourceFiles("src/app/api").filter((rel) => /\bgenerateObject\s*\(/.test(readRepo(rel))).length;
 }
-
-const text = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
 
 /** Occurrences of a token across `src/`, counted the same way for both sides. */
 function countInSrc(re: RegExp): number {
-  return sourceFiles().reduce((n, rel) => n + (text(rel).match(re) ?? []).length, 0);
+  return sourceFiles().reduce((n, rel) => n + (readRepo(rel).match(re) ?? []).length, 0);
 }
 
 /** Files the collector's own debt regex matches — the ratchet's counting scope. */
 function debtFiles(key: string): number {
-  return sourceFiles().filter((rel) => measureDebtRegex(key, text(rel)) > 0).length;
+  return sourceFiles().filter((rel) => measureDebtRegex(key, readRepo(rel)) > 0).length;
 }
 
 /** How many prompt modules carry the untrusted-input fence. */
 function fencedPromptFiles(): number {
-  return readdirSync(new URL("../../src/ai/prompts", import.meta.url)).filter(
-    (f) => f.endsWith(".ts") && /UNTRUSTED/.test(readFileSync(new URL(`../../src/ai/prompts/${f}`, import.meta.url), "utf8"))
+  return walkRepo("src/ai/prompts", (rel) => rel.endsWith(".ts")).filter(
+    (rel) => /UNTRUSTED/.test(readRepo(rel))
   ).length;
 }
 
 describe("the README's architecture counts are the measured ones", () => {
   it("counts versioned prompts the way the registry counts them", () => {
-    const claimed = claimedNumber("Versioned prompts `src/ai/prompts/`");
-    expect(claimed, "the README no longer states the prompt count where this test reads it").not.toBeNull();
-    expect(claimed, `README says ${claimed}, the registry holds ${PROMPT_REGISTRY.length}`).toBe(PROMPT_REGISTRY.length);
+    expectClaim(
+      claimedNumber("Versioned prompts `src/ai/prompts/`"),
+      PROMPT_REGISTRY.length,
+      "registered prompt"
+    );
   });
 
   it("counts the routes still on generateObject rather than the call sites", () => {
-    const claimed = claimedNumber("`generateObject` (");
-    const measured = generateObjectRoutes().length;
-    expect(claimed, "the README no longer states the route count where this test reads it").not.toBeNull();
-    expect(claimed, `README says ${claimed}, ${measured} route files call generateObject`).toBe(measured);
+    expectClaim(claimedNumber("`generateObject` ("), generateObjectRoutes(), "route on generateObject");
   });
 
   it("registers every prompt the folder exports, and no id twice", () => {
@@ -106,9 +105,11 @@ describe("the README's architecture counts are the measured ones", () => {
   });
 
   it("counts the prompt files that fence untrusted input", () => {
-    const claimed = claimedNumber("Untrusted resume/JD/answers are fenced as data");
-    expect(claimed, "the README no longer states the fencing count where this test reads it").not.toBeNull();
-    expect(claimed, `README says ${claimed}, ${fencedPromptFiles()} prompt files carry the fence`).toBe(fencedPromptFiles());
+    expectClaim(
+      claimedNumber("Untrusted resume/JD/answers are fenced as data"),
+      fencedPromptFiles(),
+      "untrusted-input fence"
+    );
   });
 
   it("names how many files are still on the deprecated object APIs", () => {
@@ -116,13 +117,9 @@ describe("the README's architecture counts are the measured ones", () => {
     // nothing here can observe. It now states the number a ratchet already bounds,
     // and is checked against both that ceiling and the collector's own regex.
     const m = /\b(\d+) files still call the deprecated object APIs\b/.exec(readme);
-    const claimed = m ? Number(m[1]) : null;
     const measured = debtFiles("deprecatedObjectGenFiles");
-    expect(claimed, "the README no longer states the deprecated-API count").not.toBeNull();
-    expect(claimed, `README says ${claimed}, ${measured} files call generateObject/streamObject`).toBe(measured);
-    const ceiling = JSON.parse(
-      readFileSync(new URL("../../docs/audit/facts.limits.json", import.meta.url), "utf8")
-    ).ceiling["debt.deprecatedObjectGenFiles"];
+    expectClaim(m ? Number(m[1]) : null, measured, "file on a deprecated object API");
+    const ceiling = JSON.parse(readRepo("docs/audit/facts.limits.json")).ceiling["debt.deprecatedObjectGenFiles"];
     expect(measured, "the README's number must be the ceiling it claims to name").toBe(ceiling);
   });
 
