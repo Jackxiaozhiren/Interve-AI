@@ -229,7 +229,7 @@ export function countAnyEscapes(sourceText, fileName) {
  * crossed a localStorage boundary into `useChat`'s `setMessages`, the same
  * crossing that PR #58 proved was fatal when answered with a cast.
  *
- * Deliberately narrower than a NeverKeyword count. `showLatency?: never` in
+ * Deliberately narrower than a NeverKeyword count. `wsLatency?: never` in
  * SystemHealthIndicator is a legitimate "do not pass this prop" declaration, and
  * a key that counted it would train the next reader to raise the ceiling instead
  * of reading the site. Only an AsExpression whose type is `never` (optionally

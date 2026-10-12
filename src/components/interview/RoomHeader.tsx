@@ -51,7 +51,7 @@ export function RoomHeader({
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full z-10 shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.02)] mx-2 mt-2">
       <div className="flex items-center gap-3">
-        <SystemHealthIndicator isOnline={true} stressTest={stressTest} />
+        <SystemHealthIndicator stressTest={stressTest} />
         <h1 className="text-[15px] font-heading font-semibold tracking-tight text-slate-700">
           {stressTest ? "AI 面试间 (压力测试模式)" : "AI 面试间"}
         </h1>
