@@ -485,6 +485,92 @@ export function findUnreferencedProductionDeps(dependencies, specifiers, peersOf
 }
 
 /**
+ * Files under `corpus` that carry their own recursive directory walk.
+ *
+ * `tests/unit/repo-tree.ts` is the declared owner of that walk, so every other
+ * copy is a second place for the same five lines to be wrong — which is not
+ * hypothetical: one copy read any entry without a dot as a directory and crashed
+ * on a real file named `LICENSE` (see that file's header), and the copies spell
+ * the same call two ways — bare `readdirSync` or `fs.readdirSync` — so a ruler
+ * keyed on one spelling is blind to the other.
+ *
+ * AST, deliberately, and the ruler was wrong twice on the way here. A first
+ * version keyed candidate functions by name, so a file that also holds a `walk`
+ * over `ts.Node` (ci-lane-claims) had its directory walker overwritten and was
+ * never reported; and it matched only the bare spelling, so eight more copies
+ * vanished with it. Both are recorded because they are the reason this is
+ * exported and re-derivable: `--check` recomputes it on every run, and
+ * tests/unit/ratchet-detectors-can-fail.test.ts aims it at a fixture tree.
+ *
+ * A file counts once. The owner is subtracted only while it still carries a walk,
+ * so deleting the shared helper cannot lower the number by subtraction.
+ */
+export function findRepoWalkers(root = ROOT, corpus = "tests") {
+  const dir = path.join(root, corpus);
+  if (!fs.existsSync(dir)) return [];
+  const found = walk(dir)
+    .filter((f) => f.endsWith(".ts"))
+    .filter((f) => carriesRecursiveWalk(fs.readFileSync(f, "utf8")))
+    .map((f) => path.relative(root, f).split(path.sep).join("/"))
+    // Explicit comparator: the ledger's queue is read by name and asserted in order
+    // by tests/unit/ratchet-detectors-can-fail.test.ts, and a bare `.sort()` on
+    // strings is the lexicographic-by-coercion form SonarCloud flags as a bug.
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const owner = `${corpus}/unit/repo-tree.ts`;
+  return found.includes(owner) ? found.filter((f) => f !== owner) : found;
+}
+
+const isReaddirCall = (n) =>
+  ts.isCallExpression(n) &&
+  ((ts.isIdentifier(n.expression) && n.expression.text === "readdirSync") ||
+    // The `fs.` form is how eight of the copies spell it; matching only the bare
+    // import silently drops them, and a silent drop is an undercount.
+    (ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === "readdirSync"));
+
+function callsSelfNamed(n, name) {
+  return ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === name;
+}
+
+function containsCall(node, predicate) {
+  if (predicate(node)) return true;
+  let found = false;
+  node.forEachChild((child) => {
+    if (!found && containsCall(child, predicate)) found = true;
+  });
+  return found;
+}
+
+/** Some named callable in this source lists a directory and then calls itself. */
+function carriesRecursiveWalk(text) {
+  const sf = ts.createSourceFile("probe.ts", text, ts.ScriptTarget.Latest, true);
+  const callables = [];
+  const collect = (n) => {
+    if (
+      (ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n) || ts.isArrowFunction(n)) &&
+      n.name &&
+      ts.isIdentifier(n.name)
+    ) {
+      // Pairs, not a name-keyed map: a file may hold two callables with the same
+      // name, and the second overwriting the first is the 17-vs-26 undercount.
+      callables.push([n.name.text, n]);
+    }
+    if (
+      ts.isVariableDeclaration(n) &&
+      ts.isIdentifier(n.name) &&
+      n.initializer &&
+      (ts.isArrowFunction(n.initializer) || ts.isFunctionExpression(n.initializer))
+    ) {
+      callables.push([n.name.text, n.initializer]);
+    }
+    n.forEachChild(collect);
+  };
+  sf.forEachChild(collect);
+  return callables.some(
+    ([name, fn]) => containsCall(fn, isReaddirCall) && containsCall(fn, (n) => callsSelfNamed(n, name)),
+  );
+}
+
+/**
  * Peer requirements of an installed package, or nothing at all when it is not a
  * package: `@/lib/db` and `./x` are this repo's own specifiers, and a missing
  * manifest here is the correct answer, not a probe that read nothing — so it goes
@@ -742,6 +828,7 @@ function collectDebt() {
     .sort((a, b) => b.lines - a.lines)
     .slice(0, 5);
   const dead = collectDeadControlsInSrc();
+  const walkers = findRepoWalkers();
   const auditDocsLines = countDocsProseLines(path.join(ROOT, "docs/audit"));
   return {
     deprecatedObjectGenFiles: countDebtAcrossTree("deprecatedObjectGenFiles"),
@@ -758,6 +845,11 @@ function collectDebt() {
     // one a decision instead of a guess.
     deadControlFiles: dead.map((d) => d.file),
     deadControls: dead.reduce((sum, d) => sum + d.count, 0),
+    // Array + scalar siblings, same reason as the two above: the ceiling bounds
+    // how many guards carry their own walk, and the names are what makes the next
+    // migration a decision instead of a guess.
+    repoWalkerFiles: walkers,
+    repoWalkers: walkers.length,
     longestSourceFiles: withLines,
     // Scalar sibling, because numericLeaves maps an array to its length: a
     // ceiling on longestSourceFiles would bound how many rows this report
@@ -959,6 +1051,16 @@ export const RATCHET_KEYS = {
     + "shape question with code that a test can exercise. Tests are excluded on purpose: a "
     + "fixture cast there is how you build an impossible input on purpose, and counting it "
     + "would only train the next reader to raise this ceiling.",
+  "debt.repoWalkers":
+    "guard files carrying their own recursive directory walk instead of the shared owner in "
+    + "tests/unit/repo-tree.ts. Measured 2026-10-13: 26 copies, three migrated in the same commit that "
+    + "added this key (anchor-integrity, upload-surface-routing, first-render-is-server-computable), each "
+    + "proven to return the identical corpus — same 154 or 282 files, same order — against its own retired "
+    + "code, so the ceiling of 23 is what is left rather than what was found. A new copy is red "
+    + "immediately and debt.repoWalkerFiles names the queue. Not style: the copies diverge in ways that "
+    + "already bit (a dotless file read as a directory, two spellings of the same call), and every "
+    + "migration must lower this number in the same commit. At 0, delete the key rather than keep a "
+    + "ceiling guarding nothing.",
   "debt.auditDocsLines":
     "docs/audit prose volume — non-blank lines. The ruler was corrected 2026-10-12: it counted blank "
     + "separators and one phantom trailing line per file, so the corpus measured 3145 while holding 2520 "

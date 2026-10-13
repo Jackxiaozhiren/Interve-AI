@@ -95,6 +95,35 @@ describe("ratchet ledger integrity", () => {
       expect(typeof leaves[key], `${key} is declared but not measured`).toBe("number");
     }
   });
+
+  it("explains every limit it carries, and stops explaining the ones it dropped", () => {
+    // `_keys` is the half an owner actually reads before approving a DDL or dropping
+    // a dependency: what the ceiling guards and what would reopen it. It is written
+    // from RATCHET_KEYS by `--seed`, so a key added by hand simply has no note, and
+    // nothing said so. Measured on 2026-10-13 while adding one: 16 keys carried a
+    // limit and 14 carried a note — the new one, plus `hardInternalNavigations`,
+    // which has been guarding a ceiling since 2026-10-05 without a word in the
+    // ledger. Both directions are checked, because a note left behind by a deleted
+    // key reads to the next reader as a rule that is still in force.
+    const limited = [...Object.keys(limits.ceiling), ...Object.keys(limits.floor)].sort();
+    const noted = Object.keys(limits._keys ?? {}).sort();
+    const unexplained = limited.filter((k) => !noted.includes(k));
+    expect(unexplained, `limits with no note in ${LIMITS_FILE}: ${unexplained.join(", ")}`).toEqual([]);
+    const orphanNotes = noted.filter((k) => !limited.includes(k));
+    expect(orphanNotes, `notes for keys the ledger no longer ratchets: ${orphanNotes.join(", ")}`).toEqual([]);
+
+    // A note that only restates the key explains nothing, which is the failure mode
+    // a completeness check alone cannot see. Flip condition: shorten any note to its
+    // own name and this reddens.
+    const stubs = Object.entries(limits._keys ?? {}).filter(
+      ([key, note]) =>
+        typeof note !== "string" ||
+        !/\s/.test(note.trim()) ||
+        note.trim() === key ||
+        note.trim() === key.split(".").pop(),
+    );
+    expect(stubs, `notes that restate their key instead of explaining it: ${stubs.map(([k]) => k).join(", ")}`).toEqual([]);
+  });
 });
 
 describe("debt ratchet (Ring B)", () => {
