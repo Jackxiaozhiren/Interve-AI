@@ -1,5 +1,5 @@
 {
-  "_about": "Plants whose only difference from each other is data. guards.mjs maps over this list instead of writing eight structurally identical object literals in JavaScript: SonarCloud's duplication detector flagged 48 lines of the tuple table that preceded this file (new_duplicated_lines_density 68.6% with every string in every row different), because its JS detector compares token structure rather than literal text. Keeping the eight rows as JSON data also means adding a ninth is one entry, not a code change.",
+  "_about": "Plants whose only difference from each other is data. guards.mjs maps over this list instead of writing structurally identical object literals in JavaScript: SonarCloud's duplication detector flagged 48 lines of the tuple table that preceded this file (new_duplicated_lines_density 68.6% with every string in every row different), because its JS detector compares token structure rather than literal text. Keeping these rows as JSON data also means adding another is one entry, not a code change.",
   "_fields": "name, what the defect is (desc), file, anchor (must occur exactly once), replacement, test (the vitest file that must go red), pattern (a metachar-free substring of the arm title — vitest's -t is a regex)",
   "plants": [
     {
@@ -73,6 +73,51 @@
       "replacement": "on:\n  push:\n    branches: [main]\n  schedule:",
       "test": "tests/unit/nightly-workflow.test.ts",
       "pattern": "triggers on schedule"
+    },
+    {
+      "name": "ORT1",
+      "desc": "sign-in sends the browser to a guarded page, so the callback takes an extra 307",
+      "file": "src/lib/auth.ts",
+      "anchor": "redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined,",
+      "replacement": "redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined,",
+      "test": "tests/unit/oauth-redirect-target.test.ts",
+      "pattern": "lands outside every proxy-protected prefix"
+    },
+    {
+      "name": "APH1",
+      "desc": "the account caption stops promising that anything is saved",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "用账号登录 · 面试记录、报告与回放都会保存",
+      "replacement": "用账号登录",
+      "test": "tests/unit/auth-path-honesty.test.ts",
+      "pattern": "offers an account path and marks it as the saving one"
+    },
+    {
+      "name": "GEB1",
+      "desc": "a Tailwind class on the root fallback, which renders without globals.css",
+      "file": "src/app/global-error.tsx",
+      "anchor": "<p className=\"digest\">",
+      "replacement": "<p className=\"digest text-slate-500\">",
+      "test": "tests/unit/global-error-boundary.test.ts",
+      "pattern": "applies only classes its own stylesheet defines"
+    },
+    {
+      "name": "ONB1",
+      "desc": "the tour's keydown listens for Esc, which is the legacy code and never the key",
+      "file": "src/components/dashboard/OnboardingTour.tsx",
+      "anchor": "if (e.key === \"Escape\") handleClose();",
+      "replacement": "if (e.key === \"Esc\") handleClose();",
+      "test": "tests/unit/onboarding-tour.test.ts",
+      "pattern": "Escape dismisses like the X button"
+    },
+    {
+      "name": "MO1",
+      "desc": "the frozen UUID schema is put back into the run order a fresh project follows",
+      "file": "supabase/migrations/README.md",
+      "anchor": "   仍有顺序约束：必须在 OAuth 登录路径真的能用之后再跑；",
+      "replacement": "5. `0001_initial_schema.sql` —— 先建立基表；\n   仍有顺序约束：必须在 OAuth 登录路径真的能用之后再跑；",
+      "test": "tests/unit/migration-order.test.ts",
+      "pattern": "keeps the frozen file out of the run order"
     }
   ]
 }
