@@ -2,11 +2,11 @@
  * The anon bridge: keep the claim and the evidence at the same strength.
  *
  * `docs/SECURITY.md` said migration 006 "closed the anon-readable content
- * tables". `006_close_anon_bridge_content_tables.sql`'s own header says
- * "STATUS: DRAFT — NOT APPLIED ANYWHERE". A keyless local path cannot reach the
- * live catalog to settle it — the publishable key reads through PostgREST, which
- * applies RLS but never reports it — and the probe that can be run is
- * self-ambiguous: anon reads return 0 rows on all seven tables today, which is
+ * tables" while `006_close_anon_bridge_content_tables.sql`'s own header called
+ * itself a draft. For six weeks no path in the repo could settle it — the
+ * publishable key reads through PostgREST, which applies RLS but never reports
+ * it — and the probe that could be run was self-ambiguous: anon reads return 0
+ * rows on all seven tables, which is
  * what a closed bridge looks like *and* what a database with no ownerless rows
  * looks like.
  *
@@ -33,6 +33,7 @@ import {
 const REPO = resolve(__dirname, "../..");
 const EVIDENCE = "docs/audit/anon-bridge-evidence.json";
 const DOC = "docs/SECURITY.md";
+const FILE_006 = "006_close_anon_bridge_content_tables.sql";
 
 /** The five tables 006 closes, and the two it keeps bridged on purpose. */
 const CLOSED_TABLES = ["interviews", "evaluations", "practice_sessions", "assessments", "orama_index"];
@@ -75,10 +76,12 @@ describe("the expected policy set is derived, not quoted", () => {
     expect(state.unparsed, `unparsed policy statements: ${state.unparsed.join(" | ")}`).toEqual([]);
   });
 
-  it("lands on the arithmetic 006 claims for itself", () => {
+  it("lands on the arithmetic 003 defines, which is not this project's shape", () => {
     // 7 tables x 4 per-operation owner policies + 2 bridge tables x 4 legacy
-    // policies. 006's header says "five tables x four operations = 20 dropped";
-    // that is the half that must be *absent*, asserted right here.
+    // policies, all of it derived from the migration files rather than quoted.
+    // These 20 content-table names are what step 1 of 006 carries; the arm at the
+    // bottom of this file holds the deployed grant count, which is a different
+    // number and the one the migration's SCOPE line has to state.
     expect(state.policies.size).toBe(36);
     expect(bridge.closed.filter((b) => b.present)).toEqual([]);
     expect(bridge.closed.length).toBe(20);
@@ -201,5 +204,30 @@ describe("the documentation cannot outpace the evidence", () => {
     for (const table of CLOSED_TABLES) {
       expect(drop.residualPredicate, `the residual check does not cover ${table}`).toContain(`'${table}'`);
     }
+  });
+
+  it("states 006's scope in deployed grants, with the digit derived from the dump", () => {
+    // The header used to read "five tables x four operations = 20 policies
+    // dropped" — arithmetic done on the names 003 defines, sitting five lines
+    // below its own record that this project has one cmd=ALL grant per table. On
+    // the deployed catalog that sentence describes twenty drops that match
+    // nothing, and a reader acting on it would believe the hole was the four
+    // names. So the number is no longer typed: it is re-derived from the dump.
+    const grants = evidence.pgPolicies.rows.filter((r) => CLOSED_TABLES.includes(r.table) && isAnonBridge(r));
+    const perTable: Record<string, number> = {};
+    for (const g of grants) perTable[g.table] = (perTable[g.table] ?? 0) + 1;
+    const multiples = Object.entries(perTable).filter(([, n]) => n > 1);
+    // Both of the following are flip conditions, not confirmations: a catalog
+    // carrying the four-operation names alongside the ALL grant, or one carrying
+    // per-operation grants instead of the ALL shape, lands here and forces the
+    // SCOPE sentence to be re-read rather than quietly re-typed.
+    expect(multiples, `more than one anon grant on ${multiples.map(([t]) => t).join(", ")}`).toEqual([]);
+    expect(Object.keys(perTable).sort()).toEqual([...CLOSED_TABLES].sort());
+    expect([...new Set(grants.map((g) => g.cmd))]).toEqual(["ALL"]);
+
+    const header = readFileSync(resolve(REPO, migrationDir, FILE_006), "utf8");
+    const marker = /SCOPE: LIVE GRANTS ON THIS PROJECT: (\d+)/.exec(header);
+    expect(marker, `${FILE_006} carries no measured grant count — the scope is prose again`).not.toBeNull();
+    expect(Number(marker![1]), "the SCOPE line's grant count and the pg_policies dump disagree").toBe(grants.length);
   });
 });

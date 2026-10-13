@@ -37,7 +37,14 @@
 --     about rows that already exist, and it does nothing for the read path
 --     above, which is why the policy has to go as well.
 --
--- SCOPE: five tables x four operations = 20 policies dropped.
+-- SCOPE: LIVE GRANTS ON THIS PROJECT: 5 -- one "Legacy anon unowned access"
+--   FOR ALL TO anon USING (user_id IS NULL) grant per closed table, read out of
+--   pg_policies into docs/audit/anon-bridge-evidence.json on 2026-10-12.
+--   tests/unit/anon-bridge-status.test.ts re-derives that number from the dump
+--   and fails if this digit and the dump disagree, or if the dump stops being
+--   one grant per table -- either way the sentence above has to be re-read, not
+--   re-typed. Step 1 is NOT the scope: it drops the 20 per-operation names 003
+--   defines for a four-operation shape, and on this project all 20 match nothing.
 -- DELIBERATELY NOT CLOSED: telemetry and achievements keep their bridge.
 --   telemetry is PII-free by the observability section's own rules and
 --   tests/unit/owner-binding.test.ts still pins unowned telemetry writes;

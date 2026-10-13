@@ -179,8 +179,8 @@ domain, no service worker need, and "no global-error needed").
   unconditionally, so every insert is rejected — before RLS is even evaluated,
   because column resolution happens at planning. The `catch` then reported it as
   "Database unavailable", which is why the symptom kept pointing at the network.
-  `supabase/migrations/005_interview_session_columns.sql` is drafted (additive,
-  rollback spelled out) and **deliberately not applied**: with 42703 gone, the
+  `supabase/migrations/005_interview_session_columns.sql` was drafted (additive,
+  rollback spelled out) and **held back deliberately** at the time: with 42703 gone, the
   email/password path writes `user_id IS NULL` rows — `src/lib/supabase.ts` is
   `createClient(url, anonKey)` and nothing in `src/` calls `auth.setSession`, so
   every browser request runs as role `anon` — and 003's `Legacy anon select
@@ -188,6 +188,18 @@ domain, no service worker need, and "no global-error needed").
   005 alone converts "nobody's data saves" into "everyone's resumes and
   transcripts sit in one global bucket". Either finish the Supabase Auth
   cutover or close the legacy anon policies first.
+  **Status 2026-10-12, measured rather than inferred:** 005 **is** applied
+  (`information_schema.columns` lists all six, and the same probe returned 200 on
+  2026-10-02), so the first half of this item is closed as a cause — writes no
+  longer die on 42703. 006 is **not** applied, and the live bridge is not the
+  four per-operation policies 003 names but one `Legacy anon unowned access`
+  `FOR ALL TO anon USING (user_id IS NULL)` per table, on all seven tables
+  (`docs/audit/anon-bridge-evidence.json`). So the second half of this item is now
+  the *only* thing between a signed-out visitor and a globally readable row, and
+  it is live for `interviews` too. Why nothing has persisted anyway: the app refuses
+  ownerless writes to these five tables (`NO_OWNER`, shipped 2026-09-28), and every
+  one of the seven tables still holds **0 rows**, so no interview has ever been
+  written end to end — which is the remaining reason this box is unticked.
   `tests/unit/row-contract-columns.test.ts` now holds the repo-side invariant for
   **every** table the client writes to — measured clean apart from these six —
   and was proven to bite per table (hiding 004 reddens only `practice_sessions`).
@@ -203,13 +215,19 @@ domain, no service worker need, and "no global-error needed").
   the publishable key and runs as role `anon`. Under 003's legacy anon bridge
   that means any holder of the key reads every `user_id IS NULL` row — other
   people's resume text, job descriptions and transcripts.
-  Not hypothetical for every table: `interviews` writes still die on 42703 so it
-  has no rows to leak, but `practice_sessions`, `telemetry`, `achievements`,
-  `evaluations`, `assessments` and `orama_index` have all their columns and their
-  writes succeed today.
+  Not hypothetical for every table: `interviews` writes used to die on 42703, so
+  that table had no rows to leak; as of 2026-10-12 its columns exist, so the
+  exposure is live there too. `practice_sessions`, `telemetry`, `achievements`,
+  `evaluations`, `assessments` and `orama_index` have always had all their columns
+  and their writes succeed. What keeps the bucket empty today is the app's own
+  `NO_OWNER` refusal (`src/lib/api-client.ts:91`), not the schema error — and every
+  one of the seven tables still measures **0 rows**.
   Two-part fix in flight: migration `006_close_anon_bridge_content_tables.sql`
-  (drafted, drops the 20 anon policies on the five owner-gated content tables,
-  keeps telemetry/achievements bridged) and explicit `user_id` scoping in the
+  (drafted. Its scope is stated in deployed grants, not in 003's name arithmetic:
+  the `pg_policies` dump holds one `FOR ALL TO anon USING (user_id IS NULL)` grant
+  per content table, so the 20 per-operation names step 1 carries match nothing
+  here and step 2's predicate drop is what closes it. Telemetry and achievements
+  stay bridged on purpose.) and explicit `user_id` scoping in the
   read wrappers (`tests/unit/read-ownership-scope.test.ts` pins it; written
   first and observed red against the current code, which is the proof the
   predicates were missing). RLS remains the enforcement point — the client filter
