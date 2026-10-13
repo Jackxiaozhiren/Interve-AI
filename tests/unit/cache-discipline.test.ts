@@ -15,27 +15,20 @@
 // explicit cacheLife + cacheTag (law 10), and cacheComponents must not be
 // enabled without a Suspense audit (§B#12).
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import { readRepo, walkRepo } from "./repo-tree";
 
-const SRC = fileURLToPath(new URL("../../src/", import.meta.url));
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
-function walk(dir: string, out: string[] = []): string[] {
-  for (const e of readdirSync(dir)) {
-    const p = join(dir, e);
-    if (statSync(p).isDirectory()) out = walk(p, out);
-    else if (/\.(ts|tsx)$/.test(p)) out.push(p);
-  }
-  return out;
-}
+const srcFiles = () => walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel));
 
 describe("cache discipline (B3, law 10)", () => {
   it("every 'use cache' domain carries explicit cacheLife + cacheTag", () => {
     const offenders: string[] = [];
-    for (const f of walk(SRC)) {
-      const text = readFileSync(f, "utf8");
+    for (const f of srcFiles()) {
+      const text = readRepo(f);
       if (/'use cache'/.test(text) && !(/cacheLife/.test(text) && /cacheTag/.test(text))) {
         offenders.push(f);
       }
@@ -49,8 +42,8 @@ describe("cache discipline (B3, law 10)", () => {
 
   it("no user-level data enters a shared-cache domain", () => {
     const offenders: string[] = [];
-    for (const f of walk(SRC)) {
-      const text = readFileSync(f, "utf8");
+    for (const f of srcFiles()) {
+      const text = readRepo(f);
       if (!/'use cache'/.test(text)) continue;
       if (/session|user_id|auth\.uid|transcript|resumeText/i.test(text)) offenders.push(f);
     }

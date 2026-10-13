@@ -12,22 +12,16 @@
 // env internally is invisible here, so the one known implicit reader is pinned
 // separately.
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import { readRepo, walkRepo } from "./repo-tree";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
-function walk(dir: string, out: string[] = []): string[] {
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) walk(full, out);
-    else if (/\.(ts|tsx)$/.test(full)) out.push(full);
-  }
-  return out;
-}
+const srcFiles = () => walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel));
 
-const srcText = walk(join(ROOT, "src")).map((f) => readFileSync(f, "utf8")).join("\n");
+const srcText = srcFiles().map((f) => readRepo(f)).join("\n");
 const example = readFileSync(join(ROOT, ".env.example"), "utf8");
 
 const readNames = [...new Set([...srcText.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)].map((m) => m[1]))].sort();
