@@ -512,7 +512,10 @@ export function findRepoWalkers(root = ROOT, corpus = "tests") {
     .filter((f) => f.endsWith(".ts"))
     .filter((f) => carriesRecursiveWalk(fs.readFileSync(f, "utf8")))
     .map((f) => path.relative(root, f).split(path.sep).join("/"))
-    .sort();
+    // Explicit comparator: the ledger's queue is read by name and asserted in order
+    // by tests/unit/ratchet-detectors-can-fail.test.ts, and a bare `.sort()` on
+    // strings is the lexicographic-by-coercion form SonarCloud flags as a bug.
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   const owner = `${corpus}/unit/repo-tree.ts`;
   return found.includes(owner) ? found.filter((f) => f !== owner) : found;
 }
