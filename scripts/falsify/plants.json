@@ -163,6 +163,15 @@
       "replacement": "const handleSaveEvaluation = async () => {\n    await db.candidates.add({ id: selectedCandidate?.id, notes });",
       "test": "tests/unit/recruiter-demo-contract.test.ts",
       "pattern": "persists nothing about the invented candidates"
+    },
+    {
+      "name": "RRP1",
+      "desc": "the read-response sweep quietly losing the ten files under src/lib/api",
+      "file": "tests/unit/read-response.test.ts",
+      "anchor": "if (full.includes(`${path.sep}api${path.sep}`)) continue;",
+      "replacement": "if (entry.name === \"api\") continue;",
+      "test": "tests/unit/read-response.test.ts",
+      "pattern": "names both ends of its own exclusion"
     }
   ]
 }
