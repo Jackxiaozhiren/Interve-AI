@@ -5,10 +5,12 @@ import { THINK_TIME_SECONDS, thinkTimeBarWidth } from "@/lib/interview/think-tim
 const LIB = "src/lib/interview/think-time.ts";
 const PAGE = "src/app/interview/page.tsx";
 const OVERLAYS = "src/components/interview/RoomOverlays.tsx";
+const HEADER = "src/components/interview/RoomHeader.tsx";
 
 const lib = readFileSync(new URL(`../../${LIB}`, import.meta.url), "utf8");
 const page = readFileSync(new URL(`../../${PAGE}`, import.meta.url), "utf8");
 const overlays = readFileSync(new URL(`../../${OVERLAYS}`, import.meta.url), "utf8");
+const header = readFileSync(new URL(`../../${HEADER}`, import.meta.url), "utf8");
 
 /**
  * The calm-mode bar and the countdown it renders are now in different files. These
@@ -54,5 +56,15 @@ describe("the think-time window has one owner", () => {
   it("asks the owner for the width rather than computing its own", () => {
     expect(overlays).toContain("thinkTimeBarWidth(seconds)");
     expect(overlays, "the overlay grew its own denominator").not.toMatch(/\/ \d+\) \* 100/);
+  });
+
+  it("promises the candidate the window the code actually gives", () => {
+    // The tooltip is the only place this number reaches a user as prose, and
+    // `user-facing-numbers.test.ts` reads JSX text and never attributes, so a
+    // transcribed 10 here had no owner: retune THINK_TIME_SECONDS and the button
+    // goes on advertising the old buffer. Deriving it closes the gap at the source;
+    // the negative half is the flip condition — a literal back in the copy reddens.
+    expect(header).toContain('答题前 ${THINK_TIME_SECONDS} 秒缓冲');
+    expect(header, "the tooltip restates the window as a literal again").not.toMatch(/答题前 \d+ 秒/);
   });
 });
