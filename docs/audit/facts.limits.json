@@ -2,7 +2,7 @@
   "_seededAt": "2026-09-28T11:22:32.108Z",
   "_keys": {
     "debt.hardInternalNavigations": "whole-document navigations to an app route, which drop every client module and re-run every initial fetch. Adjudicated 2026-10-05: 3 found, 2 were accidental and are now router.push; the 1 that stays is useInterviewSettlement's end-of-interview exit, kept because a full reload is the only way here that provably tears down the microphone and both speech engines. Reopens only with an observed teardown, never to accommodate a new page.",
-    "debt.repoWalkers": "guard files carrying their own recursive directory walk instead of tests/unit/repo-tree.ts. First measured 2026-10-13 at 26; eight have migrated, each accepted only after a probe ran that file's retired walker beside walkRepo and got the same list in the same order. Ceiling 18 is what the last migration left; debt.repoWalkerFiles is the queue, and at 0 this key is deleted rather than kept guarding nothing.",
+    "debt.repoWalkers": "guard files carrying their own recursive directory walk instead of tests/unit/repo-tree.ts. First measured 2026-10-13 at 26; ten have migrated, each accepted only after a probe ran that file's retired walker beside walkRepo and got the same list in the same order. Ceiling 16 is what the last migration left; debt.repoWalkerFiles is the queue, and at 0 this key is deleted rather than kept guarding nothing.",
     "debt.deprecatedObjectGenFiles": "call sites on @deprecated AI SDK object APIs",
     "debt.experimentalRepairTextHits": "deprecated experimental_repairText aliases",
     "debt.selectStarHits": "SELECT '*' — adjudicated 2026-09-19, re-verified 2026-09-26: dashboard list rows feed blob readers (SessionDetailModal councilDebate, KnowledgeMatchLoader resumeText/jobDescription). Reopens only with a lazy-get refactor of those two open paths, never blind.",
@@ -20,7 +20,7 @@
   },
   "ceiling": {
     "debt.deprecatedObjectGenFiles": 12,
-    "debt.repoWalkers": 18,
+    "debt.repoWalkers": 16,
     "debt.experimentalRepairTextHits": 8,
     "debt.selectStarHits": 13,
     "debt.tsIgnoreHits": 2,
