@@ -1053,7 +1053,7 @@ export const RATCHET_KEYS = {
     + "would only train the next reader to raise this ceiling.",
   "debt.repoWalkers":
     "guard files carrying their own recursive directory walk instead of the shared owner in "
-    + "tests/unit/repo-tree.ts. First measured 2026-10-13: 26 copies. Eight have since migrated, each in a "
+    + "tests/unit/repo-tree.ts. First measured 2026-10-13: 26 copies. Ten have since migrated, each in a "
     + "commit whose message names the file and whose migration was accepted only after a probe ran that "
     + "file's retired walker beside walkRepo over the live tree and got the same list in the same order "
     + "(see the ceiling's own history). The ceiling is what the last migration left, so a new copy is red "

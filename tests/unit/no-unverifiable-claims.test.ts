@@ -7,20 +7,14 @@
  * placeholders of a kind no anchor check can see, so they are pinned here as
  * text the codebase must not contain, and as text it must.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { walkRepo } from "./repo-tree";
 
 const read = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
 
-const SOURCE_FILES: string[] = [];
-(function walk(dir: string): void {
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) walk(rel);
-    else if (/\.tsx?$/.test(entry)) SOURCE_FILES.push(rel);
-  }
-})("src");
+const SOURCE_FILES = walkRepo("src", (rel) => /\.tsx?$/.test(rel));
 
 /**
  * Reduce a source file to what a user could actually see. JSX block comments are
