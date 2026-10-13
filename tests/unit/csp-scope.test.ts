@@ -142,6 +142,27 @@ describe("why style-src still needs 'unsafe-inline'", () => {
     expect(inlineStyles.files).toBeGreaterThan(10);
   });
 
+  it("quotes that surface in the documents the way it is measured", () => {
+    // docs/SECURITY.md and docs/RELEASE_CHECKLIST.md both give this count as the
+    // reason style-src still allows 'unsafe-inline'. The pair is recomputed above on
+    // every run, so the documents are the half that can go stale silently — and a
+    // stale number in a security document reads like a measured fact. Slots rather
+    // than substrings, so rewording either sentence has to redden this arm instead of
+    // passing on a fragment someone left behind.
+    const sentences: [string, RegExp][] = [
+      ["docs/SECURITY.md", /required by (\d+) `style=\{\{\}\}` attributes across (\d+) files/],
+      ["docs/RELEASE_CHECKLIST.md", /\((\d+) inline `style=\{\{\}\}` attributes across (\d+) files\)/],
+    ];
+    for (const [doc, shape] of sentences) {
+      const m = shape.exec(readRepo(doc));
+      expect(m, `${doc} no longer states the inline-style pair this guard measures`).not.toBeNull();
+      expect(
+        [Number(m![1]), Number(m![2])],
+        `${doc} claims ${m![1]} attributes across ${m![2]} files; the AST walk over src/ measures ${inlineStyles.count} across ${inlineStyles.files}`
+      ).toEqual([inlineStyles.count, inlineStyles.files]);
+    }
+  });
+
   it("drops 'unsafe-inline' the moment the surface is gone", () => {
     const allows = (directives.get("style-src") ?? "").includes("'unsafe-inline'");
     if (inlineStyles.count === 0) {
