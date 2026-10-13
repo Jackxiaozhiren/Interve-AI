@@ -172,6 +172,15 @@
       "replacement": "await login({ id: crypto.randomUUID(), username: \"oauth_user\", email: \"oauth_user@example.com\" });",
       "test": "tests/unit/auth-path-honesty.test.ts",
       "pattern": "opens a real provider session wherever it advertises a provider"
+    },
+    {
+      "name": "RRP1",
+      "desc": "the read-response sweep quietly losing the ten files under src/lib/api",
+      "file": "tests/unit/read-response.test.ts",
+      "anchor": "if (full.includes(`${path.sep}api${path.sep}`)) continue;",
+      "replacement": "if (entry.name === \"api\") continue;",
+      "test": "tests/unit/read-response.test.ts",
+      "pattern": "names both ends of its own exclusion"
     }
   ]
 }
