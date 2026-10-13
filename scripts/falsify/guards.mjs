@@ -80,13 +80,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * sentence, a row-contract field, a workflow trigger) for guards that had never been shown
  * able to fail, 94 with five more (an OAuth redirect that lands behind the guard, a caption
  * that stops promising persistence, a Tailwind class on the root fallback, an Escape handler
- * listening for the legacy code, the frozen schema back in the run order);
+ * listening for the legacy code, the frozen schema back in the run order), 99 with the five
+ * that came off the same re-measured list (the deadline keyword simplified out of the auth
+ * probe, the demo divider reworded into a friendly label, the collector called from a test
+ * body, a README that tells a newcomer to run a script which does not exist, and the
+ * recruiter page writing notes keyed on invented candidate ids);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 94;
+const MIN_PLANTS = 99;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
