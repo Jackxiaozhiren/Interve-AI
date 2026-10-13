@@ -1020,60 +1020,50 @@ const PLANTS = [
   // ── five privacy/discipline guards that had no witness of any kind ────────
   // Each of these suites reads `src/` and asserts an absence. With nothing planted,
   // "found none" and "cannot see anything" print the same green, which is the exact
-  // failure this harness exists to make impossible. Anchors are single-occurrence
-  // source lines, and every `pattern` below is metachar-free because vitest's `-t`
-  // is a regex, not a substring: a title containing parentheses once made a plant
-  // match nothing, and the harness correctly refused to call that clean.
-  {
-    name: "AW1",
-    desc: "a whisper worker loaded from a CDN, so the audio leaves the device",
-    kind: "vitest",
-    file: "src/app/interview/page.tsx",
-    anchor: "new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url), { type: 'module' })",
-    replacement: "new Worker(\"https://cdn.example/whisper.worker.js\", { type: 'module' })",
-    test: "tests/unit/audio-stays-local.test.ts",
-    pattern: "every Worker is built from a relative module URL",
-  },
-  {
-    name: "SQ1",
-    desc: "a read widened to select('*') with no row in the justified list",
-    kind: "vitest",
-    file: "src/lib/api-client.ts",
-    anchor: "from('interviews').insert(snakeData).select('id').single()",
-    replacement: "from('interviews').insert(snakeData).select('*').single()",
-    test: "tests/unit/select-discipline.test.ts",
-    pattern: "contains exactly the justified sites",
-  },
-  {
-    name: "WO1",
-    desc: "a state slot whose getter binding is elided, so it can only ever be written",
-    kind: "vitest",
-    file: "src/components/ui/DynamicLoader.tsx",
-    anchor: "const [index, setIndex] = useState(0);",
-    replacement: "const [, setIndex] = useState(0);",
-    test: "tests/unit/write-only-state.test.ts",
-    pattern: "no state slot is written without a reader",
-  },
-  {
-    name: "ST1",
-    desc: "the expiry sweep kept, its comparison neutered to never fire",
-    kind: "vitest",
-    file: "src/lib/interview/session-persistence.ts",
-    anchor: "nowMs - parsed.savedAt > SESSION_TTL_MS;",
-    replacement: "nowMs - parsed.savedAt > Infinity;",
-    test: "tests/unit/session-retention.test.ts",
-    pattern: "removes a 31-day-old snapshot for an interview nobody will reopen",
-  },
-  {
-    name: "DY1",
-    desc: "the image pinned to Node 20 while engines demands 24",
-    kind: "vitest",
-    file: "Dockerfile",
-    anchor: "FROM node:24-alpine AS base",
-    replacement: "FROM node:20-alpine AS base",
-    test: "tests/unit/deploy-consistency.test.ts",
-    pattern: "Dockerfile base tracks engines",
-  },
+  // failure this harness exists to catch. Anchors are single-occurrence source
+  // lines, and every pattern below is metachar-free because vitest's `-t` is a regex,
+  // not a substring: a title containing parentheses once made a plant match nothing,
+  // and the harness correctly refused to call that clean.
+  //
+  // A tuple table rather than five object literals: the first version spelled
+  // `kind:` / `file:` / `anchor:` / `replacement:` / `test:` / `pattern:` five times,
+  // and SonarCloud failed that PR's new-code duplication gate at 93.4% on nothing but
+  // the scaffolding. Same lesson `ARM_FIXTURES` records in
+  // tests/unit/ratchet-detectors-can-fail.test.ts.
+  ...[
+    ["AW1", "a whisper worker loaded from a CDN, so the audio leaves the device",
+      "src/app/interview/page.tsx",
+      "new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url), { type: 'module' })",
+      "new Worker(\"https://cdn.example/whisper.worker.js\", { type: 'module' })",
+      "tests/unit/audio-stays-local.test.ts",
+      "every Worker is built from a relative module URL"],
+    ["SQ1", "a read widened to select('*') with no row in the justified list",
+      "src/lib/api-client.ts",
+      "from('interviews').insert(snakeData).select('id').single()",
+      "from('interviews').insert(snakeData).select('*').single()",
+      "tests/unit/select-discipline.test.ts",
+      "contains exactly the justified sites"],
+    ["WO1", "a state slot whose getter binding is elided, so it can only ever be written",
+      "src/components/ui/DynamicLoader.tsx",
+      "const [index, setIndex] = useState(0);",
+      "const [, setIndex] = useState(0);",
+      "tests/unit/write-only-state.test.ts",
+      "no state slot is written without a reader"],
+    ["ST1", "the expiry sweep kept, its comparison neutered to never fire",
+      "src/lib/interview/session-persistence.ts",
+      "nowMs - parsed.savedAt > SESSION_TTL_MS;",
+      "nowMs - parsed.savedAt > Infinity;",
+      "tests/unit/session-retention.test.ts",
+      "removes a 31-day-old snapshot for an interview nobody will reopen"],
+    ["DY1", "the image pinned to Node 20 while engines demands 24",
+      "Dockerfile",
+      "FROM node:24-alpine AS base",
+      "FROM node:20-alpine AS base",
+      "tests/unit/deploy-consistency.test.ts",
+      "Dockerfile base tracks engines"],
+  ].map(([name, desc, file, anchor, replacement, test, pattern]) => ({
+    name, desc, kind: "vitest", file, anchor, replacement, test, pattern,
+  })),
 ];
 
 /**
