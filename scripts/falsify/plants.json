@@ -163,6 +163,15 @@
       "replacement": "const handleSaveEvaluation = async () => {\n    await db.candidates.add({ id: selectedCandidate?.id, notes });",
       "test": "tests/unit/recruiter-demo-contract.test.ts",
       "pattern": "persists nothing about the invented candidates"
+    },
+    {
+      "name": "SGN1",
+      "desc": "the signup provider buttons minting a throwaway identity again, the documented fake",
+      "file": "src/app/signup/page.tsx",
+      "anchor": "await signInWithOAuth(provider);",
+      "replacement": "await login({ id: crypto.randomUUID(), username: \"oauth_user\", email: \"oauth_user@example.com\" });",
+      "test": "tests/unit/auth-path-honesty.test.ts",
+      "pattern": "opens a real provider session wherever it advertises a provider"
     }
   ]
 }
