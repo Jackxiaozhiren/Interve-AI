@@ -155,4 +155,23 @@ describe("no client fetch parses JSON by hand", () => {
       );
     expect(offenders, `hand-rolled JSON parses:\n  ${offenders.join("\n  ")}`).toEqual([]);
   });
+
+  it("names both ends of its own exclusion", () => {
+    // The skip above tests a directory path against the separator-quoted string
+    // /api/, and a directory path never ends in a separator. So `src/app/api/<route>/**`
+    // is outside this corpus — the intent — while a file sitting directly inside any
+    // api directory is still inside it, which is all ten files under src/lib/api/.
+    //
+    // Whether that shared-helper directory belongs in a client-read sweep is a real
+    // question, and the answer is not in this file: those helpers do no fetching, so
+    // today the inclusion costs nothing and removes no coverage either. What was not
+    // acceptable is that the corpus was decided by a spelling. These two assertions
+    // are the seam: narrowing or widening the predicate has to redden one of them, so
+    // the choice gets made here rather than inherited from a string comparison.
+    const corpus = clientFiles().map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"));
+    // A blind corpus passes the sweep above exactly as a clean one does.
+    expect(corpus.length, "the sweep is reading almost nothing").toBeGreaterThan(200);
+    expect(corpus, "src/lib/api/guard.ts is inside this corpus; taking it out is a decision").toContain("src/lib/api/guard.ts");
+    expect(corpus, "a route handler is outside this corpus — it parses upstream bodies by contract").not.toContain("src/app/api/health/route.ts");
+  });
 });
