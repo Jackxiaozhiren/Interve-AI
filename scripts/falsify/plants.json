@@ -1,0 +1,78 @@
+{
+  "_about": "Plants whose only difference from each other is data. guards.mjs maps over this list instead of writing eight structurally identical object literals in JavaScript: SonarCloud's duplication detector flagged 48 lines of the tuple table that preceded this file (new_duplicated_lines_density 68.6% with every string in every row different), because its JS detector compares token structure rather than literal text. Keeping the eight rows as JSON data also means adding a ninth is one entry, not a code change.",
+  "_fields": "name, what the defect is (desc), file, anchor (must occur exactly once), replacement, test (the vitest file that must go red), pattern (a metachar-free substring of the arm title — vitest's -t is a regex)",
+  "plants": [
+    {
+      "name": "AW1",
+      "desc": "a whisper worker loaded from a CDN, so the audio leaves the device",
+      "file": "src/app/interview/page.tsx",
+      "anchor": "new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url), { type: 'module' })",
+      "replacement": "new Worker(\"https://cdn.example/whisper.worker.js\", { type: 'module' })",
+      "test": "tests/unit/audio-stays-local.test.ts",
+      "pattern": "every Worker is built from a relative module URL"
+    },
+    {
+      "name": "SQ1",
+      "desc": "a read widened to select('*') with no row in the justified list",
+      "file": "src/lib/api-client.ts",
+      "anchor": "from('interviews').insert(snakeData).select('id').single()",
+      "replacement": "from('interviews').insert(snakeData).select('*').single()",
+      "test": "tests/unit/select-discipline.test.ts",
+      "pattern": "contains exactly the justified sites"
+    },
+    {
+      "name": "WO1",
+      "desc": "a state slot whose getter binding is elided, so it can only ever be written",
+      "file": "src/components/ui/DynamicLoader.tsx",
+      "anchor": "const [index, setIndex] = useState(0);",
+      "replacement": "const [, setIndex] = useState(0);",
+      "test": "tests/unit/write-only-state.test.ts",
+      "pattern": "no state slot is written without a reader"
+    },
+    {
+      "name": "ST1",
+      "desc": "the expiry sweep kept, its comparison neutered to never fire",
+      "file": "src/lib/interview/session-persistence.ts",
+      "anchor": "nowMs - parsed.savedAt > SESSION_TTL_MS;",
+      "replacement": "nowMs - parsed.savedAt > Infinity;",
+      "test": "tests/unit/session-retention.test.ts",
+      "pattern": "removes a 31-day-old snapshot for an interview nobody will reopen"
+    },
+    {
+      "name": "DY1",
+      "desc": "the image pinned to Node 20 while engines demands 24",
+      "file": "Dockerfile",
+      "anchor": "FROM node:24-alpine AS base",
+      "replacement": "FROM node:20-alpine AS base",
+      "test": "tests/unit/deploy-consistency.test.ts",
+      "pattern": "Dockerfile base tracks engines"
+    },
+    {
+      "name": "PC1",
+      "desc": "the privacy page drops the retention period it promises",
+      "file": "src/app/privacy/page.tsx",
+      "anchor": "，30 天自动过期）",
+      "replacement": "，过期时间由服务端决定）",
+      "test": "tests/unit/privacy-claims.test.ts",
+      "pattern": "matches the retention the page states"
+    },
+    {
+      "name": "RC1",
+      "desc": "a row-contract field with no column behind it, the 42703 shape",
+      "file": "src/lib/db.ts",
+      "anchor": "  stressTest?: boolean;",
+      "replacement": "  stressTest?: boolean;\n  phantomColumn?: string;",
+      "test": "tests/unit/row-contract-columns.test.ts",
+      "pattern": "finds a column for every field the app writes"
+    },
+    {
+      "name": "NW1",
+      "desc": "the nightly eval lane starts running on every push, with keys",
+      "file": ".github/workflows/nightly-eval.yml",
+      "anchor": "on:\n  schedule:",
+      "replacement": "on:\n  push:\n    branches: [main]\n  schedule:",
+      "test": "tests/unit/nightly-workflow.test.ts",
+      "pattern": "triggers on schedule"
+    }
+  ]
+}

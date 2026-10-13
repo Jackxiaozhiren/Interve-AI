@@ -75,13 +75,19 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * plants exist: deleting one left the run green, and nothing in the repo counted
  * them. The floor is the harness's measured size — 68 when this rule landed, 69
  * with FC1, 73 with the four scans, 75 with the two RLS plants, 78 with the three
- * posture plants, 80 with the two rule-arm witnesses, 81 with the walker ratchet —
+ * posture plants, 80 with the two rule-arm witnesses, 81 with the walker ratchet, 86 with the
+ * five witnesses below, 89 with three more of the same class (a privacy retention
+ * sentence, a row-contract field, a workflow trigger) for guards that had never been shown
+ * able to fail;
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 81;
+const MIN_PLANTS = 89;
+
+/** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
+const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -1015,6 +1021,18 @@ const PLANTS = [
     anchor: "",
     replacement: "",
   },
+  // ── eight guards that assert an absence and had no witness of any kind ─────
+  // Each of these suites reads a corpus (src/, a workflow, the Dockerfile) and asserts
+  // something is absent from it. With nothing planted, "found none" and "cannot see
+  // anything" print the same green, which is the failure this harness exists to catch.
+  //
+  // The eight rows live in plants.json rather than inline here. Their first form was
+  // five object literals, which SonarCloud failed at 93.4% new-code duplication; the
+  // tuple table that replaced them it failed at 68.6% (48 lines flagged) even though
+  // every string in every row differs, because its JS detector compares token structure
+  // rather than text. Data does not have that problem, and a ninth witness is now one
+  // JSON entry with no change to this file.
+  ...ABSENCE_PLANTS.map((plant) => ({ ...plant, kind: "vitest" })),
 ];
 
 /**
