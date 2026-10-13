@@ -18,10 +18,10 @@
  * So the invariant is bidirectional and keyed on evidence that is re-derived on
  * every run, not on a comment someone can edit out.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import path from "node:path";
+import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { readRepo, walkRepo } from "./repo-tree";
 
 const read = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
 
@@ -57,12 +57,7 @@ const externalHosts = (value: string) =>
   [...value.matchAll(/https:\/\/([a-z0-9.-]+)/gi)].map((m) => m[1].toLowerCase());
 
 function walkSource(dir: string, visit: (abs: string, text: string) => void): void {
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    const abs = new URL(`../../${rel}`, import.meta.url);
-    if (statSync(abs).isDirectory()) walkSource(rel, visit);
-    else if (/\.(ts|tsx)$/.test(entry)) visit(path.normalize(rel), readFileSync(abs, "utf8"));
-  }
+  for (const rel of walkRepo(dir, (r) => /\.(ts|tsx)$/.test(r))) visit(rel, readRepo(rel));
 }
 
 describe("the enforced CSP", () => {
