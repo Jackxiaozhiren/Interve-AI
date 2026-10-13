@@ -7,21 +7,15 @@
  * Each test names the sentence it defends. If one starts failing, the honest fix
  * is usually to change the product or the sentence, not the assertion.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { walkRepo } from "./repo-tree";
 
 const read = (rel: string) =>
   readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
 
-const SOURCE_FILES: string[] = [];
-(function walk(dir: string): void {
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) walk(rel);
-    else if (/\.tsx?$/.test(entry)) SOURCE_FILES.push(rel);
-  }
-})("src");
+const SOURCE_FILES: string[] = walkRepo("src", (rel) => /\.tsx?$/.test(rel));
 
 /**
  * Drops whole-line and block comments. Deliberately shallow: it exists so a

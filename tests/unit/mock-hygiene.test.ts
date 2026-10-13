@@ -19,19 +19,12 @@
  * calls `importOriginal` and then discards it, is the shape a text scan certifies
  * and a parse tree does not.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { walkRepo } from "./repo-tree";
 
-function walk(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) out.push(...walk(rel));
-    else if (rel.endsWith(".ts")) out.push(rel);
-  }
-  return out;
-}
+const walk = (dir: string) => walkRepo(dir, (rel) => rel.endsWith(".ts"));
 
 interface SdkMock {
   file: string;

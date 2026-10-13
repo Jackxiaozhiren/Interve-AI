@@ -19,9 +19,10 @@
  * classify the error it caught** — because a log line is the record future
  * readers will reason from.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { walkRepo } from "./repo-tree";
 
 interface LoggingCatch {
   file: string;
@@ -30,15 +31,7 @@ interface LoggingCatch {
   classifies: boolean;
 }
 
-function routeFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) out.push(...routeFiles(rel));
-    else if (rel.endsWith("route.ts")) out.push(rel);
-  }
-  return out;
-}
+const routeFiles = (dir: string) => walkRepo(dir, (rel) => rel.endsWith("route.ts"));
 
 function loggingCatches(rel: string, src: string): LoggingCatch[] {
   const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
