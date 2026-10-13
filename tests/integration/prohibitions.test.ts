@@ -6,32 +6,15 @@
 // the build if any of them reappears. Deliberately precise (word-boundary
 // matched with documented allowlists) to avoid CSS-variable noise.
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import { readRepo, walkRepo } from "../unit/repo-tree";
 
-const SRC_DIR = fileURLToPath(new URL("../../src/", import.meta.url));
-
-function srcFiles(): string[] {
-  const out: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-      } else if (entry.endsWith(".ts") || entry.endsWith(".tsx")) {
-        out.push(full);
-      }
-    }
-  };
-  walk(SRC_DIR);
-  return out;
-}
+const srcFiles = () => walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel));
 
 function grepFiles(pattern: RegExp, opts?: { skipComments?: boolean }): { file: string; line: string }[] {
   const hits: { file: string; line: string }[] = [];
   for (const file of srcFiles()) {
-    const content = readFileSync(file, "utf8");
+    const content = readRepo(file);
     for (const raw of content.split("\n")) {
       const line = raw.trim();
       // Removal notes in comments describe history; only live code can ship
@@ -39,7 +22,7 @@ function grepFiles(pattern: RegExp, opts?: { skipComments?: boolean }): { file: 
       if (opts?.skipComments && (line.startsWith("//") || line.startsWith("/*") || line.startsWith("*") || line.startsWith("{/*"))) {
         continue;
       }
-      if (pattern.test(raw)) hits.push({ file: file.replace(SRC_DIR, "src/"), line: line.slice(0, 120) });
+      if (pattern.test(raw)) hits.push({ file, line: line.slice(0, 120) });
     }
   }
   return hits;

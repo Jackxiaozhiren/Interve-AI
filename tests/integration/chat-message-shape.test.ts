@@ -13,8 +13,7 @@
 // After the conversion both shapes reach the provider. The assertions below do
 // not read those logs: they capture the arguments the route hands to streamText.
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import path from "node:path";
+import { readRepo, walkRepo } from "../unit/repo-tree";
 import { getSessionSecret, SESSION_COOKIE, signSession } from "../../src/lib/api/session";
 import { POST as interviewChat } from "../../src/app/api/interview-chat/route";
 import { resetRateLimits } from "../../src/lib/api/rate-limit";
@@ -163,28 +162,18 @@ describe("interview-chat converts what useChat actually sends", () => {
 });
 
 describe("no API route casts transport messages into ModelMessage[]", () => {
-  function routes(dir: string, out: string[]): string[] {
-    for (const entry of readdirSync(dir)) {
-      const full = path.join(dir, entry);
-      if (statSync(full).isDirectory()) routes(full, out);
-      else if (entry === "route.ts") out.push(full);
-    }
-    return out;
-  }
-
   it("casts nothing, and the scan is not blind", () => {
-    const root = path.join(process.cwd(), "src/app/api");
-    const files = routes(root, []);
     // Sanity: the scan must see the real route count, or "no offenders" means nothing.
+    const files = walkRepo("src/app/api", (rel) => rel.endsWith("route.ts"));
     expect(files.length).toBeGreaterThanOrEqual(15);
     const offenders = files
       .map((f) => {
         // Strip comments: this file's own rationale quotes the forbidden cast,
         // and a scan that reads prose as code reports a defect that is a sentence.
-        const src = readFileSync(f, "utf8")
+        const src = readRepo(f)
           .replace(/\/\*[\s\S]*?\*\//g, " ")
           .replace(/^\s*\/\/.*$/gm, " ");
-        return /as\s+ModelMessage\s*\[\]/.test(src) ? path.relative(process.cwd(), f) : null;
+        return /as\s+ModelMessage\s*\[\]/.test(src) ? f : null;
       })
       .filter((v): v is string => v !== null);
     expect(
