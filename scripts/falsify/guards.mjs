@@ -76,14 +76,15 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * them. The floor is the harness's measured size — 68 when this rule landed, 69
  * with FC1, 73 with the four scans, 75 with the two RLS plants, 78 with the three
  * posture plants, 80 with the two rule-arm witnesses, 81 with the walker ratchet, 86 with the
- * five witnesses below for guards that asserted an absence and had never been shown
+ * five witnesses below, 89 with three more of the same class (a privacy retention
+ * sentence, a row-contract field, a workflow trigger) for guards that had never been shown
  * able to fail;
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 86;
+const MIN_PLANTS = 89;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -1017,7 +1018,7 @@ const PLANTS = [
     anchor: "",
     replacement: "",
   },
-  // ── five privacy/discipline guards that had no witness of any kind ────────
+  // ── eight guards that assert an absence and had no witness of any kind ─────
   // Each of these suites reads `src/` and asserts an absence. With nothing planted,
   // "found none" and "cannot see anything" print the same green, which is the exact
   // failure this harness exists to catch. Anchors are single-occurrence source
@@ -1061,6 +1062,24 @@ const PLANTS = [
       "FROM node:20-alpine AS base",
       "tests/unit/deploy-consistency.test.ts",
       "Dockerfile base tracks engines"],
+    ["PC1", "the privacy page drops the retention period it promises",
+      "src/app/privacy/page.tsx",
+      "，30 天自动过期）",
+      "，过期时间由服务端决定）",
+      "tests/unit/privacy-claims.test.ts",
+      "matches the retention the page states"],
+    ["RC1", "a row-contract field with no column behind it, the 42703 shape",
+      "src/lib/db.ts",
+      "  stressTest?: boolean;",
+      "  stressTest?: boolean;\n  phantomColumn?: string;",
+      "tests/unit/row-contract-columns.test.ts",
+      "finds a column for every field the app writes"],
+    ["NW1", "the nightly eval lane starts running on every push, with keys",
+      ".github/workflows/nightly-eval.yml",
+      "on:\n  schedule:",
+      "on:\n  push:\n    branches: [main]\n  schedule:",
+      "tests/unit/nightly-workflow.test.ts",
+      "triggers on schedule"],
   ].map(([name, desc, file, anchor, replacement, test, pattern]) => ({
     name, desc, kind: "vitest", file, anchor, replacement, test, pattern,
   })),
