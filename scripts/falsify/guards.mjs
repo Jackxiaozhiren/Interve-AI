@@ -86,6 +86,9 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  */
 const MIN_PLANTS = 89;
 
+/** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
+const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
+
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
 
@@ -1019,70 +1022,17 @@ const PLANTS = [
     replacement: "",
   },
   // ── eight guards that assert an absence and had no witness of any kind ─────
-  // Each of these suites reads `src/` and asserts an absence. With nothing planted,
-  // "found none" and "cannot see anything" print the same green, which is the exact
-  // failure this harness exists to catch. Anchors are single-occurrence source
-  // lines, and every pattern below is metachar-free because vitest's `-t` is a regex,
-  // not a substring: a title containing parentheses once made a plant match nothing,
-  // and the harness correctly refused to call that clean.
+  // Each of these suites reads a corpus (src/, a workflow, the Dockerfile) and asserts
+  // something is absent from it. With nothing planted, "found none" and "cannot see
+  // anything" print the same green, which is the failure this harness exists to catch.
   //
-  // A tuple table rather than five object literals: the first version spelled
-  // `kind:` / `file:` / `anchor:` / `replacement:` / `test:` / `pattern:` five times,
-  // and SonarCloud failed that PR's new-code duplication gate at 93.4% on nothing but
-  // the scaffolding. Same lesson `ARM_FIXTURES` records in
-  // tests/unit/ratchet-detectors-can-fail.test.ts.
-  ...[
-    ["AW1", "a whisper worker loaded from a CDN, so the audio leaves the device",
-      "src/app/interview/page.tsx",
-      "new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url), { type: 'module' })",
-      "new Worker(\"https://cdn.example/whisper.worker.js\", { type: 'module' })",
-      "tests/unit/audio-stays-local.test.ts",
-      "every Worker is built from a relative module URL"],
-    ["SQ1", "a read widened to select('*') with no row in the justified list",
-      "src/lib/api-client.ts",
-      "from('interviews').insert(snakeData).select('id').single()",
-      "from('interviews').insert(snakeData).select('*').single()",
-      "tests/unit/select-discipline.test.ts",
-      "contains exactly the justified sites"],
-    ["WO1", "a state slot whose getter binding is elided, so it can only ever be written",
-      "src/components/ui/DynamicLoader.tsx",
-      "const [index, setIndex] = useState(0);",
-      "const [, setIndex] = useState(0);",
-      "tests/unit/write-only-state.test.ts",
-      "no state slot is written without a reader"],
-    ["ST1", "the expiry sweep kept, its comparison neutered to never fire",
-      "src/lib/interview/session-persistence.ts",
-      "nowMs - parsed.savedAt > SESSION_TTL_MS;",
-      "nowMs - parsed.savedAt > Infinity;",
-      "tests/unit/session-retention.test.ts",
-      "removes a 31-day-old snapshot for an interview nobody will reopen"],
-    ["DY1", "the image pinned to Node 20 while engines demands 24",
-      "Dockerfile",
-      "FROM node:24-alpine AS base",
-      "FROM node:20-alpine AS base",
-      "tests/unit/deploy-consistency.test.ts",
-      "Dockerfile base tracks engines"],
-    ["PC1", "the privacy page drops the retention period it promises",
-      "src/app/privacy/page.tsx",
-      "，30 天自动过期）",
-      "，过期时间由服务端决定）",
-      "tests/unit/privacy-claims.test.ts",
-      "matches the retention the page states"],
-    ["RC1", "a row-contract field with no column behind it, the 42703 shape",
-      "src/lib/db.ts",
-      "  stressTest?: boolean;",
-      "  stressTest?: boolean;\n  phantomColumn?: string;",
-      "tests/unit/row-contract-columns.test.ts",
-      "finds a column for every field the app writes"],
-    ["NW1", "the nightly eval lane starts running on every push, with keys",
-      ".github/workflows/nightly-eval.yml",
-      "on:\n  schedule:",
-      "on:\n  push:\n    branches: [main]\n  schedule:",
-      "tests/unit/nightly-workflow.test.ts",
-      "triggers on schedule"],
-  ].map(([name, desc, file, anchor, replacement, test, pattern]) => ({
-    name, desc, kind: "vitest", file, anchor, replacement, test, pattern,
-  })),
+  // The eight rows live in plants.json rather than inline here. Their first form was
+  // five object literals, which SonarCloud failed at 93.4% new-code duplication; the
+  // tuple table that replaced them it failed at 68.6% (48 lines flagged) even though
+  // every string in every row differs, because its JS detector compares token structure
+  // rather than text. Data does not have that problem, and a ninth witness is now one
+  // JSON entry with no change to this file.
+  ...ABSENCE_PLANTS.map((plant) => ({ ...plant, kind: "vitest" })),
 ];
 
 /**
