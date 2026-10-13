@@ -13,7 +13,8 @@
  * names, and require the remainder to appear in the doc's own table. A new spec
  * that nobody runs goes red; so does a table row that outlives its gap.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { walkRepo } from "./repo-tree";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
@@ -23,17 +24,7 @@ const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string
 const workflow = read(".github/workflows/ci.yml");
 const doc = read("docs/TESTING.md");
 
-const specFilesOnDisk = (() => {
-  const out: string[] = [];
-  (function walk(dir: string): void {
-    for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-      const rel = `${dir}/${entry}`;
-      if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) walk(rel);
-      else if (entry.endsWith(".spec.ts")) out.push(rel);
-    }
-  })("tests");
-  return out.sort();
-})();
+const specFilesOnDisk = walkRepo("tests", (rel) => rel.endsWith(".spec.ts")).sort();
 
 /** `npm run <script>` invocations the gate job actually makes. */
 const ciScripts = [...new Set([...workflow.matchAll(/npm run (test[\w:-]*)/g)].map((m) => m[1]))];

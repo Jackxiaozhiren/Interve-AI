@@ -18,18 +18,11 @@
  * The scan is comment-blind: a sentence about assertions is not one, or the
  * guard that polices this rule could satisfy itself with a docstring.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { walkRepo } from "./repo-tree";
 import { describe, expect, it } from "vitest";
 
-function walk(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) out.push(...walk(rel));
-    else if (rel.endsWith(".spec.ts")) out.push(rel);
-  }
-  return out;
-}
+const walk = (dir: string) => walkRepo(dir, (rel) => rel.endsWith(".spec.ts"));
 
 /** Strip block and line comments so prose about a handler is not a call site. */
 function codeOnly(src: string): string {
@@ -88,17 +81,7 @@ describe("every Playwright spec can fail", () => {
  * was the whole test. A file can now satisfy "has assertions" only by constraining
  * something the product produced.
  */
-const TEST_FILES = (() => {
-  const out: string[] = [];
-  (function walk(dir: string): void {
-    for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-      const rel = `${dir}/${entry}`;
-      if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) walk(rel);
-      else if (/\.tsx?$/.test(entry)) out.push(rel);
-    }
-  })("tests");
-  return out.sort();
-})();
+const TEST_FILES = walkRepo("tests", (rel) => /\.tsx?$/.test(rel)).sort();
 
 // `expect(<literal>).<matcher>(<literal or nothing>)` — both sides fixed, so the
 // verdict is decided at write time. A computed matcher argument (`expect(false)`

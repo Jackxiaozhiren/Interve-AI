@@ -1053,13 +1053,13 @@ export const RATCHET_KEYS = {
     + "would only train the next reader to raise this ceiling.",
   "debt.repoWalkers":
     "guard files carrying their own recursive directory walk instead of the shared owner in "
-    + "tests/unit/repo-tree.ts. Measured 2026-10-13: 26 copies, three migrated in the same commit that "
-    + "added this key (anchor-integrity, upload-surface-routing, first-render-is-server-computable), each "
-    + "proven to return the identical corpus — same 154 or 282 files, same order — against its own retired "
-    + "code, so the ceiling of 23 is what is left rather than what was found. A new copy is red "
-    + "immediately and debt.repoWalkerFiles names the queue. Not style: the copies diverge in ways that "
-    + "already bit (a dotless file read as a directory, two spellings of the same call), and every "
-    + "migration must lower this number in the same commit. At 0, delete the key rather than keep a "
+    + "tests/unit/repo-tree.ts. First measured 2026-10-13: 26 copies. Eight have since migrated, each in a "
+    + "commit whose message names the file and whose migration was accepted only after a probe ran that "
+    + "file's retired walker beside walkRepo over the live tree and got the same list in the same order "
+    + "(see the ceiling's own history). The ceiling is what the last migration left, so a new copy is red "
+    + "immediately and debt.repoWalkerFiles is the queue. Not style: the copies diverge in ways that "
+    + "already bit — a dotless file read as a directory, two spellings of the same call, and one that "
+    + "silently returned an empty corpus from a swallowed read. At 0, delete the key rather than keep a "
     + "ceiling guarding nothing.",
   "debt.auditDocsLines":
     "docs/audit prose volume — non-blank lines. The ruler was corrected 2026-10-12: it counted blank "
