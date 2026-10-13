@@ -87,13 +87,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * recruiter page writing notes keyed on invented candidate ids), 100 with the signup
  * provider buttons minting a throwaway identity again — the fake its own source
  * comment records, which no arm read until the arm that now fails on it — and 101 with
- * a security document's digit moved off the number the guard measures beside it;
+ * a security document's digit moved off the number the guard measures beside it, 103
+ * with the two that had no proof of failure at all: the emotion-score consumer the
+ * practice red line forbids (PRH1) and the language control whose accessible name
+ * moved to a sibling element (I18N1);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 101;
+const MIN_PLANTS = 103;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

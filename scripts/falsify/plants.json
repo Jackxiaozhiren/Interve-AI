@@ -181,6 +181,24 @@
       "replacement": "required by 58 `style={{}}` attributes across 34 files",
       "test": "tests/unit/csp-scope.test.ts",
       "pattern": "quotes that surface in the documents the way it is measured"
+    },
+    {
+      "name": "PRH1",
+      "desc": "the emotion score finding a consumer again, wiring sentiment into the product view",
+      "file": "src/lib/eval-compat.ts",
+      "anchor": "dimensions: v2.dimensions.map((d) => ({",
+      "replacement": "sentimentScore: (v2 as { sentimentScore?: number }).sentimentScore,\n      dimensions: v2.dimensions.map((d) => ({",
+      "test": "tests/integration/prohibitions.test.ts",
+      "pattern": "no emotion-score consumers"
+    },
+    {
+      "name": "I18N1",
+      "desc": "the language control losing its accessible name while the file keeps a label somewhere",
+      "file": "src/components/LanguageToggle.tsx",
+      "anchor": "aria-label={lang === 'en' ? 'Switch language to Chinese / 切换到中文' : 'Switch language to English / 切换到英文'}",
+      "replacement": "data-locale-toggle=\"true\"",
+      "test": "tests/unit/i18n.test.ts",
+      "pattern": "LanguageToggle exposes an accessible name"
     }
   ]
 }
