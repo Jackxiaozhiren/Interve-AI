@@ -5,8 +5,7 @@ import dynamic from "next/dynamic";
 import { InterveSidebar, InterveSidebarItem, InterveButton } from "@/components/interve-ui";
 import { 
   InterveMessageCard, 
-  IntervePromptInput, 
-  InterveModelSelector,
+  IntervePromptInput,
 } from "@/components/interve-ui/chat";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
@@ -36,19 +35,21 @@ function openingMessages() {
 
 export default function ChatPage() {
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("glm-4-flash");
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // No `model` field. /api/interview-chat resolves the provider from a spec
+  // (openai / gemini / openrouter / openrouter-structured) and falls through to
+  // MODEL_IDS.zhipuThinking for anything else, so the model ids the header picker
+  // used to send selected the same model whichever button was pressed.
   const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/interview-chat',
     body: {
-      model: selectedModel,
       role: "Software Engineer",
       level: "Mid-Level",
       persona: "professional"
     }
-  }), [selectedModel]);
+  }), []);
   
   const { messages, sendMessage, setMessages, status } = useChat({
     transport,
@@ -154,15 +155,6 @@ export default function ChatPage() {
         <header className="h-16 shrink-0 flex items-center justify-between px-6 border-b border-[var(--interve-divider)] bg-white/50 backdrop-blur-md z-10">
           <div className="flex items-center gap-4">
             <h2 className="font-medium text-[var(--interve-text-title)]">React 状态管理</h2>
-            <InterveModelSelector 
-              models={[
-                { id: "glm-4-flash", name: "GLM-4 Flash", badge: "Fast" },
-                { id: "glm-4-plus", name: "GLM-4 Plus", badge: "Pro" },
-                { id: "glm-4-long", name: "GLM-4 Long", description: "长文本优化" },
-              ]}
-              value={selectedModel}
-              onChange={setSelectedModel}
-            />
           </div>
         </header>
 

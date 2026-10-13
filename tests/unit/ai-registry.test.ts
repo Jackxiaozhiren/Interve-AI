@@ -1,6 +1,8 @@
 // Phase 5: prompt registry + provider decoupling guards.
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
+import ts from "typescript";
+import { walkRepo } from "./repo-tree";
 import { PROMPT_REGISTRY } from "../../src/ai/prompts";
 import { MODEL_IDS } from "../../src/ai/providers/registry";
 import { buildInterviewSystemPrompt } from "../../src/ai/prompts/interview";
@@ -22,6 +24,54 @@ import { buildPracticeSystem, buildPracticePrompt } from "../../src/ai/prompts/p
 const ROOT = new URL("../../", import.meta.url);
 const read = (p: string) => readFileSync(new URL(p, ROOT), "utf8");
 const exists = (p: string) => existsSync(new URL(p, ROOT));
+
+/**
+ * The `id` of every option handed to a JSX attribute named `models`, in source order.
+ *
+ * Keyed on the prop, not on the component that used it: `<ModelChooser models={[…]} />`
+ * carries the same promise, and a rule that only sees one tag name is a rule the next
+ * picker walks straight past.
+ *
+ * AST rather than text: the options are an array of object literals spread over
+ * several lines inside JSX, and a line-scanning version of this rule is exactly the
+ * shape that has read a comment as a call site here before.
+ */
+function selectorOptionIds(text: string, file: string): { file: string; id: string }[] {
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const out: { file: string; id: string }[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxAttribute(node) && ts.isIdentifier(node.name) && node.name.text === "models") {
+      const init = node.initializer;
+      if (init && ts.isJsxExpression(init) && init.expression && ts.isArrayLiteralExpression(init.expression)) {
+        for (const element of init.expression.elements) {
+          if (!ts.isObjectLiteralExpression(element)) continue;
+          for (const prop of element.properties) {
+            if (ts.isPropertyAssignment(prop) && prop.name.getText(sf) === "id" && ts.isStringLiteral(prop.initializer)) {
+              out.push({ file, id: prop.initializer.text });
+            }
+          }
+        }
+      }
+    }
+    node.forEachChild(visit);
+  };
+  visit(sf);
+  return out;
+}
+
+/** Every string literal a file assigns to a `model` property, e.g. a request body. */
+function modelStringLiterals(text: string, file: string): { file: string; id: string }[] {
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const out: { file: string; id: string }[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isPropertyAssignment(node) && node.name.getText(sf) === "model" && ts.isStringLiteral(node.initializer)) {
+      out.push({ file, id: node.initializer.text });
+    }
+    node.forEachChild(visit);
+  };
+  visit(sf);
+  return out;
+}
 
 describe("prompt registry", () => {
   it("has 17 unique versioned entries", () => {
@@ -60,6 +110,60 @@ describe("provider decoupling (static)", () => {
         expect(src, `${r}:${id}`).not.toContain(`'${id}'`);
       }
     }
+  });
+
+  it("a model choice the client offers or sends is one the resolver can honour", () => {
+    // /chat's header carried a three-way picker — GLM-4 Flash, GLM-4 Plus "Pro",
+    // GLM-4 Long — while `resolveChatModel` branches on provider *specs*
+    // ("openai" / "gemini" / "openrouter" / "openrouter-structured") and returns
+    // MODEL_IDS.zhipuThinking for anything else. Every one of the three ids is
+    // "anything else", so the three buttons selected the same model, the label
+    // "GLM-4 Flash" named a model that never answered, and "Pro" advertised a tier
+    // the product does not have. The privacy page already says this out loud —
+    // 未识别的取值一律回落到默认提供方 — which is what made the picker, not the
+    // policy, the lie.
+    const specs = new Set(
+      [...read("src/ai/providers/registry.ts").matchAll(/if \(spec === "([^"]+)"\)/g)].map((m) => m[1]),
+    );
+    expect(specs.size, "the resolver's spec list went unread — this arm would pass on blindness").toBeGreaterThanOrEqual(3);
+
+    const offered = walkRepo("src", (rel) => /\.tsx$/.test(rel)).flatMap((f) => selectorOptionIds(read(f), f));
+    const unresolved = offered.filter((o) => !specs.has(o.id));
+    expect(
+      unresolved.map((o) => `${o.file}: "${o.id}" is not a value resolveChatModel discriminates`),
+      "a model control offers an id the server cannot route",
+    ).toEqual([]);
+
+    // The other half of the same defect: a body that names a model the route will
+    // ignore. Measured 2026-10-13 after /chat's picker came out: no client file
+    // outside src/app/api assigns a string literal to `model` at all, so this half
+    // guards an empty corpus today — which is why the arm below shows the extractor
+    // can see one.
+    const sent = walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel) && !rel.startsWith("src/app/api/"))
+      .flatMap((f) => modelStringLiterals(read(f), f))
+      .filter((o) => !specs.has(o.id));
+    expect(
+      sent.map((o) => `${o.file}: model: "${o.id}"`),
+      "a client sends a model value the resolver falls through on",
+    ).toEqual([]);
+  });
+
+  it("sees a selector's options and a body's model field at all, and does not invent them", () => {
+    // Both arms above pass on an empty corpus, so the extraction is shown working on
+    // snippets shaped like what it found in the wild. The picker name is deliberately
+    // not the component /chat used, because the rule keys on the `models` prop: a
+    // renamed control must not inherit a blind spot.
+    const sample = `
+      <ModelChooser
+        models={[{ id: "openai", name: "GPT" }, { id: "glm-4-plus", name: "GLM-4 Plus", badge: "Pro" }]}
+        value={selectedModel}
+        onChange={setSelectedModel}
+      />`;
+    expect(selectorOptionIds(sample, "sample.tsx").map((o) => o.id)).toEqual(["openai", "glm-4-plus"]);
+    expect(selectorOptionIds("<ModelBadge model=\"glm-4-flash\" />", "sample.tsx")).toEqual([]);
+    expect(modelStringLiterals('const t = new Transport({ body: { model: "glm-4-flash", level: "Mid" } });', "sample.tsx"))
+      .toEqual([{ file: "sample.tsx", id: "glm-4-flash" }]);
+    expect(modelStringLiterals("const m = { model: resolveChatModel(spec).modelId };", "sample.tsx")).toEqual([]);
   });
 
   it("every AI route honors mock mode after its gate", () => {
