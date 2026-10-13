@@ -75,13 +75,15 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * plants exist: deleting one left the run green, and nothing in the repo counted
  * them. The floor is the harness's measured size — 68 when this rule landed, 69
  * with FC1, 73 with the four scans, 75 with the two RLS plants, 78 with the three
- * posture plants, 80 with the two rule-arm witnesses, 81 with the walker ratchet —
+ * posture plants, 80 with the two rule-arm witnesses, 81 with the walker ratchet, 86 with the
+ * five witnesses below for guards that asserted an absence and had never been shown
+ * able to fail;
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 81;
+const MIN_PLANTS = 86;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -1014,6 +1016,63 @@ const PLANTS = [
       "}" + NL,
     anchor: "",
     replacement: "",
+  },
+  // ── five privacy/discipline guards that had no witness of any kind ────────
+  // Each of these suites reads `src/` and asserts an absence. With nothing planted,
+  // "found none" and "cannot see anything" print the same green, which is the exact
+  // failure this harness exists to make impossible. Anchors are single-occurrence
+  // source lines, and every `pattern` below is metachar-free because vitest's `-t`
+  // is a regex, not a substring: a title containing parentheses once made a plant
+  // match nothing, and the harness correctly refused to call that clean.
+  {
+    name: "AW1",
+    desc: "a whisper worker loaded from a CDN, so the audio leaves the device",
+    kind: "vitest",
+    file: "src/app/interview/page.tsx",
+    anchor: "new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url), { type: 'module' })",
+    replacement: "new Worker(\"https://cdn.example/whisper.worker.js\", { type: 'module' })",
+    test: "tests/unit/audio-stays-local.test.ts",
+    pattern: "every Worker is built from a relative module URL",
+  },
+  {
+    name: "SQ1",
+    desc: "a read widened to select('*') with no row in the justified list",
+    kind: "vitest",
+    file: "src/lib/api-client.ts",
+    anchor: "from('interviews').insert(snakeData).select('id').single()",
+    replacement: "from('interviews').insert(snakeData).select('*').single()",
+    test: "tests/unit/select-discipline.test.ts",
+    pattern: "contains exactly the justified sites",
+  },
+  {
+    name: "WO1",
+    desc: "a state slot whose getter binding is elided, so it can only ever be written",
+    kind: "vitest",
+    file: "src/components/ui/DynamicLoader.tsx",
+    anchor: "const [index, setIndex] = useState(0);",
+    replacement: "const [, setIndex] = useState(0);",
+    test: "tests/unit/write-only-state.test.ts",
+    pattern: "no state slot is written without a reader",
+  },
+  {
+    name: "ST1",
+    desc: "the expiry sweep kept, its comparison neutered to never fire",
+    kind: "vitest",
+    file: "src/lib/interview/session-persistence.ts",
+    anchor: "nowMs - parsed.savedAt > SESSION_TTL_MS;",
+    replacement: "nowMs - parsed.savedAt > Infinity;",
+    test: "tests/unit/session-retention.test.ts",
+    pattern: "removes a 31-day-old snapshot for an interview nobody will reopen",
+  },
+  {
+    name: "DY1",
+    desc: "the image pinned to Node 20 while engines demands 24",
+    kind: "vitest",
+    file: "Dockerfile",
+    anchor: "FROM node:24-alpine AS base",
+    replacement: "FROM node:20-alpine AS base",
+    test: "tests/unit/deploy-consistency.test.ts",
+    pattern: "Dockerfile base tracks engines",
   },
 ];
 
