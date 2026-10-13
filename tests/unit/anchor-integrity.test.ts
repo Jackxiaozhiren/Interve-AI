@@ -17,19 +17,12 @@
  * route at all. `href="#"` announces itself; `/dashbaord` renders, clicks, and
  * 404s. See the Rule 3 block at the bottom of this file.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { walkRepo } from "./repo-tree";
 
-function walk(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) out.push(...walk(rel));
-    else if (/\.tsx$/.test(entry)) out.push(rel);
-  }
-  return out;
-}
+const walk = (dir: string) => walkRepo(dir, (rel) => rel.endsWith(".tsx"));
 
 /**
  * The same corpus plus `.ts`.
@@ -41,13 +34,7 @@ function walk(dir: string): string[] {
  * of the app's navigations — which is why the reachability rule below uses this.
  */
 function walkNavigable(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) out.push(...walkNavigable(rel));
-    else if (/\.(ts|tsx)$/.test(entry)) out.push(rel);
-  }
-  return out;
+  return walkRepo(dir, (rel) => /\.(ts|tsx)$/.test(rel));
 }
 
 interface AnchorInfo {

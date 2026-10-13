@@ -75,12 +75,13 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * plants exist: deleting one left the run green, and nothing in the repo counted
  * them. The floor is the harness's measured size — 68 when this rule landed, 69
  * with FC1, 73 with the four scans, 75 with the two RLS plants, 78 with the three
- * posture plants, 80 with the two rule-arm witnesses below — and it is re-synced
- * in the same commit as any plant that arrives or leaves, so coverage moves with
- * intent rather than drift. FC1 plants a floor one higher than the harness and
- * fails it, which is what keeps this number from quietly becoming a comment.
+ * posture plants, 80 with the two rule-arm witnesses, 81 with the walker ratchet —
+ * and it is re-synced in the same commit as any plant that arrives or leaves, so
+ * coverage moves with intent rather than drift. FC1 plants a floor one higher
+ * than the harness and fails it, which is what keeps this number from quietly
+ * becoming a comment.
  */
-const MIN_PLANTS = 80;
+const MIN_PLANTS = 81;
 
 const STRIP = "src/components/home/StatsStrip.tsx";
 const CLAIMS_UNIT = "tests/unit/no-unverifiable-claims.test.ts";
@@ -992,6 +993,28 @@ const PLANTS = [
     replacement: `    timeoutMs: 900000,`,
     pattern: "budget that outlasts it",
   }),
+  // ── the walker ratchet ────────────────────────────────────────────────────
+  {
+    name: "RW1",
+    desc: "a new guard that walks the tree itself must break facts:check",
+    kind: "gate",
+    file: "tests/unit/_falsify_walker.ts",
+    create:
+      "// planted by scripts/falsify/guards.mjs; deleted the same run." + NL +
+      'import { readdirSync, statSync } from "node:fs";' + NL +
+      NL +
+      "export function plantedWalk(dir: string, base: URL): string[] {" + NL +
+      "  const out: string[] = [];" + NL +
+      '  for (const entry of readdirSync(new URL("../../" + dir, base))) {' + NL +
+      '    const rel = dir + "/" + entry;' + NL +
+      '    if (statSync(new URL("../../" + rel, base)).isDirectory()) out.push(...plantedWalk(rel, base));' + NL +
+      '    else if (rel.endsWith(".tsx")) out.push(rel);' + NL +
+      "  }" + NL +
+      "  return out;" + NL +
+      "}" + NL,
+    anchor: "",
+    replacement: "",
+  },
 ];
 
 /**

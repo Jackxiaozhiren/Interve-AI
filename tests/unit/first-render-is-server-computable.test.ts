@@ -18,24 +18,15 @@
  * `page.on('console')` saw zero matching messages in both the broken and the fixed
  * build, so a console-sniffing spec here could not fail. This one can.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import path from "node:path";
+import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { walkRepo } from "./repo-tree";
 
 const HOOKS = new Set(["useState", "useRef", "useMemo"]);
 const BROWSER_GLOBALS = new Set(["navigator", "window", "document", "localStorage", "sessionStorage"]);
 
-function tsxFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = path.posix.join(dir, entry);
-    const abs = new URL(`../../${rel}`, import.meta.url);
-    if (statSync(abs).isDirectory()) out.push(...tsxFiles(rel));
-    else if (rel.endsWith(".tsx")) out.push(rel);
-  }
-  return out;
-}
+const tsxFiles = (dir: string) => walkRepo(dir, (rel) => rel.endsWith(".tsx"));
 
 /** Does this expression subtree read a browser global, guarded or not? */
 function readsBrowserGlobal(node: ts.Node): boolean {

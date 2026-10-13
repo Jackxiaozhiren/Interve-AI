@@ -18,6 +18,7 @@
   },
   "ceiling": {
     "debt.deprecatedObjectGenFiles": 12,
+    "debt.repoWalkers": 23,
     "debt.experimentalRepairTextHits": 8,
     "debt.selectStarHits": 13,
     "debt.tsIgnoreHits": 2,

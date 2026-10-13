@@ -14,7 +14,7 @@
  * compliant sample that must not be. Both run through the collector's own
  * functions, so this file certifies the shipped predicates, not a copy of them.
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -26,6 +26,7 @@ import {
   countRawFetchCallSites,
   DEBT_REGEX,
   findDeadControls,
+  findRepoWalkers,
   measureDebtRegex,
   RATCHET_KEYS,
 } from "../../scripts/audit-facts.mjs";
@@ -113,11 +114,50 @@ describe("every debt detector can actually fail", () => {
     }
   });
 
+  it("counts directory walks over a fixture tree, and can be fooled by none of the three ways the ruler was fooled", () => {
+    // findRepoWalkers reads a directory, so it gets a tree rather than a source
+    // string — and the tree is built from the three shapes the first version of
+    // the ruler missed: the `fs.readdirSync` spelling, a `const` arrow that
+    // recurses by its own variable name, and a file where an AST walk and a
+    // directory walk share the name `walk` (what ci-lane-claims actually looks
+    // like). Each is a silent undercount, which is the failure this whole file
+    // exists to make impossible.
+    const dir = mkdtempSync(path.join(tmpdir(), "walkers-"));
+    const unit = path.join(dir, "tests", "unit");
+    mkdirSync(unit, { recursive: true });
+    try {
+      const bare = 'import { readdirSync, statSync } from "node:fs";\nexport function walk(d: string) { const out: string[] = []; for (const e of readdirSync(d)) { if (statSync(d + "/" + e).isDirectory()) out.push(...walk(d + "/" + e)); } return out; }\n';
+      const qualified = 'import fs from "node:fs";\nexport const walkTs = (d: string) => { const out: string[] = []; for (const e of fs.readdirSync(d)) { if (fs.statSync(d + "/" + e).isDirectory()) out.push(...walkTs(d + "/" + e)); } return out; };\n';
+      const collided = 'import { readdirSync } from "node:fs";\nexport function list() { const out: string[] = []; (function walk(d: string) { for (const e of readdirSync(d)) out.push(...walk(d)); })("src"); return out; }\nconst walk = (node: { forEachChild: (f: (n: never) => void) => void }) => { node.forEachChild(walk); };\nexport { walk };\n';
+      const compliant = 'import { walkRepo } from "./repo-tree";\nexport const SRC = walkRepo("src", (rel: string) => rel.endsWith(".tsx"));\n';
+
+      writeFileSync(path.join(unit, "bare.test.ts"), bare);
+      expect(findRepoWalkers(dir, "tests"), "the bare readdirSync recursion went unseen").toEqual(["tests/unit/bare.test.ts"]);
+
+      writeFileSync(path.join(unit, "qualified.test.ts"), qualified);
+      expect(findRepoWalkers(dir, "tests"), "the fs.readdirSync spelling went unseen — eight shipped copies spell it that way")
+        .toEqual(["tests/unit/bare.test.ts", "tests/unit/qualified.test.ts"]);
+
+      writeFileSync(path.join(unit, "collided.test.ts"), collided);
+      expect(findRepoWalkers(dir, "tests"), "a second `walk` in the same file hid the directory walker — the 17-vs-26 bug")
+        .toHaveLength(3);
+
+      writeFileSync(path.join(unit, "compliant.test.ts"), compliant);
+      expect(findRepoWalkers(dir, "tests"), "calling the shared helper is not a copy").toHaveLength(3);
+
+      rmSync(path.join(unit, "qualified.test.ts"));
+      expect(findRepoWalkers(dir, "tests"), "deleting a copy must lower the count — the ceiling moves with real work")
+        .toEqual(["tests/unit/bare.test.ts", "tests/unit/collided.test.ts"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("proves nothing is exempted by forgetting to add an arm", () => {
     // The completeness half: a new ratchet key with no can-fail evidence anywhere
     // reddens this. Sibling coverage is verified by reading the other file's test
     // titles, so a comment here cannot claim it.
-    const coveredHere = new Set(ARMS.map((a) => a.key).concat(["auditDocsLines"]));
+    const coveredHere = new Set(ARMS.map((a) => a.key).concat(["auditDocsLines", "repoWalkers"]));
     const siblingCover = new Map([
       ["hardInternalNavigations", "countHardInternalNavigations"],
       ["unreferencedProductionDeps", "production dependencies the code does not back"],

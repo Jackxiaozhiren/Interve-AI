@@ -20,20 +20,13 @@
  * still match at least two pages. A regex that quietly stops matching anything
  * would otherwise turn the rule green by going blind.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { walkRepo } from "./repo-tree";
 
-function walkTs(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(new URL(`../../${dir}`, import.meta.url))) {
-    const rel = `${dir}/${entry}`;
-    if (statSync(new URL(`../../${rel}`, import.meta.url)).isDirectory()) out.push(...walkTs(rel));
-    else if (/\.(ts|tsx)$/.test(entry)) out.push(rel);
-  }
-  return out;
-}
+const walkTs = (dir: string) => walkRepo(dir, (rel) => /\.(ts|tsx)$/.test(rel));
 
 const SRC = walkTs("src");
 const cache = new Map<string, string>();
