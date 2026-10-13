@@ -118,6 +118,51 @@
       "replacement": "5. `0001_initial_schema.sql` —— 先建立基表；\n   仍有顺序约束：必须在 OAuth 登录路径真的能用之后再跑；",
       "test": "tests/unit/migration-order.test.ts",
       "pattern": "keeps the frozen file out of the run order"
+    },
+    {
+      "name": "ABB1",
+      "desc": "the deadline keyword simplified out of the mount-time session probe",
+      "file": "src/context/AuthContext.tsx",
+      "anchor": "const user = await withTimeout(\n            supabase.auth.getUser().then(({ data, error }) => (error ? null : data.user)),\n            AUTH_BOOTSTRAP_TIMEOUT_MS,\n            () => null\n          );",
+      "replacement": "const user = await supabase.auth.getUser().then(({ data, error }) => (error ? null : data.user));",
+      "test": "tests/unit/auth-bootstrap-bounded.test.ts",
+      "pattern": "has no unbounded await left on the probe"
+    },
+    {
+      "name": "ADD1",
+      "desc": "the demo divider reworded to a friendly label, which drops the disclosure",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "或用演示账号(不保存数据)",
+      "replacement": "快速体验",
+      "test": "tests/unit/auth-demo-disclosure.test.ts",
+      "pattern": "renders what the demo path costs, in the JSX"
+    },
+    {
+      "name": "SPB1",
+      "desc": "the whole-repo collector called from a test body, where the 5s budget lives",
+      "file": "tests/unit/facts-ratchet.test.ts",
+      "anchor": "it(\"reads installed versions from node_modules, not from declared ranges\", () => {",
+      "replacement": "it(\"reads installed versions from node_modules, not from declared ranges\", () => {\n    collectFacts();",
+      "test": "tests/unit/slow-probe-placement.test.ts",
+      "pattern": "bodies across tests/unit"
+    },
+    {
+      "name": "RTC1",
+      "desc": "the README telling a newcomer to run a script the repo does not define",
+      "file": "README.md",
+      "anchor": "| All keyless ($0) | `npm run verify` (lint 0 errors",
+      "replacement": "| All keyless ($0) | `npm run verify:everything` (lint 0 errors",
+      "test": "tests/unit/readme-testing-claims.test.ts",
+      "pattern": "names only scripts the repo actually has"
+    },
+    {
+      "name": "RDC1",
+      "desc": "the recruiter page starts writing notes keyed on invented candidate ids",
+      "file": "src/app/recruiter/page.tsx",
+      "anchor": "const handleSaveEvaluation = async () => {",
+      "replacement": "const handleSaveEvaluation = async () => {\n    await db.candidates.add({ id: selectedCandidate?.id, notes });",
+      "test": "tests/unit/recruiter-demo-contract.test.ts",
+      "pattern": "persists nothing about the invented candidates"
     }
   ]
 }
