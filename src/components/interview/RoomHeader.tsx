@@ -4,6 +4,7 @@ import { Brain, Clock, CornersIn, CornersOut, Pause, Play } from "@phosphor-icon
 import { HeaderToggle } from "@/components/interview/HeaderToggle";
 import { SoftPacingBar } from "@/components/interview/SoftPacingBar";
 import { SystemHealthIndicator } from "@/components/interview/SystemHealthIndicator";
+import { THINK_TIME_SECONDS } from "@/lib/interview/think-time";
 import { useAccessibilityStore } from "@/store/useAccessibilityStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
@@ -71,7 +72,7 @@ export function RoomHeader({
           active={isThinkTimeEnabled}
           activeClass="bg-amber-500 text-white shadow-md hover:bg-amber-600"
           onClick={onToggleThinkTime}
-          title={isThinkTimeEnabled ? "关闭思考时间" : "开启思考时间 (答题前 10 秒缓冲)"}
+          title={isThinkTimeEnabled ? "关闭思考时间" : `开启思考时间 (答题前 ${THINK_TIME_SECONDS} 秒缓冲)`}
           label={isThinkTimeEnabled ? "关闭思考时间" : "开启思考时间"}
         >
           <Clock className="w-4 h-4" />
