@@ -104,12 +104,15 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * stopped checking the writer (RLP1), the anon bridge that lost its NULL gate
  * (RLP2), a security doc that calls the demo-auth mint "verified" (DAS1), and a
  * disclosure retired around an upload branch that still has no door (RUS1);
+ * 114 with RRP2, which reddens the new half of the read-response seam (route handlers
+ * leaking into a client-only sweep); the seam's other half is RRP1, re-anchored onto
+ * the named predicate when the spelling-dependent skip was replaced
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 113;
+const MIN_PLANTS = 114;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

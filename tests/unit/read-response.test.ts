@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { describeApiFailure, readApiJson, type ApiFailure } from "@/lib/api/read-response";
-import fs from "node:fs";
-import path from "node:path";
 import ts from "typescript";
+import { readRepo, walkRepo } from "./repo-tree";
 
 function res(status: number, body: string, contentType = "application/json"): Response {
   return new Response(body, { status, headers: { "content-type": contentType } });
@@ -112,18 +111,16 @@ describe("no client fetch parses JSON by hand", () => {
     return hits;
   }
 
-  function clientFiles(dir = path.join(process.cwd(), "src"), out: string[] = []): string[] {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (full.includes(`${path.sep}api${path.sep}`)) continue;
-        clientFiles(full, out);
-      } else if (/\.(ts|tsx)$/.test(entry.name)) {
-        out.push(full);
-      }
-    }
-    return out;
-  }
+  /**
+   * Client-side sources, minus the route handlers. Named as a directory rather
+   * than as the substring `/api/`, because a directory path never ends in a
+   * separator: the old skip tested `/api/` and so only excluded an api directory
+   * that had something below it — correct today, silently wrong the moment a
+   * handler appears at `src/app/api/route.ts`. The corpus is the same 263 files
+   * either way; the assertion below is what keeps it that way.
+   */
+  const clientFiles = () =>
+    walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel) && !rel.startsWith("src/app/api/"));
 
   it("the scan can see every shape of the pattern it forbids", () => {
     // Without this control the sweep can be green because the predicate is blind,
@@ -149,29 +146,29 @@ describe("no client fetch parses JSON by hand", () => {
     const offenders = clientFiles()
       .filter((f) => !f.endsWith("lib/api/read-response.ts"))
       .flatMap((f) =>
-        countBareParses(fs.readFileSync(f, "utf8"), f).map(
-          (h) => `${path.relative(process.cwd(), f)}:${h.line} (${h.receiver}.json())`
-        )
+        countBareParses(readRepo(f), f).map((h) => `${f}:${h.line} (${h.receiver}.json())`)
       );
     expect(offenders, `hand-rolled JSON parses:\n  ${offenders.join("\n  ")}`).toEqual([]);
   });
 
   it("names both ends of its own exclusion", () => {
-    // The skip above tests a directory path against the separator-quoted string
-    // /api/, and a directory path never ends in a separator. So `src/app/api/<route>/**`
-    // is outside this corpus — the intent — while a file sitting directly inside any
-    // api directory is still inside it, which is all ten files under src/lib/api/.
+    // src/lib/api/ is in, src/app/api/ is out. That is a decision, not a side
+    // effect of a path spelling, and the two assertions below are the seam: any
+    // narrowing or widening of the predicate reddens one of them.
     //
-    // Whether that shared-helper directory belongs in a client-read sweep is a real
-    // question, and the answer is not in this file: those helpers do no fetching, so
-    // today the inclusion costs nothing and removes no coverage either. What was not
-    // acceptable is that the corpus was decided by a spelling. These two assertions
-    // are the seam: narrowing or widening the predicate has to redden one of them, so
-    // the choice gets made here rather than inherited from a string comparison.
-    const corpus = clientFiles().map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"));
+    // Whether the shared-helper directory belongs in a client-read sweep is a
+    // real question — those helpers do no fetching, so including them costs
+    // nothing and excludes no coverage either. Route handlers are the other half:
+    // they parse upstream bodies by contract, which is exactly what this sweep
+    // forbids on the client, so they stay out.
+    const corpus = clientFiles();
     // A blind corpus passes the sweep above exactly as a clean one does.
     expect(corpus.length, "the sweep is reading almost nothing").toBeGreaterThan(200);
     expect(corpus, "src/lib/api/guard.ts is inside this corpus; taking it out is a decision").toContain("src/lib/api/guard.ts");
     expect(corpus, "a route handler is outside this corpus — it parses upstream bodies by contract").not.toContain("src/app/api/health/route.ts");
+    expect(
+      corpus.filter((f) => f.startsWith("src/app/api/")).length,
+      "no route handler may reach this sweep, at any depth"
+    ).toBe(0);
   });
 });
