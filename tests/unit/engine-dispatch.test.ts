@@ -11,8 +11,7 @@
  * also pins the case that must NOT update, because a dispatch that called the
  * setter unconditionally would otherwise look identical.
  */
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { readRepo, walkRepo } from "./repo-tree";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createKokoroDispatch,
@@ -367,26 +366,18 @@ describe("the injection seam is real", () => {
    */
   const MODULE_RE = /from\s+["']sonner["']/;
 
-  function libFiles(dir = "src/lib"): string[] {
-    const out: string[] = [];
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) out.push(...libFiles(full));
-      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
-    }
-    return out;
-  }
+  const libFiles = (dir = "src/lib") => walkRepo(dir, (rel) => /\.(ts|tsx)$/.test(rel));
 
   it("finds no sonner import in src/lib", () => {
     const files = libFiles();
     expect(files.length, "the src/lib walk found nothing to scan").toBeGreaterThan(30);
-    const offenders = files.filter((f) => MODULE_RE.test(readFileSync(f, "utf8")));
+    const offenders = files.filter((f) => MODULE_RE.test(readRepo(f)));
     expect(offenders).toEqual([]);
   });
 
   it("would have found one if the scanner were dead", () => {
     const files = libFiles("src");
-    const withSonner = files.filter((f) => MODULE_RE.test(readFileSync(f, "utf8")));
+    const withSonner = files.filter((f) => MODULE_RE.test(readRepo(f)));
     expect(withSonner.length, "no component imports sonner, so the control proves nothing").toBeGreaterThan(0);
     expect(withSonner.every((f) => !f.startsWith("src/lib"))).toBe(true);
   });

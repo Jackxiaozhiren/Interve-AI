@@ -17,10 +17,9 @@
  *   4. the corpus still holds the five claims, so 1-3 cannot go green because
  *      the copy affordances disappeared.
  */
-import fs from "node:fs";
-import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { readRepo, walkRepo } from "./repo-tree";
 
 const OWNER_EXPORT = "copyTextToClipboard";
 const COPY_CLAIM = /(复制|Copied|copied)/;
@@ -199,18 +198,7 @@ function analyze(label: string, text: string): Analysis {
   return { findings, owner, copyCalls, claims };
 }
 
-function findSrc(): string[] {
-  const out: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
-    }
-  };
-  walk(path.join(process.cwd(), "src"));
-  return out;
-}
+const findSrc = () => walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel));
 
 describe("the probe itself (it must be able to fail)", () => {
   it("flags a direct clipboard write in a consumer", () => {
@@ -287,10 +275,7 @@ describe("the probe itself (it must be able to fail)", () => {
 });
 
 describe("src/ clipboard discipline", () => {
-  const reports = findSrc().map((file) => {
-    const label = path.relative(process.cwd(), file);
-    return { label, ...analyze(label, fs.readFileSync(file, "utf8")) };
-  });
+  const reports = findSrc().map((file) => ({ label: file, ...analyze(file, readRepo(file)) }));
   const owners = reports.filter((r) => r.owner);
 
   it("has exactly one file allowed to reach for the platform clipboard", () => {
