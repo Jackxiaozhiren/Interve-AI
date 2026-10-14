@@ -14,25 +14,13 @@
  * Today exactly one audio Blob exists in the app (the room's recording), and it is
  * decoded to PCM in the browser and handed to the local Whisper worker.
  */
-import fs from "node:fs";
-import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { readRepo, walkRepo } from "./repo-tree";
 
 const AUDIO_TYPE = /['"`]audio\//;
 
-function findTs(dir = path.join(process.cwd(), "src")): string[] {
-  const out: string[] = [];
-  const walk = (d: string) => {
-    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-      const full = path.join(d, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
-    }
-  };
-  walk(dir);
-  return out;
-}
+const findTs = () => walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel));
 
 function assignmentsOf(source: ts.SourceFile, name: string): ts.Expression[] {
   const out: ts.Expression[] = [];
@@ -147,10 +135,7 @@ describe("the probe itself (it must be able to fail)", () => {
 });
 
 describe("src/ keeps raw audio inside the browser", () => {
-  const reports = findTs().map((file) => {
-    const label = path.relative(process.cwd(), file);
-    return { label, ...analyze(label, fs.readFileSync(file, "utf8")) };
-  });
+  const reports = findTs().map((file) => ({ label: file, ...analyze(file, readRepo(file)) }));
 
   it("finds the audio recording this rule is written about", () => {
     const total = reports.reduce((sum, r) => sum + r.blobs, 0);
@@ -166,7 +151,7 @@ describe("src/ keeps raw audio inside the browser", () => {
   });
 
   it("the privacy sentence these clauses protect is still on the page", () => {
-    const page = fs.readFileSync(path.join(process.cwd(), "src/app/privacy/page.tsx"), "utf8");
+    const page = readRepo("src/app/privacy/page.tsx");
     expect(page).toContain("原始音频不上传、不保存");
   });
 });

@@ -21,31 +21,19 @@
  * An inventory row that outpaces the code is therefore red, in both directions:
  * a new table with no delete, and a new table with a delete nobody calls.
  */
-import fs from "node:fs";
-import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { readRepo, walkRepo } from "./repo-tree";
 
 const CLIENT = "src/lib/api-client.ts";
 const PAGE = "src/app/dashboard/privacy/page.tsx";
 
 function parse(rel: string) {
-  const text = fs.readFileSync(path.join(process.cwd(), rel), "utf8");
+  const text = readRepo(rel);
   return { text, source: ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX) };
 }
 
-function srcFiles(dir = "src"): string[] {
-  const out: string[] = [];
-  const walk = (d: string) => {
-    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-      const full = path.join(d, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(path.relative(process.cwd(), full));
-    }
-  };
-  walk(dir);
-  return out;
-}
+const srcFiles = (dir = "src") => walkRepo(dir, (rel) => /\.(ts|tsx)$/.test(rel));
 
 /** table names targeted by some `.delete()` in the client */
 function deletableTables(source: ts.SourceFile): Set<string> {
