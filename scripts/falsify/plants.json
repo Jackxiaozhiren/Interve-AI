@@ -253,6 +253,42 @@
       "replacement": "const [sentimentScore, setSentimentScore] = useState(0);\n  const [isAiSpeaking, setIsAiSpeaking] = useState(false);",
       "test": "tests/integration/truthfulness.test.ts",
       "pattern": "interview page no longer calls analyze-chunk or tracks sentiment"
+    },
+    {
+      "name": "RLP1",
+      "desc": "an owner policy stops checking the writer, so any signed-in client can insert a row under someone else's user_id",
+      "file": "supabase/migrations/002_session_ownership.sql",
+      "anchor": "CREATE POLICY \"Owner full access\" ON assessments\n  FOR ALL TO authenticated\n  USING ((select auth.uid()) = user_id)\n  WITH CHECK ((select auth.uid()) = user_id);",
+      "replacement": "CREATE POLICY \"Owner full access\" ON assessments\n  FOR ALL TO authenticated\n  USING ((select auth.uid()) = user_id)\n  WITH CHECK (true);",
+      "test": "tests/integration/rls-policies.test.ts",
+      "pattern": "adds strict owner policies bound to auth"
+    },
+    {
+      "name": "RLP2",
+      "desc": "the anon legacy bridge drops its NULL gate, so the public role can read rows that belong to someone",
+      "file": "supabase/migrations/003_per_operation_policies.sql",
+      "anchor": "CREATE POLICY \"Legacy anon select unowned\" ON telemetry\n  FOR SELECT TO anon\n  USING (user_id IS NULL);",
+      "replacement": "CREATE POLICY \"Legacy anon select unowned\" ON telemetry\n  FOR SELECT TO anon\n  USING (true);",
+      "test": "tests/integration/rls-policies.test.ts",
+      "pattern": "creates 4 NULL-gated anon per-op policies"
+    },
+    {
+      "name": "DAS1",
+      "desc": "the security document calls demo auth verified while the route still signs any well-formed identity",
+      "file": "docs/SECURITY.md",
+      "anchor": "unverified-mint",
+      "replacement": "server-verified",
+      "test": "tests/unit/demo-auth-status.test.ts",
+      "pattern": "states that derived state in docs/SECURITY"
+    },
+    {
+      "name": "RUS1",
+      "desc": "the upload disclosure is retired while the image branch still has no door in the product",
+      "file": "docs/SECURITY.md",
+      "anchor": "unreachable-from-ui",
+      "replacement": "reachable-from-ui",
+      "test": "tests/unit/resume-upload-scope.test.ts",
+      "pattern": "discloses the unreachable image branch"
     }
   ]
 }
