@@ -19,26 +19,14 @@
  * Either way the button must expose the state through `aria-pressed`,
  * `aria-checked`, `aria-selected` or a `role` that carries it.
  */
-import fs from "node:fs";
-import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { readRepo, walkRepo } from "./repo-tree";
 
 const STATE_ATTRS = new Set(["aria-pressed", "aria-checked", "aria-selected", "role"]);
 const SELECTION_COND = /\bisSelected\b|\bselected[A-Z]\w*|\bchosen[A-Z]\w*|===\s*selected/i;
 
-function findTsx(dir = path.join(process.cwd(), "src")): string[] {
-  const out: string[] = [];
-  const walk = (d: string) => {
-    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-      const full = path.join(d, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith(".tsx")) out.push(full);
-    }
-  };
-  walk(dir);
-  return out;
-}
+const findTsx = () => walkRepo("src", (rel) => rel.endsWith(".tsx"));
 
 /** Predicate 1: the className picks a class from a condition named like a selection. */
 function isSelectionDriven(source: ts.SourceFile, initializer: ts.Node | undefined): boolean {
@@ -128,10 +116,7 @@ describe("the probe itself (it must be able to fail, and must not fire on a clas
 });
 
 describe("src/ selection buttons expose the state they paint", () => {
-  const reports = findTsx().map((file) => {
-    const label = path.relative(process.cwd(), file);
-    return { label, ...scanSource(label, fs.readFileSync(file, "utf8")) };
-  });
+  const reports = findTsx().map((file) => ({ label: file, ...scanSource(file, readRepo(file)) }));
   const silent = reports.flatMap((r) => r.silent);
 
   it("sees the toggles this guard exists to protect, so it cannot pass by seeing nothing", () => {
