@@ -181,6 +181,15 @@
       "replacement": "if (entry.name === \"api\") continue;",
       "test": "tests/unit/read-response.test.ts",
       "pattern": "names both ends of its own exclusion"
+    },
+    {
+      "name": "DSP1",
+      "desc": "the security document's inline-style digit drifting off the number the guard measures",
+      "file": "docs/SECURITY.md",
+      "anchor": "required by 57 `style={{}}` attributes across 34 files",
+      "replacement": "required by 58 `style={{}}` attributes across 34 files",
+      "test": "tests/unit/csp-scope.test.ts",
+      "pattern": "quotes that surface in the documents the way it is measured"
     }
   ]
 }
