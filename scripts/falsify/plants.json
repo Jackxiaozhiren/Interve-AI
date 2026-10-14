@@ -226,6 +226,25 @@
       "replacement": "--update-snapshots tests/a11y-visual.spec.ts",
       "test": "tests/unit/e2e-command-parsing.test.ts",
       "pattern": "visual:baselines"
+    },
+    {
+      "name": "SEL1",
+      "desc": "the chat model picker stops telling assistive tech which option is chosen, in both of its modes",
+      "file": "src/components/interve-ui/chat/model-selector.tsx",
+      "anchor": "aria-pressed={isSelected}",
+      "replacement": "data-pressed={isSelected}",
+      "count": 2,
+      "test": "tests/unit/selection-state.test.ts",
+      "pattern": "lists no button that changes its own paint on selection"
+    },
+    {
+      "name": "PRV1",
+      "desc": "the privacy page cites a worker file that no longer exists, while telling the reader to check the code",
+      "file": "src/app/privacy/page.tsx",
+      "anchor": "<code>src/workers/whisper.worker.ts</code>",
+      "replacement": "<code>src/workers/whisperWorker.ts</code>",
+      "test": "tests/unit/privacy-evidence-resolves.test.ts",
+      "pattern": "resolves all of them, or names what to fix"
     }
   ]
 }
