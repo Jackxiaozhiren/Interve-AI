@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import fs from "node:fs";
-import path from "node:path";
+import { readRepo, walkRepo } from "./repo-tree";
 
 /**
  * A route's request guard and its function duration budget are two numbers in
@@ -16,16 +15,7 @@ import path from "node:path";
  * a model without one, which is a convention gap rather than a contradiction
  * between two numbers the repository actually contains.
  */
-const API_DIR = path.join(process.cwd(), "src/app/api");
-
-function routeFiles(dir = API_DIR, out: string[] = []): string[] {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) routeFiles(full, out);
-    else if (entry.name === "route.ts") out.push(full);
-  }
-  return out;
-}
+const routeFiles = () => walkRepo("src/app/api", (rel) => rel.endsWith("route.ts"));
 
 interface Budget {
   route: string;
@@ -35,11 +25,11 @@ interface Budget {
 
 function readBudgets(): Budget[] {
   return routeFiles().map((file) => {
-    const src = fs.readFileSync(file, "utf8");
+    const src = readRepo(file);
     const timeout = src.match(/timeoutMs:\s*([0-9_]+)/)?.[1]?.replace(/_/g, "");
     const duration = src.match(/export\s+const\s+maxDuration\s*=\s*(\d+)/)?.[1];
     return {
-      route: path.relative(process.cwd(), file),
+      route: file,
       timeoutMs: timeout ? Number(timeout) : null,
       maxDuration: duration ? Number(duration) : null,
     };
