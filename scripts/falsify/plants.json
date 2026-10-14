@@ -226,6 +226,33 @@
       "replacement": "--update-snapshots tests/a11y-visual.spec.ts",
       "test": "tests/unit/e2e-command-parsing.test.ts",
       "pattern": "visual:baselines"
+    },
+    {
+      "name": "TRU1",
+      "desc": "the camera view drops the label saying no visual analysis happens",
+      "file": "src/components/interview/CameraSelfView.tsx",
+      "anchor": "{t.interview.noVisualAnalysis}",
+      "replacement": "{t.interview.localOnly}",
+      "test": "tests/integration/truthfulness.test.ts",
+      "pattern": "CameraSelfView states local-only, no analysis"
+    },
+    {
+      "name": "TRU2",
+      "desc": "a metric component starts inventing its number with Math.random again",
+      "file": "src/components/interview/LiveStats.tsx",
+      "anchor": "const cognitiveLoad = useInterveStore((state) => state.cognitiveLoad);",
+      "replacement": "const cognitiveLoad = Math.round(Math.random() * 100);",
+      "test": "tests/integration/truthfulness.test.ts",
+      "pattern": "no Math.random in metric components or the interview page"
+    },
+    {
+      "name": "TRU3",
+      "desc": "the emotion pipeline comes back into the room as state the UI can read",
+      "file": "src/app/interview/page.tsx",
+      "anchor": "const [isAiSpeaking, setIsAiSpeaking] = useState(false);",
+      "replacement": "const [sentimentScore, setSentimentScore] = useState(0);\n  const [isAiSpeaking, setIsAiSpeaking] = useState(false);",
+      "test": "tests/integration/truthfulness.test.ts",
+      "pattern": "interview page no longer calls analyze-chunk or tracks sentiment"
     }
   ]
 }
