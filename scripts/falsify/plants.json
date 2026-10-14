@@ -228,6 +228,33 @@
       "pattern": "visual:baselines"
     },
     {
+      "name": "RTP1",
+      "desc": "the blind rater pack starts carrying the authored verdict into the case file raters score from",
+      "file": "scripts/rater-pack.mjs",
+      "anchor": "writeFileSync(join(out, \"cases\", `interview-${c.id}.md`), lines.join(\"\\n\"));",
+      "replacement": "writeFileSync(join(out, \"cases\", `interview-${c.id}.md`), lines.concat([c.expected.readiness]).join(\"\\n\"));",
+      "test": "tests/integration/rater-pack.test.ts",
+      "pattern": "case files are blind"
+    },
+    {
+      "name": "FIL1",
+      "desc": "the restored session writes the filler total straight, bypassing the ledger that owns it",
+      "file": "src/app/interview/page.tsx",
+      "anchor": "setFillerWordsCount(deliveryLedgerRef.current.seed(snapshot.fillerWordsCount))",
+      "replacement": "setFillerWordsCount(snapshot.fillerWordsCount)",
+      "test": "tests/unit/filler-count-ownership.test.ts",
+      "pattern": "only ever sets the total from the ledger"
+    },
+    {
+      "name": "WIZ1",
+      "desc": "a wizard panel loses its title, so the step the candidate is on stops being stated anywhere",
+      "file": "src/components/setup/ResumeIntegrationSections.tsx",
+      "anchor": "<WizardSection title=\"Resume Integration\" index=\"05a\">",
+      "replacement": "<WizardSection index=\"05a\">",
+      "test": "tests/unit/wizard-section-shape.test.ts",
+      "pattern": "gives every panel a title and a unique step index"
+    },
+    {
       "name": "TRU1",
       "desc": "the camera view drops the label saying no visual analysis happens",
       "file": "src/components/interview/CameraSelfView.tsx",
@@ -289,6 +316,25 @@
       "replacement": "reachable-from-ui",
       "test": "tests/unit/resume-upload-scope.test.ts",
       "pattern": "discloses the unreachable image branch"
+    },
+    {
+      "name": "SEL1",
+      "desc": "the chat model picker stops telling assistive tech which option is chosen, in both of its modes",
+      "file": "src/components/interve-ui/chat/model-selector.tsx",
+      "anchor": "aria-pressed={isSelected}",
+      "replacement": "data-pressed={isSelected}",
+      "count": 2,
+      "test": "tests/unit/selection-state.test.ts",
+      "pattern": "lists no button that changes its own paint on selection"
+    },
+    {
+      "name": "PRV1",
+      "desc": "the privacy page cites a worker file that no longer exists, while telling the reader to check the code",
+      "file": "src/app/privacy/page.tsx",
+      "anchor": "<code>src/workers/whisper.worker.ts</code>",
+      "replacement": "<code>src/workers/whisperWorker.ts</code>",
+      "test": "tests/unit/privacy-evidence-resolves.test.ts",
+      "pattern": "resolves all of them, or names what to fix"
     },
     {
       "name": "RRP2",

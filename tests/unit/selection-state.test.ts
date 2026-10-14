@@ -17,13 +17,22 @@
  *      the app's card idiom, and the only signal for cards whose boolean is
  *      named `stressTest` or `includeCoding`, which predicate 1 cannot see.
  * Either way the button must expose the state through `aria-pressed`,
- * `aria-checked`, `aria-selected` or a `role` that carries it.
+ * `aria-checked`, `aria-selected` or a `role` **whose value** carries it. The
+ * value matters: matching on the attribute name alone accepted
+ * `role="presentation"` and `role="button"` as an answer, so a toggle could go
+ * silent simply by wearing a decorative role. A computed `role={...}` does not
+ * count either — an unreadable value is not evidence of disclosure.
  */
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { readRepo, walkRepo } from "./repo-tree";
 
-const STATE_ATTRS = new Set(["aria-pressed", "aria-checked", "aria-selected", "role"]);
+const STATE_ATTRS = new Set(["aria-pressed", "aria-checked", "aria-selected"]);
+// A `role` only discloses a choice if the role itself carries a selected/checked
+// state. Keying on the attribute name accepted `role="presentation"` and
+// `role="button"` as disclosure — a silent toggle wearing a decorative role
+// reads as answered. Two probe cases below hold this list honest.
+const STATE_ROLES = new Set(["radio", "checkbox", "switch", "tab", "option", "menuitemradio", "menuitemcheckbox"]);
 const SELECTION_COND = /\bisSelected\b|\bselected[A-Z]\w*|\bchosen[A-Z]\w*|===\s*selected/i;
 
 const findTsx = () => walkRepo("src", (rel) => rel.endsWith(".tsx"));
@@ -66,7 +75,16 @@ function scanSource(label: string, text: string): { silent: string[]; exposed: n
     const classAttr = attrs.find((a) => a.name.getText(source) === "className");
     if (!(isSelectionDriven(source, classAttr?.initializer) || hasActiveLayoutMarker(source, children))) return;
     const line = source.getLineAndCharacterOfPosition(tagNode.getStart(source)).line + 1;
-    if (attrs.some((a) => STATE_ATTRS.has(a.name.getText(source)))) exposed += 1;
+    const disclosed = attrs.some((a) => {
+      const name = a.name.getText(source);
+      if (STATE_ATTRS.has(name)) return true;
+      if (name !== "role") return false;
+      // Only the literal form counts: a computed role cannot be read here, and
+      // "cannot tell" is not evidence of disclosure.
+      const init = a.initializer;
+      return Boolean(init && ts.isStringLiteral(init) && STATE_ROLES.has(init.text));
+    });
+    if (disclosed) exposed += 1;
     else silent.push(`${label}:${line}`);
   };
 
@@ -86,6 +104,8 @@ describe("the probe itself (it must be able to fail, and must not fire on a clas
     ["aria-pressed on the same button", '<button className={`x ${isSelected ? "on" : "off"}`} aria-pressed={isSelected} />', 0],
     ["no state attribute at all", '<button className={`x ${isSelected ? "on" : "off"}`} />', 1],
     ["role that carries the state", '<button role="radio" className={`x ${isSelected ? "on" : "off"}`} />', 0],
+    ["role=presentation says nothing about being chosen", '<button role="presentation" className={`x ${isSelected ? "on" : "off"}`} />', 1],
+    ["role=button is not a pressed state", '<button role="button" className={`x ${isSelected ? "on" : "off"}`} />', 1],
     ["condition compares a selected id", '<button className={`x ${selectedRole === role.id ? "on" : "off"}`} />', 1],
     ["a class literally named is-selected", '<button className="btn is-selected" />', 0],
     ["an unrelated button", '<button className="rounded-full" onClick={go} />', 0],
