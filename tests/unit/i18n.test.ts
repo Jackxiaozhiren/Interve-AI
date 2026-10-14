@@ -73,6 +73,15 @@ describe("dictionaries", () => {
     const fs = await import("node:fs");
     const path = new URL("../../src/components/LanguageToggle.tsx", import.meta.url);
     const src = fs.readFileSync(path, "utf8");
-    expect(src).toContain("aria-label");
+    // Assert on the control, not the file. `toContain("aria-label")` is satisfied by
+    // any labelled element anywhere in the component, so labelling the icon later
+    // would keep this green after the toggle's own name was deleted — and the visible
+    // text is EN / 中, which is a language code rather than a name. Reading the
+    // opening tag also requires both spellings, so the instruction reaches a screen
+    // reader in either locale.
+    const control = /<Button[\s\S]*?>/.exec(src)?.[0] ?? "";
+    expect(control, "LanguageToggle renders no Button element to read").not.toBe("");
+    expect(control).toMatch(/aria-label=\{[^}]*切换到中文/);
+    expect(control).toMatch(/aria-label=\{[^}]*切换到英文/);
   });
 });
