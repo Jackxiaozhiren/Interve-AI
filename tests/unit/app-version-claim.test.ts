@@ -11,24 +11,18 @@
  * These predicates make the claim single-owned: one constant, pinned to the
  * manifest, and no JSX text node allowed to carry a version digit of its own.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { APP_VERSION } from "../../src/lib/app-version";
+import { walkRepo } from "./repo-tree";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const HEROS = ["src/components/home/HeroSection.tsx", "src/app/landing/page.tsx"];
 
 const read = (rel: string) => readFileSync(path.join(ROOT, rel), "utf8");
 
-function tsxFiles(dir: string, out: string[] = []): string[] {
-  for (const entry of readdirSync(dir)) {
-    const abs = path.join(dir, entry);
-    if (statSync(abs).isDirectory()) tsxFiles(abs, out);
-    else if (entry.endsWith(".tsx")) out.push(path.relative(ROOT, abs));
-  }
-  return out;
-}
+const tsxFiles = () => walkRepo("src", (rel) => rel.endsWith(".tsx"));
 
 describe("the version the badge states", () => {
   it("is the version the manifest declares", () => {
@@ -46,7 +40,7 @@ describe("no copy may carry a version of its own", () => {
   // homepage or a footer that invents its own number is the same defect.
   // The interpolating form is `Interve AI v${APP_VERSION}`, where a `$` follows
   // the `v` — so this pattern only ever matches a typed-in digit.
-  const offenders = tsxFiles(path.join(ROOT, "src")).filter((rel) =>
+  const offenders = tsxFiles().filter((rel) =>
     /Interve AI v?\d/.test(read(rel))
   );
 
