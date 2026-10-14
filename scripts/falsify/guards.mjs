@@ -92,13 +92,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * guard measures beside it — and the two that had no proof of failure at all, the
  * emotion-score consumer the practice red line forbids (PRH1) and the language
  * control whose accessible name moved to a sibling element (I18N1), which bring the
- * harness to 104;
+ * harness to 104 — and 106 with the two whose absence was a live misdiagnosis rather
+ * than a hypothesis: the db-write catch that stopped classifying (DBF1, the 42703
+ * column drift reported as "database unavailable") and the baseline lane's one-word
+ * typo, whose spec path is eaten by an optional flag (ECP1);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 104;
+const MIN_PLANTS = 106;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

@@ -208,6 +208,24 @@
       "replacement": "data-locale-toggle=\"true\"",
       "test": "tests/unit/i18n.test.ts",
       "pattern": "LanguageToggle exposes an accessible name"
+    },
+    {
+      "name": "DBF1",
+      "desc": "the db-write catch stops classifying and assumes an outage again, the 42703 misdiagnosis",
+      "file": "src/app/setup/page.tsx",
+      "anchor": "const kind = classifyDbFailure(dbError);",
+      "replacement": "const kind = \"unreachable\" as const;",
+      "test": "tests/unit/db-failure-class.test.ts",
+      "pattern": "classifies the failure instead of assuming an outage"
+    },
+    {
+      "name": "ECP1",
+      "desc": "the baseline lane reverts to the one-word typo whose spec path is eaten by an optional flag",
+      "file": "package.json",
+      "anchor": "--update-snapshots=all tests/a11y-visual.spec.ts",
+      "replacement": "--update-snapshots tests/a11y-visual.spec.ts",
+      "test": "tests/unit/e2e-command-parsing.test.ts",
+      "pattern": "visual:baselines"
     }
   ]
 }
