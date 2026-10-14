@@ -95,13 +95,21 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * harness to 104 — and 106 with the two whose absence was a live misdiagnosis rather
  * than a hypothesis: the db-write catch that stopped classifying (DBF1, the 42703
  * column drift reported as "database unavailable") and the baseline lane's one-word
- * typo, whose spec path is eaten by an optional flag (ECP1);
+ * typo, whose spec path is eaten by an optional flag (ECP1), 109 with the three
+ * practice red lines that had never been shown to be enforceable — the camera view
+ * dropping its "no visual analysis" label (TRU1), a metric inventing itself with
+ * Math.random (TRU2), and the emotion pipeline re-entering the room as readable
+ * state (TRU3), and 113 with the four whose text is the only thing standing
+ * between this repo and a privacy claim it cannot keep: an owner policy that
+ * stopped checking the writer (RLP1), the anon bridge that lost its NULL gate
+ * (RLP2), a security doc that calls the demo-auth mint "verified" (DAS1), and a
+ * disclosure retired around an upload branch that still has no door (RUS1);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 106;
+const MIN_PLANTS = 113;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

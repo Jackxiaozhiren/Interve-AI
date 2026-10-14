@@ -4,6 +4,15 @@
 // the migration files so a future edit cannot silently re-open access.
 // Live RLS behavior tests require a staging Supabase project and are
 // tracked in STABILIZATION_REPORT (Phase 3 prerequisite).
+//
+// Every policy-shape matcher below is bounded by `[^;]*`, not `[\s\S]*?`. That is
+// the whole point of the pattern: a lazy wildcard has no idea where a statement
+// ends, so when one policy loses its predicate the match simply runs on into the
+// next table's identical text and the count still reads 7. RLP2 planted exactly
+// that (telemetry's anon SELECT widened to USING (true)) and the old regexes
+// passed — a guard that certifies "all seven anon bridges are NULL-gated" while
+// one of them reads every row is worse than no guard, because the green is the
+// evidence a reviewer trusts.
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 
@@ -53,13 +62,13 @@ describe("002_session_ownership.sql", () => {
   });
 
   it("adds strict owner policies bound to auth.uid()", () => {
-    const owners = sql.match(/CREATE POLICY "Owner full access"[\s\S]*?USING \(\(select auth\.uid\(\)\) = user_id\)[\s\S]*?WITH CHECK \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
+    const owners = sql.match(/CREATE POLICY "Owner full access"[^;]*USING \(\(select auth\.uid\(\)\) = user_id\)[^;]*WITH CHECK \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
     expect(owners.length).toBe(7);
     expect(sql).toMatch(/FOR ALL TO authenticated/);
   });
 
   it("contains legacy anon access to unowned rows only", () => {
-    const legacy = sql.match(/CREATE POLICY "Legacy anon unowned access"[\s\S]*?FOR ALL TO anon[\s\S]*?USING \(user_id IS NULL\)[\s\S]*?WITH CHECK \(user_id IS NULL\)/g) ?? [];
+    const legacy = sql.match(/CREATE POLICY "Legacy anon unowned access"[^;]*FOR ALL TO anon[^;]*USING \(user_id IS NULL\)[^;]*WITH CHECK \(user_id IS NULL\)/g) ?? [];
     expect(legacy.length).toBe(7);
   });
 
@@ -94,10 +103,10 @@ describe("003_per_operation_policies.sql", () => {
       expect(found.length).toBe(7);
     }
     // SELECT/DELETE carry USING only; INSERT carries WITH CHECK only; UPDATE carries both.
-    const ownerSelects = sql.match(/CREATE POLICY "Owner select"[\s\S]*?FOR SELECT TO authenticated[\s\S]*?USING \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
-    const ownerInserts = sql.match(/CREATE POLICY "Owner insert"[\s\S]*?FOR INSERT TO authenticated[\s\S]*?WITH CHECK \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
-    const ownerUpdates = sql.match(/CREATE POLICY "Owner update"[\s\S]*?FOR UPDATE TO authenticated[\s\S]*?USING \(\(select auth\.uid\(\)\) = user_id\)[\s\S]*?WITH CHECK \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
-    const ownerDeletes = sql.match(/CREATE POLICY "Owner delete"[\s\S]*?FOR DELETE TO authenticated[\s\S]*?USING \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
+    const ownerSelects = sql.match(/CREATE POLICY "Owner select"[^;]*FOR SELECT TO authenticated[^;]*USING \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
+    const ownerInserts = sql.match(/CREATE POLICY "Owner insert"[^;]*FOR INSERT TO authenticated[^;]*WITH CHECK \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
+    const ownerUpdates = sql.match(/CREATE POLICY "Owner update"[^;]*FOR UPDATE TO authenticated[^;]*USING \(\(select auth\.uid\(\)\) = user_id\)[^;]*WITH CHECK \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
+    const ownerDeletes = sql.match(/CREATE POLICY "Owner delete"[^;]*FOR DELETE TO authenticated[^;]*USING \(\(select auth\.uid\(\)\) = user_id\)/g) ?? [];
     expect(ownerSelects.length).toBe(7);
     expect(ownerInserts.length).toBe(7);
     expect(ownerUpdates.length).toBe(7);
@@ -109,10 +118,10 @@ describe("003_per_operation_policies.sql", () => {
       const found = sql.match(new RegExp(`CREATE POLICY "Legacy anon ${op} unowned"`, "g")) ?? [];
       expect(found.length).toBe(7);
     }
-    const anonSelects = sql.match(/CREATE POLICY "Legacy anon select unowned"[\s\S]*?FOR SELECT TO anon[\s\S]*?USING \(user_id IS NULL\)/g) ?? [];
-    const anonInserts = sql.match(/CREATE POLICY "Legacy anon insert unowned"[\s\S]*?FOR INSERT TO anon[\s\S]*?WITH CHECK \(user_id IS NULL\)/g) ?? [];
-    const anonUpdates = sql.match(/CREATE POLICY "Legacy anon update unowned"[\s\S]*?FOR UPDATE TO anon[\s\S]*?USING \(user_id IS NULL\)[\s\S]*?WITH CHECK \(user_id IS NULL\)/g) ?? [];
-    const anonDeletes = sql.match(/CREATE POLICY "Legacy anon delete unowned"[\s\S]*?FOR DELETE TO anon[\s\S]*?USING \(user_id IS NULL\)/g) ?? [];
+    const anonSelects = sql.match(/CREATE POLICY "Legacy anon select unowned"[^;]*FOR SELECT TO anon[^;]*USING \(user_id IS NULL\)/g) ?? [];
+    const anonInserts = sql.match(/CREATE POLICY "Legacy anon insert unowned"[^;]*FOR INSERT TO anon[^;]*WITH CHECK \(user_id IS NULL\)/g) ?? [];
+    const anonUpdates = sql.match(/CREATE POLICY "Legacy anon update unowned"[^;]*FOR UPDATE TO anon[^;]*USING \(user_id IS NULL\)[^;]*WITH CHECK \(user_id IS NULL\)/g) ?? [];
+    const anonDeletes = sql.match(/CREATE POLICY "Legacy anon delete unowned"[^;]*FOR DELETE TO anon[^;]*USING \(user_id IS NULL\)/g) ?? [];
     expect(anonSelects.length).toBe(7);
     expect(anonInserts.length).toBe(7);
     expect(anonUpdates.length).toBe(7);
