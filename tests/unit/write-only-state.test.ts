@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import fs from "node:fs";
-import path from "node:path";
+import { readRepo, walkRepo } from "./repo-tree";
 
 /**
  * A `useState` slot destructured with an elided getter is unreachable by
@@ -16,14 +15,7 @@ import path from "node:path";
  */
 const WRITE_ONLY_SLOT = /const\s*\[\s*,\s*(set[A-Z]\w*)\s*\]\s*=\s*useState/g;
 
-function findSrc(dir = path.join(process.cwd(), "src"), out: string[] = []): string[] {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) findSrc(full, out);
-    else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
-  }
-  return out;
-}
+const findSrc = () => walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel));
 
 function scan(text: string): string[] {
   return (text.match(WRITE_ONLY_SLOT) ?? []).map((m) => m.replace(/\s+/g, " ").trim());
@@ -32,9 +24,9 @@ function scan(text: string): string[] {
 function violations(): string[] {
   const found: string[] = [];
   for (const file of findSrc()) {
-    const lines = fs.readFileSync(file, "utf8").split("\n");
+    const lines = readRepo(file).split("\n");
     lines.forEach((line, i) => {
-      if (scan(line).length > 0) found.push(`${path.relative(process.cwd(), file)}:${i + 1}`);
+      if (scan(line).length > 0) found.push(`${file}:${i + 1}`);
     });
   }
   return found;
