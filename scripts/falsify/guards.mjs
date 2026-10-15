@@ -113,13 +113,15 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * page citing a worker file that is not there (PRV1), and 119 with RRP2, which
  * reddens the new half of the read-response seam -- route handlers leaking into a
  * client-only sweep -- whose other half is RRP1, re-anchored onto the named
- * predicate once the spelling-dependent skip was replaced;
+ * predicate once the spelling-dependent skip was replaced, and 121 with the owner-bridge
+ * classification: a bridged table dropped from the owner-required set (OBR1) and a row
+ * type accepted as usage metadata gaining a candidate-content field (OBR2);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 119;
+const MIN_PLANTS = 121;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
