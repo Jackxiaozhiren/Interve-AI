@@ -2,8 +2,7 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-export type AIExpert = 'tech' | 'hr' | 'product' | 'system';
+import type { AIExpert } from "@/lib/interview/experts";
 
 interface MultiAgentVisualizerProps {
   isSpeaking: boolean;

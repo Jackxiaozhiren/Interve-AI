@@ -23,7 +23,7 @@ const SystemDesignBoard = dynamic(
 import { RoomStage } from "@/components/interview/RoomStage";
 import { CopilotHints } from "@/components/interview/CopilotHints";
 import { useKeyboardShortcuts, createCtrlCmdShortcut } from "@/hooks/useKeyboardShortcuts";
-import { type AIExpert } from "@/components/interview/MultiAgentVisualizer";
+import { type AIExpert, expertFromMessage } from "@/lib/interview/experts";
 import { DynamicLoader } from "@/components/ui/DynamicLoader";
 import { getMessageText, getTextFromFinishEvent, toUiMessages } from "@/lib/message-text";
 import { useInterveStore } from "@/store/useInterveStore";
@@ -598,10 +598,10 @@ function InterviewRoomContent() {
 
   useEffect(() => {
     if (latestAiMessage) {
+      // A reply that opens with no known label leaves the current persona alone.
+      const announced = expertFromMessage(latestAiMessage);
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (latestAiMessage.startsWith('[Tech]')) setActiveExpert('tech');
-      else if (latestAiMessage.startsWith('[HR]')) setActiveExpert('hr');
-      else if (latestAiMessage.startsWith('[Product]')) setActiveExpert('product');
+      if (announced) setActiveExpert(announced);
     }
   }, [latestAiMessage]);
 

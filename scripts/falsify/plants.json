@@ -407,6 +407,24 @@
       "replacement": "  latencyMs: number;\n  resumeSnippet: string;\n  status: 'success' | 'error';",
       "test": "tests/unit/owner-bridge-classification.test.ts",
       "pattern": "keeps telemetry's accepted-ownerless payload"
+    },
+    {
+      "name": "EXP1",
+      "desc": "the prompt relabels the HR persona and the room keeps listening for the old tag",
+      "file": "src/ai/prompts/interview.ts",
+      "anchor": "2. [HR]",
+      "replacement": "2. [People]",
+      "test": "tests/unit/expert-labels.test.ts",
+      "pattern": "recognises exactly the labels the prompt instructs"
+    },
+    {
+      "name": "EXP2",
+      "desc": "the room's label table gains a typo, so one persona can never light",
+      "file": "src/lib/interview/experts.ts",
+      "anchor": "  '[HR]': 'hr',",
+      "replacement": "  '[Hr]': 'hr',",
+      "test": "tests/unit/expert-labels.test.ts",
+      "pattern": "maps each label to its persona"
     }
   ]
 }
