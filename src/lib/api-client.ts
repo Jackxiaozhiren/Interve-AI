@@ -71,18 +71,26 @@ async function currentOwnerId(): Promise<string | null> {
 }
 
 /**
- * Tables holding candidate content (resume text, answers, transcripts, the
- * index built from them). An unowned row here is readable by every holder of
- * the publishable key through 003's "Legacy anon select unowned" bridge, so
- * writing one without an owner is a leak, not a degraded success.
+ * Tables whose rows must never be written without an owner. An unowned row in a
+ * table carrying 003's "Legacy anon select unowned" bridge is readable by every
+ * holder of the publishable key, so writing one is a leak rather than a degraded
+ * success.
+ *
+ * This set is deliberately narrower than the bridge: telemetry and achievements
+ * sit behind the same policy and are still written ownerless, because the demo
+ * path has no Supabase JWT and usage metadata is the accepted trade (pinned by
+ * tests/unit/owner-binding.test.ts, which also requires every bridged table to be
+ * classified here or in that file's LOW_SENSITIVITY map). Widening a row type in
+ * src/lib/db.ts reddens that file: "usage metadata" stops to mean "may carry
+ * resume text" the moment somebody adds a field that does.
  */
-const CONTENT_TABLES = new Set(['interviews', 'evaluations', 'practice_sessions', 'assessments', 'orama_index']);
+export const OWNER_REQUIRED_TABLES = new Set(['interviews', 'evaluations', 'practice_sessions', 'assessments', 'orama_index']);
 
 async function stampOwner(row: Record<string, unknown>, table: string): Promise<Record<string, unknown>> {
   if ("user_id" in row) return row;
   const uid = await currentOwnerId();
   if (uid) return { ...row, user_id: uid };
-  if (CONTENT_TABLES.has(table)) {
+  if (OWNER_REQUIRED_TABLES.has(table)) {
     // Call sites already catch this and degrade to local-only / memory-only.
     const err = new Error(
       `refusing to write "${table}": there is no Supabase auth session to own the row, ` +
