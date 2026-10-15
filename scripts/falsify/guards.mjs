@@ -110,12 +110,13 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * ownership table losing either side of itself (CIT1 a job nobody documented, CIT2 a
  * job this repo runs blamed on an outside app); and 129 with a launch-checklist total that publishing
  * keeps moving (DOC1 puts the deleted deployment count back into the document it came from);
+ * and 130 with the README's persisted-table list naming a store nobody writes (RED1);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 129;
+const MIN_PLANTS = 130;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

@@ -434,6 +434,15 @@
       "replacement": "created a Production deployment (38 total since 2026-04-25). The count belongs to the Deployments →",
       "test": "tests/unit/docs-volatile-counts.test.ts",
       "pattern": "names no deployment count as a fact"
+    },
+    {
+      "name": "RED1",
+      "desc": "the README's table list gains a store the client never writes, so the paragraph describes a schema that is not there",
+      "file": "README.md",
+      "anchor": "achievements, orama_index, assessments`)",
+      "replacement": "achievements, orama_index, assessments, audit_log`)",
+      "test": "tests/unit/readme-architecture-claims.test.ts",
+      "pattern": "lists the tables the client actually writes"
     }
   ]
 }
