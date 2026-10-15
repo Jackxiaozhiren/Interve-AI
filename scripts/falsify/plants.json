@@ -434,6 +434,33 @@
       "replacement": "from('telemetry').delete().eq('endpoint', uid);",
       "test": "tests/unit/owner-binding.test.ts",
       "pattern": "erases telemetry scoped to the caller"
+    },
+    {
+      "name": "FOOT1",
+      "desc": "a content page starts selling 企业版 as a link into the fabricated demo route",
+      "file": "src/app/terms/page.tsx",
+      "anchor": "<Link href=\"/privacy\" className=\"font-semibold text-sky-600 hover:underline\">隐私政策</Link>",
+      "replacement": "<Link href=\"/privacy\" className=\"font-semibold text-sky-600 hover:underline\">隐私政策</Link>\n                <Link href=\"/recruiter\" className=\"font-semibold text-sky-600 hover:underline\">企业版</Link>",
+      "test": "tests/unit/no-unverifiable-claims.test.ts",
+      "pattern": "names a plan or edition"
+    },
+    {
+      "name": "FOOT2",
+      "desc": "the footer re-adds API 状态 pointing at /api/session, a machine endpoint that answers 401 to a signed-out visitor",
+      "file": "src/components/layout/Footer.tsx",
+      "anchor": "transition-colors\">面试题库</Link>",
+      "replacement": "transition-colors\">面试题库</Link>\n            <Link href=\"/api/session\" className=\"text-sm text-[var(--interve-text-secondary)]\">API 状态</Link>",
+      "test": "tests/unit/no-unverifiable-claims.test.ts",
+      "pattern": "machine endpoint as a resource"
+    },
+    {
+      "name": "FOOT3",
+      "desc": "the privacy page links the recruiter demo without saying it is a demo",
+      "file": "src/app/privacy/page.tsx",
+      "anchor": "服务条款</Link>",
+      "replacement": "服务条款</Link>\n                <Link href=\"/recruiter\" className=\"font-semibold text-sky-600 hover:underline\">招聘看板</Link>",
+      "test": "tests/unit/no-unverifiable-claims.test.ts",
+      "pattern": "points into the recruiter route"
     }
   ]
 }

@@ -122,13 +122,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * (OBR2), and 129 with the erasure fix: a written table missing from the inventory the
  * candidate reads (ERS1), an erase call dropped from delete-everything while its row
  * still promises it (ERS2), and an erase scoped by the wrong column so it matches
- * another account or nothing (ERS3);
+ * another account or nothing (ERS3), and 132 with the three anchor-shaped claims a
+ * two-file list could not see: a content page selling 企业版 as a link (FOOT1), a
+ * machine endpoint offered as a resource (FOOT2), and the demo route linked without
+ * admitting it is a demo (FOOT3);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 129;
+const MIN_PLANTS = 132;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
