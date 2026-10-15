@@ -212,6 +212,26 @@ const evaluations = {
     const { error } = await supabase.from('evaluations').update(snakeChanges).eq('id', id);
     if (error) throw error;
   },
+
+  /**
+   * Erase every row this account owns. `deleteAll` in the Privacy Center is the
+   * only caller: a table the client writes must be reachable from that promise,
+   * which tests/unit/erasure-covers-inventory.test.ts now enumerates from the
+   * write sites rather than from the inventory the page happens to list.
+   */
+  async removeAllForOwner(): Promise<void> {
+    const uid = await currentOwnerId();
+    if (!uid) {
+      const err = new Error(
+        `refusing to erase "evaluations": there is no Supabase session, so no owner can be named `
+        + `and an unscoped delete would reach other accounts through the anon bridge`
+      );
+      (err as Error & { code?: string }).code = "NO_OWNER";
+      throw err;
+    }
+    const { error } = await supabase.from('evaluations').delete().eq('user_id', uid);
+    if (error) throw error;
+  },
   where(field: string) {
     const snakeField = field.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
     return {
@@ -295,6 +315,26 @@ const telemetry = {
       reverse: () => chain(!descending, limit),
     });
     return chain(false);
+  },
+
+  /**
+   * Erase every row this account owns. `deleteAll` in the Privacy Center is the
+   * only caller: a table the client writes must be reachable from that promise,
+   * which tests/unit/erasure-covers-inventory.test.ts now enumerates from the
+   * write sites rather than from the inventory the page happens to list.
+   */
+  async removeAllForOwner(): Promise<void> {
+    const uid = await currentOwnerId();
+    if (!uid) {
+      const err = new Error(
+        `refusing to erase "telemetry": there is no Supabase session, so no owner can be named `
+        + `and an unscoped delete would reach other accounts through the anon bridge`
+      );
+      (err as Error & { code?: string }).code = "NO_OWNER";
+      throw err;
+    }
+    const { error } = await supabase.from('telemetry').delete().eq('user_id', uid);
+    if (error) throw error;
   }
 };
 
@@ -346,6 +386,26 @@ const achievements = {
     const { data, error } = await supabase.from('achievements').select('*');
     if (error) throw error;
     return toCamelCase<Achievement[]>(data || []);
+  },
+
+  /**
+   * Erase every row this account owns. `deleteAll` in the Privacy Center is the
+   * only caller: a table the client writes must be reachable from that promise,
+   * which tests/unit/erasure-covers-inventory.test.ts now enumerates from the
+   * write sites rather than from the inventory the page happens to list.
+   */
+  async removeAllForOwner(): Promise<void> {
+    const uid = await currentOwnerId();
+    if (!uid) {
+      const err = new Error(
+        `refusing to erase "achievements": there is no Supabase session, so no owner can be named `
+        + `and an unscoped delete would reach other accounts through the anon bridge`
+      );
+      (err as Error & { code?: string }).code = "NO_OWNER";
+      throw err;
+    }
+    const { error } = await supabase.from('achievements').delete().eq('user_id', uid);
+    if (error) throw error;
   }
 };
 
@@ -381,6 +441,26 @@ const assessments = {
     const { data: result, error } = await supabase.from('assessments').insert(snakeData).select('id').single();
     if (error) throw error;
     return result.id as number | string;
+  },
+
+  /**
+   * Erase every row this account owns. `deleteAll` in the Privacy Center is the
+   * only caller: a table the client writes must be reachable from that promise,
+   * which tests/unit/erasure-covers-inventory.test.ts now enumerates from the
+   * write sites rather than from the inventory the page happens to list.
+   */
+  async removeAllForOwner(): Promise<void> {
+    const uid = await currentOwnerId();
+    if (!uid) {
+      const err = new Error(
+        `refusing to erase "assessments": there is no Supabase session, so no owner can be named `
+        + `and an unscoped delete would reach other accounts through the anon bridge`
+      );
+      (err as Error & { code?: string }).code = "NO_OWNER";
+      throw err;
+    }
+    const { error } = await supabase.from('assessments').delete().eq('user_id', uid);
+    if (error) throw error;
   }
 };
 

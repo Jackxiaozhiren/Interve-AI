@@ -95,37 +95,37 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * harness to 104 — and 106 with the two whose absence was a live misdiagnosis rather
  * than a hypothesis: the db-write catch that stopped classifying (DBF1, the 42703
  * column drift reported as "database unavailable") and the baseline lane's one-word
- * typo, whose spec path is eaten by an optional flag (ECP1), 109 with the three
- * whose guard had never been shown to be able to fail at all: a rater pack that
- * leaks the authored verdict into the blind case file (RTP1), a filler total
- * written past the ledger that owns it (FIL1), and a wizard panel that loses the
- * title saying which step you are on (WIZ1), 112 with the three practice red
- * lines that had never been shown to be enforceable — the camera view dropping
- * its "no visual analysis" label (TRU1), a metric inventing itself with
- * Math.random (TRU2), and the emotion pipeline re-entering the room as readable
- * state (TRU3), 116 with the four whose text is the only thing standing between
- * this repo and a privacy claim it cannot keep: an owner policy that stopped
- * checking the writer (RLP1), the anon bridge that lost its NULL gate (RLP2), a
- * security doc that calls the demo-auth mint "verified" (DAS1), and a disclosure
- * retired around an upload branch that still has no door (RUS1), 118 with the two
- * that only became checkable when their subject got a witness: the chat picker
- * that stopped telling assistive tech which model is chosen (SEL1) and a privacy
- * page citing a worker file that is not there (PRV1), and 119 with RRP2, which
- * reddens the new half of the read-response seam -- route handlers leaking into a
- * client-only sweep -- whose other half is RRP1, re-anchored onto the named
- * predicate once the spelling-dependent skip was replaced, 124 with the five arms of the
- * registry-driven fence inventory: payload outside its fence (FEN1), a lane nobody
- * classified (FEN2), an unbalanced pair (FEN3), an exemption that stopped being true
- * (FEN4) and the document's fence count moving off the measured pair (FEN5), and 126
- * with the owner-bridge classification: a bridged table dropped from the owner-required
- * set (OBR1) and a row type accepted as usage metadata gaining a candidate-content field
- * (OBR2);
+ * typo, whose spec path is eaten by an optional flag (ECP1); 109 with the three whose
+ * guard had never been shown to be able to fail at all (RTP1 a rater pack leaking the
+ * authored verdict into the blind case file, FIL1 a filler total written past the
+ * ledger that owns it, WIZ1 a wizard panel losing the title saying which step you are
+ * on); 112 with the three practice red lines never shown to be enforceable (TRU1-3);
+ * 116 with the four whose text is the only thing standing between this repo and a
+ * privacy claim it cannot keep (RLP1, RLP2, DAS1, RUS1); 118 with the two that only
+ * became checkable when their subject got a witness (SEL1, PRV1); 119 with RRP2, the
+ * new half of the read-response seam whose other half is RRP1; 124 with the five arms
+ * of the registry-driven fence inventory (FEN1-5); 126 with the owner-bridge
+ * classification (OBR1 a bridged table dropped from the owner-required set, OBR2 a row
+ * type accepted as metadata gaining a candidate-content field); and 128 with the CI
+ * ownership table losing either side of itself (CIT1 a job nobody documented, CIT2 a
+ * job this repo runs blamed on an outside app); and 131 with the erasure fix (ERS1 a
+ * written table missing from the inventory the candidate reads, ERS2 an erase call
+ * dropped while its row still promises it, ERS3 an erase scoped by the wrong column so
+ * it matches another account or nothing); 134 with the three anchor-shaped claims a
+ * two-file list could not see (FOOT1 a content page selling 企业版 as a link, FOOT2 a
+ * machine endpoint offered as a resource, FOOT3 the demo route linked from outside it
+ * without admitting it is a demo); and 136 with the two document-side couplings
+ * (DOC1 puts the deleted deployment total back into the checklist it came from, RED1
+ * makes the README's persisted-table list name a store nobody writes); and 138 with
+ * the persona label becoming a contract two files have to honour (EXP1 the prompt
+ * relabels HR and the room keeps listening for the old tag, EXP2 the room's label
+ * table gains a typo so one persona can never light);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 128;
+const MIN_PLANTS = 138;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1028,8 +1028,13 @@ const PLANTS = [
     name: "ER1",
     desc: "the Privacy Center lists a table the client cannot delete from",
     file: "src/app/dashboard/privacy/page.tsx",
+    // Retargeted 2026-10-15: this used to point at `assessments`, which was then
+    // a table with no delete path. The erasure fix gave every written table a
+    // `removeAllForOwner`, so the plant became inert -- a witness that cannot
+    // fire is not a witness. It now names a store no accessor can erase at all,
+    // which is the shape the arm is actually for.
     anchor: `where: "Database (practice_sessions)"`,
-    replacement: `where: "Database (assessments)"`,
+    replacement: `where: "Database (recruiter_reports)"`,
     pattern: "has a delete in the client",
   }),
   budgetPlant({

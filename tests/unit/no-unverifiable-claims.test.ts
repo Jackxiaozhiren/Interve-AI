@@ -30,6 +30,49 @@ const prose = (f: string) =>
     .filter((l) => !/^\s*(\/\/|\*)/.test(l))
     .join("\n");
 
+/**
+ * Every anchor the product can render, as (href as written, element text).
+ *
+ * Parsed rather than grepped because the claim is about a link, and a link is a
+ * shape: a line scan cannot tell the disclaimer 没有企业版 in AboutSection from a
+ * footer entry that sells 企业版, and both contain the same four characters.
+ * `href` keeps its quotes or backticks so a template href still classifies.
+ */
+type Anchor = { file: string; href: string; text: string };
+
+function anchors(): Anchor[] {
+  const found: Anchor[] = [];
+  for (const rel of walkRepo("src", (r) => r.endsWith(".tsx"))) {
+    const source = read(rel);
+    const sf = ts.createSourceFile(rel, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const visit = (node: ts.Node) => {
+      const open = ts.isJsxElement(node)
+        ? node.openingElement
+        : ts.isJsxSelfClosingElement(node)
+          ? node
+          : null;
+      if (open) {
+        const tag = open.tagName.getText(sf);
+        if (tag === "Link" || tag === "a") {
+          const hrefAttr = open.attributes.properties.find(
+            (p): p is ts.JsxAttribute => ts.isJsxAttribute(p) && p.name.getText(sf) === "href",
+          );
+          found.push({
+            file: rel,
+            href: hrefAttr?.initializer ? hrefAttr.initializer.getText(sf) : "",
+            text: node.getText(sf).replace(/\{\/\*[\s\S]*?\*\//g, ""),
+          });
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+  }
+  return found;
+}
+
+const where = (a: Anchor) => `${a.file} -> ${a.href || "(no href)"}: ${a.text.replace(/\s+/g, " ").slice(0, 90)}`;
+
 describe("no invented commercial claims", () => {
   const FORBIDDEN = [/14\s*天.*试用/, /免费试用/, /数百家/, /顶尖企业/];
 
@@ -79,20 +122,51 @@ describe("the recruiter screen admits what it is", () => {
   });
 });
 
-describe("the footers do not sell things that do not exist", () => {
+/**
+ * This rule used to read two files. That is a list, and a list cannot fail for a
+ * member nobody has written yet: planting
+ * `<Link href="/recruiter">企业版</Link>` into terms/page.tsx left all 27 arms green,
+ * because the sentence is not in the list rather than because the claim is absent.
+ * The sweep is now over every anchor in src — measured as 72 anchors over 27 files —
+ * and each arm asks a question of the element, which a disclaimer answers correctly:
+ * 没有企业版 in AboutSection is prose about what the product is not, and is not the
+ * label of a link, so it passes.
+ */
+describe("no anchor sells a capability the product does not have", () => {
+  const ALL = anchors();
+
+  it("sweeps the corpus, not a hand-written list of footers", () => {
+    expect(ALL.length).toBeGreaterThanOrEqual(60);
+    expect(new Set(ALL.map((a) => a.file)).size).toBeGreaterThanOrEqual(20);
+  });
+
+  it("never names a plan or edition as the label of a link", () => {
+    const hits = ALL.filter((a) => /企业版|专业版|旗舰版|团队版|enterprise/i.test(a.text)).map(where);
+    expect(hits).toEqual([]);
+  });
+
+  it("never offers a machine endpoint as a resource link", () => {
+    const hits = ALL.filter((a) => /^["'`]\/api\//.test(a.href)).map(where);
+    expect(hits).toEqual([]);
+  });
+
+  it("admits the demo wherever it points into the recruiter route from outside it", () => {
+    // Inside the route the notice is already on the page; the claim at risk is a
+    // navigation element elsewhere in the product leading someone into it.
+    const into = ALL.filter(
+      (a) => !a.file.startsWith("src/app/recruiter/") && /["'`]\/recruiter/.test(a.href),
+    );
+    const unlabelled = into.filter((a) => !/演示|[Dd]emo/.test(a.text)).map(where);
+    expect(unlabelled).toEqual([]);
+  });
+});
+
+describe("the site's footer columns do not repeat a destination", () => {
+  // Deliberately narrower than the sweep above. This one is about a rendered list,
+  // and "the same href appears twice in a file" is not that: knowledge/page.tsx
+  // links /setup twice, once in a header action and once in the empty state, and
+  // the two render on mutually exclusive branches of `hasData`.
   const files = ["src/components/layout/Footer.tsx", "src/app/landing/page.tsx"];
-
-  it("never label the demo route as an enterprise edition", () => {
-    for (const f of files) {
-      const body = prose(f);
-      expect(body, f).not.toMatch(/企业版/);
-      expect(body, f).not.toMatch(/href="\/recruiter"/);
-    }
-  });
-
-  it("do not offer a raw API endpoint as a resource link", () => {
-    for (const f of files) expect(prose(f), f).not.toMatch(/href="\/api\//);
-  });
 
   it("do not list the same destination twice under different columns", () => {
     for (const f of files) {
