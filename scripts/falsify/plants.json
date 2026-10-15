@@ -425,6 +425,15 @@
       "replacement": "| `dsa` | **not this repo** — posted by an app | yes |",
       "test": "tests/unit/ci-lane-claims.test.ts",
       "pattern": "keeps every external row external"
+    },
+    {
+      "name": "DOC1",
+      "desc": "the deployment total that was deleted from the launch checklist comes back as a present fact",
+      "file": "docs/RELEASE_CHECKLIST.md",
+      "anchor": "created a Production deployment. The count belongs to the Deployments →",
+      "replacement": "created a Production deployment (38 total since 2026-04-25). The count belongs to the Deployments →",
+      "test": "tests/unit/docs-volatile-counts.test.ts",
+      "pattern": "names no deployment count as a fact"
     }
   ]
 }
