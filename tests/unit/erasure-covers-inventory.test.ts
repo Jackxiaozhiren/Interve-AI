@@ -16,7 +16,11 @@
  *      `db.<accessor>.remove(...)` in that function, or a call to an exported
  *      function of this app whose body performs that removal;
  *   3. every localStorage store named in the table is covered by the prefix list
- *      the local sweep uses.
+ *      the local sweep uses;
+ *   4. and the other way round — every table the client *writes rows into* has to
+ *      appear in the table at all, because that is the direction the orama_index
+ *      hole came through: the second copy existed in code and no row named it, so
+ *      the three predicates above were each true about an incomplete list.
  *
  * An inventory row that outpaces the code is therefore red, in both directions:
  * a new table with no delete, and a new table with a delete nobody calls.
@@ -149,7 +153,25 @@ function localPrefixes(): string[] {
   return out;
 }
 
+/** Tables the client puts rows into, read off the call that follows `.from('t')`. */
+function writtenTables(source: ts.SourceFile): string[] {
+  const out = new Set<string>();
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "from") {
+      const arg = node.arguments[0];
+      const parent = node.parent;
+      if (arg && ts.isStringLiteral(arg) && ts.isPropertyAccessExpression(parent) && ["insert", "upsert"].includes(parent.name.text)) {
+        out.add(arg.text);
+      }
+    }
+    node.forEachChild(visit);
+  };
+  source.forEachChild(visit);
+  return [...out].sort();
+}
+
 const client = parse(CLIENT);
+const written = writtenTables(client.source);
 const deletable = deletableTables(client.source);
 const accessors = accessorTables(client.source);
 const helpers = exportedFunctions();
@@ -204,6 +226,20 @@ describe("the Privacy Center can empty every store it names", () => {
       return ![...helpers].some(([name, body]) => eraseBody.includes(`${name}(`) && body.includes(`${accessor}.remove`));
     });
     expect(unreachable).toEqual([]);
+  });
+
+  it("sees the write sites it is about to compare against (instrument sanity)", () => {
+    // A reader that finds no writes would make the inclusion arm below green by
+    // blindness, which is how the last version of this rule could not fail.
+    expect(written.length, `only found ${written.length} written tables: ${written.join(", ")}`).toBeGreaterThanOrEqual(7);
+  });
+
+  it("names every table the client writes in the inventory a candidate reads", () => {
+    expect(
+      written.filter((t) => !listing.tables.includes(t)),
+      "the app stores rows the Privacy Center table never mentions — the promise is incomplete, " +
+        "and neither erase nor export covers them"
+    ).toEqual([]);
   });
 
   it("every localStorage store named in the table is covered by the local sweep", () => {

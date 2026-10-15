@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const seen: { table: string; row: Record<string, unknown> }[] = [];
+const deleted: { table: string; field: string; value: unknown }[] = [];
 let sessionUid: string | null = "oauth-uid-1";
 
 vi.mock("../../src/lib/supabase", () => ({
@@ -24,6 +25,12 @@ vi.mock("../../src/lib/supabase", () => ({
         seen.push({ table, row });
         return Promise.resolve({ error: null });
       },
+      delete: () => ({
+        eq: (field: string, value: unknown) => {
+          deleted.push({ table, field, value });
+          return Promise.resolve({ error: null });
+        },
+      }),
     }),
   },
 }));
@@ -33,7 +40,36 @@ import { classifyDbFailure } from "../../src/lib/db";
 
 beforeEach(() => {
   seen.length = 0;
+  deleted.length = 0;
   sessionUid = "oauth-uid-1";
+});
+
+describe("erasing an account's rows reaches every written table", () => {
+  // The Privacy Center's "delete everything" is only as wide as the accessors
+  // that can erase. These four had none, which is the same class of hole as
+  // orama_index: data the product writes and no promise covers.
+  const writable = ["evaluations", "assessments", "telemetry", "achievements"] as const;
+
+  for (const table of writable) {
+    it(`erases ${table} scoped to the caller's own user_id`, async () => {
+      const accessor = dbClient[table as "evaluations"] as { removeAllForOwner(): Promise<void> };
+      await accessor.removeAllForOwner();
+      expect(deleted).toHaveLength(1);
+      expect(deleted[0].table).toBe(table);
+      expect(deleted[0].field).toBe("user_id");
+      expect(deleted[0].value).toBe("oauth-uid-1");
+    });
+  }
+
+  it("refuses to erase without naming an owner, instead of issuing an unscoped delete", async () => {
+    sessionUid = null;
+    for (const table of writable) {
+      const accessor = dbClient[table as "evaluations"] as { removeAllForOwner(): Promise<void> };
+      const before = deleted.length;
+      await expect(accessor.removeAllForOwner()).rejects.toMatchObject({ code: "NO_OWNER" });
+      expect(deleted.length, `${table} issued a delete with no owner to scope it to`).toBe(before);
+    }
+  });
 });
 
 describe("owner-id binding (B1 cutover prep)", () => {
