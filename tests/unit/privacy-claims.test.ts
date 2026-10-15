@@ -103,7 +103,10 @@ describe("「行级安全：只有你能读到你的数据」", () => {
 
   it("refuses to store content with no owner instead of storing it unowned", () => {
     expect(apiClient).toMatch(/NO_OWNER/);
-    expect(apiClient).toMatch(/CONTENT_TABLES/);
+    // The set is named OWNER_REQUIRED_TABLES and the refusal is keyed on it;
+    // asserting the membership test rather than the bare identifier means this
+    // survives a rename only if the mechanism survives with it.
+    expect(apiClient).toMatch(/if \(OWNER_REQUIRED_TABLES\.has\(table\)\)/);
   });
 });
 

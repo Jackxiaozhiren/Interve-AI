@@ -391,6 +391,24 @@
       "pattern": "states the fence coverage the way it is measured"
     },
     {
+      "name": "OBR1",
+      "desc": "a bridged table is taken out of the owner-required set without being accepted as low-sensitivity",
+      "file": "src/lib/api-client.ts",
+      "anchor": "'assessments', 'orama_index']);",
+      "replacement": "'orama_index']);",
+      "test": "tests/unit/owner-bridge-classification.test.ts",
+      "pattern": "classifies every bridged table"
+    },
+    {
+      "name": "OBR2",
+      "desc": "telemetry, accepted as usage metadata, quietly gains a field carrying resume text",
+      "file": "src/lib/db.ts",
+      "anchor": "  latencyMs: number;\n  status: 'success' | 'error';",
+      "replacement": "  latencyMs: number;\n  resumeSnippet: string;\n  status: 'success' | 'error';",
+      "test": "tests/unit/owner-bridge-classification.test.ts",
+      "pattern": "keeps telemetry's accepted-ownerless payload"
+    },
+    {
       "name": "ERS1",
       "desc": "a table the app writes rows into disappears from the Privacy Center inventory the candidate reads",
       "file": "src/app/dashboard/privacy/page.tsx",
