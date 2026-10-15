@@ -5,7 +5,8 @@ import { Graph, Lightbulb, Microphone, PaperPlaneRight, PencilSimple, WarningCir
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { LiveCaptions } from "@/components/interview/LiveCaptions";
-import { MultiAgentVisualizer, type AIExpert } from "@/components/interview/MultiAgentVisualizer";
+import { MultiAgentVisualizer } from "@/components/interview/MultiAgentVisualizer";
+import type { AIExpert } from "@/lib/interview/experts";
 import { PinnedQuestion } from "@/components/interview/PinnedQuestion";
 import { StarTracker } from "@/components/interview/StarTracker";
 import { LiveWaveform } from "@/components/interview/LiveWaveform";

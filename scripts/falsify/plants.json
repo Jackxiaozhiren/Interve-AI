@@ -497,6 +497,24 @@
       "replacement": "achievements, orama_index, assessments, audit_log`)",
       "test": "tests/unit/readme-architecture-claims.test.ts",
       "pattern": "lists the tables the client actually writes"
+    },
+    {
+      "name": "EXP1",
+      "desc": "the prompt relabels the HR persona and the room keeps listening for the old tag",
+      "file": "src/ai/prompts/interview.ts",
+      "anchor": "2. [HR]",
+      "replacement": "2. [People]",
+      "test": "tests/unit/expert-labels.test.ts",
+      "pattern": "recognises exactly the labels the prompt instructs"
+    },
+    {
+      "name": "EXP2",
+      "desc": "the room's label table gains a typo, so one persona can never light",
+      "file": "src/lib/interview/experts.ts",
+      "anchor": "  '[HR]': 'hr',",
+      "replacement": "  '[Hr]': 'hr',",
+      "test": "tests/unit/expert-labels.test.ts",
+      "pattern": "maps each label to its persona"
     }
   ]
 }
