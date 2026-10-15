@@ -409,6 +409,24 @@
       "pattern": "keeps telemetry's accepted-ownerless payload"
     },
     {
+      "name": "CIT1",
+      "desc": "a CI job is added and the ownership table never learns about it",
+      "file": ".github/workflows/ci.yml",
+      "anchor": "  free-eval-smoke:",
+      "replacement": "  extra-gate:\n    runs-on: ubuntu-latest\n  free-eval-smoke:",
+      "test": "tests/unit/ci-lane-claims.test.ts",
+      "pattern": "has a row for every job this repo defines"
+    },
+    {
+      "name": "CIT2",
+      "desc": "the table calls a check this repo owns an outside app, which is how an unenforced gate reads as somebody else's problem",
+      "file": "docs/TESTING.md",
+      "anchor": "| `dsa` | `dsa.yml` | yes |",
+      "replacement": "| `dsa` | **not this repo** — posted by an app | yes |",
+      "test": "tests/unit/ci-lane-claims.test.ts",
+      "pattern": "keeps every external row external"
+    },
+    {
       "name": "ERS1",
       "desc": "a table the app writes rows into disappears from the Privacy Center inventory the candidate reads",
       "file": "src/app/dashboard/privacy/page.tsx",

@@ -16,6 +16,26 @@ Pyramid: unit → integration → API/DB/RLS → AI eval → E2E → a11y → vi
 | Security | `npm run audit:deps`, secret scan, gateway/upload/abuse suites | `audit:deps` splits the tree by reachability: zero criticals in the shipped tree (no exception path), and the developer tree's criticals must equal `docs/audit/deps-critical.json` in both directions. Live counts come from `npm audit --json` and are not restated here. 0 secret hits; abuse extras green |
 | Perf | Lighthouse + `scripts/perf-probe.mjs` | `/` 92/100/100/100; misses explained in `docs/audit/PERF_REPORT.md` |
 
+### Which checks a PR shows, and which of them this repo controls
+
+A green check list is not a green gate. Two of the checks a reviewer sees on every
+PR are posted by GitHub Apps installed on the account, not by anything in this tree,
+and one of them cannot fail on `main` at all — so this table says which lane a
+regression actually has to pass through. `tests/unit/ci-lane-claims.test.ts` reads
+`.github/workflows/` and fails if a job appears here that the workflows do not
+define, or a workflow defines a job that is not accounted for here.
+
+| Check name | Comes from | Blocks a merge? |
+|---|---|---|
+| `gate` | `ci.yml` → `npm run verify` then `npm run falsify` | yes |
+| `free-eval-smoke` | `ci.yml` | yes |
+| `Analyze (javascript-typescript)` | `codeql.yml` | yes |
+| `dsa` | `dsa.yml` | yes |
+| `nightly` | `nightly-eval.yml` | scheduled; not per-PR |
+| `capture` | `visual-baselines.yml` | dispatch-only, uploads an artifact, never commits |
+| `Vercel` | **not this repo** — a deployment status, not a test result | no |
+| `SonarCloud Code Analysis` | **not this repo** — no Sonar wiring exists in the tree (no workflow, no `sonar-project.properties`) | PRs evaluate a quality gate; on `main` it reports `neutral`, and the project gate status read on 2026-10-15 was `NONE` with zero conditions, so it cannot block a push there |
+
 ### Specs no CI lane collects
 
 `tests/unit/ci-lane-claims.test.ts` enumerates every `*.spec.ts` under `tests/`,
