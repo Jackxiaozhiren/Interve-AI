@@ -20,6 +20,10 @@ const INVENTORY: { data: string; where: string; why: string; retention: string }
   { data: "Evaluation + evidence quotes", where: "Database (interviews.evaluation_v2)", why: "Rubric scores with cited evidence for your review", retention: "Until you delete the session" },
   { data: "Practice answers + scores", where: "Database (practice_sessions)", why: "Retry-and-compare practice loop", retention: "Until you delete the session" },
   { data: "Resume search index", where: "Database (orama_index) — one serialized row per signed-in account", why: "Retrieve resume context per answer without re-reading the whole document", retention: "Until you delete everything (per-session delete leaves it: it is not tied to one session)" },
+  { data: "Evaluation records (rubric scores + evidence quotes)", where: "Database (evaluations)", why: "Keep an evaluation readable after the session it came from is closed", retention: "Until you delete everything (per-session delete leaves it)" },
+  { data: "Recruiter assessment notes", where: "Database (assessments)", why: "Let the labelled recruiter demo show a saved verdict per candidate", retention: "Until you delete everything (per-session delete leaves it)" },
+  { data: "Request telemetry (endpoint, latency, status)", where: "Database (telemetry)", why: "The dashboard system-health panel reads measured timings instead of invented ones", retention: "Until you delete everything (per-session delete leaves it)" },
+  { data: "Unlocked achievements", where: "Database (achievements)", why: "Badge list shown on the dashboard", retention: "Until you delete everything (per-session delete leaves it)" },
   { data: "系统设计白板截图", where: "Only sent when you click analyze — never stored", why: "Give feedback on the architecture diagram you drew", retention: "Not stored (on demand)" },
   { data: "Raw microphone audio", where: "Nowhere permanent — transcribed in-memory, then discarded", why: "Speech-to-text needs audio; storage does not", retention: "Not stored (default)" },
   { data: "Camera video / frames", where: "This device only (self-view preview)", why: "Self-view while speaking; never analyzed, never uploaded", retention: "Never stored (default)" },
@@ -141,11 +145,25 @@ export default function PrivacyPage() {
     } catch {
       failures.push("orama_index");
     }
+    // The four stores above are per-account rather than per-session, so they are
+    // erased here and not with the session rows. Each refusal is reported.
+    for (const [label, erase] of [
+      ["evaluations", () => db.evaluations.removeAllForOwner()],
+      ["assessments", () => db.assessments.removeAllForOwner()],
+      ["telemetry", () => db.telemetry.removeAllForOwner()],
+      ["achievements", () => db.achievements.removeAllForOwner()],
+    ] as const) {
+      try {
+        await erase();
+      } catch {
+        failures.push(label);
+      }
+    }
     await reload();
     setConfirmAll(false);
     setBusy(null);
     if (failures.length === 0) {
-      toast.success("已全部删除", { description: "云端面试、练习数据与简历索引已清空。" });
+      toast.success("已全部删除", { description: "云端面试、练习、简历索引与评测、评估、遥测、成就记录已清空。" });
     } else {
       toast.error("部分删除失败", { description: `${failures.length} 项未能删除，请重试。` });
     }

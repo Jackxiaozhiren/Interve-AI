@@ -116,14 +116,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * predicate once the spelling-dependent skip was replaced, and 123 with the four arms of the
  * registry-driven fence inventory: payload outside its fence (FEN1), a lane nobody
  * classified (FEN2), an unbalanced pair (FEN3) and an exemption that stopped being
- * true (FEN4), and 124 with FEN5, which reddens when the fence count in
- * docs/SECURITY.md moves off the pair the tree measures;
+ * true (FEN4), 124 with FEN5 (the fence count in docs/SECURITY.md moving off the pair
+ * the tree measures), and 127 with the erasure fix: a written table missing from
+ * the inventory the candidate reads (ERS1), an erase call dropped from
+ * delete-everything while its row still promises it (ERS2), and an erase scoped by
+ * the wrong column so it matches another account or nothing (ERS3);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 124;
+const MIN_PLANTS = 127;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1026,8 +1029,13 @@ const PLANTS = [
     name: "ER1",
     desc: "the Privacy Center lists a table the client cannot delete from",
     file: "src/app/dashboard/privacy/page.tsx",
+    // Retargeted 2026-10-15: this used to point at `assessments`, which was then
+    // a table with no delete path. The erasure fix gave every written table a
+    // `removeAllForOwner`, so the plant became inert -- a witness that cannot
+    // fire is not a witness. It now names a store no accessor can erase at all,
+    // which is the shape the arm is actually for.
     anchor: `where: "Database (practice_sessions)"`,
-    replacement: `where: "Database (assessments)"`,
+    replacement: `where: "Database (recruiter_reports)"`,
     pattern: "has a delete in the client",
   }),
   budgetPlant({

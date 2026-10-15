@@ -389,6 +389,33 @@
       "replacement": "measured as 9 of 19 modules under `src/ai/prompts/`",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "states the fence coverage the way it is measured"
+    },
+    {
+      "name": "ERS1",
+      "desc": "a table the app writes rows into disappears from the Privacy Center inventory the candidate reads",
+      "file": "src/app/dashboard/privacy/page.tsx",
+      "anchor": "  { data: \"Evaluation records (rubric scores + evidence quotes)\", where: \"Database (evaluations)\", why: \"Keep an evaluation readable after the session it came from is closed\", retention: \"Until you delete everything (per-session delete leaves it)\" },\n",
+      "replacement": "",
+      "test": "tests/unit/erasure-covers-inventory.test.ts",
+      "pattern": "names every table the client writes"
+    },
+    {
+      "name": "ERS2",
+      "desc": "the telemetry erase call is dropped from delete-everything while the row still promises it",
+      "file": "src/app/dashboard/privacy/page.tsx",
+      "anchor": "      [\"telemetry\", () => db.telemetry.removeAllForOwner()],\n",
+      "replacement": "",
+      "test": "tests/unit/erasure-covers-inventory.test.ts",
+      "pattern": "reachable from deleteAll"
+    },
+    {
+      "name": "ERS3",
+      "desc": "the telemetry erase is scoped by the wrong column, so it matches another account's rows or none",
+      "file": "src/lib/api-client.ts",
+      "anchor": "from('telemetry').delete().eq('user_id', uid);",
+      "replacement": "from('telemetry').delete().eq('endpoint', uid);",
+      "test": "tests/unit/owner-binding.test.ts",
+      "pattern": "erases telemetry scoped to the caller"
     }
   ]
 }
