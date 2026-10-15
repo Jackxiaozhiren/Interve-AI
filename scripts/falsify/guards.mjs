@@ -108,13 +108,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * classification (OBR1 a bridged table dropped from the owner-required set, OBR2 a row
  * type accepted as metadata gaining a candidate-content field); and 128 with the CI
  * ownership table losing either side of itself (CIT1 a job nobody documented, CIT2 a
- * job this repo runs blamed on an outside app);
+ * job this repo runs blamed on an outside app); and 131 with the erasure fix (ERS1 a
+ * written table missing from the inventory the candidate reads, ERS2 an erase call
+ * dropped while its row still promises it, ERS3 an erase scoped by the wrong column so
+ * it matches another account or nothing);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 128;
+const MIN_PLANTS = 131;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1017,8 +1020,13 @@ const PLANTS = [
     name: "ER1",
     desc: "the Privacy Center lists a table the client cannot delete from",
     file: "src/app/dashboard/privacy/page.tsx",
+    // Retargeted 2026-10-15: this used to point at `assessments`, which was then
+    // a table with no delete path. The erasure fix gave every written table a
+    // `removeAllForOwner`, so the plant became inert -- a witness that cannot
+    // fire is not a witness. It now names a store no accessor can erase at all,
+    // which is the shape the arm is actually for.
     anchor: `where: "Database (practice_sessions)"`,
-    replacement: `where: "Database (assessments)"`,
+    replacement: `where: "Database (recruiter_reports)"`,
     pattern: "has a delete in the client",
   }),
   budgetPlant({
