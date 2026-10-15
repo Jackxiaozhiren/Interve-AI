@@ -14,7 +14,7 @@
  * that nobody runs goes red; so does a table row that outlives its gap.
  */
 import { readFileSync } from "node:fs";
-import { walkRepo } from "./repo-tree";
+import { readRepo, walkRepo } from "./repo-tree";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
@@ -244,5 +244,81 @@ describe("every test title is either run by CI or declared in the doc", () => {
   it("refuses a row whose gap has been closed", () => {
     const stale = [...declaredUncollected.keys()].filter((f) => !gaps.has(f));
     expect(stale, `declared uncollected but every title is now run: ${stale.join(", ")}`).toEqual([]);
+  });
+
+});
+
+/**
+ * The check list a reviewer sees on a PR is wider than the CI this repository
+ * owns, and the difference is not cosmetic: a deployment status and an
+ * out-of-band analysis app both render as green ticks. docs/TESTING.md tabulates
+ * which lane comes from where, so the tabulation has to track the workflows in
+ * both directions -- a job with no row is an unexplained gate, and a row that
+ * claims a job CI does not define is a gate nobody will ever fail.
+ */
+const OWNERSHIP_SECTION = "### Which checks a PR shows";
+
+function jobLabels(): { file: string; key: string; label: string }[] {
+  const out: { file: string; key: string; label: string }[] = [];
+  for (const rel of walkRepo(".github/workflows", (r) => r.endsWith(".yml"))) {
+    const lines = readRepo(rel).split("\n");
+    const start = lines.findIndex((l) => l === "jobs:");
+    if (start === -1) continue;
+    let current: { key: string; name?: string } | null = null;
+    for (const line of lines.slice(start + 1)) {
+      const job = /^  ([a-zA-Z0-9_-]+):\s*$/.exec(line);
+      if (job) {
+        if (current) out.push({ file: rel, key: current.key, label: current.name ?? current.key });
+        current = { key: job[1] };
+        continue;
+      }
+      const named = /^\s{4}name:\s*(.+)$/.exec(line);
+      if (named && current) current.name = named[1].trim().replace(/^"|"$/g, "");
+    }
+    if (current) out.push({ file: rel, key: current.key, label: current.name ?? current.key });
+  }
+  return out;
+}
+
+const derived = jobLabels();
+/** `Analyze (${{ matrix.language }})` is announced by the prefix before the paren. */
+const baseOf = (label: string) => label.split(" (")[0].replace(/\$\{\{.*$/, "").trim();
+const docOwnership = (() => {
+  const section = doc.split(OWNERSHIP_SECTION)[1] ?? "";
+  const rows: { name: string; external: boolean }[] = [];
+  for (const m of section.matchAll(/^\| `([^`]+)` \| (.*?) \|/gm)) {
+    rows.push({ name: m[1], external: /\*\*not this repo\*\*/.test(m[2]) });
+  }
+  return rows;
+})();
+
+describe("the CI ownership table matches the workflows", () => {
+  it("reads real jobs from real workflows (the comparison below needs both sides)", () => {
+    expect(derived.length, "no jobs parsed out of .github/workflows").toBeGreaterThanOrEqual(6);
+    expect(docOwnership.length).toBeGreaterThanOrEqual(derived.length);
+  });
+
+  it("has a row for every job this repo defines", () => {
+    const documented = new Set(docOwnership.map((r) => baseOf(r.name)));
+    const unowned = derived.filter((j) => !documented.has(baseOf(j.label)));
+    expect(
+      unowned.map((j) => `${j.file} → ${j.label}`),
+      "a CI job exists that the ownership table never accounts for"
+    ).toEqual([]);
+  });
+
+  it("claims no row for a job that does not exist", () => {
+    const defined = new Set(derived.map((j) => baseOf(j.label)));
+    const claimedInternal = docOwnership.filter((r) => !r.external && !defined.has(baseOf(r.name)));
+    expect(claimedInternal.map((r) => r.name), "the doc says this repo runs a check it does not define").toEqual([]);
+  });
+
+  it("keeps every external row external", () => {
+    const defined = new Set(derived.map((j) => baseOf(j.label)));
+    const mislabelled = docOwnership.filter((r) => r.external && defined.has(baseOf(r.name)));
+    expect(
+      mislabelled.map((r) => r.name),
+      'a check marked **not this repo** is now defined by a workflow in this tree' 
+    ).toEqual([]);
   });
 });
