@@ -52,6 +52,20 @@ function debtFiles(key: string): number {
   return sourceFiles().filter((rel) => measureDebtRegex(key, readRepo(rel)) > 0).length;
 }
 
+/**
+ * Tables the shipped client writes rows into, read off the call shape
+ * (`from('t')` followed by `insert`/`upsert`). Whitespace is folded first: a
+ * chain broken over lines is the same call, and a line-scan would miss it.
+ */
+function writtenTables(): string[] {
+  const folded = readRepo("src/lib/api-client.ts").replace(/\s+/g, " ");
+  const found = new Set<string>();
+  for (const m of folded.matchAll(/from\(\s*['"]([a-z_]+)['"]\s*\)(?:\.[a-zA-Z]+\([^)]*\))*\.(?:insert|upsert)\(/g)) {
+    if (m[1]) found.add(m[1]);
+  }
+  return [...found].sort();
+}
+
 /** How many prompt modules carry the untrusted-input fence. */
 function fencedPromptFiles(): number {
   return walkRepo("src/ai/prompts", (rel) => rel.endsWith(".ts")).filter(
@@ -121,6 +135,24 @@ describe("the README's architecture counts are the measured ones", () => {
     expectClaim(m ? Number(m[1]) : null, measured, "file on a deprecated object API");
     const ceiling = JSON.parse(readRepo("docs/audit/facts.limits.json")).ceiling["debt.deprecatedObjectGenFiles"];
     expect(measured, "the README's number must be the ceiling it claims to name").toBe(ceiling);
+  });
+
+  it("lists the tables the client actually writes", () => {
+    // The paragraph names seven tables and enumerates them. Both halves were
+    // hand-maintained: adding an eighth store to `api-client.ts` moves nothing
+    // here, and the README is what a new reader trusts about what gets persisted.
+    const folded = readme.replace(/\s+/g, " ");
+    const m = /(\d+) tables \(`([^`]+)`\)/.exec(folded);
+    expect(m, "the README no longer states the table count and list where this test reads it").not.toBeNull();
+    const measured = writtenTables();
+    expect(measured.length, "the derivation named no table at all").toBeGreaterThanOrEqual(7);
+    const claimedList = (m?.[2] ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .sort();
+    expect(claimedList, `README lists ${claimedList.join(", ")}, the client writes ${measured.join(", ")}`).toEqual(measured);
+    expectClaim(m ? Number(m[1]) : null, measured.length, "table the client writes");
   });
 
   it("registers a version for every prompt it lists", () => {

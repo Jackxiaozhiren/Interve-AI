@@ -66,10 +66,14 @@
   actions reached the DOM). Pinned by `tests/unit/global-error-boundary.test.ts`.
 - [ ] Sitemap: OPEN (non-blocking) — the blocker is NOT a missing domain.
   `https://interve-ai.vercel.app` is live and is the repo homepage (verified
-  2026-09-26: HTTP 200, `/api/health` ok with real DB latency, 38 production
-  deployments since 2026-04-25). What is missing is `NEXT_PUBLIC_SITE_URL` in
-  the Vercel project — the live document has no `og:url`, which is how that
-  reads. Set it there, then add `src/app/sitemap.ts` + `metadataBase`.
+  2026-09-26: HTTP 200, `/api/health` ok with real DB latency). No deployment
+  total is restated here: every push to `main` publishes, so the figure written
+  beside that date (38) was overtaken inside three weeks, and a count in
+  checked-in prose keeps reading as a present fact long after it stopped being
+  one. The authority is the repo's Deployments → Production list. What is
+  missing is `NEXT_PUBLIC_SITE_URL` in the Vercel project — the live document
+  has no `og:url`, which is how that reads. Set it there, then add
+  `src/app/sitemap.ts` + `metadataBase`.
 
 ## Observability (PII-free)
 
@@ -103,7 +107,9 @@
 
 - [x] `main` is wired to auto-deploy to **Vercel Production** via the GitHub
   integration — measured 2026-09-26: every push to `main` in this session
-  created a Production deployment (38 total since 2026-04-25). So "push" and
+  created a Production deployment. The count belongs to the Deployments →
+  Production list, not to this line: the 38 recorded beside that date was
+  overtaken inside three weeks, because merges publish. So "push" and
   "publish" are the same action here; there is no staging gate between them.
   Anything that treats a push as code-only is working from a wrong model.
 - [x] Reproducible `docker build` green (standalone, runs: /login 200; tag

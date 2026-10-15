@@ -479,6 +479,24 @@
       "replacement": "服务条款</Link>\n                <Link href=\"/recruiter\" className=\"font-semibold text-sky-600 hover:underline\">招聘看板</Link>",
       "test": "tests/unit/no-unverifiable-claims.test.ts",
       "pattern": "points into the recruiter route"
+    },
+    {
+      "name": "DOC1",
+      "desc": "the deployment total that was deleted from the launch checklist comes back as a present fact",
+      "file": "docs/RELEASE_CHECKLIST.md",
+      "anchor": "created a Production deployment. The count belongs to the Deployments →",
+      "replacement": "created a Production deployment (38 total since 2026-04-25). The count belongs to the Deployments →",
+      "test": "tests/unit/docs-volatile-counts.test.ts",
+      "pattern": "names no deployment count as a fact"
+    },
+    {
+      "name": "RED1",
+      "desc": "the README's table list gains a store the client never writes, so the paragraph describes a schema that is not there",
+      "file": "README.md",
+      "anchor": "achievements, orama_index, assessments`)",
+      "replacement": "achievements, orama_index, assessments, audit_log`)",
+      "test": "tests/unit/readme-architecture-claims.test.ts",
+      "pattern": "lists the tables the client actually writes"
     }
   ]
 }
