@@ -16,9 +16,10 @@
  * A token that resolves by nothing is either a lie or an exemption, and an exemption has
  * to be declared here with a reason — that is the point. A new claim cannot hide.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { walkRepo } from "./repo-tree";
 
 const ROOT = new URL("../../", import.meta.url);
 const read = (rel: string) => readFileSync(new URL(rel, ROOT), "utf8");
@@ -44,62 +45,40 @@ const privacy = read("src/app/privacy/page.tsx");
  */
 const SELF = "src/app/privacy/page.tsx";
 
-function tokenText(dir: string, accept: (name: string) => boolean): { tokens: string; literals: Set<string> } {
+function tokenText(dir: string, accept: (rel: string) => boolean): { tokens: string; literals: Set<string> } {
   const out: string[] = [];
   const literals = new Set<string>();
-  const walk = (rel: string) => {
-    for (const entry of readdirSync(new URL(rel, ROOT))) {
-      const child = `${rel}/${entry}`;
-      const abs = new URL(child, ROOT);
-      if (statSync(abs).isDirectory()) {
-        if (entry === "node_modules" || entry === ".next") continue;
-        walk(child);
-      } else if (accept(entry) && child !== SELF) {
-        const sf = ts.createSourceFile(
-          child,
-          read(child),
-          ts.ScriptTarget.Latest,
-          true,
-          entry.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
-        );
-        const visit = (n: ts.Node) => {
-          if (ts.isToken(n)) out.push(n.getText(sf));
-          if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) literals.add(n.text);
-          if (ts.isTemplateExpression(n)) {
-            literals.add(n.head.text);
-            n.templateSpans.forEach((s) => literals.add(s.literal.text));
-          }
-          n.forEachChild(visit);
-        };
-        visit(sf);
+  for (const rel of walkRepo(dir, accept)) {
+    const sf = ts.createSourceFile(
+      rel,
+      read(rel),
+      ts.ScriptTarget.Latest,
+      true,
+      rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+    );
+    const visit = (n: ts.Node) => {
+      if (ts.isToken(n)) out.push(n.getText(sf));
+      if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) literals.add(n.text);
+      if (ts.isTemplateExpression(n)) {
+        literals.add(n.head.text);
+        n.templateSpans.forEach((s) => literals.add(s.literal.text));
       }
-    }
-  };
-  walk(dir);
+      n.forEachChild(visit);
+    };
+    visit(sf);
+  }
   return { tokens: out.join("\n"), literals };
 }
 
-const CODE = tokenText("src", (n) => /\.(ts|tsx|mjs)$/.test(n));
+const CODE = tokenText("src", (rel) => /\.(ts|tsx|mjs)$/.test(rel) && rel !== SELF);
 const CODE_TOKENS = CODE.tokens;
 const STRING_LITERALS = CODE.literals;
 const SQL_TEXT = gather("supabase", (n) => n.endsWith(".sql"));
 const HAYSTACK = `${CODE_TOKENS}\n${SQL_TEXT}`;
 const pkg = JSON.parse(read("package.json")) as { dependencies?: Record<string, string> };
 
-function gather(dir: string, filter: (name: string) => boolean): string {
-  const out: string[] = [];
-  const walk = (rel: string) => {
-    for (const entry of readdirSync(new URL(rel, ROOT))) {
-      const child = `${rel}/${entry}`;
-      const abs = new URL(child, ROOT);
-      if (statSync(abs).isDirectory()) {
-        if (entry === "node_modules" || entry === ".next") continue;
-        walk(child);
-      } else if (filter(entry)) out.push(read(child));
-    }
-  };
-  walk(dir);
-  return out.join("\n");
+function gather(dir: string, filter: (rel: string) => boolean): string {
+  return walkRepo(dir, filter).map(read).join("\n");
 }
 
 /**

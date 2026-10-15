@@ -6,36 +6,21 @@
 // validation errors echo field paths only; RAG chunks are resume-text-only.
 // This file pins that posture so regressions fail keylessly.
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { readRepo, walkRepo } from "./repo-tree";
 
-const ROOT = new URL("../../", import.meta.url);
-
-function walkTs(dirPath: string, out: string[] = []): string[] {
-  for (const e of readdirSync(dirPath)) {
-    const full = join(dirPath, e);
-    if (statSync(full).isDirectory()) {
-      if (e === "node_modules") continue;
-      walkTs(full, out);
-    } else if (/\.(ts|tsx)$/.test(e)) {
-      out.push(full);
-    }
-  }
-  return out;
-}
-
-const rootPath = decodeURIComponent(new URL(ROOT).pathname);
-const API_ROUTES = walkTs(join(rootPath, "src/app/api")).filter((f) => f.endsWith("route.ts"));
-const PROMPT_FILES = walkTs(join(rootPath, "src/ai/prompts"));
-const CLIENT_FILES = [...walkTs(join(rootPath, "src/components")), ...walkTs(join(rootPath, "src/app"))].filter((f) =>
-  readFileSync(f, "utf8").includes('"use client"')
-);
+const isTs = (rel: string) => /\.(ts|tsx)$/.test(rel);
+const API_ROUTES = walkRepo("src/app/api", (rel) => rel.endsWith("route.ts"));
+const PROMPT_FILES = walkRepo("src/ai/prompts", isTs);
+const CLIENT_FILES = [
+  ...walkRepo("src/components", isTs),
+  ...walkRepo("src/app", isTs),
+].filter((f) => readRepo(f).includes('"use client"'));
 
 describe("LLM03 Excessive Agency (2026): models touch no tools", () => {
   it("no route passes tools/toolChoice/agentic loops to the model", () => {
     expect(API_ROUTES.length).toBeGreaterThan(0);
     for (const f of API_ROUTES) {
-      const text = readFileSync(f, "utf8");
+      const text = readRepo(f);
       expect(text, `${f}: tools`).not.toMatch(/[^a-zA-Z]tools\s*:/);
       expect(text, `${f}: toolChoice`).not.toContain("toolChoice");
       expect(text, `${f}: maxSteps`).not.toContain("maxSteps");
@@ -52,14 +37,14 @@ describe("B4 access-control: orama_index is user-partitioned", () => {
   it("tracks the ./db alias: db === dbClient, so db.oramaIndex IS the Supabase table", () => {
     // Regression guard for the Phase-B false negative (this test once missed
     // the alias and claimed the table unwired while orama-client used it).
-    const dbSrc = readFileSync(join(rootPath, "src/lib/db.ts"), "utf8");
+    const dbSrc = readRepo("src/lib/db.ts");
     expect(dbSrc, "./db binds dbClient").toMatch(/dbClient/);
-    const oc = readFileSync(join(rootPath, "src/lib/orama-client.ts"), "utf8");
+    const oc = readRepo("src/lib/orama-client.ts");
     expect(oc, "orama-client uses the shared db").toContain("from './db'");
   });
 
   it("orama-client partitions by user (no global-id writes)", () => {
-    const oc = readFileSync(join(rootPath, "src/lib/orama-client.ts"), "utf8");
+    const oc = readRepo("src/lib/orama-client.ts");
     expect(oc, "namespaced hub ids").toContain("hubIdForUser");
     expect(oc, "user_id stamp").toContain("user_id");
     // No hardcoded global-id reads/writes outside the legacy fallback.
@@ -75,10 +60,10 @@ describe("LLM08 Hidden Context Exposure (2026): prompt + RAG + logs + errors", (
   const SECRET_PATTERNS = ["supabase.co", "open.bigmodel.cn", "service_role", "sk-ant-", "sk-proj-", "mongodb://", "postgres://"];
 
   it("client components read no server-only keys", () => {
-    const clients = CLIENT_FILES.filter((f) => readFileSync(f, "utf8").includes('"use client"'));
+    const clients = CLIENT_FILES.filter((f) => readRepo(f).includes('"use client"'));
     expect(clients.length).toBeGreaterThan(0);
     for (const f of clients) {
-      const text = readFileSync(f, "utf8");
+      const text = readRepo(f);
       for (const k of SERVER_KEYS) {
         expect(text, `${f}:${k}`).not.toContain(k);
       }
@@ -88,7 +73,7 @@ describe("LLM08 Hidden Context Exposure (2026): prompt + RAG + logs + errors", (
   it("prompts embed no connection strings, secrets, or internal rules", () => {
     expect(PROMPT_FILES.length).toBeGreaterThan(0);
     for (const f of PROMPT_FILES) {
-      const text = readFileSync(f, "utf8");
+      const text = readRepo(f);
       for (const p of SECRET_PATTERNS) {
         expect(text, `${f}:${p}`).not.toContain(p);
       }
@@ -101,7 +86,7 @@ describe("LLM08 Hidden Context Exposure (2026): prompt + RAG + logs + errors", (
   // route echoes raw provider errors or request bodies into logs/responses
   // (classifyUpstreamError class tokens + path-only validation messages).
   it("RAG chunks carry resume text only (no prompt/secret content)", () => {
-    const oc = readFileSync(join(rootPath, "src/lib/orama-client.ts"), "utf8");
+    const oc = readRepo("src/lib/orama-client.ts");
     expect(oc, "chunk source is the user resume").toContain("chunkText(resumeText)");
     expect(oc, "index schema is text-only").toMatch(/schema:\s*\{\s*text:\s*'string'/);
   });
@@ -109,13 +94,13 @@ describe("LLM08 Hidden Context Exposure (2026): prompt + RAG + logs + errors", (
   it("no route echoes raw errors or request bodies (class tokens + paths only)", () => {
     expect(API_ROUTES.length).toBeGreaterThan(0);
     for (const f of API_ROUTES) {
-      const text = readFileSync(f, "utf8");
+      const text = readRepo(f);
       expect(text, `${f}: error.message`).not.toMatch(/error\.message/);
       expect(text, `${f}: String(e)`).not.toMatch(/String\(e\b/);
       expect(text, `${f}: dollar-e`).not.toMatch(/\$\{e\}/);
       expect(text, `${f}: dollar-error`).not.toMatch(/\$\{error\}/);
     }
-    const v = readFileSync(join(rootPath, "src/lib/api/validate.ts"), "utf8");
+    const v = readRepo("src/lib/api/validate.ts");
     expect(v, "generic validation envelope").toContain("Invalid request body (");
   });
 });
@@ -136,14 +121,14 @@ describe("LLM07 Misinformation (2026): verdicts ride verbatim evidence + disclai
 
   it("verdict routes keep evidence + confidence envelope fields", () => {
     for (const r of VERDICT_ROUTES) {
-      const text = readFileSync(join(rootPath, "src/app/api", r, "route.ts"), "utf8");
+      const text = readRepo(`src/app/api/${r}/route.ts`);
       expect(text, `${r}: evidenceField`).toContain("evidenceField");
       expect(text, `${r}: confidenceField`).toContain("confidenceField");
     }
   });
 
   it("V2 dimensions require >=1 verbatim quote; disclaimer is single-sourced", () => {
-    const c = readFileSync(join(rootPath, "src/ai/evaluation-contract.ts"), "utf8");
+    const c = readRepo("src/ai/evaluation-contract.ts");
     expect(c, "dimension evidence floor").toContain(
       "evidence: z.array(z.string().min(1).max(500)).min(1).max(6),"
     );
@@ -155,7 +140,7 @@ describe("LLM07 Misinformation (2026): verdicts ride verbatim evidence + disclai
       "src/lib/utils/export.ts",
       "src/ai/prompts/evaluation.ts",
     ]) {
-      const text = readFileSync(join(rootPath, f), "utf8");
+      const text = readRepo(f);
       expect(text, `${f}: disclaimer`).toContain("READINESS_DISCLAIMER");
     }
   });
@@ -169,13 +154,13 @@ describe("LLM10 Output Handling (2026): no raw-HTML sinks for model/user text", 
   it("sink inventory is closed: escaped component sink + static CSS only", () => {
     const hits: string[] = [];
     for (const f of [
-      ...walkTs(join(rootPath, "src/components")),
-      ...walkTs(join(rootPath, "src/app")),
-      ...walkTs(join(rootPath, "src/lib")),
+      ...walkRepo("src/components", isTs),
+      ...walkRepo("src/app", isTs),
+      ...walkRepo("src/lib", isTs),
     ]) {
-      if (readFileSync(f, "utf8").includes("dangerouslySetInnerHTML")) hits.push(f);
+      if (readRepo(f).includes("dangerouslySetInnerHTML")) hits.push(f);
     }
-    const rel = hits.map((f) => f.replace(rootPath, "")).sort();
+    const rel = hits.slice().sort();
     expect(rel).toEqual(
       [
         "src/components/interve-ui/backgrounds/chat-background.tsx",
@@ -183,14 +168,11 @@ describe("LLM10 Output Handling (2026): no raw-HTML sinks for model/user text", 
         "src/lib/message-text.ts",
       ].sort()
     );
-    const card = readFileSync(join(rootPath, "src/components/interve-ui/chat/message-card.tsx"), "utf8");
+    const card = readRepo("src/components/interve-ui/chat/message-card.tsx");
     expect(card, "component sink escapes at the sink").toContain("escapeHtml(content)");
-    const bg = readFileSync(
-      join(rootPath, "src/components/interve-ui/backgrounds/chat-background.tsx"),
-      "utf8"
-    );
+    const bg = readRepo("src/components/interve-ui/backgrounds/chat-background.tsx");
     expect(bg, "CSS sink is a static literal (no interpolation)").not.toMatch(/\$\{/);
-    const helper = readFileSync(join(rootPath, "src/lib/message-text.ts"), "utf8");
+    const helper = readRepo("src/lib/message-text.ts");
     expect(helper, "helper only documents the sink (renders nothing itself)").not.toContain("__html");
   });
 });
@@ -204,7 +186,7 @@ describe("LLM06 Unbounded Consumption (2026): every AI call is metered", () => {
   it("all AI routes report token usage (no unmetered generation call)", () => {
     const routes = API_ROUTES.map((f) => ({
       file: f,
-      text: readFileSync(f, "utf8"),
+      text: readRepo(f),
     })).filter(({ text }) => /await (generateObject|generateText|streamText)\(/.test(text));
     expect(routes.length).toBe(16);
     for (const { file: f, text } of routes) {

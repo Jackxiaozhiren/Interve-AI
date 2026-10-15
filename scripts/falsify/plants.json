@@ -177,8 +177,8 @@
       "name": "RRP1",
       "desc": "the read-response sweep quietly losing the ten files under src/lib/api",
       "file": "tests/unit/read-response.test.ts",
-      "anchor": "if (full.includes(`${path.sep}api${path.sep}`)) continue;",
-      "replacement": "if (entry.name === \"api\") continue;",
+      "anchor": "walkRepo(\"src\", (rel) => /\\.(ts|tsx)$/.test(rel) && !rel.startsWith(\"src/app/api/\"));",
+      "replacement": "walkRepo(\"src\", (rel) => /\\.(ts|tsx)$/.test(rel) && !rel.startsWith(\"src/app/api/\") && !rel.startsWith(\"src/lib/api/\"));",
       "test": "tests/unit/read-response.test.ts",
       "pattern": "names both ends of its own exclusion"
     },
@@ -335,6 +335,15 @@
       "replacement": "<code>src/workers/whisperWorker.ts</code>",
       "test": "tests/unit/privacy-evidence-resolves.test.ts",
       "pattern": "resolves all of them, or names what to fix"
+    },
+    {
+      "name": "RRP2",
+      "desc": "the read-response sweep stops excluding route handlers, so server code joins a client-only rule",
+      "file": "tests/unit/read-response.test.ts",
+      "anchor": "walkRepo(\"src\", (rel) => /\\.(ts|tsx)$/.test(rel) && !rel.startsWith(\"src/app/api/\"));",
+      "replacement": "walkRepo(\"src\", (rel) => /\\.(ts|tsx)$/.test(rel));",
+      "test": "tests/unit/read-response.test.ts",
+      "pattern": "names both ends of its own exclusion"
     }
   ]
 }
