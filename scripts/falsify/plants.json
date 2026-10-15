@@ -346,6 +346,51 @@
       "pattern": "names both ends of its own exclusion"
     },
     {
+      "name": "FEN1",
+      "desc": "the practice answer is emitted after its closing fence, so the candidate text sits outside the section that says it is data",
+      "file": "src/ai/prompts/practice.ts",
+      "anchor": "${answer}\\n### UNTRUSTED ANSWER END ###",
+      "replacement": "### UNTRUSTED ANSWER END ###\\n${answer}",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "keeps analyze-practice's candidate text inside an UNTRUSTED fence"
+    },
+    {
+      "name": "FEN2",
+      "desc": "a new prompt enters the registry and nobody decides whether it carries candidate text",
+      "file": "src/ai/prompts/index.ts",
+      "anchor": "{ id: \"evaluation-v2\", version: EVALUATION_VERSION },",
+      "replacement": "{ id: \"evaluation-v2\", version: EVALUATION_VERSION },\n  { id: \"analyze-future\", version: \"1.0.0\" },",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "classifies each registry id and no leftovers"
+    },
+    {
+      "name": "FEN3",
+      "desc": "a duplicated closing marker leaves a fence pair that no longer describes where data ends",
+      "file": "src/ai/prompts/alignment.ts",
+      "anchor": "### UNTRUSTED RESUME END ###",
+      "replacement": "### UNTRUSTED RESUME END ###\\n### UNTRUSTED RESUME END ###",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "balances analyze-alignment's fence pairs"
+    },
+    {
+      "name": "FEN4",
+      "desc": "the OCR instruction quietly gains a parameter, so parse-resume is no longer a constant prompt",
+      "file": "src/ai/prompts/resume.ts",
+      "anchor": "export function buildOcrInstruction(): string {",
+      "replacement": "export function buildOcrInstruction(params?: { documentText: string }): string {",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "keeps each exemption true instead of merely stated"
+    },
+    {
+      "name": "FEN5",
+      "desc": "the security document's fence count moves off the pair the tree measures",
+      "file": "docs/SECURITY.md",
+      "anchor": "measured as 15 of 19 modules under `src/ai/prompts/`",
+      "replacement": "measured as 9 of 19 modules under `src/ai/prompts/`",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "states the fence coverage the way it is measured"
+    },
+    {
       "name": "OBR1",
       "desc": "a bridged table is taken out of the owner-required set without being accepted as low-sensitivity",
       "file": "src/lib/api-client.ts",
