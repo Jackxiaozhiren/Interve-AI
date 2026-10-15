@@ -380,6 +380,15 @@
       "replacement": "export function buildOcrInstruction(params?: { documentText: string }): string {",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "keeps each exemption true instead of merely stated"
+    },
+    {
+      "name": "FEN5",
+      "desc": "the security document's fence count moves off the pair the tree measures",
+      "file": "docs/SECURITY.md",
+      "anchor": "measured as 15 of 19 modules under `src/ai/prompts/`",
+      "replacement": "measured as 9 of 19 modules under `src/ai/prompts/`",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "states the fence coverage the way it is measured"
     }
   ]
 }

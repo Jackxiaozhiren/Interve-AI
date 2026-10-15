@@ -29,8 +29,8 @@
  * Witnessed by FEN1 (a builder's fence pair removed) and FEN2 (a registry id
  * that nobody classified) — see scripts/falsify/plants.json.
  */
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { readRepo, walkRepo } from "./repo-tree";
 import { PROMPT_REGISTRY } from "../../src/ai/prompts";
 import { buildInterviewSystemPrompt } from "../../src/ai/prompts/interview";
 import { buildStarPrompt, buildStarSystem } from "../../src/ai/prompts/star";
@@ -147,10 +147,7 @@ describe("every registered prompt is classified for injection fences", () => {
       "parse-resume's builder now takes an argument: re-ask whether it carries candidate text"
     ).toBe(0);
 
-    const coverage = readFileSync(
-      new URL("../../src/ai/prompts/coverage.ts", import.meta.url),
-      "utf8"
-    )
+    const coverage = readRepo("src/ai/prompts/coverage.ts")
       // Comments are prose about the code, not the code: a sentence explaining
       // "no candidate answer reaches this text" must not read as a field access.
       .replace(/\/\*[\s\S]*?\*\//g, " ")
@@ -160,5 +157,18 @@ describe("every registered prompt is classified for injection fences", () => {
       "the coverage section now reads a candidate-authored field; it belongs in FENCED with a " +
         "fence pair, not in the exemption list"
     ).not.toMatch(CANDIDATE_FIELDS);
+  });
+
+  it("states the fence coverage the way it is measured", () => {
+    const modules = walkRepo("src/ai/prompts", (rel) => rel.endsWith(".ts"));
+    const fencing = modules.filter((rel) => readRepo(rel).includes("UNTRUSTED"));
+    const claimed = /measured as (\d+) of (\d+) modules under `src\/ai\/prompts\/`/.exec(
+      readRepo("docs/SECURITY.md")
+    );
+    expect(claimed, "docs/SECURITY.md no longer states the fence pair this guard measures").not.toBeNull();
+    expect(
+      [Number(claimed![1]), Number(claimed![2])],
+      `SECURITY.md says ${claimed![1]} of ${claimed![2]}; the tree measures ${fencing.length} of ${modules.length}`
+    ).toEqual([fencing.length, modules.length]);
   });
 });
