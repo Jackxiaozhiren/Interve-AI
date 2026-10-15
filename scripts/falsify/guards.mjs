@@ -113,13 +113,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * page citing a worker file that is not there (PRV1), and 119 with RRP2, which
  * reddens the new half of the read-response seam -- route handlers leaking into a
  * client-only sweep -- whose other half is RRP1, re-anchored onto the named
- * predicate once the spelling-dependent skip was replaced;
+ * predicate once the spelling-dependent skip was replaced, and 123 with the four arms of the
+ * registry-driven fence inventory: payload outside its fence (FEN1), a lane nobody
+ * classified (FEN2), an unbalanced pair (FEN3) and an exemption that stopped being
+ * true (FEN4), and 124 with FEN5, which reddens when the fence count in
+ * docs/SECURITY.md moves off the pair the tree measures;
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 119;
+const MIN_PLANTS = 124;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
