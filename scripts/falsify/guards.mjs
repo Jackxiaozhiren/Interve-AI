@@ -111,13 +111,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * job this repo runs blamed on an outside app); and 131 with the erasure fix (ERS1 a
  * written table missing from the inventory the candidate reads, ERS2 an erase call
  * dropped while its row still promises it, ERS3 an erase scoped by the wrong column so
- * it matches another account or nothing);
+ * it matches another account or nothing); 134 with the three anchor-shaped claims a
+ * two-file list could not see (FOOT1 a content page selling 企业版 as a link, FOOT2 a
+ * machine endpoint offered as a resource, FOOT3 the demo route linked from outside it
+ * without admitting it is a demo);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 131;
+const MIN_PLANTS = 134;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
