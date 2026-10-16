@@ -27,6 +27,31 @@ describe("deploy consistency (G1)", () => {
     expect(docker, "non-root").toContain("USER nextjs");
   });
 
+  it("every surface installs from the lockfile, none re-resolves it", () => {
+    // `npm install` writes package-lock.json; `npm ci` refuses to. CI and the
+    // image both installed from the lockfile, while vercel.json was checked in
+    // with `npm install` — so the tree Vercel published could differ from the
+    // tree CI certified, silently, whenever a range resolved to something new.
+    // The surfaces are read from their own files rather than restated here, so
+    // a drift on either side goes red instead of this arm agreeing with itself.
+    const vercel = JSON.parse(root("vercel.json")) as { installCommand?: string };
+    expect(typeof vercel.installCommand, "vercel.json names no install command").toBe("string");
+
+    const ciInstalls = [...root(".github/workflows/ci.yml").matchAll(/^\s*- run: (npm (?:ci|install)[^\n]*)$/gm)].map((m) => m[1] ?? "");
+    expect(ciInstalls.length, "no CI install step was read — this arm would pass on blindness").toBeGreaterThanOrEqual(2);
+
+    const surfaces: [string, string][] = [["vercel.json", vercel.installCommand ?? ""], ...ciInstalls.map((c, i): [string, string] => [`ci.yml install step ${i + 1}`, c])];
+    for (const [where, cmd] of surfaces) {
+      expect(cmd, `${where} installs with "${cmd}", which can rewrite the lockfile the build is supposed to reproduce`).toMatch(/^npm ci(\s|$)/);
+    }
+
+    // The image reaches `npm ci` through a branch, so pin the branch rather
+    // than the word: without a lockfile present it must not claim to install
+    // reproducibly.
+    expect(root("Dockerfile"), "the image's lockfile branch").toMatch(/-f package-lock\.json \]; then npm ci/);
+    expect(root("package-lock.json"), "npm ci needs a lockfile").toContain("\"lockfileVersion\"");
+  });
+
   it("robots keeps the practice-only crawl surface", () => {
     const robots = root("src/app/robots.ts");
     for (const pub of ["/landing", "/login", "/signup"]) {
