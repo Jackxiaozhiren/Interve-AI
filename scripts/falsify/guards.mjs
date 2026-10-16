@@ -120,12 +120,14 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * the persona label becoming a contract two files have to honour (EXP1 the prompt
  * relabels HR and the room keeps listening for the old tag, EXP2 the room's label
  * table gains a typo so one persona can never light);
+ * 140 with an install surface allowed to re-resolve the tree the build reproduces (VC1 the
+ * publish surface back on `npm install`, VC2 the gate job off `npm ci`);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 138;
+const MIN_PLANTS = 140;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
