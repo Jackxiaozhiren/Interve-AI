@@ -58,12 +58,20 @@ describe("orama abuse boundaries (P2-06 LLM09)", () => {
     expect(calls.get).toEqual([["id", "resume-index"]]);
   });
 
-  it("restore as attacker never queries the victim namespace", async () => {
-    getQueue = [{ data: null }, { data: null }];
+  it("restore as attacker queries its own partition and nothing else", async () => {
+    // Tightened 2026-10-16. The old arm asserted only that the attacker did not
+    // name the victim's namespace — which the code satisfied while still reading
+    // `resume-index`, the shared pre-partition row. That row holds one real
+    // person's resume chunks (its `user_id` is NULL by definition: the column
+    // arrived with 002), so reading it is the cross-account read the arm was
+    // written to catch, named differently. An account with no partition of its
+    // own gets nothing; moving a legacy row is an administrator's migration.
+    getQueue = [{ data: null }];
     await expect(restoreKnowledgeHub(ATTACKER)).resolves.toBe(false);
     const ids = calls.get.map((c) => (c as unknown[])[1]);
-    expect(ids).toContain(`resume-index:${ATTACKER}`);
+    expect(ids).toEqual([`resume-index:${ATTACKER}`]);
     expect(ids).not.toContain(`resume-index:${VICTIM}`);
+    expect(ids).not.toContain("resume-index");
   });
 
   it("hostile userId never reaches the database (no unowned row, no impersonated owner)", async () => {
