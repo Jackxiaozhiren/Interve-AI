@@ -68,7 +68,7 @@ ORDER BY tablename, policyname;
 --   SELECT tablename, policyname FROM pg_policies
 --   WHERE schemaname = 'public'
 --     AND tablename IN ('interviews','evaluations','practice_sessions','assessments','orama_index')
---     AND roles @> ARRAY['anon']::text[]
+--     AND roles::text[] @> ARRAY['anon']::text[]
 --   ORDER BY tablename, policyname;
 --
 -- Optional second paste, to make the 0-row probe informative rather than

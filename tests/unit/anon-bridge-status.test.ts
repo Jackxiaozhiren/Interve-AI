@@ -198,9 +198,17 @@ describe("the documentation cannot outpace the evidence", () => {
     for (const table of CLOSED_TABLES) {
       expect(drop.predicate, `the drop predicate does not name ${table}`).toContain(`'${table}'`);
     }
-    expect(drop.predicate, "the drop predicate must key on the anon role").toMatch(/roles\s+@>\s*ARRAY\['anon'\]/i);
+    // The claim is "keys on the anon role", and it stays exactly that strict. The
+    // spelling it accepts now has to include a left-operand cast, because
+    // `pg_policies.roles` is name[]: the uncast form this file used to require is a
+    // statement Postgres rejects (measured 42883 on the deployed project on
+    // 2026-10-16), so a test demanding it was demanding an unrunnable migration.
+    // `tests/unit/sql-catalog-predicates.test.ts` pins the cast's presence, so
+    // widening the spelling here does not widen what is asserted overall.
+    const keysOnAnon = /roles\s*(?:::\s*\w+(?:\[\s*\])?\s*)?@>\s*ARRAY\[\s*'anon'\s*\]/i;
+    expect(drop.predicate, "the drop predicate must key on the anon role").toMatch(keysOnAnon);
     expect(drop.predicate, "and on the ownerless-row grant, not on a policy name").toMatch(/user_id IS NULL/i);
-    expect(drop.residualPredicate, "006 must count what is left and raise, not assume").toMatch(/roles\s+@>\s*ARRAY\['anon'\]/i);
+    expect(drop.residualPredicate, "006 must count what is left and raise, not assume").toMatch(keysOnAnon);
     for (const table of CLOSED_TABLES) {
       expect(drop.residualPredicate, `the residual check does not cover ${table}`).toContain(`'${table}'`);
     }

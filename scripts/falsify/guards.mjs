@@ -116,17 +116,21 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * machine endpoint offered as a resource, FOOT3 the demo route linked from outside it
  * without admitting it is a demo); and 136 with the two document-side couplings
  * (DOC1 puts the deleted deployment total back into the checklist it came from, RED1
- * makes the README's persisted-table list name a store nobody writes); and 139 with the shared
- * pre-partition resume row coming back as a fallback read (ORB1); and 138 with
+ * makes the README's persisted-table list name a store nobody writes); and 138 with
  * the persona label becoming a contract two files have to honour (EXP1 the prompt
  * relabels HR and the room keeps listening for the old tag, EXP2 the room's label
- * table gains a typo so one persona can never light);
+ * table gains a typo so one persona can never light); 139 with the shared
+ * pre-partition resume row coming back as a fallback read (ORB1) — the two clauses
+ * swapped places when that branch merged, which is the cost of restating order in
+ * prose — and 140 with a catalog predicate that cannot parse (SQLT1 strips the cast
+ * off `roles` in 006, the spelling that made the migration abort with 42883 instead
+ * of closing anything);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 139;
+const MIN_PLANTS = 140;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -995,7 +999,7 @@ const PLANTS = [
     name: "AB2",
     desc: "006's drop goes back to matching a policy name, the detector shape that saw no bridge",
     file: "supabase/migrations/006_close_anon_bridge_content_tables.sql",
-    anchor: `      AND roles @> ARRAY['anon']::text[]`,
+    anchor: `      AND roles::text[] @> ARRAY['anon']::text[]`,
     replacement: `      AND policyname LIKE 'Legacy anon select unowned'`,
     pattern: "006 drops by predicate and refuses to succeed with the hole open",
   }),

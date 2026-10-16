@@ -524,6 +524,15 @@
       "replacement": "let record = await db.oramaIndex.get(hubIdForUser(userId));\n    if (!record) record = await db.oramaIndex.get(LEGACY_HUB_ID);",
       "test": "tests/unit/orama-abuse.test.ts",
       "pattern": "queries its own partition and nothing else"
+    },
+    {
+      "name": "SQLT1",
+      "desc": "006's anon predicate goes back to comparing name[] to text[], which Postgres refuses to parse — the guard clause aborts before dropping anything",
+      "file": "supabase/migrations/006_close_anon_bridge_content_tables.sql",
+      "anchor": "      AND roles::text[] @> ARRAY['anon']::text[]",
+      "replacement": "      AND roles @> ARRAY['anon']::text[]",
+      "test": "tests/unit/sql-catalog-predicates.test.ts",
+      "pattern": "without casting it"
     }
   ]
 }

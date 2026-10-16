@@ -101,7 +101,7 @@ BEGIN
     FROM pg_policies
     WHERE schemaname = 'public'
       AND tablename IN ('interviews', 'evaluations', 'practice_sessions', 'assessments', 'orama_index')
-      AND roles @> ARRAY['anon']::text[]
+      AND roles::text[] @> ARRAY['anon']::text[]
       AND qual LIKE '%user_id IS NULL%'
   LOOP
     EXECUTE format('DROP POLICY %I ON %I', rec.policyname, rec.tablename);
@@ -114,7 +114,7 @@ BEGIN
   FROM pg_policies
   WHERE schemaname = 'public'
     AND tablename IN ('interviews', 'evaluations', 'practice_sessions', 'assessments', 'orama_index')
-    AND roles @> ARRAY['anon']::text[];
+    AND roles::text[] @> ARRAY['anon']::text[];
   IF remaining > 0 THEN
     RAISE EXCEPTION '006 removed the named bridge, but % anon-facing grant remains on the content tables', remaining
       USING HINT = 'add its name to step 1 or widen step 2; do not let this migration pass with the predicate unmet';
