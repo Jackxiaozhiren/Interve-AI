@@ -71,12 +71,14 @@ function chunkText(text: string, chunkSize = 500, overlap = 50): string[] {
  */
 export async function restoreKnowledgeHub(userId: string | null = localHubUserId()): Promise<boolean> {
   try {
-    const hubId = hubIdForUser(userId);
-    let record = await db.oramaIndex.get(hubId);
-    if (!record && hubId !== LEGACY_HUB_ID) {
-      // Transition fallback: pre-partition rows live under the legacy id.
-      record = await db.oramaIndex.get(LEGACY_HUB_ID);
-    }
+    // Only the caller's own partition. The pre-partition row under the bare
+    // legacy id has no `user_id` to check it against, so serving it here would
+    // hand one person's resume chunks to whoever signed in next; relocating it
+    // is an administrator's migration, which is also what `deleteKnowledgeHub`
+    // refuses to do on a user's behalf. An anonymous caller has no partition to
+    // name, so it still resolves to the legacy id — the same row 003's anon
+    // bridge already exposes, and the row 006 is written to close.
+    const record = await db.oramaIndex.get(hubIdForUser(userId));
     if (record && record.data) {
       oramaInstance = await create({
         schema: {
