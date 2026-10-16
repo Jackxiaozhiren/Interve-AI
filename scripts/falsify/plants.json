@@ -542,6 +542,15 @@
       "replacement": "      - run: npm install\n      # V11 Ring B: debt ratchet.",
       "test": "tests/unit/deploy-consistency.test.ts",
       "pattern": "installs from the lockfile"
+    },
+    {
+      "name": "SQLT1",
+      "desc": "006's anon predicate goes back to comparing name[] to text[], which Postgres refuses to parse — the guard clause aborts before dropping anything",
+      "file": "supabase/migrations/006_close_anon_bridge_content_tables.sql",
+      "anchor": "      AND roles::text[] @> ARRAY['anon']::text[]",
+      "replacement": "      AND roles @> ARRAY['anon']::text[]",
+      "test": "tests/unit/sql-catalog-predicates.test.ts",
+      "pattern": "without casting it"
     }
   ]
 }

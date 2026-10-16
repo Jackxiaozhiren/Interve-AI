@@ -120,15 +120,18 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * the persona label becoming a contract two files have to honour (EXP1 the prompt
  * relabels HR and the room keeps listening for the old tag, EXP2 the room's label
  * table gains a typo so one persona can never light); 139 with the shared
- * pre-partition resume row coming back as a fallback read (ORB1); and 141 with an
+ * pre-partition resume row coming back as a fallback read (ORB1); 141 with an
  * install surface allowed to re-resolve the tree the build reproduces (VC1 the
- * publish surface back on `npm install`, VC2 the gate job off `npm ci`);
+ * publish surface back on `npm install`, VC2 the gate job off `npm ci`); and 142
+ * with a catalog predicate that cannot parse (SQLT1 strips the cast off `roles` in
+ * 006 — the spelling that made the migration abort with 42883 instead of closing
+ * anything);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 141;
+const MIN_PLANTS = 142;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -997,7 +1000,7 @@ const PLANTS = [
     name: "AB2",
     desc: "006's drop goes back to matching a policy name, the detector shape that saw no bridge",
     file: "supabase/migrations/006_close_anon_bridge_content_tables.sql",
-    anchor: `      AND roles @> ARRAY['anon']::text[]`,
+    anchor: `      AND roles::text[] @> ARRAY['anon']::text[]`,
     replacement: `      AND policyname LIKE 'Legacy anon select unowned'`,
     pattern: "006 drops by predicate and refuses to succeed with the hole open",
   }),

@@ -5,7 +5,7 @@
   "recheckBy": "re-run the same SELECT after the owner applies the corrected 006; the bridge is closed when no row has roles={anon}",
   "projectRef": "bfgglzjltfvfpobzscet",
   "pgPolicies": {
-    "collectedAt": "2026-10-12",
+    "collectedAt": "2026-10-16",
     "query": "SELECT tablename, policyname, permissive, roles, cmd, qual FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname",
     "rows": [
       {
@@ -165,15 +165,20 @@
       "collectedAt": "2026-10-12",
       "method": "Supabase MCP execute_sql (read-only SELECT; no DDL, no row content read, $0). Statements: the pg_policies query from scripts/sql/verify-anon-bridge.sql verbatim; a pg_class relrowsecurity probe; per-table count(*)/count(*) FILTER (WHERE user_id IS NULL); information_schema.columns for interviews.",
       "identityNote": "project ref is the same bfgglzjltfvfpobzscet the app's NEXT_PUBLIC_SUPABASE_URL points at; the catalog returns exactly the seven tables the migrations create, which is what makes the dump attributable."
+    },
+    {
+      "collectedAt": "2026-10-16",
+      "method": "Supabase MCP execute_sql, read-only, no DDL, no row content read, $0. Statements: the pg_policies SELECT from scripts/sql/verify-anon-bridge.sql verbatim (14 rows); the closure check over the five content tables with the corrected predicate roles::text[] @> ARRAY['anon']::text[] (5 rows); per-table count(*) and count(*) FILTER (WHERE user_id IS NULL) (all seven 0/0); pg_class relrowsecurity (all seven true); information_schema.columns for the six 005 columns (all six present).",
+      "identityNote": "Re-read on 2026-10-16 and byte-identical to the 2026-10-12 dump: same 14 policies, same 0 rows everywhere, 005 still applied, 006 still not applied. The status therefore stays OPEN and docs/SECURITY.md's anon-bridge marker stays `open`. This pass also caught a defect in the guard rather than in the deployment: pg_policies.roles is name[], so 006's steps 2 and 3 as written raised 42883 (operator does not exist) and the migration could not run at all. Fixed here and pinned by tests/unit/sql-catalog-predicates.test.ts; the corrected closure check is what produced the 5 rows above."
     }
   ],
   "rls": {
-    "collectedAt": "2026-10-12",
+    "collectedAt": "2026-10-16",
     "allSevenTables": "relrowsecurity = true, relforcerowsecurity = false",
     "whyItMatters": "RLS being enabled means the anon policy is the effective gate: with it present, the publishable key alone reaches ownerless rows. Forced row security is off, which does not change that for the anon role."
   },
   "rowCounts": {
-    "collectedAt": "2026-10-12",
+    "collectedAt": "2026-10-16",
     "note": "count(*) and count(*) FILTER (WHERE user_id IS NULL), aggregate only — no row content read.",
     "tables": {
       "achievements": {
@@ -208,7 +213,7 @@
     "whatThisDoesToTheSeverity": "No candidate data is exposed today because the project holds no rows at all. The exposure is live and permanent for writes: the anon role has ALL on the five content tables, and the app itself creates ownerless rows before sign-in (that is why 002/003 kept the bridge), so the first ownerless interview written by a visitor is readable and rewritable by anyone holding the publishable key."
   },
   "columns005": {
-    "collectedAt": "2026-10-12",
+    "collectedAt": "2026-10-16",
     "present": [
       "interview_type",
       "custom_type_description",
