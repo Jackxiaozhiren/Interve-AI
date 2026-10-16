@@ -526,6 +526,24 @@
       "pattern": "queries its own partition and nothing else"
     },
     {
+      "name": "VC1",
+      "desc": "the publish surface goes back to re-resolving the tree, so Vercel can ship something CI never tested",
+      "file": "vercel.json",
+      "anchor": "\"installCommand\": \"npm ci\"",
+      "replacement": "\"installCommand\": \"npm install\"",
+      "test": "tests/unit/deploy-consistency.test.ts",
+      "pattern": "installs from the lockfile"
+    },
+    {
+      "name": "VC2",
+      "desc": "the gate job goes back to a re-resolving install, so the parity claim covers a job that no longer exists",
+      "file": ".github/workflows/ci.yml",
+      "anchor": "      - run: npm ci\n      # V11 Ring B: debt ratchet.",
+      "replacement": "      - run: npm install\n      # V11 Ring B: debt ratchet.",
+      "test": "tests/unit/deploy-consistency.test.ts",
+      "pattern": "installs from the lockfile"
+    },
+    {
       "name": "SQLT1",
       "desc": "006's anon predicate goes back to comparing name[] to text[], which Postgres refuses to parse — the guard clause aborts before dropping anything",
       "file": "supabase/migrations/006_close_anon_bridge_content_tables.sql",
