@@ -23,7 +23,7 @@ import {
 } from "../../src/lib/orama-client";
 
 describe("orama hub partitioning (LLM09)", () => {
-  it("namespaces hub ids per user (no global-id reads outside legacy fallback)", () => {
+  it("namespaces hub ids per user (no shared global id for a named account)", () => {
     expect(hubIdForUser("user-A")).toBe("resume-index:user-A");
     expect(hubIdForUser("user-B")).toBe("resume-index:user-B");
     expect(hubIdForUser("user-A")).not.toBe(hubIdForUser("user-B"));

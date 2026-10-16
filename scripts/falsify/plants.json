@@ -515,6 +515,15 @@
       "replacement": "  '[Hr]': 'hr',",
       "test": "tests/unit/expert-labels.test.ts",
       "pattern": "maps each label to its persona"
+    },
+    {
+      "name": "ORB1",
+      "desc": "the restore fallback to the shared pre-partition resume row comes back, so a signed-in account reads someone else's document",
+      "file": "src/lib/orama-client.ts",
+      "anchor": "const record = await db.oramaIndex.get(hubIdForUser(userId));",
+      "replacement": "let record = await db.oramaIndex.get(hubIdForUser(userId));\n    if (!record) record = await db.oramaIndex.get(LEGACY_HUB_ID);",
+      "test": "tests/unit/orama-abuse.test.ts",
+      "pattern": "queries its own partition and nothing else"
     }
   ]
 }

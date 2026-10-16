@@ -27,6 +27,18 @@
   rewritable and deletable by anyone holding the publishable key. Closing it is a DDL action on
   production and belongs to the owner; the repo-side half — a migration that closes the hole that
   exists, and a guard that cannot pass while it does not — is this commit.
+- Resume-index reads are partition-scoped: `orama-restore: `own-partition-only``.
+  `restoreKnowledgeHub` used to fall back to the bare `resume-index` row whenever the signed-in
+  account had no partition of its own. That row predates partitioning, so its `user_id` is NULL —
+  there is nothing to check a caller against, and the fallback served one person's serialized
+  resume to whoever signed in next. The guard missed it because it tested the wrong predicate:
+  `orama-abuse` asserted the attacker never queried the *victim's namespace*, which held while the
+  code read the shared row instead. An anonymous caller still resolves to the legacy id, because it
+  has no partition to name and that row is already anon-readable through the bridge above — closing
+  that is 006, not this. Moving a real owner's legacy row is an administrator's migration, which is
+  also why `deleteKnowledgeHub` refuses to delete it. Pinned by
+  `tests/unit/orama-abuse.test.ts` ("queries its own partition and nothing else"), with `ORB1`
+  putting the fallback back in the falsification harness.
 - Demo auth, stated as a decision rather than a discovery: `demo-auth: `unverified-mint``.
   `POST /api/session` (`src/app/api/session/route.ts`) still signs a session cookie for any
   well-formed identity, so "authenticated" on the AI routes means "asked and was given". Two

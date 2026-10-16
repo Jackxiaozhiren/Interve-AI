@@ -65,12 +65,15 @@ describe("partitioned persistence", () => {
     expect(calls.put).toHaveLength(0);
   });
 
-  it("restore tries the namespaced id first, then the legacy fallback", async () => {
-    getQueue = [{ data: null }, { data: null }];
+  it("restore reads the signed-in account's own partition only", async () => {
+    // Re-pinned 2026-10-16. This arm used to require a second read of the bare
+    // `resume-index` as "transition fallback". That second read is what let a
+    // signed-in account with no partition load the shared pre-partition row —
+    // one person's resume chunks, with no `user_id` on it to disprove anyone's
+    // claim to it. Continuity for that row is an administrator's migration;
+    // `orama-abuse.test.ts` holds the boundary that made this arm worth flipping.
+    getQueue = [{ data: null }];
     await expect(restoreKnowledgeHub(UID)).resolves.toBe(false);
-    expect(calls.get).toEqual([
-      ["id", `resume-index:${UID}`],
-      ["id", "resume-index"],
-    ]);
+    expect(calls.get).toEqual([["id", `resume-index:${UID}`]]);
   });
 });
