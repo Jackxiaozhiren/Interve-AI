@@ -427,6 +427,24 @@
       "pattern": "names the folder's non-prompt modules, as the README counts them"
     },
     {
+      "name": "ORP1",
+      "desc": "the route-caller probe goes back to scanning whole-file text, so a block comment naming /api/csp-report counts as traffic again and the dead endpoint disappears from the ledger",
+      "file": "scripts/audit-facts.mjs",
+      "anchor": "      const found = node.text.match(/\\/api\\/[a-z0-9-]+/g);",
+      "replacement": "      const found = sourceText.match(/\\/api\\/[a-z0-9-]+/g);",
+      "test": "tests/unit/orphan-api-routes.test.ts",
+      "pattern": "the measured set equals the adjudicated set"
+    },
+    {
+      "name": "ORP2",
+      "desc": "the call-shape rule is dropped, so lanes whose caller builds `/api/${route}` inside a helper are reported as having no caller",
+      "file": "scripts/audit-facts.mjs",
+      "anchor": "  return evidence.paths.has(name) || evidence.firstArgs.has(name);",
+      "replacement": "  return evidence.paths.has(name);",
+      "test": "tests/unit/orphan-api-routes.test.ts",
+      "pattern": "keeps the two lanes whose caller builds the path off the ledger"
+    },
+    {
       "name": "OBR1",
       "desc": "a bridged table is taken out of the owner-required set without being accepted as low-sensitivity",
       "file": "src/lib/api-client.ts",

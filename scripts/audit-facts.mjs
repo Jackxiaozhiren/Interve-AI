@@ -207,6 +207,61 @@ function countRawFetchCallSitesInSrc() {
 }
 
 /**
+ * Which API routes does this source text reach, and by which shape?
+ *
+ * Two shapes are evidence, both read off the parse tree:
+ *   1. a string that contains `/api/<name>` — `fetch("/api/health")`, a constant
+ *      path, a template with no substitution;
+ *   2. a call whose FIRST argument is exactly `"<name>"` — the analysis lanes build
+ *      the path inside a helper (`fetchImpl(\`/api/${route}\`)` in
+ *      src/lib/interview/turn-analysis.ts:41), so their callers say
+ *      `post("analyze-star", { transcript })` and never spell the path.
+ *
+ * The earlier rule was `haystack.includes("/api/" + name)` over raw text, which
+ * counted prose: `csp-report` looked live for as long as a block comment in
+ * src/proxy.ts named it, even after the report-only header that posted to it was
+ * deleted, and a comment I added elsewhere un-orphaned `analyze-chunk` mid-review.
+ * Same defect class this file already documents for the `any` counter at
+ * countAnyEscapes: a scan over raw text cannot tell a sentence from code. Comments
+ * are not in the tree, so this instrument cannot make that mistake, and a log line
+ * that merely names a lane (`console.warn(\`analyze-star unavailable\`)`) is not a
+ * first argument equal to the name either.
+ *
+ * Split into collect-once + ask-many because the probe runs against every source
+ * file: parsing each file per route would cost nineteen parses a file.
+ */
+export function routeCallEvidence(sourceText, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  const paths = new Set();
+  const firstArgs = new Set();
+  const isBareText = (node) =>
+    (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && typeof node.text === "string";
+  const visit = (node) => {
+    if (isBareText(node)) {
+      const found = node.text.match(/\/api\/[a-z0-9-]+/g);
+      if (found) for (const p of found) paths.add(p.slice("/api/".length));
+    }
+    if (ts.isCallExpression(node) && node.arguments.length > 0 && isBareText(node.arguments[0])) {
+      firstArgs.add(node.arguments[0].text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return { paths, firstArgs };
+}
+
+/** Is `name` reached by the evidence one file produced? */
+export function nameIsCalled(evidence, name) {
+  return evidence.paths.has(name) || evidence.firstArgs.has(name);
+}
+
+/**
  * Count explicit `any` type positions in one source text, by parse tree.
  *
  * Same defect class as the fetch counter this file used to carry: /\s*any\b
@@ -902,22 +957,32 @@ function collectCapabilities() {
 
   // Ring A promotion: `/api/analyze-trends` was discovered to have no caller
   // outside its own tests. "Route nobody calls" is mechanical, so measure it
-  // every run instead of re-finding it by hand. A route is called if its
-  // `/api/<name>` prefix appears anywhere outside its own handler — which covers
-  // template literals (`fetch(\`/api/${x}\`)`) and query suffixes alike.
+  // every run instead of re-finding it by hand. Evidence is the two call shapes
+  // `routeCallEvidence` documents — a literal path, or a quoted lane name in the
+  // first argument of a call — read from the parse tree, so comments and log
+  // strings no longer count as traffic.
   const apiDir = path.join(appDir, "api");
   const routeFiles = fs.existsSync(apiDir) ? walk(apiDir).filter((f) => nameOf(f) === "route.ts") : [];
-  const readAll = (files) =>
-    files.map((f) => { try { return fs.readFileSync(f, "utf8"); } catch { return ""; } }).join("\n");
-  const callerHaystack = readAll([
+  const readEvidence = (files) =>
+    files.map((f) => {
+      try {
+        return routeCallEvidence(fs.readFileSync(f, "utf8"), f);
+      } catch {
+        return { paths: new Set(), firstArgs: new Set() };
+      }
+    });
+  const callerEvidence = readEvidence([
     ...sourceFiles().filter((f) => !f.startsWith(apiDir + path.sep)),
     ...(fs.existsSync(path.join(ROOT, "apps")) ? walk(path.join(ROOT, "apps")) : []),
   ]);
   const routeNames = routeFiles.map((f) => path.relative(apiDir, f).replace(/[/\\]route\.ts$/, ""));
+  const routeEvidence = readEvidence(routeFiles);
   const orphanApiRoutes = routeNames
     .filter((name, i) => {
-      const siblingHandlers = readAll(routeFiles.filter((_, j) => j !== i));
-      return !`${callerHaystack}\n${siblingHandlers}`.includes(`/api/${name}`);
+      // A handler naming its own path is not somebody calling it, so its own
+      // evidence is excluded; a *sibling* handler that fetches it does count, as it
+      // did before this rewrite.
+      return ![...callerEvidence, ...routeEvidence.filter((_, j) => j !== i)].some((ev) => nameIsCalled(ev, name));
     })
     .sort();
 
