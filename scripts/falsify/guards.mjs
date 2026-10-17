@@ -131,13 +131,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * and 146 with the last two raw-interpolation slots and the enumeration that owned
  * nothing (FEN7 puts `?role=`/`?level=` back in the scoring prompt's instruction
  * line, FEN8 puts them back in the interview header, RA5 moves the README's count
- * of non-prompt modules off the set the folder reports);
+ * of non-prompt modules off the set the folder reports); and 148 with the two ways
+ * the route-caller probe can go blind again (ORP1 reads whole-file text so a comment
+ * naming `/api/csp-report` counts as traffic, ORP2 drops the call-shape rule so
+ * helper-called lanes read as dead);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 146;
+const MIN_PLANTS = 148;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
