@@ -51,7 +51,9 @@ const bridge = classifyBridge(state, CLOSED_TABLES, BRIDGE_TABLES);
 const evidence = JSON.parse(readFileSync(resolve(REPO, EVIDENCE), "utf8")) as {
   status: string;
   recheckBy: string | null;
+  recheckOn?: string | null;
   projectRef: string;
+  _readerWarning?: string;
   pgPolicies: {
     collectedAt: string | null;
     rows: { table: string; policy: string; roles?: string; cmd?: string; qual?: string }[];
@@ -110,6 +112,31 @@ describe("the documentation cannot outpace the evidence", () => {
     expect(marker![1], `evidence says ${evidence.status}, doc says ${marker![1]}`).toBe(expected);
   });
 
+  it("keeps the digits the artifact tells its readers equal to its own rows", () => {
+    // `docs/SECURITY.md` no longer copies the size of the dump: it points at this
+    // file's reader warning instead, which is what makes the warning load-bearing
+    // rather than decorative. A policy added to the catalog would otherwise leave
+    // the sentence — and everyone it warns — describing a database that no longer
+    // exists. Both directions are asserted, so a warning that quietly drops its
+    // number fails too: the claim being policed is "a reader can trust this count".
+    const warning = evidence._readerWarning ?? "";
+    expect(warning, "_readerWarning is gone, and SECURITY.md now points at it").toBeTruthy();
+    const measured: { label: string; shape: RegExp; value: number }[] = [
+      { label: "policies", shape: /(\d+)\s+policies/, value: evidence.pgPolicies.rows.length },
+      { label: "tables", shape: /(\d+)\s+tables/, value: new Set(evidence.pgPolicies.rows.map((r) => r.table)).size },
+    ];
+    for (const d of measured) {
+      const stated = d.shape.exec(warning);
+      expect(stated, `_readerWarning states no ${d.label} count`).not.toBeNull();
+      expect(Number(stated![1]), `_readerWarning says ${stated![1]} ${d.label}, the dump holds ${d.value}`).toBe(d.value);
+      // The same reader over a warning one off has to refuse it, or the equality
+      // above only proves the number was typed correctly on the day it was written.
+      const inflated = warning.replace(d.shape, (_m, n: string) => `${Number(n) + 1} ${d.label}`);
+      const reread = d.shape.exec(inflated);
+      expect(Number(reread![1]) === d.value, `a ${d.label} count one off still agreed with the dump`).toBe(false);
+    }
+  });
+
   it("says the kind of thing about 006 the evidence state allows", () => {
     const sentences = doc
       .split(/(?<=[.!?)])\s+|\n/)
@@ -164,11 +191,26 @@ describe("the documentation cannot outpace the evidence", () => {
       expect(evidence.status, `the catalog still bridges ${bridged.join(", ")} but the artifact says ${evidence.status}`).toBe("OPEN");
       expect(evidence.recheckBy, "an open finding with no re-check condition is a known hole nobody owns").toBeTruthy();
     } else {
-      const live = evidence.pgPolicies.rows.map((r) => policyKey(r.table, r.policy)).sort();
-      const derived = [...state.policies.keys()].sort();
+      // Closed. What is worth asserting is not "the catalog now equals the
+      // arithmetic in 003" — it never did on this project, and that mismatch is
+      // the very finding that made every check in this file key on grants rather
+      // than names (2026-10-12). It is that the lock survived removing the
+      // shortcut: all seven tables are still in the catalog, each still carries
+      // its owner policy, no surviving policy is open to anon except the two the
+      // migration says it keeps, and the re-check is a date rather than a hope.
       expect(evidence.status, "the dump shows a closed bridge; the artifact must say PROVEN").toBe("PROVEN");
-      expect(new Date(evidence.recheckBy ?? ""), "PROVEN needs a future recheckBy").toBeInstanceOf(Date);
-      expect(live, `${derived.length} policies derived from the migrations, ${live.length} in the catalog`).toEqual(derived);
+      const all = [...CLOSED_TABLES, ...BRIDGE_TABLES];
+      expect([...new Set(evidence.pgPolicies.rows.map((r) => r.table))].sort(), "a table vanished from the catalog").toEqual([...all].sort());
+      for (const table of all) {
+        const owner = evidence.pgPolicies.rows.filter((r) => r.table === table && !isAnonBridge(r));
+        expect(owner.length, `${table} lost its owner policy along with the bridge`).toBeGreaterThan(0);
+        for (const r of owner) expect(r.roles ?? "", `${table}: a non-bridge policy is open to anon`).not.toMatch(/\banon\b/);
+      }
+      const stillAnon = evidence.pgPolicies.rows.filter(isAnonBridge).map((r) => r.table).sort();
+      expect(stillAnon, "the anon surface left in the catalog is not the two tables 006 keeps bridged").toEqual([...BRIDGE_TABLES].sort());
+      const due = new Date(evidence.recheckOn ?? "");
+      expect(Number.isNaN(due.getTime()), `PROVEN needs a real re-check date, got ${JSON.stringify(evidence.recheckOn)}`).toBe(false);
+      expect(due.getTime() > Date.now(), `the re-check dated ${evidence.recheckOn} has passed; re-run the SELECT before trusting PROVEN`).toBe(true);
     }
   });
 
@@ -230,8 +272,16 @@ describe("the documentation cannot outpace the evidence", () => {
     // per-operation grants instead of the ALL shape, lands here and forces the
     // SCOPE sentence to be re-read rather than quietly re-typed.
     expect(multiples, `more than one anon grant on ${multiples.map(([t]) => t).join(", ")}`).toEqual([]);
-    expect(Object.keys(perTable).sort()).toEqual([...CLOSED_TABLES].sort());
-    expect([...new Set(grants.map((g) => g.cmd))]).toEqual(["ALL"]);
+    // The shape claim has to move when the grants it describes are gone: an
+    // assertion over an empty list passes on nothing. Closed, the meaningful
+    // version of the same question is about the bridge the migration keeps.
+    if (grants.length > 0) {
+      expect([...new Set(grants.map((g) => g.cmd))]).toEqual(["ALL"]);
+    } else {
+      const kept = evidence.pgPolicies.rows.filter((r) => BRIDGE_TABLES.includes(r.table) && isAnonBridge(r));
+      expect(kept.length, "006 keeps exactly one anon grant on telemetry and one on achievements").toBe(BRIDGE_TABLES.length);
+      expect([...new Set(kept.map((r) => r.cmd))], "the retained bridge changed shape").toEqual(["ALL"]);
+    }
 
     const header = readFileSync(resolve(REPO, migrationDir, FILE_006), "utf8");
     const marker = /SCOPE: LIVE GRANTS ON THIS PROJECT: (\d+)/.exec(header);
