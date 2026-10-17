@@ -507,12 +507,56 @@ function collectRuntime() {
  * `import("canvas-confetti")` counts for the same reason — the settlement confetti
  * is lazily loaded on purpose.
  */
-// One line per specifier. `[^"']+` without the newline ban matched a quote pair that
-  // straddled several statements, and every junk "package name" it produced then made
-  // a real `readFileSync` fail below — the existing probe-blindness invariant caught it
-  // on the first run, which is exactly why that invariant exists.
-const MODULE_SPECIFIER_RE =
-  /(?:from|require)\s*\(?\s*["']([^"'\n]+)["']|import\s*\(\s*["']([^"'\n]+)["']|@import\s+(?:url\()?["']([^"'\n]+)["']/g;
+// CSS-only, since `@import` has no TypeScript parser to read it. One line per
+// specifier: `[^"']+` without the newline ban matched a quote pair that straddled
+// several statements, and every junk "package name" it produced then made a real
+// `readFileSync` fail below — the existing probe-blindness invariant caught it on
+// the first run, which is exactly why that invariant exists.
+const CSS_IMPORT_RE = /@import\s+(?:url\()?["']([^"'\n]+)["']/g;
+
+/**
+ * Which modules does this file actually import?
+ *
+ * `.ts`/`.tsx` are read off the parse tree — `import … from`, `export … from`,
+ * `import("x")`, `require("x")` — because the previous version matched a regex over
+ * raw text of every file, so prose like `// restyled from "mermaid"` counted as use
+ * and a genuinely dead dependency could be kept off the ratchet by a comment. CSS
+ * keeps a text rule, and the file kind decides which instrument runs rather than one
+ * regex pretending to serve both. Same correction already applied to the `any`
+ * counter and to the orphan-route probe: a scan over text cannot tell a sentence
+ * from code.
+ */
+export function importedSpecifiers(sourceText, fileName) {
+  if (fileName.endsWith(".css")) {
+    return [...sourceText.matchAll(CSS_IMPORT_RE)].map((m) => m[1]).filter(Boolean);
+  }
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  const isSpecifierNode = (node) =>
+    node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && typeof node.text === "string";
+  const found = [];
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node) || (ts.isExportDeclaration(node) && node.moduleSpecifier)) {
+      const spec = node.moduleSpecifier;
+      if (isSpecifierNode(spec)) found.push(spec.text);
+    } else if (ts.isCallExpression(node) && node.arguments.length > 0) {
+      const callee = node.expression;
+      const isRequire = ts.isIdentifier(callee) && callee.escapedText === "require";
+      const isDynamicImport = callee.kind === ts.SyntaxKind.ImportKeyword;
+      if ((isRequire || isDynamicImport) && isSpecifierNode(node.arguments[0])) {
+        found.push(node.arguments[0].text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return found;
+}
 
 const packageRoot = (specifier) =>
   specifier.startsWith("@")
@@ -658,8 +702,7 @@ function importedSpecifiersInSrc() {
   walkAll(src);
   const found = [];
   for (const f of files) {
-    for (const m of fs.readFileSync(f, "utf8").matchAll(MODULE_SPECIFIER_RE)) {
-      const spec = m[1] ?? m[2] ?? m[3] ?? "";
+    for (const spec of importedSpecifiers(fs.readFileSync(f, "utf8"), f)) {
       if (spec) found.push(spec);
     }
   }
