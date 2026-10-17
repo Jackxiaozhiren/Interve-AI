@@ -6,7 +6,11 @@
 // synthesized — the prior-questions excerpt is echoed from the request body, so
 // it travels inside an UNTRUSTED fence.
 export const COVERAGE_PROMPT_ID = "interview-coverage";
-export const COVERAGE_PROMPT_VERSION = "1.0.0";
+// 1.0.1: the prior-questions block is fenced. It quotes `questionHistory[].question`,
+// which `synthesizeServerState` fills from request-body text whose role the client
+// picks, so the lane was never the "server-synthesized only" exemption its registry
+// entry claimed (2026-10-16).
+export const COVERAGE_PROMPT_VERSION = "1.0.1";
 
 import { remainingSec, type InterviewState } from "../interview/state";
 

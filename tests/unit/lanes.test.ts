@@ -94,7 +94,9 @@ describe("steering envelope (EVALUATION_V2 §7)", () => {
     const { buildChunkSystem, CHUNK_PROMPT_VERSION } = await import("../../src/ai/prompts/chunk");
     expect(STAR_PROMPT_VERSION).toBe("1.2.0");
     expect(BEHAVIOR_PROMPT_VERSION).toBe("1.1.0");
-    expect(CHUNK_PROMPT_VERSION).toBe("1.2.0");
+    // 1.2.0 -> 1.3.0 moved the version for the role/level label fence, not for the
+    // envelope: the schema keys, thresholds and suffix this arm reads are unchanged.
+    expect(CHUNK_PROMPT_VERSION).toBe("1.3.0");
     for (const text of [
       buildStarSystem(),
       buildBehaviorSystem(),

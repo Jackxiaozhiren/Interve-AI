@@ -385,7 +385,7 @@
       "name": "FEN5",
       "desc": "the security document's fence count moves off the pair the tree measures",
       "file": "docs/SECURITY.md",
-      "anchor": "measured as 16 of 19 modules under `src/ai/prompts/`",
+      "anchor": "measured as 17 of 20 modules under `src/ai/prompts/`",
       "replacement": "measured as 9 of 19 modules under `src/ai/prompts/`",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "states the fence coverage the way it is measured"
@@ -398,6 +398,33 @@
       "replacement": "    recent.forEach((q, i) => lines.push(`  ${i + 1}. ${q.slice(0, 160)}`));",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "keeps interview-coverage's candidate text inside an UNTRUSTED fence"
+    },
+    {
+      "name": "FEN7",
+      "desc": "the chunk scorer's position slot goes back to raw interpolation, so ?role= text lands in the instruction line of the prompt that produces the candidate's scores",
+      "file": "src/ai/prompts/chunk.ts",
+      "anchor": "  return `You are an expert ${labelAsData(`${level} ${role}`)} technical interviewer.",
+      "replacement": "  return `You are an expert ${level} ${role} technical interviewer.",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "keeps analyze-chunk's candidate text inside an UNTRUSTED fence"
+    },
+    {
+      "name": "FEN8",
+      "desc": "the interview system prompt's position label is unfenced again, putting candidate-typed text in the first sentence of the prompt that carries the red lines",
+      "file": "src/ai/prompts/interview.ts",
+      "anchor": "申请 ${positionLabel} 职位的候选人",
+      "replacement": "申请【${currentLevel} ${currentRole}】职位的候选人",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "keeps interview-system's candidate text inside an UNTRUSTED fence"
+    },
+    {
+      "name": "RA5",
+      "desc": "the README's count of non-prompt modules in src/ai/prompts moves off the set the folder reports",
+      "file": "README.md",
+      "anchor": "the folder's 3 other `.ts` files are",
+      "replacement": "the folder's 4 other `.ts` files are",
+      "test": "tests/unit/readme-architecture-claims.test.ts",
+      "pattern": "names the folder's non-prompt modules, as the README counts them"
     },
     {
       "name": "OBR1",

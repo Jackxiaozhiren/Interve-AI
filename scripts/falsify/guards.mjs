@@ -128,12 +128,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * anything); and 143 with the fence whose absence an exemption sentence had been
  * covering up (FEN6 un-fences the coverage section's prior-questions block, which
  * `/api/interview-chat` fills from request-body text whose role the client picks);
+ * and 146 with the last two raw-interpolation slots and the enumeration that owned
+ * nothing (FEN7 puts `?role=`/`?level=` back in the scoring prompt's instruction
+ * line, FEN8 puts them back in the interview header, RA5 moves the README's count
+ * of non-prompt modules off the set the folder reports);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 143;
+const MIN_PLANTS = 146;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -854,7 +858,7 @@ const PLANTS = [
   // ── the README's architecture counts are the measured ones ───────────────
   archClaimPlant("RA1", "the README's prompt count drifts from the registry by one", "(17 registered prompts, each carrying its own version", "counts versioned prompts the way the registry counts them"),
   archClaimPlant("RA2", "the README counts generateObject routes a route too high", "`generateObject` (10 routes,", "counts the routes still on generateObject"),
-  archClaimPlant("RA3", "the README overstates how many prompt files carry the untrusted-input fence", "(16 prompt files carry the `UNTRUSTED` markers", "counts the prompt files that fence untrusted input"),
+  archClaimPlant("RA3", "the README overstates how many prompt files carry the untrusted-input fence", "(17 prompt files carry the `UNTRUSTED` markers", "counts the prompt files that fence untrusted input"),
   archClaimPlant("RA4", "the README counts deprecated-API files one above the ratchet ceiling", "12 files still call the deprecated object APIs", "names how many files are still on the deprecated object APIs"),
   // ── a rendered record time must be the record's own ──────────────────────
   {

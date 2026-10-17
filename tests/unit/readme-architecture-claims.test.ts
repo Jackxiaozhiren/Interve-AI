@@ -107,6 +107,29 @@ describe("the README's architecture counts are the measured ones", () => {
     expect(unregistered, "a prompt module exports an id the registry never lists").toEqual([]);
   });
 
+  it("names the folder's non-prompt modules, as the README counts them", () => {
+    // The parenthetical that carries the prompt count also enumerates the files in
+    // `src/ai/prompts/` that are NOT prompts. Nothing owned that enumeration, which
+    // is how this same sentence once reported the folder's file count as its prompt
+    // count. A helper is a module that neither registers an id nor builds a prompt —
+    // `evaluation.ts` is a prompt module even though its version lives in
+    // evaluation-contract, so an id-only test would have called it a helper.
+    const modules = Object.entries(
+      import.meta.glob("../../src/ai/prompts/*.ts", { eager: true }) as Record<string, Record<string, unknown>>
+    );
+    const helpers = modules
+      .filter(([, mod]) => !Object.keys(mod).some((name) => /_PROMPT_ID$/.test(name) || /^build[A-Z]/.test(name)))
+      .map(([file]) => (file.split("/").pop() as string))
+      .sort();
+    expect(helpers.length, "no non-prompt module found — the enumeration would check nothing").toBeGreaterThanOrEqual(2);
+    const stated = /the folder's (\d+) other `\.ts` files/.exec(readme);
+    expect(stated, "the README no longer states the helper count where this test reads it").not.toBeNull();
+    expect(Number(stated![1]), `README says ${stated![1]} non-prompt files, the folder holds ${helpers.length}`).toBe(helpers.length);
+    for (const name of helpers) {
+      expect(readme, `README does not name ${name}, which the folder reports as a non-prompt module`).toContain(name);
+    }
+  });
+
 
   it("agrees with the code about the system-to-instructions migration", () => {
     const at = readme.indexOf("migrated");
