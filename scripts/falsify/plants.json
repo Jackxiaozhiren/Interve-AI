@@ -427,6 +427,15 @@
       "pattern": "names the folder's non-prompt modules, as the README counts them"
     },
     {
+      "name": "DEP1",
+      "desc": "the specifier extractor goes back to matching raw text for TypeScript files, so a comment naming a package counts as a use and a dead dependency leaves the ratchet",
+      "file": "scripts/audit-facts.mjs",
+      "anchor": "  if (fileName.endsWith(\".css\")) {",
+      "replacement": "  if (fileName.endsWith(\".css\") || fileName.endsWith(\".ts\")) {",
+      "test": "tests/unit/facts-ratchet.test.ts",
+      "pattern": "extracts specifiers from code, and a sentence naming a package is not code"
+    },
+    {
       "name": "ORP1",
       "desc": "the route-caller probe goes back to scanning whole-file text, so a block comment naming /api/csp-report counts as traffic again and the dead endpoint disappears from the ledger",
       "file": "scripts/audit-facts.mjs",

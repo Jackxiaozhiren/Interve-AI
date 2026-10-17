@@ -18,6 +18,7 @@ import {
   countMouseOnlyInteractions,
   findDeadControls,
   findUnreferencedProductionDeps,
+  importedSpecifiers,
   evaluateRatchet,
   numericLeaves,
   RATCHET_KEYS,
@@ -281,6 +282,22 @@ describe("production dependencies the code does not back", () => {
     // it read as a live false positive on the first run.
     const specs = ["tw-animate-css", "canvas-confetti", "next/navigation"];
     expect(findUnreferencedProductionDeps(deps, specs, () => [])).toEqual(["mermaid"]);
+  });
+
+  it("extracts specifiers from code, and a sentence naming a package is not code", () => {
+    // The ledger above is only worth trusting if the specifiers behind it came from
+    // imports. The extractor matched a regex over raw file text, so prose like
+    // `// restyled from "mermaid"` counted as use — the same failure mode this repo
+    // has now fixed three times over: the anon-bridge detector keyed on policy
+    // *names*, the `any` counter read comments as type annotations, and the
+    // orphan-route probe read a sentence about an endpoint as traffic.
+    expect(importedSpecifiers('// restyled from "mermaid" when the chart lands\nconst x = 1;', "a.ts")).toEqual([]);
+    expect(importedSpecifiers('import { X } from "next/navigation";', "a.ts")).toEqual(["next/navigation"]);
+    expect(importedSpecifiers('const m = await import("canvas-confetti");', "a.ts")).toEqual(["canvas-confetti"]);
+    expect(importedSpecifiers('export * from "geist/core";', "a.ts")).toEqual(["geist/core"]);
+    // CSS has no TypeScript parser, so its `@import` stays a text rule — and stays
+    // honest because the file kind is what decides which instrument runs.
+    expect(importedSpecifiers('@import "tw-animate-css";', "globals.css")).toEqual(["tw-animate-css"]);
   });
 
   it("closes over the peer requirements of what is used, so the framework runtime is not called dead", () => {
