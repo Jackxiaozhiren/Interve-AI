@@ -418,6 +418,42 @@
       "pattern": "keeps interview-system's candidate text inside an UNTRUSTED fence"
     },
     {
+      "name": "FEN9",
+      "desc": "the hint generator's problem title and description go back to bare interpolation, letting 22KB of client text sit under a heading that says the interviewer chose it",
+      "file": "src/ai/prompts/hint.ts",
+      "anchor": "### UNTRUSTED PROBLEM STATEMENT START ###\nTitle: ${problemTitle}\nDescription: ${problemDescription}\n### UNTRUSTED PROBLEM STATEMENT END ###",
+      "replacement": "Title: ${problemTitle}\nDescription: ${problemDescription}",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "keeps generate-hint's candidate text inside an UNTRUSTED fence"
+    },
+    {
+      "name": "FEN10",
+      "desc": "the copilot quotes the request body's question straight into its opening instruction again",
+      "file": "src/ai/prompts/copilot.ts",
+      "anchor": "### UNTRUSTED QUESTION START ###\n${question}\n### UNTRUSTED QUESTION END ###",
+      "replacement": "The interviewer just asked: \"${question}\"",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "keeps copilot's candidate text inside an UNTRUSTED fence"
+    },
+    {
+      "name": "FEN11",
+      "desc": "the practice evaluator's question metadata loses its fence opening, so title, description and category read as the app's own framing",
+      "file": "src/ai/prompts/practice.ts",
+      "anchor": "\\n### UNTRUSTED QUESTION META START ###\\nQuestion: ${title}",
+      "replacement": "\\nQuestion: ${title}",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "keeps analyze-practice's candidate text inside an UNTRUSTED fence"
+    },
+    {
+      "name": "FEN12",
+      "desc": "the code reviewer's language slot goes back to raw interpolation in the instruction's first line",
+      "file": "src/ai/prompts/code.ts",
+      "anchor": "  return `You are an expert technical interviewer. Analyze the following ${labelAsData(language || \"code\")} snippet.",
+      "replacement": "  return `You are an expert technical interviewer. Analyze the following ${language || \"code\"} snippet.",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "keeps analyze-code's candidate text inside an UNTRUSTED fence"
+    },
+    {
       "name": "RA5",
       "desc": "the README's count of non-prompt modules in src/ai/prompts moves off the set the folder reports",
       "file": "README.md",

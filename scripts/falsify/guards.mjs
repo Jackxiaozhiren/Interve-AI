@@ -136,13 +136,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * naming `/api/csp-report` counts as traffic, ORP2 drops the call-shape rule so
  * helper-called lanes read as dead); and 149 with the same class in the dependency
  * ratchet (DEP1 lets the specifier extractor match raw text for `.ts`, so a sentence
- * naming a package keeps a dead dependency off the ledger);
+ * naming a package keeps a dead dependency off the ledger); and 153 with the four
+ * lanes the full-channel sweep caught reading the fixture's chosen field only
+ * (FEN9 hint title/description, FEN10 copilot question, FEN11 practice question
+ * metadata, FEN12 code language — each client text sitting in instruction position);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 149;
+const MIN_PLANTS = 153;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

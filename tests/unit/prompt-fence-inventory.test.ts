@@ -74,28 +74,45 @@ const coverageState = (echoedAssistantText: string) =>
 
 /**
  * Registry id -> every string that lane sends to the model, built from inputs a
- * candidate controls. A lane lists both messages wherever a system prompt
- * exists, so the enclosure check runs against the message the payload actually
- * travels in and an unfenced system prompt is not mistaken for a hole.
+ * candidate controls. A lane lists both messages wherever a system prompt exists,
+ * so the enclosure check runs against the message the payload actually travels in
+ * and an unfenced system prompt is not mistaken for a hole.
+ *
+ * Every candidate-controlled parameter of a builder gets the sentinel, not one
+ * representative per lane. That is the whole point: filling one channel and then
+ * asserting "the sentinel is fenced" certifies only the channel the fixture chose,
+ * which is exactly how four lanes (`analyze-code`, `analyze-practice`, `copilot`,
+ * `generate-hint`) kept client text in instruction position while this file stayed
+ * green. When a builder gains a parameter, the fixture has to answer for it —
+ * `BodySchema` in each route is where the client-controlled set comes from.
  */
 const FENCED: Record<string, () => string[]> = {
   "interview-system": () => [
     buildInterviewSystemPrompt({ role: SENTINEL, level: SENTINEL, persona: "professional", context: SENTINEL }),
   ],
-  "analyze-star": () => [buildStarSystem(), buildStarPrompt({ transcript: SENTINEL })],
+  "analyze-star": () => [
+    buildStarSystem(),
+    buildStarPrompt({ transcript: SENTINEL, codeContext: SENTINEL, systemDesignContext: SENTINEL }),
+  ],
   "analyze-behavior": () => [buildBehaviorSystem(), buildBehaviorPrompt(SENTINEL)],
   "analyze-chunk": () => [
     buildChunkSystem({ role: SENTINEL, level: SENTINEL, context: SENTINEL }),
     buildChunkPrompt(SENTINEL),
   ],
-  "analyze-code": () => [buildCodePrompt({ code: SENTINEL, language: "ts", problemStatement: "P" })],
-  "analyze-practice": () => [buildPracticeSystem(), buildPracticePrompt({ title: "T", answer: SENTINEL })],
-  "analyze-alignment": () => [buildAlignmentPrompt({ resumeText: SENTINEL, jobDescription: "J" })],
-  "analyze-match": () => [buildMatchPrompt({ resumeText: SENTINEL, jobDescription: "J" })],
+  "analyze-code": () => [buildCodePrompt({ code: SENTINEL, language: SENTINEL, problemStatement: SENTINEL })],
+  "analyze-practice": () => [
+    buildPracticeSystem(),
+    buildPracticePrompt({ title: SENTINEL, description: SENTINEL, category: SENTINEL, answer: SENTINEL }),
+  ],
+  "analyze-alignment": () => [buildAlignmentPrompt({ resumeText: SENTINEL, jobDescription: SENTINEL })],
+  "analyze-match": () => [buildMatchPrompt({ resumeText: SENTINEL, jobDescription: SENTINEL })],
   "parse-jd": () => [buildJdSystem({ jobDescription: SENTINEL, questionCount: 3 }), buildJdPrompt(SENTINEL)],
-  "init-context": () => [buildContextSystem(), buildContextPrompt({ jobDescription: "J", resumeContext: SENTINEL })],
-  copilot: () => [buildCopilotSystem({ question: "Q", resumeSnippets: [SENTINEL] })],
-  "generate-hint": () => [buildHintSystem({ currentCode: SENTINEL }), buildHintPrompt(SENTINEL)],
+  "init-context": () => [buildContextSystem(), buildContextPrompt({ jobDescription: SENTINEL, resumeContext: SENTINEL })],
+  copilot: () => [buildCopilotSystem({ question: SENTINEL, resumeSnippets: [SENTINEL] })],
+  "generate-hint": () => [
+    buildHintSystem({ problemTitle: SENTINEL, problemDescription: SENTINEL, currentCode: SENTINEL }),
+    buildHintPrompt(SENTINEL),
+  ],
   "analyze-vision": () => [buildVisionText({ problemContext: SENTINEL })],
   "analyze-trends": () => [buildTrendsPrompt(3, SENTINEL)],
   "evaluation-v2": () => [buildEvaluationUserPrompt([{ role: "user", content: SENTINEL }])],
