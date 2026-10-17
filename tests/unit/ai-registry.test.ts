@@ -239,7 +239,13 @@ describe("prompt builders preserve behavior", () => {
     expect(buildBehaviorPrompt("B0")).toContain("B0");
     expect(buildBehaviorSystem()).toContain("If completely missing, score 0");
     expect(buildChunkPrompt("C0")).toContain("C0");
-    expect(buildChunkSystem({ role: "R", level: "L" })).toContain("expert L R");
+    // Used to read `toContain("expert L R")`. 1.3.0 fenced the position slot because
+    // `role`/`level` arrive from `?role=` and the request body with no enum behind
+    // them, so the adjacency moved inside the label. This asserts the same thing
+    // harder: both values still reach the line, in order, as labelled data.
+    expect(buildChunkSystem({ role: "R", level: "L" })).toMatch(
+      /expert ### UNTRUSTED POSITION LABEL START .* L R ### UNTRUSTED POSITION LABEL END ### technical interviewer/
+    );
   });
 
   it("match/jd/copilot/hint/vision/trends/resume/context/alignment/code/practice interpolate", () => {
@@ -268,10 +274,15 @@ describe("untrusted-content fences (Phase 12 injection hardening)", () => {
     expect(
       buildInterviewSystemPrompt({ role: "R", level: "L", persona: "professional", context: "C" })
     ).toContain("UNTRUSTED CANDIDATE CONTENT");
-    // Empty background emits no fences (no token waste, no behavior change).
-    expect(
-      buildInterviewSystemPrompt({ role: "R", level: "L", persona: "professional" })
-    ).not.toContain("UNTRUSTED");
+    // Empty background emits no BACKGROUND fence (no token waste, no behavior
+    // change). The literal used to be `not.toContain("UNTRUSTED")` — a proxy for
+    // "nothing got fenced", which 1.3.0 invalidates: the position label is fenced
+    // unconditionally now, because it always carries a value. So the assertion
+    // names the block it was ever about and pins the count, which is stricter than
+    // the proxy: one fence pair, and it is the label, not the background.
+    const bare = buildInterviewSystemPrompt({ role: "R", level: "L", persona: "professional" });
+    expect(bare).not.toContain("UNTRUSTED CANDIDATE CONTENT");
+    expect(bare.match(/UNTRUSTED [A-Z ]*START/g) ?? []).toHaveLength(1);
     expect(buildCopilotSystem({ question: "Q", resumeSnippets: ["S"] })).toContain("UNTRUSTED RESUME SNIPPETS");
     expect(buildMatchPrompt({ jobDescription: "J" })).toContain("UNTRUSTED JOB DESCRIPTION");
     expect(buildAlignmentPrompt({ resumeText: "R", jobDescription: "J" })).toContain("UNTRUSTED RESUME");

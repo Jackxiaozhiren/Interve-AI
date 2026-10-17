@@ -80,11 +80,14 @@ const coverageState = (echoedAssistantText: string) =>
  */
 const FENCED: Record<string, () => string[]> = {
   "interview-system": () => [
-    buildInterviewSystemPrompt({ role: "R", level: "L", persona: "professional", context: SENTINEL }),
+    buildInterviewSystemPrompt({ role: SENTINEL, level: SENTINEL, persona: "professional", context: SENTINEL }),
   ],
   "analyze-star": () => [buildStarSystem(), buildStarPrompt({ transcript: SENTINEL })],
   "analyze-behavior": () => [buildBehaviorSystem(), buildBehaviorPrompt(SENTINEL)],
-  "analyze-chunk": () => [buildChunkSystem({ role: "R", level: "L" }), buildChunkPrompt(SENTINEL)],
+  "analyze-chunk": () => [
+    buildChunkSystem({ role: SENTINEL, level: SENTINEL, context: SENTINEL }),
+    buildChunkPrompt(SENTINEL),
+  ],
   "analyze-code": () => [buildCodePrompt({ code: SENTINEL, language: "ts", problemStatement: "P" })],
   "analyze-practice": () => [buildPracticeSystem(), buildPracticePrompt({ title: "T", answer: SENTINEL })],
   "analyze-alignment": () => [buildAlignmentPrompt({ resumeText: SENTINEL, jobDescription: "J" })],
@@ -135,15 +138,26 @@ describe("every registered prompt is classified for injection fences", () => {
           "reached the model text this entry claims to protect"
       ).toBeGreaterThan(0);
       for (const text of carriers) {
-        const at = text.indexOf(SENTINEL);
-        expect(
-          /UNTRUSTED [A-Z ]*START/.test(text.slice(0, at)),
-          `${id}: candidate text with no fence opening before it`
-        ).toBe(true);
-        expect(
-          /UNTRUSTED [A-Z ]*END/.test(text.slice(at + SENTINEL.length)),
-          `${id}: candidate text with no fence closing after it`
-        ).toBe(true);
+        // Every occurrence, and "inside" rather than "after some START": counting
+        // the markers before the offset is what distinguishes an open fence from a
+        // section the payload already closed. Keyed on the first occurrence alone,
+        // this arm passed for a lane whose *only* sentinel came from one fenced
+        // channel while two other client-controlled values sat in the same message
+        // unfenced — which is how `role` and `level` were missed here and in
+        // `analyze-chunk`, both of which interpolate them into the instruction line.
+        for (let at = text.indexOf(SENTINEL); at >= 0; at = text.indexOf(SENTINEL, at + SENTINEL.length)) {
+          const before = text.slice(0, at);
+          const open = (before.match(/UNTRUSTED [A-Z ]*START/g) ?? []).length;
+          const closed = (before.match(/UNTRUSTED [A-Z ]*END/g) ?? []).length;
+          expect(
+            open > closed,
+            `${id}: candidate text at offset ${at} sits outside every fence (${open} START, ${closed} END before it)`
+          ).toBe(true);
+          expect(
+            /UNTRUSTED [A-Z ]*END/.test(text.slice(at + SENTINEL.length)),
+            `${id}: candidate text at offset ${at} has no fence closing after it`
+          ).toBe(true);
+        }
       }
     });
 

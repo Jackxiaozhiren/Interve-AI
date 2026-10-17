@@ -6,9 +6,14 @@ export const CHUNK_PROMPT_ID = "analyze-chunk";
 // measurements: never infer emotions, personality, stress, or honesty.
 // 1.2.0: steering envelope (EVALUATION_V2 §7) — 1-2 verbatim quotes +
 // evaluator confidence. Zero in-product consumers (unchanged).
-export const CHUNK_PROMPT_VERSION = "1.2.0";
+// 1.3.0: the role/level slot on the first line is candidate-supplied text
+// (`?role=` and the request body, no enum), and it sat in instruction position
+// unlabelled in the prompt that produces the scores the candidate sees. Now
+// fenced as a label. Schema keys, thresholds and the JSON suffix are unchanged.
+export const CHUNK_PROMPT_VERSION = "1.3.0";
 
 import { STRICT_JSON_SUFFIX } from "./strict-json";
+import { labelAsData } from "./label-fence";
 
 export interface ChunkPromptParams {
   text: string;
@@ -19,7 +24,7 @@ export interface ChunkPromptParams {
 
 export function buildChunkSystem(params: { context?: string; role?: string; level?: string }): string {
   const { context, role, level } = params;
-  return `You are an expert ${level} ${role} technical interviewer.
+  return `You are an expert ${labelAsData(`${level} ${role}`)} technical interviewer.
 Analyze the provided transcript chunk from the candidate's answer in real-time.
 Rate delivery fluency (fluent, specific, well-structured vs hesitant, vague, or incoherent) and technical accuracy based on the context.
 Return a JSON object with EXACTLY these keys: sentimentScore (0-100; 100 is fluent, specific, and well-structured; 0 is incoherent or empty), technicalAccuracy (0-100; 100 is perfectly accurate and highly relevant; 0 is completely wrong or irrelevant), evidence (1-2 verbatim quotes from the chunk grounding the numbers, exact substrings), confidence (evaluator confidence — high, medium, or low — meaning how much usable evidence the chunk contained; never candidate psychology).
