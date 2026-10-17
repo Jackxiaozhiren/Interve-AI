@@ -48,10 +48,29 @@ import { buildVisionText } from "../../src/ai/prompts/vision";
 import { buildTrendsPrompt } from "../../src/ai/prompts/trends";
 import { buildOcrInstruction } from "../../src/ai/prompts/resume";
 import { buildCoverageSection } from "../../src/ai/prompts/coverage";
+import { synthesizeServerState } from "../../src/ai/interview/state";
 import { buildEvaluationUserPrompt } from "../../src/ai/prompts/evaluation";
 
 /** Distinctive enough that no legitimate prompt text contains it. */
 const SENTINEL = "SENTINEL-CANDIDATE-TEXT-9f3c";
+
+/**
+ * Loop state built the way `/api/interview-chat` builds it: from the request
+ * body's `messages`, whose role the client chooses.
+ *
+ * This is the channel the coverage lane used to be exempted from. The route hands
+ * `synthesizeServerState` the client's own array, the assistant-role text becomes
+ * `questionHistory[].question`, and the coverage section renders the last three of
+ * those into the system prompt — so the lane does carry client-authored prose, and
+ * the exemption the inventory claimed for it was false.
+ */
+const coverageState = (echoedAssistantText: string) =>
+  synthesizeServerState({
+    messages: [
+      { role: "user", content: "I led the payments migration." },
+      { role: "assistant", content: echoedAssistantText },
+    ],
+  });
 
 /**
  * Registry id -> every string that lane sends to the model, built from inputs a
@@ -77,6 +96,7 @@ const FENCED: Record<string, () => string[]> = {
   "analyze-vision": () => [buildVisionText({ problemContext: SENTINEL })],
   "analyze-trends": () => [buildTrendsPrompt(3, SENTINEL)],
   "evaluation-v2": () => [buildEvaluationUserPrompt([{ role: "user", content: SENTINEL }])],
+  "interview-coverage": () => [buildCoverageSection(coverageState(SENTINEL))],
 };
 
 /**
@@ -85,11 +105,7 @@ const FENCED: Record<string, () => string[]> = {
  */
 const NO_CANDIDATE_INPUT: Record<string, string> = {
   "parse-resume": "buildOcrInstruction() has no parameters, so it can only ever be a constant",
-  "interview-coverage": "buildCoverageSection(state) renders server-synthesized state, not candidate prose",
 };
-
-/** Identifiers whose values ARE candidate prose, used to police the exemptions. */
-const CANDIDATE_FIELDS = /resumeText|jobDescription|transcript|answerText|\banswer\b|lastAnswer|chunkText/;
 
 const ids = PROMPT_REGISTRY.map((p) => p.id);
 
@@ -146,17 +162,25 @@ describe("every registered prompt is classified for injection fences", () => {
       buildOcrInstruction.length,
       "parse-resume's builder now takes an argument: re-ask whether it carries candidate text"
     ).toBe(0);
+  });
 
-    const coverage = readRepo("src/ai/prompts/coverage.ts")
-      // Comments are prose about the code, not the code: a sentence explaining
-      // "no candidate answer reaches this text" must not read as a field access.
-      .replace(/\/\*[\s\S]*?\*\//g, " ")
-      .replace(/^\s*\/\/.*$/gm, " ");
+  it("proves the client-echoed assistant text really does reach the prompt", () => {
+    // The lane's exemption used to read "renders server-synthesized state, not
+    // candidate prose". Measured through the production builders, that is wrong:
+    // a role the client picks in the request body lands in `questionHistory`, and
+    // the coverage section quotes it. Asserting the channel rather than only the
+    // fence is what stops the entry being moved back to the exemption list on the
+    // strength of the same retracted sentence — if the echo ever stops reaching the
+    // state, this arm reddens and the classification has to be argued again.
+    const state = coverageState(SENTINEL);
     expect(
-      coverage,
-      "the coverage section now reads a candidate-authored field; it belongs in FENCED with a " +
-        "fence pair, not in the exemption list"
-    ).not.toMatch(CANDIDATE_FIELDS);
+      state.questionHistory.map((q) => q.question),
+      "assistant-role request text no longer reaches loop state: the route or the synthesizer changed"
+    ).toContain(SENTINEL);
+    expect(
+      buildCoverageSection(state),
+      "the echo no longer reaches the system prompt: re-ask whether this lane needs fencing at all"
+    ).toContain(SENTINEL);
   });
 
   it("states the fence coverage the way it is measured", () => {
