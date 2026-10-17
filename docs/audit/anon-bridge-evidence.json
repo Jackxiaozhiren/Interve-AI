@@ -1,8 +1,8 @@
 {
-  "_about": "Live-RLS evidence for PAIN-#5. Collected 2026-10-12 by read-only SELECT over pg_policies / pg_class / information_schema in project bfgglzjltfvfpobzscet. It settles the question that was open, and the answer is the opposite of the one docs/SECURITY.md used to hedge: migration 006 is NOT applied, and the bridge that is live is not the policy 006 drops.",
-  "_readerWarning": "The rows below are the WHOLE anon surface the catalog reports for schema `public`: 14 policies over 7 tables, two per table. Do not read `Owner full access` as safe — the paired `Legacy anon unowned access` is FOR ALL TO anon USING (user_id IS NULL), so an anon key holder can read, insert, update and delete every ownerless row on all five content tables, not only on telemetry/achievements.",
-  "status": "OPEN",
-  "recheckBy": "re-run the same SELECT after the owner applies the corrected 006; the bridge is closed when no row has roles={anon}",
+  "_about": "Live-RLS evidence for PAIN-#5, from read-only SELECTs over pg_policies / pg_class / information_schema in project bfgglzjltfvfpobzscet. Two reads are recorded and the rows below are the later one. The 2026-10-12 read settled the question docs/SECURITY.md had hedged and answered it against the hedge: migration 006 was NOT applied, and the bridge that was live is not the policy 006 drops by name. The 2026-10-16 read is the closure: 006 was applied that day under the project owner's instruction, so `status` is PROVEN and `pgPolicies.rows` is the post-apply surface. History stays append-only in `collection[]` rather than being rewritten.",
+  "_readerWarning": "The rows below are the WHOLE policy surface the catalog reports for schema `public` after migration 006 was applied on 2026-10-16: 9 policies over 7 tables. Two of them are anon-facing and both are deliberate — `telemetry` and `achievements` keep their ownerless bridge, which is the scope 006 states. Every other table carries only `Owner full access` (TO authenticated). Do not read the absence of a content-table anon row as an untested claim: tests/unit/anon-bridge-status.test.ts re-derives the expected set from supabase/migrations/*.sql and fails if the dump and the migrations disagree in either direction.",
+  "status": "PROVEN",
+  "recheckBy": "re-run the same SELECT any time a policy migration is applied; the bridge is closed when no row has roles={anon} on interviews, evaluations, practice_sessions, assessments or orama_index — which is what the 2026-10-16 read shows",
   "projectRef": "bfgglzjltfvfpobzscet",
   "pgPolicies": {
     "collectedAt": "2026-10-16",
@@ -26,27 +26,11 @@
       },
       {
         "table": "assessments",
-        "policy": "Legacy anon unowned access",
-        "permissive": "PERMISSIVE",
-        "roles": "{anon}",
-        "cmd": "ALL",
-        "qual": "(user_id IS NULL)"
-      },
-      {
-        "table": "assessments",
         "policy": "Owner full access",
         "permissive": "PERMISSIVE",
         "roles": "{authenticated}",
         "cmd": "ALL",
         "qual": "(( SELECT auth.uid() AS uid) = user_id)"
-      },
-      {
-        "table": "evaluations",
-        "policy": "Legacy anon unowned access",
-        "permissive": "PERMISSIVE",
-        "roles": "{anon}",
-        "cmd": "ALL",
-        "qual": "(user_id IS NULL)"
       },
       {
         "table": "evaluations",
@@ -58,14 +42,6 @@
       },
       {
         "table": "interviews",
-        "policy": "Legacy anon unowned access",
-        "permissive": "PERMISSIVE",
-        "roles": "{anon}",
-        "cmd": "ALL",
-        "qual": "(user_id IS NULL)"
-      },
-      {
-        "table": "interviews",
         "policy": "Owner full access",
         "permissive": "PERMISSIVE",
         "roles": "{authenticated}",
@@ -74,27 +50,11 @@
       },
       {
         "table": "orama_index",
-        "policy": "Legacy anon unowned access",
-        "permissive": "PERMISSIVE",
-        "roles": "{anon}",
-        "cmd": "ALL",
-        "qual": "(user_id IS NULL)"
-      },
-      {
-        "table": "orama_index",
         "policy": "Owner full access",
         "permissive": "PERMISSIVE",
         "roles": "{authenticated}",
         "cmd": "ALL",
         "qual": "(( SELECT auth.uid() AS uid) = user_id)"
-      },
-      {
-        "table": "practice_sessions",
-        "policy": "Legacy anon unowned access",
-        "permissive": "PERMISSIVE",
-        "roles": "{anon}",
-        "cmd": "ALL",
-        "qual": "(user_id IS NULL)"
       },
       {
         "table": "practice_sessions",
@@ -170,6 +130,11 @@
       "collectedAt": "2026-10-16",
       "method": "Supabase MCP execute_sql, read-only, no DDL, no row content read, $0. Statements: the pg_policies SELECT from scripts/sql/verify-anon-bridge.sql verbatim (14 rows); the closure check over the five content tables with the corrected predicate roles::text[] @> ARRAY['anon']::text[] (5 rows); per-table count(*) and count(*) FILTER (WHERE user_id IS NULL) (all seven 0/0); pg_class relrowsecurity (all seven true); information_schema.columns for the six 005 columns (all six present).",
       "identityNote": "Re-read on 2026-10-16 and byte-identical to the 2026-10-12 dump: same 14 policies, same 0 rows everywhere, 005 still applied, 006 still not applied. The status therefore stays OPEN and docs/SECURITY.md's anon-bridge marker stays `open`. This pass also caught a defect in the guard rather than in the deployment: pg_policies.roles is name[], so 006's steps 2 and 3 as written raised 42883 (operator does not exist) and the migration could not run at all. Fixed here and pinned by tests/unit/sql-catalog-predicates.test.ts; the corrected closure check is what produced the 5 rows above."
+    },
+    {
+      "collectedAt": "2026-10-16",
+      "method": "Supabase MCP, read-only except for the single authorized DDL. Statements in order: the pg_policies dump (14 rows, bridge live on all five content tables); the closure check with the corrected predicate roles::text[] @> ARRAY['anon']::text[] (5 rows); per-table count(*) and count(*) FILTER (WHERE user_id IS NULL) (all seven 0/0); pg_class relrowsecurity (all seven true); information_schema.columns for 005's six columns (all present). Then apply_migration ran 006's DO block verbatim (step 1 name drops, step 2 predicate drops, step 3 RAISE-if-survives). Then the closure check again (0 rows) and the dump again (9 rows).",
+      "identityNote": "006 APPLIED 2026-10-16. The catalog went from 14 policies with `Legacy anon unowned access` on all seven tables to 9 policies with that grant retained only on telemetry and achievements — exactly the scope the migration states, and the RAISE in step 3 did not fire, so no anon grant survives on the five content tables. Status moves OPEN -> PROVEN and docs/SECURITY.md's `anon-bridge:` marker moves with it; the two are compared by this file's own gate. No row was read or written: every content table held 0 rows before and after, so the closure removed an access path, not data."
     }
   ],
   "rls": {
@@ -226,5 +191,6 @@
   },
   "theBlindSpot": [
     "Every name-keyed check in this repo — LEGACY_BRIDGE_POLICIES, classifyBridge, and 006's own DROP list — looks for four per-operation policies ('Legacy anon select/insert/update/delete unowned'). Production has never had them: the bridge here is one policy per table named 'Legacy anon unowned access' with cmd=ALL. Fed the real dump, the repo's classifier reported 0 bridge rows where 5 exist, and applying 006 as written would DROP POLICY IF EXISTS four names that are not there and report success with the hole wide open. Detection is therefore keyed on (roles includes anon AND qual references user_id IS NULL) from this commit, not on a policy name."
-  ]
+  ],
+  "recheckOn": "2027-01-14"
 }

@@ -992,9 +992,9 @@ const PLANTS = [
   // ── the live RLS finding cannot be softened back into a hedge ────────────
   anonBridgePlant({
     name: "AB1",
-    desc: "the document reverts to `unproven` while the catalog dump says the bridge is live",
+    desc: "the document hedges back to `unproven` while the catalog dump proves the bridge closed",
     file: "docs/SECURITY.md",
-    anchor: "`anon-bridge: `open``",
+    anchor: "`anon-bridge: `proven``",
     replacement: "`anon-bridge: `unproven``",
     pattern: "carries the marker the evidence state requires",
   }),

@@ -3,18 +3,33 @@
 > Details: `docs/audit/SECURITY_REPORT.md` + `docs/audit/MASTER_AUDIT.md` P0-2/P0-3/P0-6/P0-7. Exceptions below are release-accepted with reachability notes.
 
 - AuthN/Z: signed HMAC sessions + `proxy.ts` page guards + per-route `guardRequest` (401 anon, forged-cookie rejection, tamper rejection). Row ownership in the *migrations* is `003_per_operation_policies.sql`'s per-operation `(select auth.uid()) = user_id`; in the *deployed* catalog it is one policy per table named `Owner full access` with `cmd = ALL` and the same `auth.uid() = user_id` predicate. The distinction is recorded here because the catalog was read (2026-10-12) and the two do not agree. The static half was weaker than it read until 2026-10-14: `tests/integration/rls-policies.test.ts` counted policies with a lazy wildcard that had no statement boundary, so opening one anon predicate — `USING (true)` on telemetry's `Legacy anon select unowned` — still counted 7 of 7 NULL-gated and the suite stayed green. Every matcher is now bounded to a single statement, and two witnesses hold that bound: RLP1 drops an owner policy's `WITH CHECK`, RLP2 opens an anon `USING`; both go red.
-- Legacy anon bridge, settled by a catalog read rather than by inference: `anon-bridge: `open``.
+- Legacy anon bridge, settled by a catalog read rather than by inference: `anon-bridge: `proven``.
   On 2026-10-12 the read-only `pg_policies` SELECT in `scripts/sql/verify-anon-bridge.sql` was run
   against project `bfgglzjltfvfpobzscet` and the whole dump is in
-  `docs/audit/anon-bridge-evidence.json`. It says: 14 policies, seven tables, two per table —
+  `docs/audit/anon-bridge-evidence.json`. It said: 14 policies, seven tables, two per table —
   `Owner full access` (TO authenticated) and `Legacy anon unowned access` (**TO anon, cmd = ALL,
-  USING (user_id IS NULL)**). The bridge is therefore live on all five content tables, not only on
-  `telemetry`/`achievements`, and 006 is not applied.
+  USING (user_id IS NULL)**). The bridge was therefore live on all five content tables, not only on
+  `telemetry`/`achievements`, and 006 had not been applied.
+  **Closed 2026-10-16.** 006 was applied to that project, and the same read now returns the policy
+  set recorded in `docs/audit/anon-bridge-evidence.json`: `Owner full access` on all seven tables,
+  `Legacy anon unowned access` retained on `telemetry`/`achievements` only, which is the scope 006
+  states. The closure check — anon grants on the five content tables — returns zero rows. The count
+  is deliberately not restated here: the artifact's own reader warning carries it, and
+  `tests/unit/anon-bridge-status.test.ts` compares that number against the dump it warns about, so
+  a policy added or dropped reddens the guard instead of leaving two documents to agree. The marker
+  in the sentence above is compared by the same test, so neither the prose nor the file can move
+  without the other.
   Two consequences that were not visible before the dump:
   *006 as written could not have closed it.* The migration drops four names — `Legacy anon
   select|insert|update|delete unowned` — which this catalog has never contained. It would have
   reported success over an open bridge, which is why 006 now also drops by predicate
-  (`roles @> ARRAY['anon']` AND `user_id IS NULL`) and raises if any anon grant survives.
+  (`roles::text[] @> ARRAY['anon']::text[]` AND `user_id IS NULL`) and raises if any anon grant
+  survives. That predicate had a second bug found on the day it was applied: `pg_policies.roles` is
+  `name[]`, so the uncast `roles @> ARRAY['anon']::text[]` raised `42883 operator does not exist`
+  and the migration aborted at the guarded step rather than closing anything — and the test that
+  pinned "drops by predicate" was asserting that unrunnable spelling, so it stayed green on it.
+  Both are fixed, and `tests/unit/sql-catalog-predicates.test.ts` keeps the type dimension from
+  coming back.
   *The repo's own detector was blind to it.* Everything keyed on those four names
   (`LEGACY_BRIDGE_POLICIES`, `classifyBridge`) reported zero bridge rows on a catalog holding five;
   detection is keyed on what a policy grants from now on, and

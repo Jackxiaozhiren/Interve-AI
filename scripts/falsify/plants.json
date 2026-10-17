@@ -114,8 +114,8 @@
       "name": "MO1",
       "desc": "the frozen UUID schema is put back into the run order a fresh project follows",
       "file": "supabase/migrations/README.md",
-      "anchor": "   仍有顺序约束：必须在 OAuth 登录路径真的能用之后再跑；",
-      "replacement": "5. `0001_initial_schema.sql` —— 先建立基表；\n   仍有顺序约束：必须在 OAuth 登录路径真的能用之后再跑；",
+      "anchor": "   顺序约束已满足，不再是前提：OAuth 是登录页的主路径",
+      "replacement": "5. `0001_initial_schema.sql` —— 先建立基表；\n   顺序约束已满足，不再是前提：OAuth 是登录页的主路径",
       "test": "tests/unit/migration-order.test.ts",
       "pattern": "keeps the frozen file out of the run order"
     },

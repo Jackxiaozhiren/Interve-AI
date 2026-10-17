@@ -43,6 +43,55 @@ const runnable = () =>
 const unlisted = (files: string[], text: string) => files.filter((f) => !text.includes(f));
 
 /**
+ * Does a status slot claim the migration is deployed?
+ *
+ * Keyed on negation rather than on one spelling, because the phrase this
+ * document used for years — `未在任何环境应用` — does not contain the substring
+ * `未应用` that a name-grepping detector looks for. Reading for that substring
+ * classified a "nowhere applied" slot as deployed, which is the one direction
+ * that lets a stale run-order document pass. A slot that neither says 应用 nor
+ * carries 未 is ambiguous and counts as *not* claiming deployment, so it reddens
+ * against an applied catalog instead of passing quietly.
+ */
+const slotClaimsApplied = (slot: string) => /应用/.test(slot) && !/未/.test(slot);
+
+/**
+ * The entries whose slot must agree with a measured fact, each with the fact
+ * expressed once.
+ *
+ * Both sides of a coupling live here so the proof-of-bite below and the coupling
+ * arms cannot drift apart: a second copy of the predicate would let the flip test
+ * certify a comparison the document no longer makes.
+ */
+const COUPLINGS: {
+  label: string;
+  file: string;
+  /** The catalog's answer, derived from the artifact, never remembered. */
+  applied: () => boolean;
+  /** How to name that answer in a failure message, from the value it produced. */
+  witness: (applied: boolean) => string;
+}[] = [
+  {
+    label: "005",
+    file: "005_interview_session_columns.sql",
+    // Measured, not remembered: 005's six columns were read out of
+    // information_schema.columns on 2026-10-12 and recorded in the evidence
+    // artifact. This file claimed "未在任何环境应用" after that — a run-order
+    // document asserting the opposite of the database it describes.
+    applied: () => (CATALOG.columns005?.present?.length ?? 0) >= 6,
+    witness: (applied) => `the catalog measured ${applied ? "all six columns present" : "the columns missing"}`,
+  },
+  {
+    label: "006",
+    file: "006_close_anon_bridge_content_tables.sql",
+    // 006 has no columns to look for: its deployed state *is* whether the anon
+    // bridge it drops is still in the dump.
+    applied: () => anonBridgeTables(CATALOG.pgPolicies?.rows ?? [], CLOSED_TABLES).length === 0,
+    witness: (applied) => `the dump shows the bridge ${applied ? "closed" : "open"}`,
+  },
+];
+
+/**
  * The bold `**状态：…**` slot that follows one migration's filename.
  *
  * A slot rather than a substring search, because the document legitimately
@@ -80,21 +129,13 @@ describe("migrations README vs the files on disk", () => {
     expect(statusOf(readme(), "006_close_anon_bridge_content_tables.sql"), "006 has no **状态：…** slot").toBeTruthy();
   });
 
-  it("agrees with the catalog about 005", () => {
-    // Measured, not remembered: 005's six columns were read out of
-    // information_schema.columns on 2026-10-12 and recorded in the evidence
-    // artifact. This file claimed "未在任何环境应用" after that — a run-order
-    // document asserting the opposite of the database it describes.
-    const status = statusOf(readme(), "005_interview_session_columns.sql") ?? "";
-    const applied = (CATALOG.columns005?.present?.length ?? 0) >= 6;
-    expect(/已应用/.test(status) && !/未/.test(status), `README says "${status}", catalog measured ${applied ? "applied" : "not applied"}`).toBe(applied);
-  });
-
-  it("agrees with the catalog about 006", () => {
-    const status = statusOf(readme(), "006_close_anon_bridge_content_tables.sql") ?? "";
-    const bridgeOpen = anonBridgeTables(CATALOG.pgPolicies?.rows ?? [], CLOSED_TABLES).length > 0;
-    expect(/未应用/.test(status), `README says "${status}", the dump shows the bridge ${bridgeOpen ? "open" : "closed"}`).toBe(bridgeOpen);
-  });
+  for (const c of COUPLINGS) {
+    it(`agrees with the catalog about ${c.label}`, () => {
+      const status = statusOf(readme(), c.file) ?? "";
+      const applied = c.applied();
+      expect(slotClaimsApplied(status), `README says "${status}", ${c.witness(applied)}`).toBe(applied);
+    });
+  }
 
   // A gate nobody can turn red is decoration.
   it("would report an added migration as unlisted", () => {
@@ -102,20 +143,22 @@ describe("migrations README vs the files on disk", () => {
   });
 
   it("would report a status that contradicts the catalog", () => {
-    // The two coupling arms read a slot out of the document; this feeds the same
+    // The coupling arms read a slot out of the document; this feeds the same
     // reader a document whose slot says the opposite. Built from the current
     // wording rather than hardcoded to it, so it keeps biting however the entry
-    // is phrased today.
+    // is phrased today — which it needed, since 006's slot moved from drafted to
+    // applied on 2026-10-16 while 005's never did.
     const text = readme();
-    const current = statusOf(text, "005_interview_session_columns.sql") ?? "";
-    expect(current, "no 005 status slot exists to contradict").toBeTruthy();
-    const contradicted = text.replace(
-      `**状态：${current}**`,
-      `**状态：${/未/.test(current) ? "已应用" : "已起草、未在任何环境应用"}**`
-    );
-    expect(contradicted, "flipping the slot did not change the document").not.toBe(text);
-    const flipped = statusOf(contradicted, "005_interview_session_columns.sql") ?? "";
-    const applied = (CATALOG.columns005?.present?.length ?? 0) >= 6;
-    expect((/已应用/.test(flipped) && !/未/.test(flipped)) === applied, "a flipped status slipped through the same comparison").toBe(false);
+    for (const c of COUPLINGS) {
+      const current = statusOf(text, c.file) ?? "";
+      expect(current, `${c.label} has no status slot to contradict`).toBeTruthy();
+      const contradicted = text.replace(
+        `**状态：${current}**`,
+        `**状态：${/未/.test(current) ? "已应用" : "已起草、未在任何环境应用"}**`
+      );
+      expect(contradicted, `flipping ${c.label}'s slot did not change the document`).not.toBe(text);
+      const flipped = statusOf(contradicted, c.file) ?? "";
+      expect(slotClaimsApplied(flipped) === c.applied(), `${c.label}: a flipped status slipped through the same comparison`).toBe(false);
+    }
   });
 });
