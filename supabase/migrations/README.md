@@ -25,14 +25,21 @@
    的 anon 桥；telemetry 与 achievements 的桥
    **保留**（前者按可观测性规范不含 PII 且仍被 owner-binding 测试钉住，后者写入
    尚未做 owner 强制，先关会把可用功能变成静默失败）。
-   **状态：已确认未应用**——2026-10-12 读生产目录：7 张表全部仍带
-   `Legacy anon unowned access FOR ALL TO anon USING (user_id IS NULL)`，包含本该被本文件
-   关闭的 5 张内容表。本文件的 `DROP POLICY IF EXISTS` 按 003 的四个名字动手，而生产用的是
-   另一个名字，所以旧版即便"执行成功"也关不掉任何东西；现已补上按谓词 drop + 残留计数 RAISE。
+   **状态：已在生产应用**——2026-10-16 经 Supabase MCP `apply_migration` 跑在 project
+   `bfgglzjltfvfpobzscet`（`success: true`）；随后 `scripts/sql/verify-anon-bridge.sql`
+   的关闭校验返回空集，`pg_policies` 全量导出里 5 张内容表只剩 `Owner full access`
+   （`cmd=ALL`、`roles={authenticated}`），anon 桥只剩 telemetry 与 achievements 两条。
+   本文件此前写的"已确认未应用"是 2026-10-12 的观测，在那之前一直成立：旧版按 003 的四个
+   名字动手，而生产用的是另一个名字，所以它即便"执行成功"也关不掉任何东西；补上按谓词 drop
+   + 残留计数 RAISE（见文件头步骤 2 与 3）之后才真正关掉。
    **部署状态以 `docs/audit/anon-bridge-evidence.json` 为准，不以本文件为准**
-   （`tests/unit/migration-order.test.ts` 会把两边的说法对齐，不一致就红）。
-   仍有顺序约束：必须在 OAuth 登录路径真的能用之后再跑；
-   否则演示登录用户会同时失去读写（fail-closed，不是危险，但等于历史/报告/回放不可用）。
+   （`tests/unit/migration-order.test.ts` 会把两边的说法对齐，不一致就红；条数与采集时间
+   也只在那份 artifact 里，这里不复制一份没人看的数字）。
+   顺序约束已满足，不再是前提：OAuth 是登录页的主路径
+   （`src/components/auth/LoginForm.tsx`，演示表单已标"不保存数据"），而这 5 张表自 002
+   cutover 起就拒绝无 owner 的写入（`src/lib/api-client.ts` 的 `OWNER_REQUIRED_TABLES`
+   抛 `NO_OWNER`，调用方降级为 local-only）。也就是说演示账号从来没有过可读的历史，关闭
+   桥不会让任何现存活人失去读写。
 
 ## 冻结文件（只读，永不执行、永不编辑）
 

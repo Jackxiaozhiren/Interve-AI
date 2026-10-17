@@ -1,6 +1,9 @@
 -- ============================================================================
 -- Migration 006: close the legacy anon bridge on user-content tables
--- VERSION: 6.1 | DATE: 2026-10-12 | STATUS: DRAFT — CONFIRMED NOT APPLIED
+-- VERSION: 6.2 | DATE: 2026-10-12 (written) / 2026-10-16 (applied) | STATUS: APPLIED to
+--          project bfgglzjltfvfpobzscet on 2026-10-16; the closure check over the five content
+--          tables returns 0 rows and the catalog holds 9 policies, with the anon grant retained
+--          on telemetry and achievements only
 -- ============================================================================
 -- "Confirmed", not "asserted": the pg_policies dump in
 -- docs/audit/anon-bridge-evidence.json (read 2026-10-12 from project
@@ -37,13 +40,13 @@
 --     about rows that already exist, and it does nothing for the read path
 --     above, which is why the policy has to go as well.
 --
--- SCOPE: LIVE GRANTS ON THIS PROJECT: 5 -- one "Legacy anon unowned access"
---   FOR ALL TO anon USING (user_id IS NULL) grant per closed table, read out of
---   pg_policies into docs/audit/anon-bridge-evidence.json on 2026-10-12.
---   tests/unit/anon-bridge-status.test.ts re-derives that number from the dump
---   and fails if this digit and the dump disagree, or if the dump stops being
---   one grant per table -- either way the sentence above has to be re-read, not
---   re-typed. Step 1 is NOT the scope: it drops the 20 per-operation names 003
+-- SCOPE: LIVE GRANTS ON THIS PROJECT: 0 as of 2026-10-16 (the read of 2026-10-12 that
+--   wrote this file found 5; the migration was applied on 2026-10-16 and the closure check
+--   now returns no rows). The digit is not typed for its own sake:
+--   tests/unit/anon-bridge-status.test.ts re-derives it from the dump in
+--   docs/audit/anon-bridge-evidence.json and fails if this sentence and that read disagree,
+--   which is what makes re-applying this file a no-op rather than a lie.
+--   Step 1 is NOT the scope: it drops the 20 per-operation names 003
 --   defines for a four-operation shape, and on this project all 20 match nothing.
 -- DELIBERATELY NOT CLOSED: telemetry and achievements keep their bridge.
 --   telemetry is PII-free by the observability section's own rules and
