@@ -151,7 +151,7 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 157;
+const MIN_PLANTS = 158;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1069,7 +1069,15 @@ const PLANTS = [
     file: "src/app/api/analyze-star/route.ts",
     anchor: `    timeoutMs: 90000,`,
     replacement: `    timeoutMs: 900000,`,
-    pattern: "budget that outlasts it",
+    pattern: "leaves the platform room to be answered",
+  }),
+  budgetPlant({
+    name: "RB2",
+    desc: "the lane budget goes back to a regex over route text, so `timeoutMs: PRACTICE_TIMEOUT_MS` resolves to nothing and the practice lane leaves the guard's population while the count floors still look plausible",
+    file: "tests/unit/route-budget.test.ts",
+    anchor: `    const lane = readLaneTimeout(src, file);`,
+    replacement: `    const m = src.match(/timeoutMs:\\s*([0-9_]+)/);\n    const lane = { ms: m ? Number(m[1]) : null, via: m ? "guardRequest" : null };`,
+    pattern: "reads real routes, not an empty directory",
   }),
   // ── the walker ratchet ────────────────────────────────────────────────────
   {
