@@ -303,16 +303,21 @@ describe("the homepage asserts nothing it cannot show", () => {
     expect(copy, "the card has to name the frequency limit a user actually hits").toMatch(/分钟/);
   });
 
-  it("quotes the frequency range the routes declare", () => {
+  it("quotes the frequency range the routes declare", async () => {
     const limits = declaredRateLimits();
     expect(limits.length, "no rate rule parsed — the shape, not the code, changed").toBeGreaterThanOrEqual(10);
+    const { RATE_LIMIT_ENVELOPE } = await import("@/lib/api/rate-limit");
     const min = Math.min(...limits);
     const max = Math.max(...limits);
-    const copy = prose("src/components/home/PricingSection.tsx").replace(/\s+/g, "");
-    expect(
-      new RegExp(`${min}[\\u2013\\u2014-]${max}`).test(copy),
-      `the card must state the measured per-minute range (${min}-${max}), not a remembered one`
-    ).toBe(true);
+    expect(RATE_LIMIT_ENVELOPE.minPerMinute, `the tightest lane allows ${min}/min, the envelope says otherwise`).toBe(min);
+    expect(RATE_LIMIT_ENVELOPE.maxPerMinute, `the loosest lane allows ${max}/min, the envelope says otherwise`).toBe(max);
+    // The card prints the envelope instead of restating it, which is how a digit
+    // a user reads gets one owner: move a lane and the sentence moves with it,
+    // rather than the copy quietly keeping a number nothing allows any more.
+    const copy = prose("src/components/home/PricingSection.tsx");
+    expect(copy, "the card must interpolate the envelope, not retype it").toMatch(/RATE_LIMIT_ENVELOPE\.minPerMinute/);
+    expect(copy).toMatch(/RATE_LIMIT_ENVELOPE\.maxPerMinute/);
+    expect(copy, "and still call the limit what it is").toMatch(/分钟/);
   });
 
   it("counts requests, because a request is not one provider call", async () => {
