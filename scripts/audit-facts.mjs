@@ -262,6 +262,93 @@ export function nameIsCalled(evidence, name) {
 }
 
 /**
+ * Callbacks whose *signature* crosses an AI SDK version boundary, so a bump can
+ * change what they receive without changing a single character the compiler
+ * checks. `onFinish` is the one that bit: v6 handed the message, v7 hands an
+ * event envelope, every property lookup on the old value missed, and the
+ * interview page spoke silence while the UI said it was generating.
+ */
+export const CHAT_CALLBACKS = ["onFinish", "onEnd", "onError", "onData", "onToolCallStatus", "onChunk"];
+
+/**
+ * Which tracked callback names does this file name in code?
+ *
+ * Third instance of the same correction in this file (the `any` counter, the
+ * orphan-route probe, the dependency specifiers): a regex over raw text cannot
+ * tell a sentence from a statement. This probe's old test-side rule was
+ * `/\bonFinish\b/` over the whole tests corpus, so one header comment —
+ * "v7 calls `onFinish(event)`" — counted as the test that names the callback and
+ * the ratchet key `capabilities.untestedChatCallbacks` reported a clean 0 while
+ * no test touched the handler at all.
+ *
+ * Evidence is a name in a *code position* — an identifier, which covers
+ * `onFinish:` in an object literal, `x.onFinish`, a binding, a declaration — or a
+ * word inside an `it`/`describe`/`test` title. A string literal elsewhere is
+ * deliberately not credited: the arm that measures this key writes
+ * `toEqual(["onFinish"])` to state its expectation, so crediting bare strings
+ * would let the measurer certify the thing it measures. Comments are not nodes,
+ * so this instrument cannot mistake prose for behaviour in the first place.
+ */
+export function codeCallbackNames(sourceText, fileName, names = CHAT_CALLBACKS) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  const tracked = new Set(names);
+  const found = new Set();
+  const mark = (text) => {
+    if (tracked.has(text)) found.add(text);
+  };
+  const isTitle = (node) => {
+    const parent = node.parent;
+    return (
+      !!parent &&
+      ts.isCallExpression(parent) &&
+      ts.isIdentifier(parent.expression) &&
+      ["it", "describe", "test"].includes(parent.expression.text) &&
+      parent.arguments[0] === node
+    );
+  };
+  const visit = (node) => {
+    if (ts.isIdentifier(node)) mark(node.text);
+    else if (ts.isStringLiteral(node) && isTitle(node)) {
+      for (const name of tracked) if (new RegExp(`\\b${name}\\b`).test(node.text)) found.add(name);
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return found;
+}
+
+/**
+ * Callbacks wired somewhere under `srcFiles` that no file under `testFiles` names
+ * in code. Parameterised by corpus and reader so the can-fail arm can drive it
+ * through a forged pair of files instead of only re-reading the live tree, which
+ * is the state where a probe reporting nothing looks like a probe that passed.
+ */
+export function untestedChatCallbacks({ srcFiles, testFiles, read, names = CHAT_CALLBACKS }) {
+  const namedIn = (files) => {
+    const set = new Set();
+    for (const file of files) {
+      let text;
+      try {
+        text = read(file);
+      } catch {
+        continue;
+      }
+      for (const name of codeCallbackNames(text, file, names)) set.add(name);
+    }
+    return set;
+  };
+  const src = namedIn(srcFiles);
+  const tests = namedIn(testFiles);
+  return names.filter((name) => src.has(name) && !tests.has(name));
+}
+
+/**
  * Count explicit `any` type positions in one source text, by parse tree.
  *
  * Same defect class as the fetch counter this file used to carry: /\s*any\b
@@ -986,16 +1073,14 @@ function collectCapabilities() {
   // Callback shapes handed to a third-party chat hook, cross-checked against
   // test references. A callback that no test names cannot regress loudly —
   // which is exactly how a v6->v7 signature change survived a green `verify`.
-  const CALLBACKS = ["onFinish", "onEnd", "onError", "onData", "onToolCallStatus", "onChunk"];
+  // Both halves are read off the parse tree: the test side used to be one regex
+  // over the whole corpus, so a comment crediting coverage kept this at 0 while
+  // the handler behind the flagged bug had no test at all.
   const testsDir = path.join(ROOT, "tests");
-  const testBody = fs.existsSync(testsDir)
-    ? walk(testsDir)
-        .map((f) => { try { return fs.readFileSync(f, "utf8"); } catch { return ""; } })
-        .join("\n")
-    : "";
-  const untestedCallbacks = CALLBACKS.filter((name) => {
-    const usedInSrc = sourceFiles().some((f) => new RegExp(`\\b${name}\\s*[:(]`).test(fs.readFileSync(f, "utf8")));
-    return usedInSrc && !new RegExp(`\\b${name}\\b`).test(testBody);
+  const untestedCallbacks = untestedChatCallbacks({
+    srcFiles: sourceFiles(),
+    testFiles: fs.existsSync(testsDir) ? walk(testsDir) : [],
+    read: (f) => fs.readFileSync(f, "utf8"),
   });
 
   // Ring A promotion: `/api/analyze-trends` was discovered to have no caller

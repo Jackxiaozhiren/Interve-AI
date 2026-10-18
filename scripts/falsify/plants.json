@@ -517,6 +517,15 @@
       "pattern": "keeps the two lanes whose caller builds the path off the ledger"
     },
     {
+      "name": "CBC1",
+      "desc": "the chat-callback probe goes back to substring matching over raw file text, so a header comment that merely says `v7 calls onFinish(event)` is credited as the test covering the handler and the ratchet reports zero untested callbacks again",
+      "file": "scripts/audit-facts.mjs",
+      "anchor": "      for (const name of codeCallbackNames(text, file, names)) set.add(name);",
+      "replacement": "      for (const name of names) if (text.indexOf(name) !== -1) set.add(name);",
+      "test": "tests/unit/facts-ratchet.test.ts",
+      "pattern": "flags a callback used in src that no test names"
+    },
+    {
       "name": "OBR1",
       "desc": "a bridged table is taken out of the owner-required set without being accepted as low-sensitivity",
       "file": "src/lib/api-client.ts",
