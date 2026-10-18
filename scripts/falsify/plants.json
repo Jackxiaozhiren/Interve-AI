@@ -472,6 +472,15 @@
       "pattern": "leaves an absent field exactly as absent as it was"
     },
     {
+      "name": "BUD1",
+      "desc": "parse-resume's daily per-user fuse is replaced by a literal allowance, so the most expensive lane in the API is unbounded again while every route name in the guard still looks covered",
+      "file": "src/app/api/parse-resume/route.ts",
+      "anchor": "  const budget = checkUserBudget(ROUTE, [session.id, clientIp], defaultUserBudget());",
+      "replacement": "  const budget = { allowed: true, remaining: 1, resetMs: 1 };",
+      "test": "tests/unit/model-route-budget-coverage.test.ts",
+      "pattern": "leaves no model-calling route outside the fuse"
+    },
+    {
       "name": "RA5",
       "desc": "the README's count of non-prompt modules in src/ai/prompts moves off the set the folder reports",
       "file": "README.md",
