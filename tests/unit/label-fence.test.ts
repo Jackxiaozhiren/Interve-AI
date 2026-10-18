@@ -9,7 +9,7 @@
  * that everything after it is supposed to be data inside.
  */
 import { describe, expect, it } from "vitest";
-import { labelAsData, UNTRUSTED_LABEL_END, UNTRUSTED_LABEL_START } from "../../src/ai/prompts/label-fence";
+import { asData, labelAsData, UNTRUSTED_LABEL_END, UNTRUSTED_LABEL_START } from "../../src/ai/prompts/label-fence";
 import { buildChunkSystem } from "../../src/ai/prompts/chunk";
 import { buildInterviewSystemPrompt } from "../../src/ai/prompts/interview";
 
@@ -39,6 +39,16 @@ describe("labelAsData", () => {
 
   it("cannot start a new line inside the instruction body", () => {
     expect(payload(labelAsData("Staff\n### heading\nPrincipal"))).toBe("Staff ### heading Principal");
+  });
+
+  it("leaves an absent field exactly as absent as it was", () => {
+    // These builders take optional strings and a template literal renders an omitted
+    // one as the text `undefined`. A sanitizer that threw there, or coerced it to
+    // "", would rewrite the prompt bytes for every caller that skips the field —
+    // which is precisely what `ai-registry.test.ts` caught on the first run.
+    expect(asData(undefined)).toBeUndefined();
+    expect(asData("")).toBe("");
+    expect(asData("Senior Backend")).toBe("Senior Backend");
   });
 
   it("is what the two lanes actually render", () => {

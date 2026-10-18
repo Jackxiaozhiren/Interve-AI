@@ -349,8 +349,8 @@
       "name": "FEN1",
       "desc": "the practice answer is emitted after its closing fence, so the candidate text sits outside the section that says it is data",
       "file": "src/ai/prompts/practice.ts",
-      "anchor": "${answer}\\n### UNTRUSTED ANSWER END ###",
-      "replacement": "### UNTRUSTED ANSWER END ###\\n${answer}",
+      "anchor": "${asData(answer)}\\n### UNTRUSTED ANSWER END ###",
+      "replacement": "### UNTRUSTED ANSWER END ###\\n${asData(answer)}",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "keeps analyze-practice's candidate text inside an UNTRUSTED fence"
     },
@@ -394,8 +394,8 @@
       "name": "FEN6",
       "desc": "the coverage lane's client-echoed prior-questions block loses its fence, so request-body text is quoted into the system prompt as though this server asked it",
       "file": "src/ai/prompts/coverage.ts",
-      "anchor": "    lines.push(`### UNTRUSTED PRIOR QUESTIONS START ###`);\n    recent.forEach((q, i) => lines.push(`  ${i + 1}. ${q.slice(0, 160)}`));\n    lines.push(`### UNTRUSTED PRIOR QUESTIONS END ###`);",
-      "replacement": "    recent.forEach((q, i) => lines.push(`  ${i + 1}. ${q.slice(0, 160)}`));",
+      "anchor": "    lines.push(`### UNTRUSTED PRIOR QUESTIONS START ###`);\n    recent.forEach((q, i) => lines.push(`  ${i + 1}. ${asData(q.slice(0, 160))}`));\n    lines.push(`### UNTRUSTED PRIOR QUESTIONS END ###`);",
+      "replacement": "    recent.forEach((q, i) => lines.push(`  ${i + 1}. ${asData(q.slice(0, 160))}`));",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "keeps interview-coverage's candidate text inside an UNTRUSTED fence"
     },
@@ -421,8 +421,8 @@
       "name": "FEN9",
       "desc": "the hint generator's problem title and description go back to bare interpolation, letting 22KB of client text sit under a heading that says the interviewer chose it",
       "file": "src/ai/prompts/hint.ts",
-      "anchor": "### UNTRUSTED PROBLEM STATEMENT START ###\nTitle: ${problemTitle}\nDescription: ${problemDescription}\n### UNTRUSTED PROBLEM STATEMENT END ###",
-      "replacement": "Title: ${problemTitle}\nDescription: ${problemDescription}",
+      "anchor": "### UNTRUSTED PROBLEM STATEMENT START ###\nTitle: ${asData(problemTitle)}\nDescription: ${asData(problemDescription)}\n### UNTRUSTED PROBLEM STATEMENT END ###",
+      "replacement": "Title: ${asData(problemTitle)}\nDescription: ${asData(problemDescription)}",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "keeps generate-hint's candidate text inside an UNTRUSTED fence"
     },
@@ -430,7 +430,7 @@
       "name": "FEN10",
       "desc": "the copilot quotes the request body's question straight into its opening instruction again",
       "file": "src/ai/prompts/copilot.ts",
-      "anchor": "### UNTRUSTED QUESTION START ###\n${question}\n### UNTRUSTED QUESTION END ###",
+      "anchor": "### UNTRUSTED QUESTION START ###\n${asData(question)}\n### UNTRUSTED QUESTION END ###",
       "replacement": "The interviewer just asked: \"${question}\"",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "keeps copilot's candidate text inside an UNTRUSTED fence"
@@ -439,8 +439,8 @@
       "name": "FEN11",
       "desc": "the practice evaluator's question metadata loses its fence opening, so title, description and category read as the app's own framing",
       "file": "src/ai/prompts/practice.ts",
-      "anchor": "\\n### UNTRUSTED QUESTION META START ###\\nQuestion: ${title}",
-      "replacement": "\\nQuestion: ${title}",
+      "anchor": "\\n### UNTRUSTED QUESTION META START ###\\nQuestion: ${asData(title)}",
+      "replacement": "\\nQuestion: ${asData(title)}",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "keeps analyze-practice's candidate text inside an UNTRUSTED fence"
     },
@@ -452,6 +452,24 @@
       "replacement": "  return `You are an expert technical interviewer. Analyze the following ${language || \"code\"} snippet.",
       "test": "tests/unit/prompt-fence-inventory.test.ts",
       "pattern": "keeps analyze-code's candidate text inside an UNTRUSTED fence"
+    },
+    {
+      "name": "SEAL1",
+      "desc": "the payload neutraliser becomes a pass-through, so a resume can carry its own END marker and land the rest of itself in instruction position",
+      "file": "src/ai/prompts/label-fence.ts",
+      "anchor": "  return text ? text.replace(MARKER, \"[marker]\") : text;",
+      "replacement": "  return text;",
+      "test": "tests/unit/prompt-fence-inventory.test.ts",
+      "pattern": "does not let interview-system's payload draw its own fence"
+    },
+    {
+      "name": "SEAL2",
+      "desc": "the neutraliser stops passing an absent optional field through, so every caller that omits title/description changes the prompt bytes or throws",
+      "file": "src/ai/prompts/label-fence.ts",
+      "anchor": "  return text ? text.replace(MARKER, \"[marker]\") : text;",
+      "replacement": "  return text.replace(MARKER, \"[marker]\");",
+      "test": "tests/unit/label-fence.test.ts",
+      "pattern": "leaves an absent field exactly as absent as it was"
     },
     {
       "name": "RA5",
