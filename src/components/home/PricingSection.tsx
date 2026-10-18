@@ -11,7 +11,11 @@ import { DEFAULT_USER_BUDGET_RPD } from "@/lib/api/user-budget";
  * /signup and a sales button wired to an in-page anchor — two calls to action
  * that led to a free registration and a scroll. The ceiling quoted below is
  * `DEFAULT_USER_BUDGET_RPD`, the fallback `defaultUserBudget()` returns when
- * the env override is absent.
+ * the env override is absent. The per-minute range is the set of `limit` values
+ * the routes hand to the limiter, and `no-unverifiable-claims.test.ts` measures
+ * it — this sentence used to call the daily ceiling 唯一限制 while the guard
+ * refuses on frequency and body size first, and to count 调用 when the fuse
+ * counts requests that may each retry.
  */
 export function PricingSection() {
   return (
@@ -39,7 +43,7 @@ export function PricingSection() {
           <li>面试回放与针对性练习</li>
         </ul>
         <p className="text-xs text-[var(--interve-text-secondary)]">
-          唯一限制：默认每个账号每天 {DEFAULT_USER_BUDGET_RPD} 次 AI 调用（服务端可调），用于防止滥用。
+          限制不止一处：默认每个账号（与同一网络出口共享当天额度）每类接口每天 {DEFAULT_USER_BUDGET_RPD} 次请求，另有按接口的每分钟 10–60 次频率上限。服务端可调，这些只用于守住共享的免费额度。
         </p>
         <Link href="/signup">
           <InterveButton size="lg" className="w-full justify-center shadow-[var(--interve-shadow-button)]">免费注册</InterveButton>
