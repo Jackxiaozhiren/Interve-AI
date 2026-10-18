@@ -23,7 +23,9 @@ import {
   numericLeaves,
   RATCHET_KEYS,
   seedBlockers,
+  untestedChatCallbacks,
 } from "../../scripts/audit-facts.mjs";
+import { readRepo, walkRepo } from "./repo-tree";
 
 const LIMITS_FILE = path.join(process.cwd(), "docs/audit/facts.limits.json");
 const facts = collectFacts();
@@ -140,18 +142,57 @@ describe("debt ratchet (Ring B)", () => {
 describe("capability contradiction probes", () => {
   it("flags a callback used in src that no test names", () => {
     // The probe that earned its keep: a v6->v7 chat callback change survived a
-    // green `verify` because nothing tested it. Re-derive the test-absence half
-    // independently so the probe cannot silently start reporting nothing.
-    const testsDir = path.join(process.cwd(), "tests");
-    const corpus = fs
-      .readdirSync(testsDir, { recursive: true })
-      .filter((f): f is string => typeof f === "string" && f.endsWith(".ts"))
-      .map((f) => fs.readFileSync(path.join(testsDir, f), "utf8"))
-      .join("\n");
-    for (const name of facts.capabilities.untestedChatCallbacks) {
-      expect(name).toMatch(/^on[A-Z]/);
-      expect(corpus).not.toContain(name);
-    }
+    // green `verify` because nothing tested it.
+    //
+    // It is driven through a forged corpus instead of iterating over the live
+    // answer, because the live answer is `[]` and a loop over an empty array
+    // certifies nothing: that is how this arm shipped vacuous while a header
+    // comment — `// v7 calls onFinish(event) …` — was credited as the test that
+    // names the callback. Both halves now read the parse tree, so prose is not
+    // evidence either way, and this fixture is what proves the probe still can
+    // tell the two apart.
+    const bodies = new Map([
+      ["src/room.tsx", "const c = useChat({ onFinish: (event) => speak(event) });"],
+      ["src/chat-route.ts", "return toUIMessageStreamResponse({ onError: notify });"],
+      ["tests/unit/wired.test.ts", "expect(config.onError).toBeTypeOf('function');"],
+      ["tests/unit/prose.test.ts", "// v6 called onFinish(message); v7 calls onFinish(event)\nexport const note = 1;\n"],
+      ["tests/unit/measurer.test.ts", "expect(measured).toEqual(['onFinish']);\n"],
+    ]);
+    expect(
+      untestedChatCallbacks({
+        srcFiles: ["src/room.tsx", "src/chat-route.ts"],
+        testFiles: ["tests/unit/wired.test.ts", "tests/unit/prose.test.ts", "tests/unit/measurer.test.ts"],
+        read: (f: string) => bodies.get(f) ?? "",
+      }),
+      "onFinish is wired in src, named only in a comment and in a measurer's expected value: neither credits coverage"
+    ).toEqual(["onFinish"]);
+  });
+
+  it("reports nothing once the wired callback is named in code", () => {
+    // The compliant half of the same predicate. Without it the arm above could
+    // be satisfied by a detector that reports every wired callback forever.
+    const bodies = new Map([
+      ["src/room.tsx", "const c = useChat({ onFinish: (event) => speak(event) });"],
+      ["tests/unit/wired.test.ts", "expect(config.onFinish).toBeTypeOf('function');"],
+    ]);
+    expect(
+      untestedChatCallbacks({
+        srcFiles: ["src/room.tsx"],
+        testFiles: ["tests/unit/wired.test.ts"],
+        read: (f: string) => bodies.get(f) ?? "",
+      })
+    ).toEqual([]);
+  });
+
+  it("measures the live tree with the predicate the fixture ran through", () => {
+    // Wiring proof: `collectCapabilities` must call this exported predicate, not
+    // keep its own copy of a text scan. Reverting the collector to a regex over
+    // raw file text makes the two sides disagree and reddens this.
+    const src = walkRepo("src", (rel) => /\.(ts|tsx)$/.test(rel));
+    const tests = walkRepo("tests", (rel) => /\.(ts|tsx)$/.test(rel));
+    expect(facts.capabilities.untestedChatCallbacks).toEqual(
+      untestedChatCallbacks({ srcFiles: src, testFiles: tests, read: readRepo })
+    );
   });
 
   it("keeps warnings coupled to the facts that produced them", () => {
