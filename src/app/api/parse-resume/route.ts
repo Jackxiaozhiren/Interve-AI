@@ -1,6 +1,6 @@
 import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
 import { getSessionFromRequest } from "@/lib/api/session";
-import { rateLimitHeaders } from "@/lib/api/guard";
+import { rateLimitHeaders, combineSignal } from "@/lib/api/guard";
 import { checkUserBudget, defaultUserBudget } from "@/lib/api/user-budget";
 import { getRequestId } from "@/lib/api/request-id";
 import { okResponse, errorResponse } from "@/lib/api/errors";
@@ -18,6 +18,11 @@ export const runtime = 'nodejs';
 // declares a budget (60-170s). Without it the platform kills the function
 // mid-call and the client receives a body it cannot parse as JSON.
 export const maxDuration = 100;
+// `maxDuration` is the outer bound. A route still has to stop its own wait or that
+// kill is the only timeout it has and nothing is logged when it lands, so the lane
+// gives up ten seconds early — the same margin the declared budgets use
+// (55/60, 90/100, 110/120).
+const LANE_TIMEOUT_MS = 90_000;
 
 const ROUTE = "parse-resume";
 // Matches the "5MB" claim already shown in the setup UI.
@@ -26,6 +31,10 @@ const MAX_FILE_BYTES = MAX_RESUME_BYTES;
 export async function POST(req: Request) {
   const requestId = getRequestId(req);
   const startTime = performance.now();
+  // Client disconnect ∪ lane budget: the composition `guardRequest` builds for
+  // every lane that can go through it. This route reads `formData`, so it
+  // hand-rolls the pipeline and has to ask for the signal directly.
+  const signal = combineSignal(req, LANE_TIMEOUT_MS);
   const done = (status: number, extra?: { reason?: string; cause?: string; model?: string; inputTokens?: number; outputTokens?: number }) =>
     logApi(ROUTE, { requestId, status, latencyMs: Math.round(performance.now() - startTime), ...extra });
 
@@ -125,6 +134,7 @@ export async function POST(req: Request) {
           const { text: ocrText, usage: ocrUsage } = await generateText({
            model: zhipu().chat(MODEL_IDS.zhipuVisionFlash),
            maxRetries: FALLBACK_MAX_RETRIES,
+           abortSignal: signal,
            messages: [
              {
                role: 'user',
@@ -138,7 +148,17 @@ export async function POST(req: Request) {
           text = ocrText;
           ocrExtra = { model: MODEL_IDS.zhipuVisionFlash, ...usageOf(ocrUsage) };
         } catch (ocrError) {
-          done(422, { reason: "ocr_failed", cause: classifyUpstreamError(ocrError) });
+          const cause = classifyUpstreamError(ocrError);
+          // The reason carries what the status cannot: the lane abort and a client
+          // that hung up both raise AbortError, and only the first is a service
+          // failure. This string reaches the user through `describeApiFailure`, so
+          // it must not call a slow extraction a damaged document — that is the
+          // clue people act on, and it sends them to re-compress a fine PDF.
+          if (cause === "upstream_timeout") {
+            done(504, { reason: req.signal.aborted ? "ocr_abandoned_by_client" : "ocr_timeout", cause });
+            return errorResponse("UPSTREAM_ERROR", "Text extraction ran out of time. Try a smaller file, or retry shortly.", 504, requestId);
+          }
+          done(422, { reason: "ocr_failed", cause });
           return errorResponse("UPSTREAM_ERROR", "Failed to extract text even with OCR fallback. This might be a corrupted file.", 422, requestId);
         }
      }

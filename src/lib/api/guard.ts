@@ -40,7 +40,17 @@ export interface GuardContext<T> {
   signal: AbortSignal;
 }
 
-function combineSignal(req: Request, timeoutMs: number): AbortSignal {
+/**
+ * client disconnect ∪ lane timeout, whichever arrives first.
+ *
+ * Exported because `/api/parse-resume` hand-rolls its pipeline (it reads
+ * `formData`, so it cannot go through `guardRequest`) and still has to bound the
+ * provider call it makes: without a signal the only timeout in that route is the
+ * platform's `maxDuration` kill, which hands the client a body it cannot parse as
+ * JSON and records no reason at all. One composition, shared by both shapes of
+ * route, rather than a second copy with its own edge semantics.
+ */
+export function combineSignal(req: Request, timeoutMs: number): AbortSignal {
   // P1-01 (BUG-R-guard-timeout): 手写双信号合成，不依赖 AbortSignal.any。
   // 背景：edge 下 AbortSignal.any 缺失时旧回落直接返回 client 信号，
   // 超时预算被静默丢弃。合成信号 = client 中断 ∪ 超时到期，先到先生效。
