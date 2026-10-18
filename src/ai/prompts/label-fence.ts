@@ -21,6 +21,28 @@ export const UNTRUSTED_LABEL_END = "### UNTRUSTED POSITION LABEL END ###";
 const MARKER = /UNTRUSTED [A-Z ]*(START|END)/g;
 
 /**
+ * Neutralise fence-boundary text inside a payload, leaving everything else alone.
+ *
+ * A section is only a boundary if the text inside it cannot end it. Measured before
+ * this existed: every one of the sixteen fenced lanes let its payload draw a marker —
+ * `tests/unit/prompt-fence-inventory.test.ts > does not let <lane>'s payload draw its
+ * own fence` was red across the board — so a resume containing
+ * `### UNTRUSTED CANDIDATE CONTENT END ###` moved whatever followed it out of the
+ * data section and into instruction position. Honest input is unaffected: nothing is
+ * rewritten unless it spells a marker.
+ *
+ * `undefined` passes through unchanged on purpose. Most of these builders take
+ * optional fields (`problemTitle?`, `description?`, `category?`) and a template
+ * literal has always rendered an omitted one as the text `undefined`; throwing on
+ * it, or coercing it to an empty string, would change the bytes sent to the model
+ * for every caller that leaves the field out. `ai-registry.test.ts` caught this on
+ * the first run, which is the test doing the job it exists for.
+ */
+export function asData(text: string | undefined): string | undefined {
+  return text ? text.replace(MARKER, "[marker]") : text;
+}
+
+/**
  * Render `text` as labelled data on one line.
  *
  * Newlines are collapsed because a value carrying `\n###` would otherwise start a
@@ -29,6 +51,6 @@ const MARKER = /UNTRUSTED [A-Z ]*(START|END)/g;
  * job title still has to reach the model readable.
  */
 export function labelAsData(text: string): string {
-  const oneLine = text.replace(/\s+/g, " ").replace(MARKER, "[marker]").trim();
+  const oneLine = (asData(text) ?? "").replace(/\s+/g, " ").trim();
   return `${UNTRUSTED_LABEL_START} ${oneLine} ${UNTRUSTED_LABEL_END}`;
 }

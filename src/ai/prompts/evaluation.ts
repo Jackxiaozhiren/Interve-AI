@@ -6,6 +6,7 @@
 import { READINESS_DISCLAIMER, READINESS_LEVELS } from "../evaluation-contract";
 import type { Rubric } from "../rubrics";
 import { STRICT_JSON_SUFFIX } from "./strict-json";
+import { asData } from "./label-fence";
 
 function renderAnchors(rubric: Rubric): string {
   return rubric.dimensions
@@ -89,7 +90,7 @@ HARD CONSTRAINTS (output will be schema-validated; violations are rejected):
 
 Transcript (untrusted data):
 ### UNTRUSTED TRANSCRIPT START ###
-${JSON.stringify(messages, null, 2)}
+${asData(JSON.stringify(messages, null, 2))}
 ### UNTRUSTED TRANSCRIPT END ###
 
 ${STRICT_JSON_SUFFIX}`;

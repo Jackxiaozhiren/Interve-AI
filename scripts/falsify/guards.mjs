@@ -140,12 +140,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * lanes the full-channel sweep caught reading the fixture's chosen field only
  * (FEN9 hint title/description, FEN10 copilot question, FEN11 practice question
  * metadata, FEN12 code language — each client text sitting in instruction position);
+ * and 155 with the seal that makes those fences mean anything (SEAL1 turns the
+ * payload neutraliser into a pass-through so any lane can be closed early by its own
+ * text, SEAL2 drops the absent-optional-field pass-through that keeps prompt bytes
+ * stable for callers omitting a field);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 153;
+const MIN_PLANTS = 155;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
