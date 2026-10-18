@@ -21,7 +21,12 @@ import {
 } from "@/ai/prompts/evaluation";
 
 export const runtime = 'nodejs';
-export const maxDuration = 170;
+// The lane below waits 170s. A function whose budget equals its guard's wait can
+// never answer: the platform kill and the abort land on the same instant and the
+// kill wins, which is the opaque, unlogged failure this route exists to avoid —
+// so the outer bound carries the margin instead of shortening the measured 170s
+// headroom the evaluation needs. Hobby's ceiling is 300s.
+export const maxDuration = 180;
 
 const ROUTE = "analyze-interview";
 
@@ -42,7 +47,7 @@ export async function POST(req: Request) {
     // Measured 2026-09-13 (free glm-4-flash): TTFT ~1s but full V2 eval
     // streams ~70 chars/s, so a short interview needs ~63s end-to-end.
     // nodejs runtime (not edge: edge needs first byte within 25s for
-    // long responses) + 170s budget fits Vercel Hobby free max (300s).
+    // long responses) + 170s wait inside the 180s function above.
     timeoutMs: 170000,
   });
   if (!gate.ok) return gate.response;
