@@ -143,7 +143,9 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * and 155 with the seal that makes those fences mean anything (SEAL1 turns the
  * payload neutraliser into a pass-through so any lane can be closed early by its own
  * text, SEAL2 drops the absent-optional-field pass-through that keeps prompt bytes
- * stable for callers omitting a field);
+ * stable for callers omitting a field); and 156 with the consumption fuse having a
+ * hole shaped like a hand-rolled route (BUD1 un-counts parse-resume again, the one
+ * model-calling lane that never went through guardRequest);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly

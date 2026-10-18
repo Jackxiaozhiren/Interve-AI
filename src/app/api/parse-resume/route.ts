@@ -1,5 +1,7 @@
 import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
 import { getSessionFromRequest } from "@/lib/api/session";
+import { rateLimitHeaders } from "@/lib/api/guard";
+import { checkUserBudget, defaultUserBudget } from "@/lib/api/user-budget";
 import { getRequestId } from "@/lib/api/request-id";
 import { okResponse, errorResponse } from "@/lib/api/errors";
 import { logApi, usageOf } from "@/lib/api/logging";
@@ -28,7 +30,8 @@ export async function POST(req: Request) {
     logApi(ROUTE, { requestId, status, latencyMs: Math.round(performance.now() - startTime), ...extra });
 
   // 1. Rate limit (pre-auth).
-  const rl = checkRateLimit(ROUTE, getClientIp(req), { limit: 10, windowMs: 60_000 });
+  const clientIp = getClientIp(req);
+  const rl = checkRateLimit(ROUTE, clientIp, { limit: 10, windowMs: 60_000 });
   if (!rl.allowed) {
     done(429, { reason: "rate_limited" });
     return errorResponse("RATE_LIMITED", "Too many requests. Please retry later.", 429, requestId, {
@@ -43,6 +46,26 @@ export async function POST(req: Request) {
     return errorResponse("UNAUTHORIZED", "Authentication required. Please sign in.", 401, requestId);
   }
   if (isMockEnabled()) return mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId);
+
+  // 3. Phase B6 fuse: the daily per-user ceiling every other model-calling route
+  // gets from `guardRequest`. This route hand-rolls its pipeline (it reads
+  // `formData`, not a JSON body, which is the one step the shared guard cannot do),
+  // so the fuse has to be applied here or the most expensive lane in the API —
+  // PDF parse plus a possible vision call — is the one lane without a ceiling: a
+  // caller pacing at 9 requests/minute is unbounded across a day.
+  //
+  // Placed after the mock short-circuit on purpose: a mock response spends nothing,
+  // so it must not consume the allowance. Keyed on the pair the guard uses, since
+  // `/api/session` mints a cookie for any identity the caller supplies and a new id
+  // is otherwise a new allowance.
+  const budget = checkUserBudget(ROUTE, [session.id, clientIp], defaultUserBudget());
+  if (!budget.allowed) {
+    done(429, { reason: "user_budget_exceeded" });
+    return errorResponse("RATE_LIMITED", "Daily AI budget exceeded. Please retry tomorrow.", 429, requestId, {
+      "Retry-After": String(Math.max(1, Math.ceil(budget.resetMs / 1000))),
+      ...rateLimitHeaders(budget.remaining, budget.resetMs),
+    });
+  }
 
   try {
     const formData = await req.formData();
