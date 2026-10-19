@@ -11,6 +11,16 @@ export interface RateLimitRule {
   windowMs: number;
 }
 
+/**
+ * The frequency ceiling the public-facing copy quotes: every route's per-minute
+ * rule is inside this envelope. It lives here rather than in the sentence because
+ * a digit a reader sees needs one owner — `user-facing-numbers.test.ts` forbids
+ * the card from printing its own, and `no-unverifiable-claims.test.ts` measures
+ * the `limit` values the routes actually hand `checkRateLimit` against these two
+ * numbers, so widening or tightening a lane moves the copy or reddens the guard.
+ */
+export const RATE_LIMIT_ENVELOPE = { minPerMinute: 10, maxPerMinute: 60 } as const;
+
 interface Bucket {
   count: number;
   resetAt: number;
