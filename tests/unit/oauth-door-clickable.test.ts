@@ -35,7 +35,8 @@
 //   R2  an OAuth press writes state before its first await;
 //   R3  every file that imports the OAuth entry point calls it;
 //   R4  the inventories are non-empty, so R1-R3 cannot pass by seeing nothing;
-//   R5  a press that locks its own door can unlock it without an error.
+//   R5  a press that locks its own door can unlock it without an error;
+//   R6  the file that owns a provider press cannot name the probe at all.
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -113,24 +114,66 @@ type Handler = {
   node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
 };
 
+/**
+ * The named binding a node lives under, walking out of callbacks.
+ *
+ * `const press = useCallback(async (p) => { await … })` puts the await inside an
+ * anonymous arrow whose nearest function-like ancestor is the *component*, not
+ * `press`; the binding that owns it is two levels further out. A component-level
+ * owner (an `onClick` that awaits inline in JSX) is reported as none, because
+ * R2/R5 are rules about a handler's shape and a component has no such shape.
+ */
+function ownerBinding(node: ts.Node): string | null {
+  let current = node.parent;
+  while (current) {
+    if (ts.isVariableDeclaration(current) && ts.isIdentifier(current.name)) {
+      return /^[a-z]/.test(current.name.text) ? current.name.text : null;
+    }
+    if (ts.isFunctionDeclaration(current) && current.name) {
+      return /^[a-z]/.test(current.name.text) ? current.name.text : null;
+    }
+    current = current.parent;
+  }
+  return null;
+}
+
+/**
+ * The name a function-like is known by: its own binding, else the binding its
+ * call is declared in (`const press = useCallback(async () => …)`).
+ */
+function handlerName(fn: ts.ArrowFunction | ts.FunctionExpression | ts.FunctionDeclaration): string | null {
+  return functionName(fn) ?? ownerBinding(fn);
+}
+
 /** Named handlers, and whether each waits or opens a provider flow. */
 function handlers(sf: ts.SourceFile): Map<string, Handler> {
   const out = new Map<string, Handler>();
-  const visit = (node: ts.Node) => {
+  const collect = (node: ts.Node) => {
     if (ts.isFunctionDeclaration(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
-      const name = functionName(node);
+      const name = handlerName(node);
       if (name && !out.has(name)) {
         out.set(name, {
           line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
-          awaits: containsOwn(node, isAwait),
-          oauth: containsOwn(node, isOAuthCall),
+          awaits: false,
+          oauth: false,
           node,
         });
       }
     }
-    ts.forEachChild(node, visit);
+    ts.forEachChild(node, collect);
   };
-  visit(sf);
+  collect(sf);
+  const mark = (node: ts.Node, key: "awaits" | "oauth") => {
+    const owner = ownerBinding(node);
+    const handler = owner ? out.get(owner) : undefined;
+    if (handler) handler[key] = true;
+  };
+  const attribute = (node: ts.Node) => {
+    if (isAwait(node)) mark(node, "awaits");
+    if (isOAuthCall(node)) mark(node, "oauth");
+    ts.forEachChild(node, attribute);
+  };
+  attribute(sf);
   return out;
 }
 
@@ -185,6 +228,22 @@ const PROBE_FILES = new Map<string, string>();
 for (const rel of probeGatedFiles()) PROBE_FILES.set(rel, sourceOf(rel));
 const DOOR_FILES = new Map<string, string>();
 for (const rel of doorFiles()) DOOR_FILES.set(rel, sourceOf(rel));
+
+/**
+ * Files that own a provider press yet can name the session probe.
+ *
+ * The door is one component (`src/components/auth/oauth-buttons.tsx`) and it
+ * imports no auth state, so gating a provider press on the probe is not merely
+ * forbidden — it is unrepresentable there. This arm is what keeps it that way:
+ * the day someone hands the door a `useAuth()` (or lifts the buttons back into
+ * the pages that do), the rule stops being a convention.
+ */
+export function doorsNamingTheProbe(): string[] {
+  return [...DOOR_FILES.keys()].filter((rel) => {
+    const sf = parse(rel, sourceOf(rel));
+    return identifiers(sf, sf).includes("isLoading");
+  });
+}
 
 /** A press that needs no probe answer but is gated on one. */
 export type LockedPress = {
@@ -362,6 +421,13 @@ describe("a sign-in press is never gated on an answer it does not need", () => {
     ).toEqual([]);
   });
 
+  it("R6: the file that owns a provider press cannot see the probe", () => {
+    expect(
+      doorsNamingTheProbe(),
+      "the provider door can name the session probe, so a press there can be gated on it again"
+    ).toEqual([]);
+  });
+
   it("R3: every file that imports the OAuth entry point calls it", () => {
     expect(IMPORTERS.length, "no door imports signInWithOAuth at all").toBeGreaterThan(0);
     const silent = IMPORTERS.filter((rel) => !doorFiles().includes(rel));
@@ -374,13 +440,21 @@ describe("a sign-in press is never gated on an answer it does not need", () => {
     expect([...PROBE_FILES.keys()].sort()).toEqual(
       expect.arrayContaining(["src/app/signup/page.tsx", "src/components/auth/LoginForm.tsx"])
     );
-    expect(doorFiles().sort()).toEqual(["src/app/signup/page.tsx", "src/components/auth/LoginForm.tsx"]);
+    // Exactly one file owns a provider press. Both doors used to carry their own
+    // copy of the pair, which is how the probe gate came to be written twice and
+    // how Sonar scored the repair 3.7% duplicated new code; a second entry here
+    // means the lifecycle was duplicated again instead of shared.
+    expect(doorFiles().sort()).toEqual(["src/components/auth/oauth-buttons.tsx"]);
     const presses = sessionIndependentPresses(PROBE_FILES);
-    // Measured floor of what the reader sees in the shipped tree: the four
-    // provider buttons on the two doors, plus the local-action controls beside
-    // them (the password reveal on /login, a dashboard control). A real removal
-    // is a deliberate edit to this number, never a silent narrowing of the rule.
-    expect(presses.length, `reader saw: ${presses.join(", ")}`).toBeGreaterThanOrEqual(6);
+    // Measured floor of the local-action presses the reader sees in components
+    // that can reach the probe: the password reveal on /login and a control in
+    // the dashboard shell. The provider pair lives in the door now, so it is
+    // counted on the other side. A real removal is a deliberate edit to these
+    // numbers, never a silent narrowing of the rule.
+    expect(presses.length, `reader saw: ${presses.join(", ")}`).toBeGreaterThanOrEqual(2);
+    expect(sessionIndependentPresses(DOOR_FILES).length, `door presses: ${sessionIndependentPresses(DOOR_FILES).join(", ")}`).toBeGreaterThanOrEqual(
+      2
+    );
   });
 });
 

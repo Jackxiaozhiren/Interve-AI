@@ -6,29 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MagneticButton } from "@/components/ui/magnetic-button";
-import { ArrowRight, GithubLogo, GoogleLogo } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { GlobalBackground } from "@/components/ui/global-background";
 import { useAuth } from "@/context/AuthContext";
-import { signInWithOAuth } from "@/lib/auth";
-
-/**
- * How long an OAuth press holds its in-flight mark. The provider hop measured
- * 1.50-2.41 s per cold request from the owner's network; past twice that, the
- * browser has either left (nothing reads this) or never did, which is the case
- * that has to hand the control back.
- */
-const OAUTH_HANDOFF_GRACE_MS = 5000;
+import { OAuthProviderButtons } from "@/components/auth/oauth-buttons";
 
 export default function SignupPage() {
   const { login, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  // The press's own in-flight state, plus its failure. These two buttons must not
-  // read `isLoading`: that is the mount-time session probe's answer, and starting
-  // a provider flow does not depend on it (see the credential submit below, which
-  // does). tests/unit/oauth-door-clickable.test.ts owns the rule and the numbers.
-  const [oauthPending, setOauthPending] = useState<"google" | "github" | null>(null);
+  // Only a provider failure lands here, and it has to be said: this used to
+  // `console.error` and leave the page looking idle, so a press that did not
+  // work showed nothing at all. The buttons themselves — press lifecycle and all
+  // — are the shared door, which cannot see `isLoading` by construction.
   const [oauthError, setOauthError] = useState<string | null>(null);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -47,28 +38,9 @@ export default function SignupPage() {
   // This used to be a fake: both buttons called login() with a hardcoded
   // `oauth_user@example.com` identity and never touched Supabase, so the page
   // advertised Google/GitHub while creating a throwaway demo account that
-  // shared one email with every other "OAuth" signup. Real provider redirect,
-  // same as LoginForm, and the account lands on /login where the AuthContext
-  // bridge converts it into an app session.
-  const handleOAuthSignup = async (provider: "google" | "github") => {
-    // Before the await, so the press is owned the moment it happens rather than
-    // after the browser has already been told to leave.
-    setOauthPending(provider);
-    setOauthError(null);
-    try {
-      await signInWithOAuth(provider);
-      window.setTimeout(() => {
-        setOauthPending(null);
-        setOauthError(`${provider} 注册跳转没有开始，请再试一次。`);
-      }, OAUTH_HANDOFF_GRACE_MS);
-    } catch (error) {
-      setOauthPending(null);
-      console.error(`${provider} signup failed`, error);
-      // A failed press has to say so — this used to log to the console only, so
-      // the button simply stopped spinning and the page looked idle.
-      setOauthError(`${provider} 注册失败，请再试一次。`);
-    }
-  };
+  // shared one email with every other "OAuth" signup. Real provider redirect now,
+  // the same door LoginForm uses, and the account lands on /login where the
+  // AuthContext bridge converts it into an app session.
 
   return (
     <main className="min-h-screen relative flex items-center justify-center p-6 text-[#0f172a] selection:bg-sky-500/20">
@@ -103,26 +75,7 @@ export default function SignupPage() {
                 <p className="text-sm font-semibold text-slate-700 mb-3">
                   用账号注册 · 面试记录、报告与回放都会保存
                 </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => handleOAuthSignup("google")}
-                    type="button"
-                    disabled={oauthPending !== null}
-                    aria-busy={oauthPending === "google"}
-                    className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {oauthPending === "google" ? <span aria-hidden="true" className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <GoogleLogo weight="bold" className="w-4 h-4" />} Google
-                  </button>
-                  <button
-                    onClick={() => handleOAuthSignup("github")}
-                    type="button"
-                    disabled={oauthPending !== null}
-                    aria-busy={oauthPending === "github"}
-                    className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {oauthPending === "github" ? <span aria-hidden="true" className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <GithubLogo weight="fill" className="w-4 h-4" />} GitHub
-                  </button>
-                </div>
+                <OAuthProviderButtons onResult={setOauthError} />
                 {oauthError && (
                   <p role="status" className="mt-3 text-sm font-medium text-rose-600">
                     {oauthError}

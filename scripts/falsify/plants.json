@@ -166,10 +166,10 @@
     },
     {
       "name": "SGN1",
-      "desc": "the signup provider buttons minting a throwaway identity again, the documented fake",
-      "file": "src/app/signup/page.tsx",
+      "desc": "the provider buttons minting a throwaway identity again, the documented fake — now inside the one door both pages render",
+      "file": "src/components/auth/oauth-buttons.tsx",
       "anchor": "await signInWithOAuth(provider);",
-      "replacement": "await login({ id: crypto.randomUUID(), username: \"oauth_user\", email: \"oauth_user@example.com\" });",
+      "replacement": "await login({ id: \"oauth_user\", username: \"oauth_user\", email: \"oauth_user@example.com\" });",
       "test": "tests/unit/auth-path-honesty.test.ts",
       "pattern": "opens a real provider session wherever it advertises a provider"
     },
@@ -689,39 +689,38 @@
     },
     {
       "name": "ODG1",
-      "desc": "the login door's provider buttons go back to waiting on the session probe, so a press inside that window is discarded",
-      "file": "src/components/auth/LoginForm.tsx",
-      "anchor": "disabled={oauthPending !== null}",
+      "desc": "the provider door reaches for the session probe again, which is only possible once the probe is in its scope — the shape that made presses disappear on /login",
+      "file": "src/components/auth/oauth-buttons.tsx",
+      "anchor": "disabled={pending !== null}",
       "replacement": "disabled={isLoading}",
       "count": 2,
       "test": "tests/unit/oauth-door-clickable.test.ts",
-      "pattern": "nothing that opens a door waits on the session probe"
+      "pattern": "the file that owns a provider press cannot see the probe"
     },
     {
       "name": "ODG2",
-      "desc": "the signup door does the same, which is how a guard over one file only would still look green",
-      "file": "src/app/signup/page.tsx",
-      "anchor": "disabled={oauthPending !== null}",
-      "replacement": "disabled={isLoading}",
-      "count": 2,
+      "desc": "a page imports the OAuth entry point without calling it, so the door's inventory would list a wiring that does nothing if the pairing rule were dropped",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "import { OAuthProviderButtons } from \"@/components/auth/oauth-buttons\";",
+      "replacement": "import { OAuthProviderButtons } from \"@/components/auth/oauth-buttons\";\nimport { signInWithOAuth } from \"@/lib/auth\";",
       "test": "tests/unit/oauth-door-clickable.test.ts",
-      "pattern": "nothing that opens a door waits on the session probe"
+      "pattern": "every file that imports the OAuth entry point calls it"
     },
     {
       "name": "ODG3",
-      "desc": "a press that writes its state only after the provider handoff, so the button looks dead for the length of the hop",
-      "file": "src/components/auth/LoginForm.tsx",
-      "anchor": "    setOauthPending(provider);\n    try {",
-      "replacement": "    try {",
+      "desc": "the press stops writing its in-flight state before it awaits, so the button looks exactly as dead as the disabled one it replaced",
+      "file": "src/components/auth/oauth-buttons.tsx",
+      "anchor": "      setPending(provider);\n      onResult(null);",
+      "replacement": "      onResult(null);",
       "test": "tests/unit/oauth-door-clickable.test.ts",
       "pattern": "an OAuth press says something before it awaits"
     },
     {
       "name": "ODG4",
       "desc": "the handoff recovery is dropped, so a browser that never leaves is left with a permanently dead door",
-      "file": "src/components/auth/LoginForm.tsx",
-      "anchor": "      window.setTimeout(() => {\n        setOauthPending(null);\n        setError(`${provider} sign-in did not start. Please try again.`);\n      }, OAUTH_HANDOFF_GRACE_MS);",
-      "replacement": "      // planted: the lock has no way back",
+      "file": "src/components/auth/oauth-buttons.tsx",
+      "anchor": "        window.setTimeout(() => {\n          setPending(null);\n          onResult(`${provider} sign-in did not start. Please try again.`);\n        }, OAUTH_HANDOFF_GRACE_MS);",
+      "replacement": "        // planted: the lock has no way back",
       "test": "tests/unit/oauth-door-clickable.test.ts",
       "pattern": "a press that locks the door can also unlock it"
     },
