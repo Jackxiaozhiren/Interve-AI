@@ -693,7 +693,6 @@
       "file": "src/components/auth/oauth-buttons.tsx",
       "anchor": "disabled={pending !== null}",
       "replacement": "disabled={isLoading}",
-      "count": 2,
       "test": "tests/unit/oauth-door-clickable.test.ts",
       "pattern": "the file that owns a provider press cannot see the probe"
     },

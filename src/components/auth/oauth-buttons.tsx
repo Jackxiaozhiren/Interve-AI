@@ -14,6 +14,16 @@ const OAUTH_HANDOFF_GRACE_MS = 5000;
 
 type Provider = "google" | "github";
 
+const PROVIDERS: ReadonlyArray<{
+  id: Provider;
+  label: string;
+  Icon: typeof GoogleLogo;
+  weight: "bold" | "fill";
+}> = [
+  { id: "google", label: "Google", Icon: GoogleLogo, weight: "bold" },
+  { id: "github", label: "GitHub", Icon: GithubLogo, weight: "fill" },
+];
+
 /**
  * The two provider buttons, with the press lifecycle that goes with them.
  *
@@ -56,24 +66,18 @@ export function OAuthProviderButtons({ onResult }: { onResult: (message: string 
 
   return (
     <div className="grid grid-cols-2 gap-4">
-      <button
-        onClick={() => void press("google")}
-        type="button"
-        disabled={pending !== null}
-        aria-busy={pending === "google"}
-        className={button}
-      >
-        {pending === "google" ? <span aria-hidden="true" className={spinner} /> : <GoogleLogo weight="bold" className="w-4 h-4" />} Google
-      </button>
-      <button
-        onClick={() => void press("github")}
-        type="button"
-        disabled={pending !== null}
-        aria-busy={pending === "github"}
-        className={button}
-      >
-        {pending === "github" ? <span aria-hidden="true" className={spinner} /> : <GithubLogo weight="fill" className="w-4 h-4" />} GitHub
-      </button>
+      {PROVIDERS.map(({ id, label, Icon, weight }) => (
+        <button
+          key={id}
+          onClick={() => void press(id)}
+          type="button"
+          disabled={pending !== null}
+          aria-busy={pending === id}
+          className={button}
+        >
+          {pending === id ? <span aria-hidden="true" className={spinner} /> : <Icon weight={weight} className="w-4 h-4" />} {label}
+        </button>
+      ))}
     </div>
   );
 }

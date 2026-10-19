@@ -245,24 +245,32 @@ export function doorsNamingTheProbe(): string[] {
   });
 }
 
-/** A press that needs no probe answer but is gated on one. */
-export type LockedPress = {
+/** A press that needs no answer from the session probe, and how it is gated. */
+export type Press = {
   file: string;
   line: number;
+  tag: string;
   reason: "oauth" | "no await";
+  /** The press owns its gate (state the click itself sets) rather than the probe's. */
+  gatedOnProbe: boolean;
   disabledRefs: string[];
 };
 
 /**
- * Session-independent presses of a file, and the gated subset.
+ * Every session-independent press in `files`, with whatever gates it.
  *
  * A press qualifies when the code behind its `onClick` starts a provider flow
  * (works with or without a session) or never waits on anything. A handler that
- * awaits and does not call a provider — the credential form's `login()` — is
- * not qualified: its gate is a documented race.
+ * awaits and does not call a provider — the credential form's `login()` — is not
+ * qualified: its gate is a documented race, not a locked door.
+ *
+ * R1 reads the `gatedOnProbe` subset and R4 reads the whole set, from one walk.
+ * They used to be two walks with the same body, which is the kind of code Sonar's
+ * duplication gate exists for: the pair also disagreed about what "waits" means,
+ * and only one of them could have been right.
  */
-export function lockedPresses(files: Map<string, string>): LockedPress[] {
-  const out: LockedPress[] = [];
+export function presses(files: Map<string, string>): Press[] {
+  const out: Press[] = [];
   for (const [rel, source] of files) {
     const sf = parse(rel, source);
     const named = handlers(sf);
@@ -280,19 +288,18 @@ export function lockedPresses(files: Map<string, string>): LockedPress[] {
           const awaits = contains(clickExpr, isAwait) || referenced.some((h) => h.awaits);
           if (oauth || !awaits) {
             const disabled = attrs.find((a) => attrName(a) === "disabled");
-            if (disabled) {
-              const init = disabled.initializer;
-              const refs = init && ts.isJsxExpression(init) && init.expression ? identifiers(sf, init.expression) : [];
-              // `disabled` with no initializer is `disabled={true}` — always locked.
-              if (refs.includes("isLoading") || init === undefined) {
-                out.push({
-                  file: rel,
-                  line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
-                  reason: oauth ? "oauth" : "no await",
-                  disabledRefs: refs.length ? refs : ["<no initializer: always disabled>"],
-                });
-              }
-            }
+            const init = disabled?.initializer;
+            const refs = init && ts.isJsxExpression(init) && init.expression ? identifiers(sf, init.expression) : [];
+            // `disabled` with no initializer is `disabled={true}` — always locked.
+            const gatedOnProbe = !!disabled && (refs.includes("isLoading") || init === undefined);
+            out.push({
+              file: rel,
+              line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
+              tag: ts.isIdentifier(node.tagName) ? node.tagName.text : node.tagName.getText(sf),
+              reason: oauth ? "oauth" : "no await",
+              gatedOnProbe,
+              disabledRefs: gatedOnProbe ? (refs.length ? refs : ["<no initializer: always disabled>"]) : refs,
+            });
           }
         }
       }
@@ -303,33 +310,14 @@ export function lockedPresses(files: Map<string, string>): LockedPress[] {
   return out;
 }
 
-/** Every press the reader can see, gated or not — the inventory R4 counts. */
+/** The presses R1 forbids: session-independent, and waiting on the probe anyway. */
+export function lockedPresses(files: Map<string, string>): Press[] {
+  return presses(files).filter((p) => p.gatedOnProbe);
+}
+
+/** Press labels — the inventory R4 counts. */
 export function sessionIndependentPresses(files: Map<string, string>): string[] {
-  const out: string[] = [];
-  for (const [rel, source] of files) {
-    const sf = parse(rel, source);
-    const named = handlers(sf);
-    const visit = (node: ts.Node) => {
-      if (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) {
-        const attrs = node.attributes.properties.filter(ts.isJsxAttribute);
-        const onClick = attrs.find((a) => attrName(a) === "onClick");
-        const clickExpr =
-          onClick?.initializer && ts.isJsxExpression(onClick.initializer) ? onClick.initializer.expression : undefined;
-        if (clickExpr) {
-          const referenced = identifiers(sf, clickExpr)
-            .map((id) => named.get(id))
-            .filter((h): h is Handler => h !== undefined);
-          if (contains(clickExpr, isOAuthCall) || referenced.some((h) => h.oauth) || !contains(clickExpr, isAwait)) {
-            const tag = ts.isIdentifier(node.tagName) ? node.tagName.text : node.tagName.getText(sf);
-            out.push(`${rel}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1} ${tag}`);
-          }
-        }
-      }
-      ts.forEachChild(node, visit);
-    };
-    visit(sf);
-  }
-  return out;
+  return presses(files).map((p) => `${p.file}:${p.line} ${p.tag}`);
 }
 
 /**
@@ -452,9 +440,11 @@ describe("a sign-in press is never gated on an answer it does not need", () => {
     // counted on the other side. A real removal is a deliberate edit to these
     // numbers, never a silent narrowing of the rule.
     expect(presses.length, `reader saw: ${presses.join(", ")}`).toBeGreaterThanOrEqual(2);
-    expect(sessionIndependentPresses(DOOR_FILES).length, `door presses: ${sessionIndependentPresses(DOOR_FILES).join(", ")}`).toBeGreaterThanOrEqual(
-      2
-    );
+    // One JSX element in the door, rendered once per provider from the table —
+    // so the source count is 1 and the two buttons a visitor sees are pinned by
+    // tests/landing.spec.ts (the press reaches /auth/v1/authorize) and by the
+    // /login axe and visual lanes, both of which fail if one of them disappears.
+    expect(sessionIndependentPresses(DOOR_FILES), `door presses: ${sessionIndependentPresses(DOOR_FILES).join(", ")}`).toHaveLength(1);
   });
 });
 
