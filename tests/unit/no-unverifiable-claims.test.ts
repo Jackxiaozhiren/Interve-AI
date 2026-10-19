@@ -186,6 +186,36 @@ describe("the terms page agrees with the product", () => {
 });
 
 /**
+ * The frequency ceilings a user can actually be refused by, read off the shape
+ * the routes hand to the limiter: an object literal carrying both `limit` and
+ * `windowMs`. Both spellings are covered — `guardRequest`'s `rateLimit:` option
+ * and the one route that calls `checkRateLimit` itself because it reads
+ * `formData` — because the card quotes a range over all of them, and a range
+ * measured from only the shared path would be short one lane.
+ */
+function declaredRateLimits(): number[] {
+  const out: number[] = [];
+  for (const rel of SOURCE_FILES.filter((f) => f.startsWith("src/app/api/"))) {
+    const sourceFile = ts.createSourceFile(rel, read(rel), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isObjectLiteralExpression(node) &&
+        node.properties.some((p) => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === "windowMs")
+      ) {
+        for (const p of node.properties) {
+          if (ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === "limit" && ts.isNumericLiteral(p.initializer)) {
+            out.push(Number(p.initializer.text));
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(sourceFile, visit);
+  }
+  return out;
+}
+
+/**
  * The `/` route is the page a stranger actually lands on, and until this slice
  * it carried more invented proof than `/landing` ever did: 10,000+ active users,
  * 50,000+ completed interviews, a 95% satisfaction rate, a question bank of
@@ -257,6 +287,68 @@ describe("the homepage asserts nothing it cannot show", () => {
     const { DEFAULT_USER_BUDGET_RPD, defaultUserBudget } = await import("@/lib/api/user-budget");
     expect(DEFAULT_USER_BUDGET_RPD).toBe(200);
     expect(defaultUserBudget()).toBe(DEFAULT_USER_BUDGET_RPD);
+  });
+
+  it("admits the guard enforces more than one limit", () => {
+    // The disclaimer opened with 唯一限制 — "the only limit" — and named the daily
+    // ceiling. `guardRequest` refuses on a per-route per-minute basis and on body
+    // size long before a day's allowance is spent, and the frequency one is what a
+    // real session trips: ten resume uploads in a minute is ordinary behaviour, and
+    // the answer is a 429 the card said could not happen.
+    const guard = read("src/lib/api/guard.ts");
+    const enforced = ["checkRateLimit(", "readJsonBody(", "checkUserBudget("].filter((call) => guard.includes(call));
+    expect(enforced.length, "the shared guard no longer enforces the three checks this arm reads").toBe(3);
+    const copy = prose("src/components/home/PricingSection.tsx");
+    expect(copy, "the card claims a single limit while the guard enforces several").not.toMatch(/唯一限制/);
+    expect(copy, "the card has to name the frequency limit a user actually hits").toMatch(/分钟/);
+  });
+
+  it("quotes the frequency range the routes declare", async () => {
+    const limits = declaredRateLimits();
+    expect(limits.length, "no rate rule parsed — the shape, not the code, changed").toBeGreaterThanOrEqual(10);
+    const { RATE_LIMIT_ENVELOPE } = await import("@/lib/api/rate-limit");
+    const min = Math.min(...limits);
+    const max = Math.max(...limits);
+    expect(RATE_LIMIT_ENVELOPE.minPerMinute, `the tightest lane allows ${min}/min, the envelope says otherwise`).toBe(min);
+    expect(RATE_LIMIT_ENVELOPE.maxPerMinute, `the loosest lane allows ${max}/min, the envelope says otherwise`).toBe(max);
+    // The card prints the envelope instead of restating it, which is how a digit
+    // a user reads gets one owner: move a lane and the sentence moves with it,
+    // rather than the copy quietly keeping a number nothing allows any more.
+    const copy = prose("src/components/home/PricingSection.tsx");
+    expect(copy, "the card must interpolate the envelope, not retype it").toMatch(/RATE_LIMIT_ENVELOPE\.minPerMinute/);
+    expect(copy).toMatch(/RATE_LIMIT_ENVELOPE\.maxPerMinute/);
+    expect(copy, "and still call the limit what it is").toMatch(/分钟/);
+  });
+
+  it("counts requests, because a request is not one provider call", async () => {
+    // The fuse increments once per validated request. The AI SDK then retries a
+    // failed provider call up to `DEFAULT_MAX_RETRIES` times, so one allowed
+    // request can be several model calls and the number the card would be quoting
+    // in that unit is not measured anywhere.
+    const { DEFAULT_MAX_RETRIES } = await import("@/ai/providers/registry");
+    expect(DEFAULT_MAX_RETRIES, "if retries are gone, re-read this arm before changing the copy").toBeGreaterThanOrEqual(1);
+    const copy = prose("src/components/home/PricingSection.tsx");
+    expect(copy, "调用 names provider attempts; the guard counts requests").not.toMatch(/次\s*AI\s*调用|调用（/);
+    expect(copy, "the daily number has to be stated in the unit the fuse counts").toMatch(/请求/);
+  });
+
+  it("shares the daily ceiling with the network egress and says so", async () => {
+    // Proved by spending the allowance, not by reading the line that passes the
+    // subject pair: one spent IP refuses a brand-new identity, and a different IP
+    // still gets its own. Without the second half this would only show that a
+    // budget exists.
+    const { checkUserBudget, resetUserBudgets } = await import("@/lib/api/user-budget");
+    resetUserBudgets();
+    try {
+      const route = "pricing-probe-route";
+      expect(checkUserBudget(route, ["identity-a", "203.0.113.7"], 1).allowed).toBe(true);
+      expect(checkUserBudget(route, ["identity-b", "203.0.113.7"], 1).allowed, "a new identity on a spent egress was let through").toBe(false);
+      expect(checkUserBudget(route, ["identity-c", "203.0.113.8"], 1).allowed, "the ceiling became global instead of per-egress").toBe(true);
+    } finally {
+      resetUserBudgets();
+    }
+    const copy = prose("src/components/home/PricingSection.tsx");
+    expect(copy, "a campus or office network splits one day's allowance, and the card promised a per-account number").toMatch(/出口|同一网络/);
   });
 
   it("lists only interview types that actually exist", async () => {
