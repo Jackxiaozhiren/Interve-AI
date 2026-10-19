@@ -38,4 +38,29 @@ jobs:
         run: E2E_MOCK=1 npx playwright test --project=chrome-1280x720 --project=mobile-390
         env:
           CI: true
-      - run: npm --prefix apps/dsa-web audit --audit-level=critical
+      # The verdict comes from the reachability split, the same rule `audit:deps`
+      # applies to the Interve app: a critical in the shipped tree fails with no
+      # exception path, and a critical in the developer tree has to be named in
+      # `docs/audit/deps-critical-dsa-web.json` in both directions — so an
+      # undisclosed one fails and a retired one that nobody deleted fails too.
+      # The old step was `npm --prefix apps/dsa-web audit --audit-level=critical`,
+      # which folded both trees into one number: a runner-only advisory in vitest
+      # blocked a docs-only PR exactly like a deployed one would, and the whole
+      # artefact of that red was "Process completed with exit code 1". The raw
+      # report still goes to the job summary, because a gate nobody can read is a
+      # gate people route around with flags.
+      - name: Dependency audit (critical) - apps/dsa-web
+        run: |
+          set +e
+          out="$(npm run audit:deps:dsa 2>&1)"
+          code=$?
+          raw="$(npm --prefix apps/dsa-web audit 2>&1)"
+          printf '%s\n' "$out"
+          {
+            printf '### apps/dsa-web dependency audit exited %s\n\n' "$code"
+            printf '```text\n%s\n```\n\n' "$out"
+            printf '<details><summary>raw npm audit report</summary>\n\n'
+            printf '```text\n%s\n```\n\n' "$raw"
+            printf '</details>\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"

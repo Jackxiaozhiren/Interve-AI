@@ -20,6 +20,31 @@ const register = {
   devOnlyCritical: [{ package: "vitest", advisories: ["GHSA-82fw-gwwq-j7x9"] }],
 };
 
+/**
+ * The bar every register entry must clear, whichever tree it speaks for.
+ *
+ * An empty register is the goal, not an anomaly: vitest 5 retired the root app's
+ * two entries on 2026-10-09. So the requirement is "whatever is here is
+ * explained", and its non-vacuity is proved against fixtures rather than against
+ * today's row count — which is what the previous `length > 0` assertion really
+ * was. Shared by both registers because two copies of a validator is two chances
+ * for one of them to stop validating.
+ */
+type RegisterEntry = {
+  package: string;
+  advisories: string[];
+  why_dev_only: string;
+  what_actually_fixes_it: string;
+  decision: string;
+};
+
+function expectEntryExplained(entry: RegisterEntry) {
+  expect(entry.advisories.every((a) => /^GHSA-/.test(a)), `${entry.package} advisories`).toBe(true);
+  expect(entry.why_dev_only.length, `${entry.package} has no reachability reason`).toBeGreaterThan(20);
+  expect(entry.what_actually_fixes_it.length, `${entry.package} has no fix path`).toBeGreaterThan(10);
+  expect(["OPEN", "ACCEPTED"].includes(entry.decision.split(" ")[0]), `${entry.package} decision`).toBe(true);
+}
+
 describe("the shipped/developer split is the one thing the gate is for", () => {
   it("reads criticals by package, ignoring lower severities", () => {
     const audit = doc({
@@ -97,23 +122,6 @@ describe("the register as shipped", () => {
     closed: { package: string; now: string; advisories: string[] }[];
   };
   const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
-
-  // An empty register is the goal, not an anomaly: vitest 5 retired both entries on
-  // 2026-10-09. So the requirement is "whatever is here is explained", and the
-  // non-vacuity of that check is proved against fixtures rather than against today's
-  // row count — which is what the previous `length > 0` assertion really was.
-  function expectEntryExplained(entry: {
-    package: string;
-    advisories: string[];
-    why_dev_only: string;
-    what_actually_fixes_it: string;
-    decision: string;
-  }) {
-    expect(entry.advisories.every((a) => /^GHSA-/.test(a)), `${entry.package} advisories`).toBe(true);
-    expect(entry.why_dev_only.length, `${entry.package} has no reachability reason`).toBeGreaterThan(20);
-    expect(entry.what_actually_fixes_it.length, `${entry.package} has no fix path`).toBeGreaterThan(10);
-    expect(["OPEN", "ACCEPTED"].includes(entry.decision.split(" ")[0]), `${entry.package} decision`).toBe(true);
-  }
 
   const complete = {
     package: "example",
@@ -298,10 +306,104 @@ describe("the gate end to end, as the runner invokes it", () => {
 
   it("collects the documents in the wrapper rather than spawning npm from the gate", () => {
     const shell = readFileSync(resolve(REPO, "scripts/audit-deps.sh"), "utf8");
-    expect(shell).toContain("npm audit --json --omit=dev");
+    // Retargeted when the wrapper gained a tree argument: the requirement is that the
+    // shipped document still comes from an `--omit=dev` run and the full one does not,
+    // not that the command line is byte-identical to the first version.
+    expect(shell).toMatch(/audit --json --omit=dev/);
+    expect(shell).toMatch(/audit --json > /);
     expect(shell).toContain("--prod-doc");
     expect(shell).toContain("--full-doc");
+    expect(shell).toContain('"$register"');
     const gate = readFileSync(resolve(REPO, "scripts/audit-deps.mjs"), "utf8");
     expect(gate).not.toMatch(/child_process/);
+  });
+});
+
+/**
+ * The sibling app (`apps/dsa-web`) used to be gated by a bare
+ * `npm --prefix apps/dsa-web audit --audit-level=critical`, which folded its shipped
+ * tree and its test tree into one number: a runner-only advisory blocked a docs-only
+ * PR exactly like a deployed one, and the whole artefact of the red was "exit code 1".
+ * It now runs through the same instrument with its own register, so the two questions
+ * — is anything critical deployed, and is anything critical merely disclosed — are
+ * asked per tree instead of once for the repo.
+ */
+describe("the sibling app's register and wiring", () => {
+  const DSA_REGISTER = "docs/audit/deps-critical-dsa-web.json";
+  const dsa = JSON.parse(readFileSync(resolve(REPO, DSA_REGISTER), "utf8")) as {
+    devOnlyCritical: RegisterEntry[];
+  };
+  const dsaPkg = JSON.parse(readFileSync(resolve(REPO, "apps/dsa-web/package.json"), "utf8"));
+
+  it("holds the same disclosure bar as the root register", () => {
+    // Non-empty on purpose: this tree genuinely carries dev-only criticals today, and
+    // an empty file would read as "audited, nothing found". The CLI cases below are
+    // what prove the register is live rather than decorative.
+    expect(dsa.devOnlyCritical.length).toBeGreaterThanOrEqual(1);
+    for (const entry of dsa.devOnlyCritical) expectEntryExplained(entry);
+  });
+
+  it("discloses nothing the sibling app actually ships", () => {
+    const shipped = Object.keys(dsaPkg.dependencies ?? {});
+    for (const entry of dsa.devOnlyCritical) {
+      expect(shipped, `${entry.package} is in apps/dsa-web dependencies`).not.toContain(entry.package);
+    }
+  });
+
+  it("runs the sibling tree against the sibling register", () => {
+    const scripts = JSON.parse(readFileSync(resolve(REPO, "package.json"), "utf8")).scripts;
+    const command: string = scripts["audit:deps:dsa"];
+    expect(command, "no sibling audit command").toBeTruthy();
+    expect(command).toContain("apps/dsa-web");
+    expect(command).toContain(DSA_REGISTER);
+    // The root invocation must not have moved: defaulting the two new arguments is
+    // what keeps `npm run audit:deps` meaning what it meant before this file existed.
+    expect(scripts["audit:deps"]).toBe("sh scripts/audit-deps.sh");
+  });
+
+  it("refuses to let one tree's register excuse another tree's shipped critical", () => {
+    // `vitest` is disclosed as dev-only for the sibling app. Hand the gate documents
+    // where it appears in the SHIPPED tree and the disclosure must not save it — this
+    // is the failure mode two registers make possible, so it is a test, not a comment.
+    const dir = mkdtempSync(resolve(tmpdir(), "dsa-register-"));
+    const prod = resolve(dir, "prod.json");
+    const full = resolve(dir, "full.json");
+    writeFileSync(prod, JSON.stringify({ vulnerabilities: { vitest: { severity: "critical", via: [] } } }));
+    writeFileSync(full, JSON.stringify({ vulnerabilities: { vitest: { severity: "critical", via: [] } } }));
+    try {
+      const stdout = execFileSync(
+        "node",
+        ["scripts/audit-deps.mjs", "--prod-doc", prod, "--full-doc", full, "--register", DSA_REGISTER],
+        { cwd: REPO, encoding: "utf8" }
+      );
+      throw new Error(`expected a non-zero exit, got 0 with: ${stdout}`);
+    } catch (err) {
+      const e = err as { status?: number; stdout?: string; stderr?: string };
+      if (e.status === undefined) throw err;
+      expect(e.status).toBe(1);
+      expect(`${e.stdout ?? ""}${e.stderr ?? ""}`).toMatch(/SHIPPED dependency tree/);
+    }
+  });
+
+  it("accepts the sibling tree as it is disclosed today", () => {
+    // The register's reality check: feed the gate documents matching what the lockfile
+    // reports and it must pass, or the disclosure is fiction and CI stays red for a
+    // reason nobody wrote down.
+    const dir = mkdtempSync(resolve(tmpdir(), "dsa-clean-"));
+    const prod = resolve(dir, "prod.json");
+    const full = resolve(dir, "full.json");
+    writeFileSync(prod, JSON.stringify({ vulnerabilities: {} }));
+    writeFileSync(
+      full,
+      JSON.stringify({
+        vulnerabilities: { vitest: { severity: "critical", via: [] }, tinypool: { severity: "critical", via: [] } },
+      })
+    );
+    const stdout = execFileSync(
+      "node",
+      ["scripts/audit-deps.mjs", "--prod-doc", prod, "--full-doc", full, "--register", DSA_REGISTER],
+      { cwd: REPO, encoding: "utf8" }
+    );
+    expect(stdout).toMatch(/deps audit: OK/);
   });
 });
