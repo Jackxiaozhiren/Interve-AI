@@ -14,28 +14,14 @@ import { describe, expect, it } from "vitest";
 import { PROMPT_REGISTRY } from "@/ai/prompts";
 import { measureDebtRegex } from "../../scripts/audit-facts.mjs";
 import { readRepo, walkRepo } from "./repo-tree";
+import { claimedNumberIn, expectClaim } from "./doc-claims";
 
 const readme = readRepo("README.md");
 const sourceFiles = (dir = "src"): string[] => walkRepo(dir, (rel) => /\.tsx?$/.test(rel));
 
 /** The integer inside the parentheses that follow a phrase in the README. */
 function claimedNumber(after: string): number | null {
-  const at = readme.indexOf(after);
-  if (at < 0) return null;
-  const m = /\((\d+)[^)]*\)/.exec(readme.slice(at, at + 400));
-  return m ? Number(m[1]) : null;
-}
-
-/**
- * A README number and the measurement that owns it, compared.
- *
- * Four arms below need exactly this pair of assertions — "the sentence is still
- * there to read" and "it matches". Written inline four times it is the shape this
- * repo's duplication gate counts, so it lives here once.
- */
-function expectClaim(claimed: number | null, measured: number, what: string): void {
-  expect(claimed, `the README no longer states the ${what} count where this test reads it`).not.toBeNull();
-  expect(claimed, `README says ${claimed}, the code measures ${measured} for ${what}`).toBe(measured);
+  return claimedNumberIn(readme, after);
 }
 
 function generateObjectRoutes(): number {
