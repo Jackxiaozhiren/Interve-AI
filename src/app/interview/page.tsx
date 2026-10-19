@@ -48,7 +48,7 @@ import { decodeRecordingToMono16k } from "@/lib/audio/decode-recording";
 import { FlowMap } from "@/components/interview/FlowMap";
 import { usePageVisibility } from "@/hooks/usePageVisibility";
 import { useAmbientNoise } from "@/hooks/useAmbientNoise";
-import { restoreKnowledgeHub } from "@/lib/orama-client";
+import { ensureKnowledgeHub } from "@/lib/orama-client";
 import { TextSelectionMenu } from "@/components/interview/TextSelectionMenu";
 import { GreenRoom } from "@/components/interview/GreenRoom";
 import { RoomHeader } from "@/components/interview/RoomHeader";
@@ -154,9 +154,13 @@ function InterviewRoomContent() {
   }, [activeSystemDesignContext]);
 
   useEffect(() => {
-    // Restore the Orama index from the account's orama_index row for copilot hints
-    restoreKnowledgeHub().then(success => {
-      if (!success) console.warn("Orama index could not be restored.");
+    // Restore the account's serialized index for copilot hints. No resume text is
+    // known at this point, so a failed restore is not yet a dead end: the
+    // load-interview effect below builds the index from the text it fetches. The
+    // one outcome worth a console line is `memory-only`, because that session works
+    // and the next page load will not.
+    void ensureKnowledgeHub(null).then((outcome) => {
+      if (outcome === "memory-only") console.warn("knowledge hub: this session only — the row was refused, so a reload starts empty");
     });
   }, []);
 
@@ -493,6 +497,12 @@ function InterviewRoomContent() {
       db.interviews.get(parseInt(interviewId, 10)).then((interview) => {
         if (interview?.resumeText) {
           setResumeText(interview.resumeText);
+          // The reader has been live since Phase B4 and the writer had no caller, so
+          // `orama_index` was empty in production and every per-answer retrieval
+          // answered nothing. This is where the resume text and the reader meet.
+          void ensureKnowledgeHub(interview.resumeText).then((outcome) => {
+            if (outcome === "memory-only") console.warn("knowledge hub: built in memory only — the row was refused, so a reload starts empty");
+          });
         }
         if (interview?.problemStatement) {
           setProblemStatement(interview.problemStatement);
@@ -546,9 +556,11 @@ function InterviewRoomContent() {
     whisperWorker.current.postMessage({ type: 'load' });
     kokoroWorker.current.postMessage({ type: 'load' });
 
-    // Restore Orama Knowledge Hub if needed
-    import('@/lib/orama-client').then(({ restoreKnowledgeHub }) => {
-      restoreKnowledgeHub();
+    // Restore Orama Knowledge Hub if needed. Idempotent: `ensure` returns the
+    // moment an instance exists, so this is a no-op when the mount effect already
+    // restored or built it, and a second chance when that one raced the data load.
+    import('@/lib/orama-client').then(({ ensureKnowledgeHub }) => {
+      void ensureKnowledgeHub(null);
     });
 
     return () => {

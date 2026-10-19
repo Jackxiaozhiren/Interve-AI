@@ -96,8 +96,16 @@ export async function restoreKnowledgeHub(userId: string | null = localHubUserId
 
 /**
  * Initializes the Orama in-memory index with the provided resume text and persists it.
+ *
+ * Returns whether the row actually landed. The 003 owner policies refuse an
+ * anonymous-key write, and this function has always degraded to memory-only rather
+ * than crashing — which is right for the user in front of the screen and wrong to
+ * report as success, because the next page load has nothing to restore.
  */
-export async function initializeKnowledgeHub(resumeText: string, userId: string | null = localHubUserId()): Promise<void> {
+export async function initializeKnowledgeHub(
+  resumeText: string,
+  userId: string | null = localHubUserId()
+): Promise<"persisted" | "memory-only"> {
   oramaInstance = await create({
     schema: {
       text: 'string',
@@ -126,7 +134,36 @@ export async function initializeKnowledgeHub(resumeText: string, userId: string 
     });
   } catch (error) {
     console.error('Failed to persist Orama index remotely:', error);
+    return "memory-only";
   }
+  return "persisted";
+}
+
+/**
+ * Make the hub usable for this account, restoring the stored row when there is one
+ * and building it from the interview's own resume text when there is not.
+ *
+ * The read path (`restoreKnowledgeHub` on mount, `queryKnowledgeHub` per answer) has
+ * been live since Phase B4 while nothing in production ever wrote the row, so every
+ * restore returned false and every retrieval answered empty — including for accounts
+ * whose privacy page says a serialized index of theirs is stored. Doing the build
+ * where the resume text and the reader meet means one seam covers a first interview,
+ * a resumed one and a device switch, and it turns a false restore into a branch with
+ * a next step instead of a warning at the end of the road.
+ *
+ * The outcome is named rather than boolean because the two degraded states need
+ * different answers: `no-resume` means there is nothing to index, and `memory-only`
+ * means this session works and the next reload will not.
+ */
+export async function ensureKnowledgeHub(
+  resumeText: string | null | undefined,
+  userId: string | null = localHubUserId()
+): Promise<"restored" | "built" | "memory-only" | "no-resume"> {
+  if (oramaInstance) return "restored";
+  if (await restoreKnowledgeHub()) return "restored";
+  const text = (resumeText ?? "").trim();
+  if (!text) return "no-resume";
+  return (await initializeKnowledgeHub(text, userId)) === "persisted" ? "built" : "memory-only";
 }
 
 /**
