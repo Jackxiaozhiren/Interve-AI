@@ -60,6 +60,10 @@ const UNGUARDED = POSTS.filter((rel) => !GUARDED.includes(rel)).map((rel) =>
   rel.replace(/^src\/app\/api\//, "").replace(/\/route\.ts$/, "")
 );
 
+// Once, at module scope: `slow-probe-placement.test.ts` forbids this probe inside
+// a timed callback, where a file with four arms would pay for it four times.
+const facts = collectFacts();
+
 /** Two integers in a fixed phrase, so a reworded sentence fails loudly. */
 function pair(pattern: RegExp): [number, number] | null {
   const m = pattern.exec(doc.replace(/\s+/g, " "));
@@ -78,7 +82,6 @@ describe("the architecture doc's route line matches the tree", () => {
 
   it("counts pages and API handlers the way the tree does", () => {
     const claimed = pair(/\*\*Routes \((\d+) pages, (\d+) APIs\):\*\*/) as [number, number];
-    const facts = collectFacts();
     expectClaim(claimed[0], facts.capabilities.boundaries.pages, "page");
     expectClaim(claimed[1], routeFiles.length, "API route handler");
   });
