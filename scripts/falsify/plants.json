@@ -686,6 +686,53 @@
       "replacement": "      AND roles @> ARRAY['anon']::text[]",
       "test": "tests/unit/sql-catalog-predicates.test.ts",
       "pattern": "without casting it"
+    },
+    {
+      "name": "ODG1",
+      "desc": "the login door's provider buttons go back to waiting on the session probe, so a press inside that window is discarded",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "disabled={oauthPending !== null}",
+      "replacement": "disabled={isLoading}",
+      "count": 2,
+      "test": "tests/unit/oauth-door-clickable.test.ts",
+      "pattern": "nothing that opens a door waits on the session probe"
+    },
+    {
+      "name": "ODG2",
+      "desc": "the signup door does the same, which is how a guard over one file only would still look green",
+      "file": "src/app/signup/page.tsx",
+      "anchor": "disabled={oauthPending !== null}",
+      "replacement": "disabled={isLoading}",
+      "count": 2,
+      "test": "tests/unit/oauth-door-clickable.test.ts",
+      "pattern": "nothing that opens a door waits on the session probe"
+    },
+    {
+      "name": "ODG3",
+      "desc": "a press that writes its state only after the provider handoff, so the button looks dead for the length of the hop",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "    setOauthPending(provider);\n    try {",
+      "replacement": "    try {",
+      "test": "tests/unit/oauth-door-clickable.test.ts",
+      "pattern": "an OAuth press says something before it awaits"
+    },
+    {
+      "name": "ODG4",
+      "desc": "the handoff recovery is dropped, so a browser that never leaves is left with a permanently dead door",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "      window.setTimeout(() => {\n        setOauthPending(null);\n        setError(`${provider} sign-in did not start. Please try again.`);\n      }, OAUTH_HANDOFF_GRACE_MS);",
+      "replacement": "      // planted: the lock has no way back",
+      "test": "tests/unit/oauth-door-clickable.test.ts",
+      "pattern": "a press that locks the door can also unlock it"
+    },
+    {
+      "name": "ODG5",
+      "desc": "the bridge stops branching on any event, so no delivery reaches the app cookie — and the sibling guard's text match stays green because a comment still names SIGNED_IN",
+      "file": "src/context/AuthContext.tsx",
+      "anchor": "if (event === 'SIGNED_IN' && session?.user) {",
+      "replacement": "if (session?.user && session.aud === 'never') {",
+      "test": "tests/unit/auth-bootstrap-bounded.test.ts",
+      "pattern": "bridges on the event a recovered session"
     }
   ]
 }

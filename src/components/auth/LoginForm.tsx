@@ -13,6 +13,14 @@ import { useAuth } from "@/context/AuthContext";
 import { ROUTES } from "@/utils/constants";
 import { signInWithOAuth } from "@/lib/auth";
 
+/**
+ * How long an OAuth press holds its in-flight mark. The provider hop measured
+ * 1.50-2.41 s per cold request from the owner's network; past twice that, the
+ * browser has either left (nothing reads this) or never did, which is the case
+ * that has to hand the control back.
+ */
+const OAUTH_HANDOFF_GRACE_MS = 5000;
+
 export function LoginForm() {
   const { login, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -22,6 +30,11 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The press's own in-flight state — the only thing allowed to disable these
+  // two buttons. `isLoading` is the mount-time session probe's answer, and an
+  // OAuth press does not care what it says; gating on it discarded presses for
+  // up to the probe's 4 s cap (tests/unit/oauth-door-clickable.test.ts).
+  const [oauthPending, setOauthPending] = useState<"google" | "github" | null>(null);
 
   // Auto redirect if already logged in
   useEffect(() => {
@@ -63,10 +76,19 @@ export function LoginForm() {
   };
 
   const handleOAuthLogin = async (provider: "google" | "github") => {
+    // Before the await: `signInWithOAuth` resolves once the browser has been told
+    // to leave, so a press that writes no state looks exactly like the disabled
+    // button it replaced — which is how one press becomes three.
+    setOauthPending(provider);
     try {
       await signInWithOAuth(provider);
+      window.setTimeout(() => {
+        setOauthPending(null);
+        setError(`${provider} sign-in did not start. Please try again.`);
+      }, OAUTH_HANDOFF_GRACE_MS);
       // login will be handled by Supabase auth listener or redirect
     } catch (error) {
+      setOauthPending(null);
       console.error(`${provider} login failed`, error);
       setError(`${provider} login failed. Please try again.`);
     }
@@ -115,18 +137,20 @@ export function LoginForm() {
                 <button
                   onClick={() => handleOAuthLogin("google")}
                   type="button"
-                  disabled={isLoading}
+                  disabled={oauthPending !== null}
+                  aria-busy={oauthPending === "google"}
                   className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <GoogleLogo weight="bold" className="w-4 h-4" /> Google
+                  {oauthPending === "google" ? <span aria-hidden="true" className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <GoogleLogo weight="bold" className="w-4 h-4" />} Google
                 </button>
                 <button
                   onClick={() => handleOAuthLogin("github")}
                   type="button"
-                  disabled={isLoading}
+                  disabled={oauthPending !== null}
+                  aria-busy={oauthPending === "github"}
                   className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <GithubLogo weight="fill" className="w-4 h-4" /> GitHub
+                  {oauthPending === "github" ? <span aria-hidden="true" className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <GithubLogo weight="fill" className="w-4 h-4" />} GitHub
                 </button>
               </div>
             </div>

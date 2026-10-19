@@ -1,6 +1,7 @@
 // Phase 2: local landing smoke (replaces the create-playwright scaffold that
 // tested https://playwright.dev/ — zero product value and network-dependent).
 import { test, expect } from '@playwright/test';
+import { BASE_URL } from '../playwright.config';
 
 test.describe('Landing', () => {
   test('should render hero and primary CTAs', async ({ page }) => {
@@ -14,6 +15,34 @@ test.describe('Landing', () => {
     await expect(page.getByLabel('Email address')).toBeVisible();
     await expect(page.getByLabel('Password')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
+  });
+
+  test('a Google press opens the provider door on the page that can receive it', async ({ page }) => {
+    // With this client's `implicit` flowType, `signInWithOAuth` builds the provider
+    // URL locally and gives it straight to `window.location.assign` — the press's
+    // first network act is the navigation itself, and once it starts the document
+    // is gone, so what is observable (and what has no other witness) is the URL
+    // the press produced. It is the whole of `src/lib/auth.ts`'s contract: the
+    // right provider, and a `redirect_to` on a page `src/proxy.ts` does not guard,
+    // because a 307 in front of the fragment is how a sign-in loses its session.
+    const navigations: string[] = [];
+    await page.route(/\/auth\/v1\/authorize/, async (route) => {
+      navigations.push(route.request().url());
+      await route.abort();
+    });
+
+    await page.goto('/login');
+    const google = page.getByRole('button', { name: 'Google' });
+    await expect(google).toBeEnabled();
+    await google.click();
+
+    await expect.poll(() => navigations.length, { timeout: 5000 }).toBe(1);
+    const url = new URL(navigations[0]);
+    expect(url.pathname).toBe('/auth/v1/authorize');
+    expect(url.searchParams.get('provider')).toBe('google');
+    // Decoded, because gotrue receives it percent-encoded and appends its own
+    // fragment to it; what has to match is the page, not the spelling.
+    expect(url.searchParams.get('redirect_to')).toBe(`${BASE_URL}/login`);
   });
 
   test('the data strip admits it cannot know anything about a signed-out visitor', async ({ page }) => {

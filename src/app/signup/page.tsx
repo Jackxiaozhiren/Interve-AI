@@ -12,10 +12,24 @@ import { GlobalBackground } from "@/components/ui/global-background";
 import { useAuth } from "@/context/AuthContext";
 import { signInWithOAuth } from "@/lib/auth";
 
+/**
+ * How long an OAuth press holds its in-flight mark. The provider hop measured
+ * 1.50-2.41 s per cold request from the owner's network; past twice that, the
+ * browser has either left (nothing reads this) or never did, which is the case
+ * that has to hand the control back.
+ */
+const OAUTH_HANDOFF_GRACE_MS = 5000;
+
 export default function SignupPage() {
   const { login, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  // The press's own in-flight state, plus its failure. These two buttons must not
+  // read `isLoading`: that is the mount-time session probe's answer, and starting
+  // a provider flow does not depend on it (see the credential submit below, which
+  // does). tests/unit/oauth-door-clickable.test.ts owns the rule and the numbers.
+  const [oauthPending, setOauthPending] = useState<"google" | "github" | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +51,22 @@ export default function SignupPage() {
   // same as LoginForm, and the account lands on /login where the AuthContext
   // bridge converts it into an app session.
   const handleOAuthSignup = async (provider: "google" | "github") => {
+    // Before the await, so the press is owned the moment it happens rather than
+    // after the browser has already been told to leave.
+    setOauthPending(provider);
+    setOauthError(null);
     try {
       await signInWithOAuth(provider);
+      window.setTimeout(() => {
+        setOauthPending(null);
+        setOauthError(`${provider} 注册跳转没有开始，请再试一次。`);
+      }, OAUTH_HANDOFF_GRACE_MS);
     } catch (error) {
+      setOauthPending(null);
       console.error(`${provider} signup failed`, error);
+      // A failed press has to say so — this used to log to the console only, so
+      // the button simply stopped spinning and the page looked idle.
+      setOauthError(`${provider} 注册失败，请再试一次。`);
     }
   };
 
@@ -81,20 +107,27 @@ export default function SignupPage() {
                   <button
                     onClick={() => handleOAuthSignup("google")}
                     type="button"
-                    disabled={isLoading}
+                    disabled={oauthPending !== null}
+                    aria-busy={oauthPending === "google"}
                     className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <GoogleLogo weight="bold" className="w-4 h-4" /> Google
+                    {oauthPending === "google" ? <span aria-hidden="true" className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <GoogleLogo weight="bold" className="w-4 h-4" />} Google
                   </button>
                   <button
                     onClick={() => handleOAuthSignup("github")}
                     type="button"
-                    disabled={isLoading}
+                    disabled={oauthPending !== null}
+                    aria-busy={oauthPending === "github"}
                     className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <GithubLogo weight="fill" className="w-4 h-4" /> GitHub
+                    {oauthPending === "github" ? <span aria-hidden="true" className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <GithubLogo weight="fill" className="w-4 h-4" />} GitHub
                   </button>
                 </div>
+                {oauthError && (
+                  <p role="status" className="mt-3 text-sm font-medium text-rose-600">
+                    {oauthError}
+                  </p>
+                )}
               </div>
 
               <div className="relative">
