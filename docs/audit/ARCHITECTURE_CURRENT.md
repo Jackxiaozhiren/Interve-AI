@@ -51,16 +51,16 @@ graph TB
 - `lib/supabase.ts:1-7` anon singleton with `placeholder.supabase.co` silent fallback. `lib/api-client.ts:1-288` Dexie-emulation (`where/equals/sortBy`) with file-level `/* eslint-disable */` + 30 `any`. `lib/db.ts:141 export {db=dbClient}` alias; callers mix `@/lib/db` and `@/lib/api-client`.
 - Zero FKs, zero `user_id`. `evaluations.candidate_id TEXT`, `practice_sessions.question_id TEXT` dangling.
 
-### 2.4 Auth — Broken (triple-track)
-- Live: `src/context/AuthContext.tsx:27-39` localStorage+cookie JSON, no password, no HttpOnly/Secure/sign/expire. `proxy.ts:34 JSON.parse(cookie).id` existence check — forge `{"id":"x"}` bypasses.
-- Dead: `src/lib/auth-context.tsx` (`interve_auth_user` mock), `src/lib/auth.ts` (Supabase OAuth never wired), `src/lib/auth/auth.ts` (`export {}`).
-- `LoginForm.tsx:42-56` discards password. `signup/page.tsx:19-38` same + hardcoded `oauth_user@example.com`.
+### 2.4 Auth — one signed path, one disclosed demo path
+- Server authority is an HMAC-signed cookie: `/api/session` calls `signSession` and `src/proxy.ts` verifies it with `verifySessionCookie` before the gate, and `sessionCookieHeader` sets `HttpOnly`, `SameSite=Lax`, `Max-Age` plus `Secure` under https. The `AuthContext` localStorage copy drives UI only; the old `JSON.parse(cookie).id` existence check and the unsigned-cookie bypass it allowed are gone.
+- The honest limitation is not a bypass: the demo path mints a session for whatever identity the caller posts, which is why the daily fuse binds `[session.id, clientIp]` instead of the id alone (`user-budget.ts`) and why `LoginForm` calls its non-empty-password test an anti-mistake guard rather than authentication. Signup no longer fabricates an `oauth_user@example.com` identity.
+- Retired since this section was written: `src/lib/auth-context.tsx` and `src/lib/auth/auth.ts` are deleted, and `src/lib/auth.ts` is the wired Supabase OAuth path (`signInWithOAuth`/`signOut`/`getSession`/`getUser`). Held by `tests/unit/auth-path-honesty.test.ts` and `tests/unit/oauth-redirect-target.test.ts`.
 
 ### 2.5 AI Provider — Partial
-- Zhipu primary (`glm-4-flash/4.7-flash/4v`), Gemini (`2.5-flash/1.5-pro`), OpenAI optional. Model IDs hardcoded across 13 files (`gemini-2.5-flash` vs `models/gemini-2.5-flash` inconsistent). `thinking+max_tokens=65536` fetch hack duplicated in 4 files. Cost-aware routing by char length (`analyze-interview:35-38`, `init-context:71`, `analyze-match:36`) with `console.log([Cost-Aware])`.
+- Zhipu primary (`glm-4-flash/4.7-flash/4v`), Gemini (`2.5-flash/1.5-pro`), OpenAI optional. Model ids live in exactly one table (`src/ai/providers/registry.ts`) and `tests/unit/ai-registry.test.ts` fails a route that hardcodes one, so ids named elsewhere in this file are prose about measurements rather than call sites. The `thinking`/`max_tokens` fetch hack is one function in that module, not four copies. Cost-aware routing picks flash vs thinking by length and turn count (`resolveCostAwareModel`, `resolveInterviewModel`) and logs nothing per call — the `[Cost-Aware]` line is gone.
 
-### 2.6 AI Evaluation — Partial, no harness
-- `generateObject+zod` for STAR/behavior/code/practice/alignment/JD/context. `temperature:0.1` only in `analyze-code:48`. No eval harness, ground truth, regression set. `analyze-chunk/star/behavior` fire-and-forget `.catch(console.error)`. `question-bank.ts` 17 static mocks, Orama search possibly dead.
+### 2.6 AI Evaluation — harnessed, with a live lane
+- `generateObject+zod` for STAR/behavior/code/practice/alignment/JD/context; `temperature:0.1` only in `analyze-code`. The harness exists and runs: `npm run test:eval` and `test:eval:free`, `src/ai/evals/metrics.ts`, `tests/integration/eval-datasets.test.ts`, `scripts/score-rater-pack.mjs`, `.github/workflows/nightly-eval.yml`. The streaming lanes log through `logApi` rather than fire-and-forget `.catch(console.error)`. `src/lib/question-bank.ts` ships 17 static mock questions. The Orama read path is live while no production caller builds the index, so retrieval answers empty today — an open owner decision, not a silent gap.
 
 ### 2.7 Audio — Partial
 - `interview/page.tsx:158-921` orchestrates MediaRecorder + SpeechRecognition + speechSynthesis(ZH) + Kokoro(EN) + Whisper. Three concurrent mic holders (main + VAD + AmbientNoise) risk multi-prompt/echo. ZH detection ` /[\u4e00-\u9fa5]/:249` coarse.

@@ -24,6 +24,7 @@
  */
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { MODEL_IDS } from "@/ai/providers/registry";
 import { collectFacts } from "../../scripts/audit-facts.mjs";
 import { readRepo, walkRepo } from "./repo-tree";
 import { expectClaim } from "./doc-claims";
@@ -108,5 +109,124 @@ describe("the architecture doc's route line matches the tree", () => {
     expect(named, `lanes the doc names (${named.join(", ")}) vs the tree (${UNGUARDED.join(", ")})`).toEqual(
       [...UNGUARDED].sort()
     );
+  });
+});
+
+/**
+ * The assessment sections of the same document — the ones with a status label in
+ * the heading — carried four claims the code had already left behind. Two of them
+ * were not merely stale numbers: the section said an unsigned cookie could be
+ * forged past the proxy gate, and the section said there was no evaluation
+ * harness. A reader who believes the first wastes a round hunting a vulnerability
+ * that is closed; a reader who believes the second builds one that already exists.
+ *
+ * Each rule is a pure predicate over text plus a fixture that shows it can fire,
+ * because the document has already been corrected: an assertion that only passes
+ * today is a description, not a guard.
+ */
+describe("the architecture doc's assessment sections agree with the code", () => {
+  const proxy = readRepo("src/proxy.ts");
+  const registry = readRepo("src/ai/providers/registry.ts");
+
+  /**
+   * A sentence that still asserts the bypass, as opposed to one recording that it
+   * was closed. Keyed per sentence rather than per file: this section's honest text
+   * names the old `JSON.parse(cookie).id` check to say it is gone, and a guard that
+   * indicts a negation gets routed around — the reader deletes the sentence that
+   * explains the fix instead of fixing anything.
+   */
+  const claimsBypass = (text: string) =>
+    text
+      .split(/(?<=[.!?])\s+/)
+      .some(
+        (sentence) =>
+          /bypass(es)?\b/i.test(sentence) &&
+          !/\b(gone|no longer|never|not\b|removed|closed|fixed|retired)\b/i.test(sentence)
+      );
+
+  it("does not describe a cookie bypass while the proxy verifies signatures", () => {
+    // Flip condition: this passes because `verifySessionCookie` is called before
+    // the gate. If that call ever disappears the arm below fails and says so —
+    // the fix is to restore the verification, not to delete the sentence.
+    expect(proxy, "src/proxy.ts no longer verifies the session cookie — restore it, then re-read this section").toContain(
+      "verifySessionCookie("
+    );
+    const section = /### 2\.4 Auth[\s\S]*?(?=\n### )/.exec(doc);
+    expect(section, "the auth section vanished; this guard is looking for it").not.toBeNull();
+    expect(claimsBypass(section?.[0] ?? ""), "the auth section claims a cookie can be forged past the gate").toBe(false);
+    expect(claimsBypass("- Live: `proxy.ts` JSON.parse(cookie).id — forge {\"id\":\"x\"} bypasses")).toBe(true);
+  });
+
+  it("calls a deleted file deleted, and a wired file wired", () => {
+    const gone = ["src/lib/auth-context.tsx", "src/lib/auth/auth.ts"];
+    for (const rel of gone) {
+      expect(walkRepo("src", (r) => r === rel), `${rel} is back; the doc says it was retired`).toEqual([]);
+    }
+    // The same section once said `src/lib/auth.ts` had no OAuth wiring. It is the
+    // only path that opens a real provider session, so the claim was backwards.
+    const auth = readRepo("src/lib/auth.ts");
+    expect(auth).toMatch(/signInWithOAuth/);
+    expect(auth).toMatch(/signOut/);
+    const section = /### 2\.4 Auth[\s\S]*?(?=\n### )/.exec(doc)?.[0] ?? "";
+    expect(section, "the auth section says OAuth is unwired again").not.toMatch(/never wired|not wired/);
+  });
+
+  it("keeps the model-id single source true, including its own wording", () => {
+    // Re-derived the way the rest of this file measures: identifiers and string
+    // literals in the tree, never a sentence. The doc used to count 13 files by
+    // grepping text, which counted measurement comments as call sites.
+    const ids = Object.values(MODEL_IDS) as string[];
+    const offenders = walkRepo("src", (rel) => /\.tsx?$/.test(rel) && rel !== "src/ai/providers/registry.ts").filter(
+      (rel) => {
+        const sf = ts.createSourceFile(rel, readRepo(rel), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+        let hit = false;
+        const visit = (n: ts.Node) => {
+          if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && ids.includes(String(n.text))) hit = true;
+          ts.forEachChild(n, visit);
+        };
+        ts.forEachChild(sf, visit);
+        return hit;
+      }
+    );
+    expect(offenders, `files hardcoding a model id: ${offenders.join(", ")}`).toEqual([]);
+    const section = /### 2\.5 AI Provider[\s\S]*?(?=\n### )/.exec(doc)?.[0] ?? "";
+    expect(section, "the provider section claims model ids are hardcoded in N files again").not.toMatch(/hardcoded across \d+ files/);
+    expect(section, "and it must still point at the one table that owns them").toMatch(/registry\.ts/);
+  });
+
+  it("does not deny the evaluation harness that CI runs", () => {
+    const pkg = JSON.parse(readRepo("package.json")) as { scripts: Record<string, string> };
+    expect(pkg.scripts["test:eval"], "the eval script is gone — re-read this section before deleting the claim").toBeTruthy();
+    expect(pkg.scripts["test:eval:free"]).toBeTruthy();
+    expect(walkRepo(".github/workflows", (rel) => rel.endsWith("nightly-eval.yml"))).toHaveLength(1);
+    const section = /### 2\.6 AI Evaluation[\s\S]*?(?=\n### )/.exec(doc)?.[0] ?? "";
+    expect(section, "the evaluation section says there is no harness again").not.toMatch(/[Nn]o eval harness|no harness, no/);
+    expect(section, "the heading must stop advertising the gap the scripts close").not.toMatch(/no harness/);
+  });
+
+  it("counts the mock question bank the way the tree does", () => {
+    // The doc states a number; the number is checkable, so it is checked. Array
+    // length off the parse tree — a text count of `question:` finds zero, because
+    // that is not the field name.
+    const sf = ts.createSourceFile("qb.ts", readRepo("src/lib/question-bank.ts"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    let elements = -1;
+    const visit = (n: ts.Node) => {
+      if (ts.isVariableDeclaration(n) && n.name.getText(sf) === "mockQuestionBank" && n.initializer && ts.isArrayLiteralExpression(n.initializer)) {
+        elements = n.initializer.elements.length;
+      }
+      ts.forEachChild(n, visit);
+    };
+    ts.forEachChild(sf, visit);
+    expect(elements).toBeGreaterThan(0);
+    const claimed = /ships (\d+) static mock questions/.exec(doc);
+    expect(claimed, "the doc no longer states the mock bank count where this test reads it").not.toBeNull();
+    expect(Number(claimed?.[1]), `doc says ${claimed?.[1]}, the array holds ${elements}`).toBe(elements);
+  });
+
+  it("keeps the provider fetch hack at one definition", () => {
+    const definitions = (registry.match(/async function thinkingFetch/g) ?? []).length;
+    expect(definitions, "the thinking/max_tokens hack was duplicated again").toBe(1);
+    const section = /### 2\.5 AI Provider[\s\S]*?(?=\n### )/.exec(doc)?.[0] ?? "";
+    expect(section, "the doc still counts four copies of a hack that exists once").not.toMatch(/duplicated in 4 files/);
   });
 });
