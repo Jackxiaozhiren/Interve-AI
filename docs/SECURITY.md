@@ -103,3 +103,15 @@
   never imported server-side; postcss/ws/uuid/etc. build/dev-nested — upgrade lane
   Next 16.3.4. SAST today = `tsc` strict + ESLint hooks + Zod I/O + POST-only surface
   test; CodeQL/Semgrep lane tracked for CI.
+- The sibling app (`apps/dsa-web`) is a separate dependency tree and now gets the same
+  rule rather than a weaker copy of it: `npm run audit:deps:dsa` audits it through the
+  shipped/developer split against `docs/audit/deps-critical-dsa-web.json`, and
+  `.github/workflows/dsa.yml` runs that and writes both the verdict and the raw
+  `npm audit` text into the job summary. It used to be a bare
+  `npm --prefix apps/dsa-web audit --audit-level=critical`, which could not tell a
+  runner-only advisory from a deployed one — so a devDependency in the test runner
+  blocked a docs-only PR exactly like a critical in shipped code, and the whole
+  artefact of the red was "exit code 1". The `next/og` exposure that first turned this
+  step red is closed (the app is on `next@16.3.8`, outside GHSA-vcvr-r3jv-pc5j); what
+  the register discloses today is test-tree only, and the shipped-tree half still has
+  no exception path.

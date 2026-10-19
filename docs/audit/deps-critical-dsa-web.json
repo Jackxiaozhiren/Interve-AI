@@ -1,0 +1,35 @@
+{
+  "_about": "Dev-only critical advisories in the SIBLING app's dependency tree (`apps/dsa-web`), disclosed rather than waived. Same contract as `docs/audit/deps-critical.json` for the Interve app: `scripts/audit-deps.mjs` compares this list against `npm --prefix apps/dsa-web audit --json` in both directions, so a new developer-tree critical fails the gate undisclosed, and an entry kept after its package stopped being vulnerable also fails — a register that names a risk the repo no longer carries is a false statement about the product. A critical in the shipped tree (`--omit=dev`) is not registrable at all; that half has no exception path.",
+  "_seededAt": "2026-10-19",
+  "_verifiedBy": [
+    "apps/dsa-web/package.json — `vitest: ^3.2.7` appears under devDependencies and there is no `vitest` key in dependencies",
+    "apps/dsa-web/package-lock.json — tinypool resolves to 1.1.1 and is required by vitest (`\"tinypool\": \"^1.1.1\"`); no package.json entry names it, so it is transitive",
+    "grep over apps/dsa-web/{app,lib,components,mocks} — no source file imports vitest or tinypool; the only importers are test files",
+    "npm --prefix apps/dsa-web audit --json on this lockfile — exactly two packages carry a top-level `critical`: vitest and tinypool"
+  ],
+  "devOnlyCritical": [
+    {
+      "package": "vitest",
+      "advisories": ["GHSA-82fw-gwwq-j7x9"],
+      "why_dev_only": "The runner executes tests and is never imported by a module `next build` traces: `vitest` is in devDependencies only, and no file under app/, lib/, components/ or mocks/ imports it. The deployed artefact is the standalone Next build, so the path traversal in `@vitest/mocker`'s redirect mock has no server-side or browser-side caller in this app.",
+      "what_actually_fixes_it": "vitest >= 4.1.11, which is a major from the pinned ^3.2.7 — the same migration already decided for the Interve app's own runner. There is no patch within 3.x.",
+      "decision": "OPEN — owner call on the sibling app's major, same shape as the Interve vitest 5 decision"
+    },
+    {
+      "package": "tinypool",
+      "advisories": ["GHSA-5gmw-xhrv-c9v3", "GHSA-85c8-ppgw-ccpr"],
+      "why_dev_only": "Transitive under vitest (lockfile resolves tinypool 1.1.1 through the runner, and nothing in package.json names it), so it exists only in the installed developer tree. The prototype-pollution gadget reaches RCE through worker options that only the test runner constructs.",
+      "what_actually_fixes_it": "tinypool > 2.1.1. It is not a direct dependency, so it moves with the vitest upgrade above rather than being pinned on its own.",
+      "decision": "OPEN — closes with the vitest major above; no independent action available"
+    }
+  ],
+  "closed": [
+    {
+      "package": "next",
+      "was": "16.3.4",
+      "now": "16.3.8",
+      "advisories": ["GHSA-vcvr-r3jv-pc5j"],
+      "note": "The `next/og` ImageResponse RCE this app's old pin fell inside. Closed by the upgrade, not by a register entry — listed so the reason the shipped tree is empty of it is readable. scripts/audit-deps.mjs does not read this array."
+    }
+  ]
+}
