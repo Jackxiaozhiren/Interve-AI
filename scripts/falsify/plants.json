@@ -803,6 +803,42 @@
       "replacement": "    if (false) {\n      router.replace(ROUTES.DASHBOARD);\n    }",
       "test": "tests/unit/signin-doors-alike.test.ts",
       "pattern": "each door redirects on"
+    },
+    {
+      "name": "FRNE1",
+      "desc": "the export's practice read swallows its own rejection again, so a refused read downloads a shorter file and still reports success",
+      "file": "src/app/dashboard/privacy/page.tsx",
+      "anchor": "        db.practiceSessions.toArray(),",
+      "replacement": "        db.practiceSessions.toArray().catch(() => []),",
+      "test": "tests/unit/failed-read-is-not-empty.test.ts",
+      "pattern": "no success message is fed by a rejection"
+    },
+    {
+      "name": "FRNE2",
+      "desc": "the erase-all practice read swallows its rejection, so the loop runs zero times and the summary claims an account that was never enumerated",
+      "file": "src/app/dashboard/privacy/page.tsx",
+      "anchor": "      const practice = await db.practiceSessions.toArray();",
+      "replacement": "      const practice = await db.practiceSessions.toArray().catch(() => []);",
+      "test": "tests/unit/failed-read-is-not-empty.test.ts",
+      "pattern": "no success message is fed by a rejection"
+    },
+    {
+      "name": "FRNE3",
+      "desc": "the single-session delete describes its error handling in a comment instead of a statement, so a snapshot left on the device is announced as cleared",
+      "file": "src/app/dashboard/privacy/page.tsx",
+      "anchor": "        undeleted.push(`snapshot:${id}`);",
+      "replacement": "        // setError() is not needed: the description below already says which half happened.",
+      "test": "tests/unit/failed-read-is-not-empty.test.ts",
+      "pattern": "every catch in an announcing flow reports"
+    },
+    {
+      "name": "FRNE4",
+      "desc": "the corpus filter goes back to scanning text, so a page that only quotes an announcement in a comment joins the population and prose decides what is policed",
+      "file": "tests/unit/failed-read-is-not-empty.test.ts",
+      "anchor": "    if (successCalls(sf).some((call) => call.arguments[0] && ts.isStringLiteral(call.arguments[0]))) out.set(rel, sf);",
+      "replacement": "    if (source.includes(\"toast.success(\")) out.set(rel, sf);",
+      "test": "tests/unit/failed-read-is-not-empty.test.ts",
+      "pattern": "named in prose as an announcement"
     }
   ]
 }

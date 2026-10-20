@@ -145,13 +145,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * text, SEAL2 drops the absent-optional-field pass-through that keeps prompt bytes
  * stable for callers omitting a field); and 156 with the consumption fuse having a
  * hole shaped like a hand-rolled route (BUD1 un-counts parse-resume again, the one
- * model-calling lane that never went through guardRequest);
+ * model-calling lane that never went through guardRequest); the number has since
+ * moved with each slice that added a witness, and 175 is the erasure flows (FRNE1
+ * and FRNE2 put the swallowed read back into the export and the erase-all, FRNE3
+ * replaces the single-session delete's record with a comment about it, FRNE4 sends
+ * the corpus filter back to reading text so prose picks what gets policed);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 171;
+const MIN_PLANTS = 175;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
