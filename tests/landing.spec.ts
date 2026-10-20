@@ -2,6 +2,7 @@
 // tested https://playwright.dev/ — zero product value and network-dependent).
 import { test, expect } from '@playwright/test';
 import { BASE_URL } from '../playwright.config';
+import { loginAs } from './helpers';
 
 test.describe('Landing', () => {
   test('should render hero and primary CTAs', async ({ page }) => {
@@ -62,6 +63,29 @@ test.describe('Landing', () => {
     // And the fragment is gone, so a reload does not re-report a handoff that
     // already happened.
     await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('');
+  });
+
+  test('a signed-in visit never leaves the site, whatever ?from= claims', async ({ page }) => {
+    // Measured before this shipped: with a session in place,
+    // /login?from=https://evil.example completed the flow and then navigated the
+    // visitor off-site — the run ended on chrome-error://chromewebdata/, i.e. the
+    // browser had left this origin. A protocol-relative //evil.example was its
+    // quieter half: nothing navigated, so a signed-in visitor stayed on the door
+    // that exists to send them in. Both are asserted as behaviour, because the
+    // unit arms only prove the decision function is right about a string.
+    await loginAs(page);
+
+    for (const hostile of ['https://evil.example/y', '//evil.example/x', '/%5C%5Cevil.example']) {
+      await page.goto(`/login?from=${hostile}`);
+      await expect.poll(() => page.url(), { timeout: 10000, message: `from=${hostile}` }).toMatch(
+        new RegExp(`^${BASE_URL}/dashboard`)
+      );
+    }
+
+    // And the honest case still lands where the guard bounced the visitor, so the
+    // fix has not flattened the feature it guards.
+    await page.goto('/login?from=/practice');
+    await expect.poll(() => page.url(), { timeout: 10000 }).toMatch(new RegExp(`^${BASE_URL}/practice`));
   });
 
   test('the data strip admits it cannot know anything about a signed-out visitor', async ({ page }) => {
