@@ -82,10 +82,22 @@ export default function PrivacyPage() {
     try {
       await db.interviews.remove(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
+      // Private-mode and disabled storage can refuse this removal, and the
+      // transcript snapshot then stays on the device. The cloud row is gone either
+      // way, so the record names what survived and the sentence says which half
+      // happened instead of announcing both.
+      const undeleted: string[] = [];
       try {
         localStorage.removeItem(`interve_session_${id}`);
-      } catch { /* best effort */ }
-      toast.success("已删除", { description: "该面试会话及其云端数据已删除。" });
+      } catch {
+        undeleted.push(`snapshot:${id}`);
+      }
+      toast.success("已删除", {
+        description:
+          undeleted.length === 0
+            ? "该面试会话及其云端数据已删除。"
+            : "该面试会话已从云端删除，但本机快照没能清除 —— 可用下方「清理本机快照与草稿」再试一次。",
+      });
     } catch {
       toast.error("删除失败", { description: "请检查网络后重试。" });
     } finally {
@@ -99,7 +111,10 @@ export default function PrivacyPage() {
     try {
       const [interviews, practice] = await Promise.all([
         db.interviews.orderBy("createdAt").reverse().toArray(),
-        db.practiceSessions.toArray().catch(() => []),
+        // A refused read is not an empty table: swallowing it here downloads a file
+        // that looks complete with one section missing, while the page still reports
+        // success. Let the rejection reach the handler below.
+        db.practiceSessions.toArray(),
       ]);
       downloadFile(
         JSON.stringify({ exportedAt: new Date().toISOString(), interviews, practiceSessions: practice }, null, 2),
@@ -127,7 +142,7 @@ export default function PrivacyPage() {
       }
     }
     try {
-      const practice = await db.practiceSessions.toArray().catch(() => []);
+      const practice = await db.practiceSessions.toArray();
       for (const p of practice as { id?: number | string }[]) {
         if (p.id === undefined) continue;
         try {
@@ -136,7 +151,11 @@ export default function PrivacyPage() {
           failures.push(`practice:${p.id}`);
         }
       }
-    } catch { /* practice export/delete is best-effort offline */ }
+    } catch {
+      // A refused enumeration is not an empty table: nothing gets deleted, and the
+      // summary below would otherwise read as a clean sweep of the account.
+      failures.push("practice_sessions");
+    }
     // The resume search index is a second copy of the whole document, serialized.
     // It is partitioned per account rather than per session, so it is erased here and
     // not with the session rows above. A refusal is reported, never swallowed.
