@@ -2,8 +2,10 @@
  * The origin a candidate redirect is resolved against, never a real host: it
  * exists so `//host`, `/\host` and `javascript:` all come back with an origin that
  * is not this one, which is the only comparison that catches every escaping shape.
+ * https, because this module decides where a signed-in browser is sent and should
+ * not carry a plaintext URL literal of its own; the base is never contacted.
  */
-const SENTINEL_ORIGIN = "http://self.invalid";
+const SENTINEL_ORIGIN = "https://self.invalid";
 
 /**
  * Decide where a `?from=` value may send the visitor after sign-in.
