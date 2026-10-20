@@ -88,6 +88,45 @@ test.describe('Landing', () => {
     await expect.poll(() => page.url(), { timeout: 10000 }).toMatch(new RegExp(`^${BASE_URL}/practice`));
   });
 
+  test('the signup door sends an already-signed-in visitor in, like the login door does', async ({ page }) => {
+    // /login has redirected an authenticated visitor onward since the first
+    // version of the app; /signup never did, so the page a signed-in account can
+    // reach from the footer offers them a *new* demo identity and, on submit,
+    // replaces the account the UI shows them with a random one. Same door, same
+    // rule: if you are already in, go in.
+    await loginAs(page);
+    await page.goto('/signup');
+    await expect.poll(() => page.url(), { timeout: 10000 }).toMatch(new RegExp(`^${BASE_URL}/dashboard`));
+  });
+
+  test('a failed signup press says so instead of sitting silent', async ({ page }) => {
+    // `login()` POSTs /api/session, and its rejection used to be caught and
+    // written to the console only: the visitor pressed Sign Up, and the page did
+    // not move, change, or explain. Same defect class as the provider button on
+    // this page, which reported nothing either.
+    let attempted = 0;
+    await page.route('**/api/session', async (route) => {
+      attempted += 1;
+      await route.abort();
+    });
+    await page.goto('/signup');
+    // Both fields: `Full Name` is `required`, so leaving it out stops the form at
+    // native validation and the handler never runs — which reads exactly like the
+    // silence this arm is meant to detect. First run of this test was red for that
+    // reason alone, with no request fired at all.
+    await page.getByLabel('Full Name').fill('New Candidate');
+    await page.getByLabel('Email address').fill('new.candidate@example.com');
+    await page.getByRole('button', { name: 'Sign Up' }).click();
+
+    // The press has to have reached the server for the rest of this to mean
+    // anything: without this, a form that never submits would "pass" by showing
+    // nothing and going nowhere.
+    await expect.poll(() => attempted, { timeout: 5000 }).toBe(1);
+    const notice = page.locator('[role="alert"], [role="status"]').filter({ hasText: /sign up failed/i });
+    await expect.poll(async () => page.url(), { timeout: 5000 }).toMatch(/\/signup/);
+    await expect(notice).toBeVisible();
+  });
+
   test('the data strip admits it cannot know anything about a signed-out visitor', async ({ page }) => {
     // The numbers here come from the account's rows, and an anonymous read
     // answers `[]` — which used to render as "本地模拟面试 0" under a hint saying

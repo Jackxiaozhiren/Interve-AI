@@ -785,6 +785,24 @@
       "replacement": "  if (false) return fallback;",
       "test": "tests/unit/redirect-target.test.ts",
       "pattern": "falls back for every shape that leaves the origin"
+    },
+    {
+      "name": "SU1",
+      "desc": "the signup submit's failed press goes back to being a console line only, so the page looks idle after a real refusal",
+      "file": "src/app/signup/page.tsx",
+      "anchor": "      console.error(\"Signup failed\", err);\n      setError(\"Sign up failed. Please try again.\");",
+      "replacement": "      console.error(\"Signup failed\", err);",
+      "test": "tests/unit/signin-doors-alike.test.ts",
+      "pattern": "the signup submit handler's catch says so"
+    },
+    {
+      "name": "SU2",
+      "desc": "the signed-in redirect on /signup is switched off, so the page reachable from the footer offers a new identity over the account in use",
+      "file": "src/app/signup/page.tsx",
+      "anchor": "    if (isAuthenticated) {\n      router.replace(ROUTES.DASHBOARD);\n    }",
+      "replacement": "    if (false) {\n      router.replace(ROUTES.DASHBOARD);\n    }",
+      "test": "tests/unit/signin-doors-alike.test.ts",
+      "pattern": "each door redirects on"
     }
   ]
 }
