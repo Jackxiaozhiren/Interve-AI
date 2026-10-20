@@ -45,6 +45,25 @@ test.describe('Landing', () => {
     expect(url.searchParams.get('redirect_to')).toBe(`${BASE_URL}/login`);
   });
 
+  test('a provider handoff that came back failed says so, and leaves the address bar', async ({ page }) => {
+    // The state a visitor is left in when they cancel at Google, or gotrue
+    // refuses the exchange: /login again, with the failure only in the fragment.
+    // Before this shipped the page rendered as if nothing had happened and the
+    // `#error=…` survived every reload, so the only available action was to press
+    // the button again — which is what "several clicks" looked like from the
+    // other side. Nothing here mocks a provider: the URL is the whole input.
+    await page.goto('/login#error=access_denied&error_description=User+cancelled+the+flow');
+
+    const notice = page.locator('[role="status"]').filter({ hasText: /Provider sign-in did not complete/ });
+    await expect(notice).toHaveCount(1);
+    await expect(notice).toContainText('(access_denied)');
+    // gotrue's and the provider's wording stays out of this app's sentence.
+    await expect(notice).not.toContainText(/cancelled the flow/i);
+    // And the fragment is gone, so a reload does not re-report a handoff that
+    // already happened.
+    await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('');
+  });
+
   test('the data strip admits it cannot know anything about a signed-out visitor', async ({ page }) => {
     // The numbers here come from the account's rows, and an anonymous read
     // answers `[]` — which used to render as "本地模拟面试 0" under a hint saying

@@ -731,6 +731,33 @@
       "replacement": "if (session?.user && session.aud === 'never') {",
       "test": "tests/unit/auth-bootstrap-bounded.test.ts",
       "pattern": "bridges on the event a recovered session"
+    },
+    {
+      "name": "PCF1",
+      "desc": "the consumer exists but nothing reads the callback, which is the state a helper-only fix leaves the visitor in",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "      const message = consumeProviderCallbackFailure(window.location, {\n        replace: (next) => window.history.replaceState(window.history.state, \"\", next),\n      });",
+      "replacement": "      const message: string | null = null;",
+      "test": "tests/unit/provider-callback-failure.test.ts",
+      "pattern": "a shipped component consumes the callback on mount"
+    },
+    {
+      "name": "PCF2",
+      "desc": "the session-carrying callback stops being exempt, so a successful handoff gets its URL erased before the bridge reads it",
+      "file": "src/lib/auth.ts",
+      "anchor": "  if (fragment.get('access_token') || fragment.get('refresh_token') || fragment.get('code') || query.get('code')) {\n    return null;\n  }",
+      "replacement": "  if (false) {\n    return null;\n  }",
+      "test": "tests/unit/provider-callback-failure.test.ts",
+      "pattern": "never consumes or clears a callback that carries a session"
+    },
+    {
+      "name": "PCF3",
+      "desc": "the sentence quotes the provider's own description instead of this app's words",
+      "file": "src/lib/auth.ts",
+      "anchor": "  return `Provider sign-in did not complete (${code}). Please try again, or use the email form below.`;",
+      "replacement": "  return `Provider sign-in did not complete (${description ?? code}). Please try again, or use the email form below.`;",
+      "test": "tests/unit/provider-callback-failure.test.ts",
+      "pattern": "quotes no provider wording in the user-facing sentence"
     }
   ]
 }
