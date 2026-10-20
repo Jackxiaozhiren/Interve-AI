@@ -758,6 +758,15 @@
       "replacement": "  return `Provider sign-in did not complete (${description ?? code}). Please try again, or use the email form below.`;",
       "test": "tests/unit/provider-callback-failure.test.ts",
       "pattern": "quotes no provider wording in the user-facing sentence"
+    },
+    {
+      "name": "VC3",
+      "desc": "the README goes back to telling deployers that Vercel re-resolves the lockfile, which is the exact hazard vercel.json was changed to close",
+      "file": "README.md",
+      "anchor": "Vercel (`vercel.json`: `npm ci`)",
+      "replacement": "Vercel (`vercel.json`: `npm install`)",
+      "test": "tests/unit/deploy-consistency.test.ts",
+      "pattern": "the README names the install command Vercel actually runs"
     }
   ]
 }
