@@ -7,11 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MagneticButton } from "@/components/ui/magnetic-button";
-import { ArrowRight, GithubLogo, GoogleLogo, Eye, EyeSlash } from "@phosphor-icons/react";
+import { ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { ROUTES } from "@/utils/constants";
-import { signInWithOAuth } from "@/lib/auth";
+import { OAuthProviderButtons } from "@/components/auth/oauth-buttons";
 
 export function LoginForm() {
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -62,16 +62,6 @@ export function LoginForm() {
     }
   };
 
-  const handleOAuthLogin = async (provider: "google" | "github") => {
-    try {
-      await signInWithOAuth(provider);
-      // login will be handled by Supabase auth listener or redirect
-    } catch (error) {
-      console.error(`${provider} login failed`, error);
-      setError(`${provider} login failed. Please try again.`);
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 1, y: 0 }}
@@ -111,24 +101,7 @@ export function LoginForm() {
               <p className="text-sm font-semibold text-slate-700 mb-3">
                 用账号登录 · 面试记录、报告与回放都会保存
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => handleOAuthLogin("google")}
-                  type="button"
-                  disabled={isLoading}
-                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <GoogleLogo weight="bold" className="w-4 h-4" /> Google
-                </button>
-                <button
-                  onClick={() => handleOAuthLogin("github")}
-                  type="button"
-                  disabled={isLoading}
-                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <GithubLogo weight="fill" className="w-4 h-4" /> GitHub
-                </button>
-              </div>
+              <OAuthProviderButtons onResult={setError} />
             </div>
 
             {/* Divider */}

@@ -76,12 +76,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // server-side; the returned identity is then bound via login() below.
         try {
           // Bounded on purpose. This await is what releases `isLoading`, and
-          // isLoading disables the Google / GitHub / submit buttons on /login
-          // and /signup — so an unbounded getUser() does not merely delay the
-          // "already signed in?" answer, it locks the page whose job is to get
-          // you signed in. On a timeout the visitor proceeds as unverified, and
-          // the onAuthStateChange listener below still bridges them if the
-          // refresh lands late.
+          // isLoading disables the credential submit button on /login and /signup
+          // — so an unbounded getUser() does not merely delay the "already signed
+          // in?" answer, it locks the page whose job is to get you signed in. The
+          // provider buttons are deliberately NOT gated on it: they need no
+          // session answer, and tests/unit/oauth-door-clickable.test.ts owns that
+          // rule. On a timeout the visitor proceeds as unverified, and the
+          // onAuthStateChange listener below still bridges them if the refresh
+          // lands late.
           const user = await withTimeout(
             supabase.auth.getUser().then(({ data, error }) => (error ? null : data.user)),
             AUTH_BOOTSTRAP_TIMEOUT_MS,
@@ -104,6 +106,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // token to validate — it returns null and the candidate ends up signed in at
   // Supabase but locked out of the app. SIGNED_IN fires when that completes,
   // which removes the timing dependency instead of guessing at it.
+  //
+  // It is also the net for a session recovered from this browser's storage, and
+  // no other event is needed: all three branches of the installed auth-js's
+  // `_recoverAndRefresh` notify SIGNED_IN. Checked there rather than assumed,
+  // because `INITIAL_SESSION` looks like the missing case and is not.
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
