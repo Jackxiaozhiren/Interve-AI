@@ -11,6 +11,7 @@ import { ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { ROUTES } from "@/utils/constants";
+import { safeInternalPath } from "@/utils/redirect";
 import { OAuthProviderButtons } from "@/components/auth/oauth-buttons";
 import { consumeProviderCallbackFailure } from "@/lib/auth";
 
@@ -47,11 +48,16 @@ export function LoginForm() {
     });
   }, []);
 
-  // Auto redirect if already logged in
+  // Auto redirect if already logged in.
+  //
+  // `?from=` is written by src/proxy.ts from a path, but it arrives through the
+  // URL, so a visitor can be handed a link that completes sign-in and then leaves
+  // with them: `/login?from=https://evil.example` navigated an authenticated
+  // session off-site (measured against the running app). Only a path on this
+  // origin is honoured; anything else goes to the dashboard.
   useEffect(() => {
     if (isAuthenticated) {
-      const from = searchParams.get("from");
-      router.replace(from || ROUTES.DASHBOARD);
+      router.replace(safeInternalPath(searchParams.get("from"), ROUTES.DASHBOARD));
     }
   }, [isAuthenticated, router, searchParams]);
 

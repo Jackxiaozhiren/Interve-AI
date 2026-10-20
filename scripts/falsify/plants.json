@@ -767,6 +767,24 @@
       "replacement": "Vercel (`vercel.json`: `npm install`)",
       "test": "tests/unit/deploy-consistency.test.ts",
       "pattern": "the README names the install command Vercel actually runs"
+    },
+    {
+      "name": "RT1",
+      "desc": "the door goes back to navigating whatever ?from= claims, which hands an authenticated visitor to another origin",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "      router.replace(safeInternalPath(searchParams.get(\"from\"), ROUTES.DASHBOARD));",
+      "replacement": "      router.replace(searchParams.get(\"from\") || ROUTES.DASHBOARD);",
+      "test": "tests/unit/redirect-target.test.ts",
+      "pattern": "a component calls it, so the rule runs in the product"
+    },
+    {
+      "name": "RT2",
+      "desc": "the origin comparison is dropped, leaving a prefix test that //evil.example and /\\evil.example both walk straight through",
+      "file": "src/utils/redirect.ts",
+      "anchor": "  if (target.origin !== SENTINEL_ORIGIN) return fallback;",
+      "replacement": "  if (false) return fallback;",
+      "test": "tests/unit/redirect-target.test.ts",
+      "pattern": "falls back for every shape that leaves the origin"
     }
   ]
 }
