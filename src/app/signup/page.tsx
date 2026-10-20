@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,28 +11,51 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { GlobalBackground } from "@/components/ui/global-background";
 import { useAuth } from "@/context/AuthContext";
+import { ROUTES } from "@/utils/constants";
 import { OAuthProviderButtons } from "@/components/auth/oauth-buttons";
 
 export default function SignupPage() {
-  const { login, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  // Only a provider failure lands here, and it has to be said: this used to
-  // `console.error` and leave the page looking idle, so a press that did not
-  // work showed nothing at all. The buttons themselves — press lifecycle and all
-  // — are the shared door, which cannot see `isLoading` by construction.
-  const [oauthError, setOauthError] = useState<string | null>(null);
+  // One surface for anything the door refused, exactly as /login does it: the
+  // provider press lifecycle reports here, and so does a failed demo submit,
+  // which used to be a console.error and nothing else.
+  const [error, setError] = useState<string | null>(null);
+
+  // An account that is already signed in is not being asked to create another
+  // one. /login has done this since it existed; /signup did not, so the page a
+  // signed-in visitor can reach from the footer offered a *new* demo identity and
+  // replaced the one the UI shows them with a random uuid on submit. No `?from=`
+  // is honoured here because nothing produces one: src/proxy.ts sends
+  // unauthenticated visitors to /login, so there is no saved destination to
+  // re-judge — and no redirect target to validate either.
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace(ROUTES.DASHBOARD);
+    }
+  }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    
+
+    setError(null);
     try {
       // In a real app, this would be an API call to register
       // For now, we'll just log them in to mock the flow
       await login({ id: crypto.randomUUID(), username: name || email.split('@')[0], email });
-    } catch (error) {
-      console.error("Signup failed", error);
+    } catch (err) {
+      console.error("Signup failed", err);
+      setError("Sign up failed. Please try again.");
     }
   };
 
@@ -75,10 +99,10 @@ export default function SignupPage() {
                 <p className="text-sm font-semibold text-slate-700 mb-3">
                   用账号注册 · 面试记录、报告与回放都会保存
                 </p>
-                <OAuthProviderButtons onResult={setOauthError} />
-                {oauthError && (
-                  <p role="status" className="mt-3 text-sm font-medium text-rose-600">
-                    {oauthError}
+                <OAuthProviderButtons onResult={setError} />
+                {error && (
+                  <p role="alert" className="mt-3 text-sm font-medium text-rose-600">
+                    {error}
                   </p>
                 )}
               </div>
