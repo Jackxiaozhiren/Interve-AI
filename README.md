@@ -2,6 +2,13 @@
 
 > For job-seekers: explainable, verifiable training. **Practice only — never a hiring-screening / elimination tool.** No face→emotion/personality/hireability scoring, no protected-attribute inference, no employment decisions. Every score ships with evidence + uncertainty + a training-estimate disclaimer.
 
+## Start here: implementation and evidence
+
+- [Developer setup](docs/DEVELOPMENT.md) · [Architecture](docs/ARCHITECTURE.md) · [Testing](docs/TESTING.md)
+- [AI evaluation](docs/AI_EVALUATION.md) · [Model limitations](docs/ai-governance/LIMITATIONS.md) · [Privacy](docs/PRIVACY.md)
+- **Use boundary:** This project is for interview practice and feedback, **not** candidate screening, hiring decisions, or automated personality inference.
+- **Reuse boundary:** No repository-level open-source license is currently included. Public source access alone does not grant permission to redistribute or relicense the code; seek the maintainers' permission before reuse.
+
 ## What it is
 
 Goal-based interview training loop: **Setup (target company/role/JD/resume/level/round/language/difficulty → Interview Plan) → GreenRoom preflight → Live interview (voice/text + Monaco coding + tldraw whiteboard, optional camera self-view) → Evidence-grounded evaluation (rubric V2 + readiness, not hire/no-hire) → Diagnose → Drill → Retry → Compare → Track (Dashboard trends / Replay turns / Privacy center).**
