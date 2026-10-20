@@ -52,6 +52,24 @@ describe("deploy consistency (G1)", () => {
     expect(root("package-lock.json"), "npm ci needs a lockfile").toContain("\"lockfileVersion\"");
   });
 
+  it("the README names the install command Vercel actually runs", () => {
+    // The paragraph that tells a newcomer how this is deployed said
+    // `vercel.json`: `npm install` after vercel.json had been changed to `npm ci`
+    // (PR #116). Every arm above reads a config file, so the drift was visible only
+    // to a human comparing prose — and the prose is what a deployer follows.
+    //
+    // The claim is read out of README.md and compared against the value vercel.json
+    // carries, so this arm cannot agree with itself: it fails if the README changes
+    // and fails if vercel.json changes without the sentence coming along.
+    const claimed = /`vercel\.json`:\s*`([^`]+)`/.exec(root("README.md"))?.[1];
+    expect(claimed, "README no longer states a Vercel install command — retarget this arm").toBeTruthy();
+
+    const vercel = JSON.parse(root("vercel.json")) as { installCommand?: string };
+    expect(claimed, `README says Vercel runs "${claimed}", vercel.json says "${vercel.installCommand}"`).toBe(
+      vercel.installCommand
+    );
+  });
+
   it("robots keeps the practice-only crawl surface", () => {
     const robots = root("src/app/robots.ts");
     for (const pub of ["/landing", "/login", "/signup"]) {
