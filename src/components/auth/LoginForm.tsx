@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { ROUTES } from "@/utils/constants";
 import { OAuthProviderButtons } from "@/components/auth/oauth-buttons";
+import { consumeProviderCallbackFailure } from "@/lib/auth";
 
 export function LoginForm() {
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -22,6 +23,29 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [providerNotice, setProviderNotice] = useState<string | null>(null);
+
+  // A provider handoff that came back failed is reported once, here, and it stays
+  // on screen: it is not something the visitor just did to the form, so it does
+  // not share the 5 s auto-clear below. In an effect rather than during render
+  // because it reads and rewrites the address bar.
+  //
+  // Only a read that found something writes the state. The consumer clears the
+  // fragment as it reports, so a second pass — a remount, a refresh of this
+  // subtree — finds nothing left and would erase the very reason it is showing.
+  useEffect(() => {
+    // Deferred one turn rather than suppressed: `react-hooks/set-state-in-effect`
+    // is there to stop an effect cascading renders, and this read can only happen
+    // after hydration at all. One extra render either way, and the rule keeps
+    // policing every other effect in the tree. Same resolution the sibling app used
+    // for its loader (apps/dsa-web/app/datasets/page.tsx).
+    void Promise.resolve().then(() => {
+      const message = consumeProviderCallbackFailure(window.location, {
+        replace: (next) => window.history.replaceState(window.history.state, "", next),
+      });
+      if (message) setProviderNotice(message);
+    });
+  }, []);
 
   // Auto redirect if already logged in
   useEffect(() => {
@@ -102,6 +126,11 @@ export function LoginForm() {
                 用账号登录 · 面试记录、报告与回放都会保存
               </p>
               <OAuthProviderButtons onResult={setError} />
+              {providerNotice && (
+                <p role="status" className="mt-3 text-sm font-medium text-rose-600">
+                  {providerNotice}
+                </p>
+              )}
             </div>
 
             {/* Divider */}
