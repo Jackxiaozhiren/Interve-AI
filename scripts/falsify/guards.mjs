@@ -157,13 +157,18 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * (AXP1 puts the fixed 2500 ms sleep back, AXP2 lets settle answer 'settled' without
  * comparing its two reads, AXP3 has an arm call AxeBuilder past the helper that names
  * the violating nodes, AXP4 plants a real low-contrast label and requires the settled
- * scan to still report it);
+ * scan to still report it); and 191 with the storage-location claims (STG1 puts the
+ * "local database" sentence back on a Supabase insert, STG2 and STG3 put the
+ * local-fallback sentence back in the `catch` clause and in the promise-chain
+ * `.catch(h)` — the spelling a rule that walks only catch clauses cannot see, STG4
+ * blinds the accessor resolver so a blind map is visible, STG5 makes the local
+ * exemption unconditional);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 186;
+const MIN_PLANTS = 191;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

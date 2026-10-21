@@ -920,6 +920,51 @@
       "replacement": "    await page.goto('/login');\n    await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();\n    await settleForScan(page);",
       "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
       "pattern": "one scan helper serves every arm"
+    },
+    {
+      "name": "STG1",
+      "desc": "the recruiter save says the row went to a local database when the write that failed is a Supabase insert",
+      "file": "src/app/recruiter/assessments/page.tsx",
+      "anchor": "setError(\"Failed to save — the write to the database did not go through.\");",
+      "replacement": "setError(\"Failed to save to local database.\");",
+      "test": "tests/unit/storage-claims-match-the-code.test.ts",
+      "pattern": "no message claims a local destination the code contradicts"
+    },
+    {
+      "name": "STG2",
+      "desc": "the privacy list's reload promises local data during an outage, a fallback that no line of that function implements",
+      "file": "src/app/dashboard/privacy/page.tsx",
+      "anchor": "    } catch {\n      toast.error(\"加载失败\", { description: \"无法读取会话列表：这是一次云端读取。本机快照不在此列表，恢复入口在面试页。\" });",
+      "replacement": "    } catch {\n      toast.error(\"加载失败\", { description: \"无法读取会话列表（数据库未连接时仅本地数据可用）。\" });",
+      "test": "tests/unit/storage-claims-match-the-code.test.ts",
+      "pattern": "no message claims a local destination the code contradicts"
+    },
+    {
+      "name": "STG3",
+      "desc": "the same false fallback sentence, in the promise-chain spelling — the shape a rule that only walks catch clauses cannot see",
+      "file": "src/app/dashboard/privacy/page.tsx",
+      "anchor": "        if (!cancelled) {\n          toast.error(\"加载失败\", { description: \"无法读取会话列表：这是一次云端读取。本机快照不在此列表，恢复入口在面试页。\" });",
+      "replacement": "        if (!cancelled) {\n          toast.error(\"加载失败\", { description: \"无法读取会话列表（数据库未连接时仅本地数据可用）。\" });",
+      "test": "tests/unit/storage-claims-match-the-code.test.ts",
+      "pattern": "no message claims a local destination the code contradicts"
+    },
+    {
+      "name": "STG4",
+      "desc": "the accessor resolver stops reading supabase.from, so every map entry disappears and SC2 would clear any message it likes",
+      "file": "tests/unit/storage-claims-match-the-code.test.ts",
+      "anchor": "if (ts.isCallExpression(inner) && /(^|\\.)from$/.test(inner.expression.getText(sf))) {",
+      "replacement": "if (ts.isCallExpression(inner) && false) {",
+      "test": "tests/unit/storage-claims-match-the-code.test.ts",
+      "pattern": "every db accessor the app calls resolves in the generated map"
+    },
+    {
+      "name": "STG5",
+      "desc": "the local exemption is applied even when the flow proves nothing, which is the difference between a rule and a word ban",
+      "file": "tests/unit/storage-claims-match-the-code.test.ts",
+      "anchor": "const WITHOUT = WITH_ID.replace(assignment, 'interviewId = \"persistable-id\";');",
+      "replacement": "const WITHOUT = WITH_ID.replace(assignment, 'interviewId = \"local-still\";');",
+      "test": "tests/unit/storage-claims-match-the-code.test.ts",
+      "pattern": "SC2 stays quiet when the flow proves locality by mechanism"
     }
   ]
 }

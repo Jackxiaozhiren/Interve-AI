@@ -72,7 +72,7 @@ export default function CreateAssessmentPage() {
       setSaveSuccess(true);
     } catch (err) {
       console.error(err);
-      setError("Failed to save to local database.");
+      setError("Failed to save — the write to the database did not go through.");
     } finally {
       setIsSaving(false);
     }
