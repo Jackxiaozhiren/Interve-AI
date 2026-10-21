@@ -893,6 +893,33 @@
       "replacement": "        break;",
       "test": "tests/unit/failure-messages-are-announced.test.ts",
       "pattern": "accepts a live region on an ancestor inside the branch"
+    },
+    {
+      "name": "AXP1",
+      "desc": "the interview-room scan goes back to guessing at the animation cycle with a fixed 2500 ms sleep instead of waiting for the page to stop changing",
+      "file": "tests/a11y-visual.spec.ts",
+      "anchor": "    // mid-fade frames were verified by those nodes disappearing from the report.\n    await settleForScan(page);",
+      "replacement": "    // mid-fade frames were verified by those nodes disappearing from the report.\n    await page.waitForTimeout(2500);",
+      "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
+      "pattern": "no axe arm sleeps, and every axe arm settles first"
+    },
+    {
+      "name": "AXP2",
+      "desc": "settle answers 'settled' without comparing the two reads, so the wait can never observe change and the scan is back to sampling at random",
+      "file": "tests/a11y-visual.spec.ts",
+      "anchor": "resolve(before === after ? 'settled'",
+      "replacement": "resolve(true ? 'settled'",
+      "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
+      "pattern": "the settle helper is a comparison"
+    },
+    {
+      "name": "AXP3",
+      "desc": "an arm calls AxeBuilder itself, bypassing the shared helper that prints the violating selectors",
+      "file": "tests/a11y-visual.spec.ts",
+      "anchor": "    await page.goto('/login');\n    await settleForScan(page);",
+      "replacement": "    await page.goto('/login');\n    await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();\n    await settleForScan(page);",
+      "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
+      "pattern": "one scan helper serves every arm"
     }
   ]
 }
