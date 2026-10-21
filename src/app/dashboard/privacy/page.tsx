@@ -47,7 +47,7 @@ export default function PrivacyPage() {
       const rows = await db.interviews.orderBy("createdAt").reverse().toArray();
       setSessions(rows as Interview[]);
     } catch {
-      toast.error("加载失败", { description: "无法读取会话列表（数据库未连接时仅本地数据可用）。" });
+      toast.error("加载失败", { description: "无法读取会话列表：这是一次云端读取。本机快照不在此列表，恢复入口在面试页。" });
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ export default function PrivacyPage() {
       })
       .catch(() => {
         if (!cancelled) {
-          toast.error("加载失败", { description: "无法读取会话列表（数据库未连接时仅本地数据可用）。" });
+          toast.error("加载失败", { description: "无法读取会话列表：这是一次云端读取。本机快照不在此列表，恢复入口在面试页。" });
         }
       })
       .finally(() => {
