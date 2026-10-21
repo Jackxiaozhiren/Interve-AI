@@ -72,7 +72,7 @@ export const CopilotHints = React.memo(({ wpm, isRecording }: CopilotHintsProps)
             </div>
             <div>
               <h4 className="text-[11px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">AI Coach</h4>
-              <p className="text-[13px] text-slate-700 font-medium leading-tight">
+              <p role="status" className="text-[13px] text-slate-700 font-medium leading-tight">
                 {activeHint}
               </p>
             </div>

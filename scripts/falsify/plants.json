@@ -839,6 +839,60 @@
       "replacement": "    if (source.includes(\"toast.success(\")) out.set(rel, sf);",
       "test": "tests/unit/failed-read-is-not-empty.test.ts",
       "pattern": "named in prose as an announcement"
+    },
+    {
+      "name": "AMA1",
+      "desc": "the sign-in door's failure sentence loses its live region, so a refused press is painted and never announced",
+      "file": "src/components/auth/LoginForm.tsx",
+      "anchor": "                role=\"alert\"\n                initial={{ opacity: 0, y: -8 }}",
+      "replacement": "                initial={{ opacity: 0, y: -8 }}",
+      "test": "tests/unit/failure-messages-are-announced.test.ts",
+      "pattern": "no rendered message sits outside a live region"
+    },
+    {
+      "name": "AMA2",
+      "desc": "the microphone-permission sentence in the candidate's first gate stops being announced, beside a retry button nobody is told about",
+      "file": "src/components/interview/GreenRoom.tsx",
+      "anchor": "              <p role=\"alert\" className=\"text-sm text-rose-700 font-medium leading-relaxed\">{error}</p>",
+      "replacement": "              <p className=\"text-sm text-rose-700 font-medium leading-relaxed\">{error}</p>",
+      "test": "tests/unit/failure-messages-are-announced.test.ts",
+      "pattern": "no rendered message sits outside a live region"
+    },
+    {
+      "name": "AMA3",
+      "desc": "the coach hint stops being announced, so a tip that appears mid-interview is only visible",
+      "file": "src/components/interview/CopilotHints.tsx",
+      "anchor": "              <p role=\"status\" className=\"text-[13px] text-slate-700 font-medium leading-tight\">",
+      "replacement": "              <p className=\"text-[13px] text-slate-700 font-medium leading-tight\">",
+      "test": "tests/unit/failure-messages-are-announced.test.ts",
+      "pattern": "no rendered message sits outside a live region"
+    },
+    {
+      "name": "AMA4",
+      "desc": "the job-description failure stops being announced after the await, where the user is already waiting",
+      "file": "src/app/recruiter/assessments/page.tsx",
+      "anchor": "                <div role=\"alert\" className=\"mt-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2\">",
+      "replacement": "                <div className=\"mt-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2\">",
+      "test": "tests/unit/failure-messages-are-announced.test.ts",
+      "pattern": "no rendered message sits outside a live region"
+    },
+    {
+      "name": "AMA5",
+      "desc": "the tag classifier goes back to reading only identifiers, which makes motion.div a component and reports a clean tree over four unannounced messages",
+      "file": "tests/unit/failure-messages-are-announced.test.ts",
+      "anchor": "  if (ts.isPropertyAccessExpression(tag)) return /^[a-z]/.test(tag.name.text);",
+      "replacement": "  if (ts.isPropertyAccessExpression(tag)) return false;",
+      "test": "tests/unit/failure-messages-are-announced.test.ts",
+      "pattern": "names the exclusion in a control"
+    },
+    {
+      "name": "AMA6",
+      "desc": "a live region is accepted only on the element that renders the text, which demands a role around the retry button and the device picker as well",
+      "file": "tests/unit/failure-messages-are-announced.test.ts",
+      "anchor": "        if (current === root) break;\n        current = current.parent;",
+      "replacement": "        break;",
+      "test": "tests/unit/failure-messages-are-announced.test.ts",
+      "pattern": "accepts a live region on an ancestor inside the branch"
     }
   ]
 }

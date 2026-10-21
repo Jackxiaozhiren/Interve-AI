@@ -113,7 +113,7 @@ export default function CreateAssessmentPage() {
                 className="flex-1 w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 resize-none min-h-[300px]"
               />
               {error && (
-                <div className="mt-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2">
+                <div role="alert" className="mt-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2">
                   <WarningCircle className="w-5 h-5" /> {error}
                 </div>
               )}

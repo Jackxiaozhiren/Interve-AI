@@ -149,13 +149,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * moved with each slice that added a witness, and 175 is the erasure flows (FRNE1
  * and FRNE2 put the swallowed read back into the export and the erase-all, FRNE3
  * replaces the single-session delete's record with a comment about it, FRNE4 sends
- * the corpus filter back to reading text so prose picks what gets policed);
+ * the corpus filter back to reading text so prose picks what gets policed); and 182
+ * with the four messages that were painted but never announced (AMA1-AMA4 strip each
+ * live region, AMA5 makes `motion.div` a component again so the tree reads clean,
+ * AMA6 accepts a region only on the text node itself, AMA7 presses the door in the
+ * browser and expects the refusal to interrupt);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 175;
+const MIN_PLANTS = 182;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -968,6 +972,21 @@ const PLANTS = [
     replacement: `await Promise.resolve(p.id);`,
     pattern: "delete reaches every store",
   }),
+  // ── the door's refusal has to reach an assistive reader, not only the eye ─
+  // The static rule (AMA1) proves the attribute exists in the source; this proves
+  // the press actually lands in a live region. axe cannot see either: the container
+  // only mounts after a failed POST, and WCAG 4.1.3 is AAA.
+  {
+    name: "AMA7",
+    desc: "the sign-in error loses its role, and a refused press is painted in silence",
+    kind: "playwright",
+    slow: true,
+    file: "src/components/auth/LoginForm.tsx",
+    anchor: `                role="alert"\n                initial={{ opacity: 0, y: -8 }}`,
+    replacement: `                initial={{ opacity: 0, y: -8 }}`,
+    test: "tests/landing.spec.ts",
+    pattern: "a refused sign-in is announced, not only painted",
+  },
   // ── the harness's own coverage may not shrink quietly ────────────────────
   // Written as one record on one line on purpose: FC1 is the only plant that
   // edits the harness it lives in, and it carries `argv` where the others carry
