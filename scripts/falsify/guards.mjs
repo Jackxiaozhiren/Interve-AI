@@ -153,13 +153,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * with the four messages that were painted but never announced (AMA1-AMA4 strip each
  * live region, AMA5 makes `motion.div` a component again so the tree reads clean,
  * AMA6 accepts a region only on the text node itself, AMA7 presses the door in the
- * browser and expects the refusal to interrupt);
+ * browser and expects the refusal to interrupt); and 186 with the axe arms' wait
+ * (AXP1 puts the fixed 2500 ms sleep back, AXP2 lets settle answer 'settled' without
+ * comparing its two reads, AXP3 has an arm call AxeBuilder past the helper that names
+ * the violating nodes, AXP4 plants a real low-contrast label and requires the settled
+ * scan to still report it);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 182;
+const MIN_PLANTS = 186;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -986,6 +990,22 @@ const PLANTS = [
     replacement: `                initial={{ opacity: 0, y: -8 }}`,
     test: "tests/landing.spec.ts",
     pattern: "a refused sign-in is announced, not only painted",
+  },
+  // The settled wait must still let a real regression through as red. This plant is
+  // deliberately not a contrast case: the council labels sit on translucent cards,
+  // where axe answers `incomplete` rather than a violation, and a planted
+  // `text-slate-200`-on-glass label stayed green (measured 2026-10-21, ESCAPED). That
+  // gap is its own finding; this witness only proves the scan itself still bites.
+  {
+    name: "AXP4",
+    desc: "a listitem role outside any list is planted in the room, and the settled scan must report it",
+    kind: "playwright",
+    slow: true,
+    file: "src/components/interview/TranscriptPanel.tsx",
+    anchor: `<div className="p-4 bg-white/40 border-t border-white/40">`,
+    replacement: `<div className="p-4 bg-white/40 border-t border-white/40">\n        <span role="listitem">planted by scripts/falsify/guards.mjs</span>`,
+    test: "tests/a11y-visual.spec.ts",
+    pattern: "interview room has no serious/critical axe violations",
   },
   // ── the harness's own coverage may not shrink quietly ────────────────────
   // Written as one record on one line on purpose: FC1 is the only plant that
