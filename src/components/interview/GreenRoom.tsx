@@ -148,7 +148,7 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
           <div className="w-full bg-rose-50 border border-rose-100 rounded-2xl p-4 flex flex-col gap-3 mb-8 text-left shadow-inner">
             <div className="flex items-start gap-3">
               <WarningCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" weight="fill" />
-              <p className="text-sm text-rose-700 font-medium leading-relaxed">{error}</p>
+              <p role="alert" className="text-sm text-rose-700 font-medium leading-relaxed">{error}</p>
             </div>
             {/* Phase 8: permission recovery — re-request access. */}
             <button

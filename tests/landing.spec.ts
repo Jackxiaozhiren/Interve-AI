@@ -127,6 +127,33 @@ test.describe('Landing', () => {
     await expect(notice).toBeVisible();
   });
 
+  test('a refused sign-in is announced, not only painted', async ({ page }) => {
+    // The credential error has sat in a plain `<motion.div>` since the first commit:
+    // the sentence appears on screen, and assistive tech is never told. No existing
+    // lane could have noticed — `test:e2e:axe` scans the page as it first renders and
+    // this container only mounts after a press fails, and axe has no rule requiring an
+    // async message to sit in a live region because WCAG 4.1.3 is AAA. So the door is
+    // pressed for real here: same request-abort shape as the signup arm above, and the
+    // press is proven to have reached the server before the UI is read.
+    let attempted = 0;
+    await page.route('**/api/session', async (route) => {
+      attempted += 1;
+      await route.abort();
+    });
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill('candidate@example.com');
+    await page.getByLabel('Password').fill('not-the-password');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+
+    await expect.poll(() => attempted, { timeout: 5000 }).toBe(1);
+    await expect.poll(async () => page.url(), { timeout: 5000 }).toMatch(/\/login/);
+    // `alert`, not `status`: the surface clears itself after 5s (LoginForm's timer), so
+    // a polite region can be missed before the node is gone. That distinction is
+    // asserted over the source by tests/unit/failure-messages-are-announced.test.ts.
+    const alert = page.getByRole('alert').filter({ hasText: /login failed/i });
+    await expect(alert).toBeVisible();
+  });
+
   test('the data strip admits it cannot know anything about a signed-out visitor', async ({ page }) => {
     // The numbers here come from the account's rows, and an anonymous read
     // answers `[]` — which used to render as "本地模拟面试 0" under a hint saying
