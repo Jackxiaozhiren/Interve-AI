@@ -11,6 +11,11 @@ import { loginAs } from '../helpers';
  * — the title used to claim "full validation flow" while every step was wrapped
  * in a try/catch that logged PASS regardless, and it visited `/history` and
  * `/settings`, routes this app does not have.
+ *
+ * Every `sleep-ok: screenshot-stability` below means exactly what it says: the wait buys
+ * a legible frame for a human to open, and no verdict anywhere in this file depends on
+ * it. That is the honest reading of `tests/unit/fixed-sleeps-are-classified.test.ts`, not
+ * an exemption from it — a spec that starts asserting things has to upgrade these.
  */
 test.describe('Cross-browser screenshot sweep (artifacts only, no comparison)', () => {
   test.setTimeout(180000); // 3 minutes per browser-resolution combo
@@ -46,16 +51,19 @@ test.describe('Cross-browser screenshot sweep (artifacts only, no comparison)', 
       // NOTE: domcontentloaded (not networkidle) — background workers and
       // telemetry keep connections busy on several pages.
       await page.goto('/', { waitUntil: 'domcontentloaded' });
+      // sleep-ok: screenshot-stability
       await page.waitForTimeout(1500);
       await captureScreenshot('home_initial');
       
       // Scroll down to verify navbar glassmorphism
       await page.evaluate(() => window.scrollTo(0, 500));
+      // sleep-ok: screenshot-stability
       await page.waitForTimeout(1000);
       await captureScreenshot('home_scrolled');
       
       // Scroll to bottom
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      // sleep-ok: screenshot-stability
       await page.waitForTimeout(1000);
       await captureScreenshot('home_footer');
     });
@@ -63,12 +71,14 @@ test.describe('Cross-browser screenshot sweep (artifacts only, no comparison)', 
     // --- 2. Chat Interface ---
     await test.step('Chat Interface Validation', async () => {
       const response = await page.goto('/chat', { waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(1500);
+      // No sleep here: the branch below reads `response`, which is already in hand, so a
+      // wait in front of it could only delay the verdict, never change it.
       if (response && response.status() === 404) {
         console.log('[WARN] /chat is 404. Trying /interview instead');
         await page.goto('/interview', { waitUntil: 'domcontentloaded' });
       }
       
+      // sleep-ok: screenshot-stability
       await page.waitForTimeout(1000);
       await captureScreenshot('chat_initial', false);
 
@@ -84,12 +94,14 @@ test.describe('Cross-browser screenshot sweep (artifacts only, no comparison)', 
           } else {
             await page.keyboard.press('Enter');
           }
+          // sleep-ok: screenshot-stability
           await page.waitForTimeout(3000); // wait for AI response
           await captureScreenshot('chat_after_text', false);
 
           // Test code block
           await inputLocator.fill('```javascript\nconsole.log("Hello from tests");\n```');
           await page.keyboard.press('Enter');
+          // sleep-ok: screenshot-stability
           await page.waitForTimeout(3000);
           await captureScreenshot('chat_after_code', false);
         }
@@ -112,6 +124,7 @@ test.describe('Cross-browser screenshot sweep (artifacts only, no comparison)', 
       await test.step(`Auxiliary Page: ${p.name}`, async () => {
         try {
           await page.goto(p.url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+          // sleep-ok: screenshot-stability
           await page.waitForTimeout(1000);
           await captureScreenshot(`aux_${p.name}`);
         } catch (e) {
