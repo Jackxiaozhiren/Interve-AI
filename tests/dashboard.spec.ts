@@ -48,6 +48,8 @@ test.describe('Onboarding tour scope', () => {
     await page.addInitScript(() => localStorage.removeItem('interve_has_seen_onboarding'));
     await page.goto('/dashboard/privacy');
     // The tour reveals itself 1s after mount, so any shorter wait proves nothing.
+    // sleep-ok: absence-window — the arm asserts the dialog stays hidden, and an absence
+    // needs a window at least as long as the delay the product itself schedules.
     await page.waitForTimeout(2500);
     await expect(
       page.getByRole('dialog', { name: /Welcome to Interve AI|Mock Interviews|Analytics/ })

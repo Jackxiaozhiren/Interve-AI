@@ -5,6 +5,11 @@ import { loginAs } from '../helpers';
 
 test.describe('Interview Interactive Features', () => {
   test('keyboard shortcuts and text selection menu', async ({ page, browserName }) => {
+    // "Verify it doesn't crash" is only a claim if something collects the crash: an
+    // uncaught page error does not fail a Playwright test on its own.
+    const pageErrors: string[] = [];
+    page.on('pageerror', (e) => pageErrors.push(String(e)));
+
     // Determine target directory for screenshots
     const artifactsDir = path.join(process.cwd(), 'artifacts');
     const targetDir = path.join(artifactsDir, 'screenshots', browserName, 'interview-interactive');
@@ -30,6 +35,8 @@ test.describe('Interview Interactive Features', () => {
     const bypassButton = page.getByRole('button', { name: /跳过语音测试|纯文本模式/i }).first();
     if (await bypassButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       await bypassButton.click();
+      // sleep-ok: screenshot-stability — this frame is written to artifacts/ for a human
+      // and compared against nothing, so the wait buys a legible picture, not a verdict.
       await page.waitForTimeout(1000);
       await captureScreenshot('after_greenroom_bypass');
     }
@@ -50,8 +57,9 @@ test.describe('Interview Interactive Features', () => {
     await page.keyboard.press('Escape'); // Ensure no active focus
     const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
     await page.keyboard.press(`${modifier}+K`);
-    await page.waitForTimeout(500);
-
+    // No wait here on purpose: `toBeFocused` retries until the key handler lands the
+    // focus, so the 500 ms sleep this arm used to carry only fixed the earliest moment
+    // a failure could be reported, and could not tell a slow handler from a missing one.
     await expect(inputLocator).toBeFocused();
     await captureScreenshot('after_shortcut_k');
 
@@ -76,7 +84,10 @@ test.describe('Interview Interactive Features', () => {
     // Test Cmd/Ctrl + M shortcut to toggle mic (might just show a toast or change state since we are in test mode without mic, or might trigger permissions)
     // We'll just verify it doesn't crash and we can trigger it.
     await page.keyboard.press(`${modifier}+M`);
+    // sleep-ok: absence-window — the claim is that nothing is thrown, and an absence
+    // needs a bounded observation window; no condition can express "still no page error".
     await page.waitForTimeout(1000);
     await captureScreenshot('after_shortcut_m');
+    expect(pageErrors).toEqual([]);
   });
 });

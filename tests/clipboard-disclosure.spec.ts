@@ -93,10 +93,16 @@ test.describe('clipboard disclosure on /setup', () => {
     await page.goto('/setup');
     await selectHeading(page);
     await page.locator('#text-selection-menu').getByRole('button', { name: 'Copy' }).click();
-    await page.waitForTimeout(1200);
+    // Exactly one verdict has to arrive. Polling the arithmetic retries it, so a
+    // clipboard surface that reports nothing fails here rather than at whatever
+    // millisecond a fixed sleep happened to expire — and the sleep could not tell
+    // "nothing was reported" apart from "the toast had not rendered yet".
+    await expect
+      .poll(async () =>
+        (await page.getByText('Copy failed').count()) +
+        (await page.getByText('Copied to clipboard').count()),
+      )
+      .toBe(1);
     expect(errors).toEqual([]);
-    const copyFailed = await page.getByText('Copy failed').count();
-    const copied = await page.getByText('Copied to clipboard').count();
-    expect(copyFailed + copied).toBe(1);
   });
 });
