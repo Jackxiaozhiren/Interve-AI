@@ -983,6 +983,33 @@
       "replacement": "  return { w: 1280, h: 720 };",
       "test": "tests/unit/visual-baselines-agree.test.ts",
       "pattern": "the reader is the thing being trusted"
+    },
+    {
+      "name": "ARC1",
+      "desc": "the guard's own exemption stops naming this file, so its fixtures are scanned as if they were live references",
+      "file": "tests/unit/audit-archive-is-declared.test.ts",
+      "anchor": "const SELF = \"tests/unit/audit-archive-is-declared.test.ts\";",
+      "replacement": "const SELF = \"tests/unit/audit-archive-declared.test.ts\";",
+      "test": "tests/unit/audit-archive-is-declared.test.ts",
+      "pattern": "is reachable only through the archive path from every live file"
+    },
+    {
+      "name": "ARC2",
+      "desc": "the ledger's note for a ceiling stops matching the collector's text, so an owner reads a rule the code does not implement",
+      "file": "docs/audit/facts.limits.json",
+      "anchor": "and the ceiling came down with the arithmetic written ",
+      "replacement": "and the ceiling came down ",
+      "test": "tests/unit/facts-ratchet.test.ts",
+      "pattern": "carries the collector"
+    },
+    {
+      "name": "ARC3",
+      "desc": "a file sits in the archive with no declaration, which is the ceiling dodge the inventory exists to close",
+      "file": "tests/unit/audit-archive-is-declared.test.ts",
+      "anchor": "  \"S_VERIFY_V8.md\",\n",
+      "replacement": "",
+      "test": "tests/unit/audit-archive-is-declared.test.ts",
+      "pattern": "holds exactly the registers this file declares"
     }
   ]
 }
