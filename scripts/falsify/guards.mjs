@@ -164,13 +164,20 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * blinds the accessor resolver so a blind map is visible, STG5 makes the local
  * exemption unconditional); and 193 with the visual-baseline family check (VBA1 narrows
  * the comparison to width so a height drift hides again, VBA2 stubs the PNG reader to
- * the viewport size, which would make every family agree by construction);
+ * the viewport size, which would make every family agree by construction); and 194
+ * with the visual lane's dev-chrome hide (DCM1 renames the `nextjs-portal` host to
+ * something that matches nothing, so the lane has to stop hiding — and claiming to —
+ * an indicator it can no longer see); and 195 with the other half of that same claim
+ * (DCM2 leaves the host name alone and breaks only the rule, so a hide that matches
+ * an element but never stops it painting has to be caught too — that is precisely the
+ * shape the PR #147 ubuntu run was in: zero magenta pixels in the capture, Next's
+ * "N · 1 Issue" pill in the baseline);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 193;
+const MIN_PLANTS = 195;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1013,6 +1020,30 @@ const PLANTS = [
     replacement: `<div className="p-4 bg-white/40 border-t border-white/40">\n        <span role="listitem">planted by scripts/falsify/guards.mjs</span>`,
     test: "tests/a11y-visual.spec.ts",
     pattern: "interview room has no serious/critical axe violations",
+  },
+  // The hide must be able to fail on either of its two claims: that there is a
+  // dev-tools host at all, and that the rule actually takes it out of the frame.
+  {
+    name: "DCM1",
+    desc: "the dev-tools host is mounted under a different name, and the lane hides a selector that matches nothing",
+    kind: "playwright",
+    slow: true,
+    file: "tests/a11y-visual.spec.ts",
+    anchor: `const DEV_CHROME_HOST = 'nextjs-portal';`,
+    replacement: `const DEV_CHROME_HOST = 'nextjs-portal-x';`,
+    test: "tests/a11y-visual.spec.ts",
+    pattern: "landing hero matches snapshot",
+  },
+  {
+    name: "DCM2",
+    desc: "the hide rule names the right host but leaves it painted, so the snapshot captures the indicator anyway",
+    kind: "playwright",
+    slow: true,
+    file: "tests/a11y-visual.spec.ts",
+    anchor: `{display:none !important}`,
+    replacement: `{display:inline !important}`,
+    test: "tests/a11y-visual.spec.ts",
+    pattern: "login card matches snapshot",
   },
   // ── the harness's own coverage may not shrink quietly ────────────────────
   // Written as one record on one line on purpose: FC1 is the only plant that
