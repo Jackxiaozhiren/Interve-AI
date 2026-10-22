@@ -109,8 +109,31 @@ test.describe('Visual regression', () => {
    */
   const devChrome = (page: Page) => page.locator('nextjs-portal');
 
+  /**
+   * Prove the mask has something to mask, before letting a screenshot depend on it.
+   *
+   * Playwright's `mask` matches nothing *silently*. If Next renames or restructures
+   * the dev-tools host, the mask stops hiding the indicator, the lane still passes,
+   * and the next `-u` writes harness chrome straight back into the baseline. That is
+   * not hypothetical: `login-main-chrome-1280x720-darwin.png` carried Next's "N"
+   * badge in its bottom-left corner until PR #146 re-captured it, and the 925-pixel
+   * surprise was found only because a human opened the diff image.
+   *
+   * Measured on this stack (`/login`, dev server): the indicator lives in a
+   * `nextjs-portal` shadow host — `count(nextjs-portal) = 1`, `count(next-devtools)
+   * = 0` — so the selector is right today. This assertion is what keeps "right today"
+   * from becoming an untested assumption.
+   */
+  const expectChromeMaskable = async (page: Page) => {
+    await expect(
+      devChrome(page),
+      'the dev-chrome mask matched no element: a screenshot taken now would capture Next\'s own indicator',
+    ).toHaveCount(1);
+  };
+
   test('landing hero matches snapshot', async ({ page }) => {
     await page.goto('/');
+    await expectChromeMaskable(page);
     await expect(page.locator('main')).toHaveScreenshot('landing-main.png', {
       animations: 'disabled',
       maxDiffPixels: 400,
@@ -120,6 +143,7 @@ test.describe('Visual regression', () => {
 
   test('login card matches snapshot', async ({ page }) => {
     await page.goto('/login');
+    await expectChromeMaskable(page);
     // 'main, body' looks like a fallback but CSS matches in DOM order, so
     // .first() always won <body> and the "card" snapshot was the whole page.
     await expect(page.locator('main')).toHaveScreenshot('login-main.png', {

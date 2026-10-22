@@ -164,13 +164,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * blinds the accessor resolver so a blind map is visible, STG5 makes the local
  * exemption unconditional); and 193 with the visual-baseline family check (VBA1 narrows
  * the comparison to width so a height drift hides again, VBA2 stubs the PNG reader to
- * the viewport size, which would make every family agree by construction);
+ * the viewport size, which would make every family agree by construction); and 194
+ * with the visual lane's dev-chrome mask (DCM1 renames `nextjs-portal` to something
+ * that matches nothing, so the lane must stop trusting a mask that covers nothing
+ * instead of quietly screenshotting Next's own indicator into the baseline);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 193;
+const MIN_PLANTS = 194;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1013,6 +1016,19 @@ const PLANTS = [
     replacement: `<div className="p-4 bg-white/40 border-t border-white/40">\n        <span role="listitem">planted by scripts/falsify/guards.mjs</span>`,
     test: "tests/a11y-visual.spec.ts",
     pattern: "interview room has no serious/critical axe violations",
+  },
+  // The mask assertion must be able to fail: rename the dev-tools host it looks for
+  // and the lane has to stop trusting a mask that now covers nothing.
+  {
+    name: "DCM1",
+    desc: "the dev-chrome selector no longer matches Next's indicator, and the lane keeps screenshotting as if it did",
+    kind: "playwright",
+    slow: true,
+    file: "tests/a11y-visual.spec.ts",
+    anchor: `const devChrome = (page: Page) => page.locator('nextjs-portal');`,
+    replacement: `const devChrome = (page: Page) => page.locator('nextjs-portal-x');`,
+    test: "tests/a11y-visual.spec.ts",
+    pattern: "landing hero matches snapshot",
   },
   // ── the harness's own coverage may not shrink quietly ────────────────────
   // Written as one record on one line on purpose: FC1 is the only plant that
