@@ -1204,7 +1204,8 @@ export const RATCHET_KEYS = {
     + "Adjudicated 2026-10-05: 3 found, 2 removed (error.tsx 'Go to Dashboard' and SessionDetailModal 'Interactive Replay' "
     + "were accidental — both are now router.push). The 1 that stays is useInterviewSettlement's end-of-interview exit, kept "
     + "deliberate because a full reload guarantees the microphone and both speech engines are torn down with the page; a client "
-    + "transition would have to prove that teardown, and nothing here can observe it keyless. Reopens only with a verified teardown.",
+    + "transition would have to prove that teardown, and nothing here can observe it keyless. Reopens only with an "
+    + "observed teardown, never to accommodate a new page.",
   "debt.deadControls":
     "controls a user can click that cannot do anything: no handler, no `{...spread}`, no "
     + "`href`/`type=submit`/`form`/`disabled` escape, no `form`/`Link`/`a`/`Label` ancestor, and not a "
@@ -1246,18 +1247,32 @@ export const RATCHET_KEYS = {
     + "would only train the next reader to raise this ceiling.",
   "debt.repoWalkers":
     "guard files carrying their own recursive directory walk instead of the shared owner in "
-    + "tests/unit/repo-tree.ts. First measured 2026-10-13: 26 copies. Ten have since migrated, each in a "
-    + "commit whose message names the file and whose migration was accepted only after a probe ran that "
-    + "file's retired walker beside walkRepo over the live tree and got the same list in the same order "
-    + "(see the ceiling's own history). The ceiling is what the last migration left, so a new copy is red "
-    + "immediately and debt.repoWalkerFiles is the queue. Not style: the copies diverge in ways that "
-    + "already bit — a dotless file read as a directory, two spellings of the same call, and one that "
-    + "silently returned an empty corpus from a swallowed read. At 0, delete the key rather than keep a "
-    + "ceiling guarding nothing.",
+    + "tests/unit/repo-tree.ts. First measured 2026-10-13 at 26; a file leaves the queue only after a "
+    + "probe ran its retired walker beside walkRepo over the live tree and got the same list in the same "
+    + "order, so the ceiling is what the last accepted migration left and no count is restated here. "
+    + "debt.repoWalkerFiles is the queue, and at 0 this key is deleted rather than kept guarding nothing. "
+    + "Not style: the copies diverged in ways that already bit — a dotless file read as a directory, two "
+    + "spellings of the same call, and one that silently returned an empty corpus from a swallowed read. "
+    + "read-response.test.ts was the known non-drop-in and is resolved: its skip tested a directory path "
+    + "against the separator-quoted string /api/, which never matches, so the corpus was decided by a "
+    + "spelling; the predicate now names the handler root (src/app/api/) and the same 263 files result, "
+    + "with RRP1 and RRP2 reddening either side of that seam. The one entry left is known NOT to be a "
+    + "drop-in: facts-ratchet.test.ts walks src/ to recompute the collector's own longest-file "
+    + "measurement, and routing it through the shared helper would make the differential check both sides "
+    + "of one implementation — the comparison only means something because the two walks are independent.",
   "debt.auditDocsLines":
-    "docs/audit prose volume — non-blank lines. The ruler was corrected 2026-10-12: it counted blank "
-    + "separators and one phantom trailing line per file, so the corpus measured 3145 while holding 2520 "
-    + "content lines, and reflowing a paragraph could break CI.",
+    "docs/audit prose volume — non-blank lines of the `.md` files directly under docs/audit. The ruler "
+    + "was corrected 2026-10-12: it counted blank separators and one phantom trailing line per file, so "
+    + "the corpus measured 3145 while holding 2520 content lines, and reflowing a paragraph could break "
+    + "CI. That 2520 then became the ceiling and sat saturated, which is the wrong incentive for an audit "
+    + "corpus: recording a finding meant deleting a line somewhere else. On 2026-10-22 the nine registers "
+    + "whose names carry the round they belong to (V8/V9/V10/V2) moved to docs/audit/archive/, which the "
+    + "non-recursive ruler does not descend into, and the ceiling came down with the arithmetic written "
+    + "out rather than asserted — 2520 live lines minus 587 archived leaves 1933 measured, and the 117 "
+    + "lines above that are headroom for findings that currently exist only in a guard's own header "
+    + "comment. Arrival in the archive is policed by tests/unit/audit-archive-is-declared.test.ts, which "
+    + "carries the whole inventory and both directions of it, so this is a bounded exemption and not a "
+    + "way to grow audit prose by making a directory.",
   "debt.unreferencedProductionDeps":
     "production dependencies no file under src/ imports. Adjudicated 2026-10-06 at 4: `dexie`, "
     + "`dexie-react-hooks`, `geist`, `mermaid` — zero references repo-wide outside generated "
@@ -1265,7 +1280,13 @@ export const RATCHET_KEYS = {
     + "stay installed because dropping a dependency is an owner decision, not a cleanup an audit "
     + "makes alone; each removal should lower this ceiling, and nothing should raise it. A new "
     + "entry here is a manifest claim, not a feature.",
-  "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob",
+  "debt.longestSourceFileLines":
+    "size of the single largest file under src/ — the God-component ceiling; lower it as extraction "
+    + "lands, never raise it to accommodate a new blob. Counted the way the collector counts: split on "
+    + "newlines, so a file ending in one reads a line higher than `wc -l`. Lowered 1180 -> 1100 on "
+    + "2026-10-11 when the /interview room gave its overlay stack, its telemetry strip and its transcript "
+    + "column to components; the slack above the measurement belongs to the recording loop still in that "
+    + "file, not to lines already recovered.",
   "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
   "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",
 };

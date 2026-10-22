@@ -127,6 +127,23 @@ describe("ratchet ledger integrity", () => {
     );
     expect(stubs, `notes that restate their key instead of explaining it: ${stubs.map(([k]) => k).join(", ")}`).toEqual([]);
   });
+
+  it("carries the collector's own words for each note, not a copy of them", () => {
+    // `_keys` is written from `RATCHET_KEYS` by `--seed`, so every note in the ledger is
+    // a *copy* — and copies drift. Measured on 2026-10-22 while lowering one ceiling: 5 of
+    // 16 notes disagreed with the code that owns the rule, in both directions. The ledger
+    // had the current repo-walker queue while the code still described the migration count
+    // from when it was written; the dead-control and `as never` notes were richer in code
+    // than in the file an owner reads before approving a DDL. A note that reads like a
+    // source of truth and is not one is worse than no note. Flip condition: edit either
+    // side alone and this reddens.
+    const codeNotes: Record<string, string> = RATCHET_KEYS;
+    const ledgerNotes: Record<string, string> = limits?._keys ?? {};
+    const drift = [...new Set([...Object.keys(ledgerNotes), ...Object.keys(codeNotes)])].filter(
+      (key) => ledgerNotes[key] !== codeNotes[key],
+    );
+    expect(drift, `ledger notes that are not the collector's text: ${drift.join(", ")}`).toEqual([]);
+  });
 });
 
 describe("debt ratchet (Ring B)", () => {

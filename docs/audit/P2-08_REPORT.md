@@ -18,8 +18,8 @@ V9 初版 §1.7 误将过期 Slack 频道名当作 2026 final（实为 2025 系�
 ## 改动（注释/文档 only，共 6 编辑）
 
 - `src/components/interve-ui/chat/message-card.tsx:140`、`src/lib/message-text.ts:35`、`docs/SECURITY.md:9`：输出处理 LLM05→LLM10（无主旧文件，注释级，零逻辑风险）。
-- `docs/audit/S_VERIFY_V8.md`：LLM03/06 合并行拆成 LLM03（agency）＋LLM06（unbounded）两行＋对版注（自家文件）。
-- `docs/audit/PAIN_REGISTER_V9.md`：§B/§D/§F 按正典重写（自家文件）。
+- `docs/audit/archive/S_VERIFY_V8.md`：LLM03/06 合并行拆成 LLM03（agency）＋LLM06（unbounded）两行＋对版注（自家文件）。
+- `docs/audit/archive/PAIN_REGISTER_V9.md`：§B/§D/§F 按正典重写（自家文件）。
 - V9 Master Prompt（仓外交付物）：§1.7/§2/§4/继任声明 4 处更正。
 
 ## 未动（待 owner，禁碰）
