@@ -162,13 +162,15 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * local-fallback sentence back in the `catch` clause and in the promise-chain
  * `.catch(h)` — the spelling a rule that walks only catch clauses cannot see, STG4
  * blinds the accessor resolver so a blind map is visible, STG5 makes the local
- * exemption unconditional);
+ * exemption unconditional); and 193 with the visual-baseline family check (VBA1 narrows
+ * the comparison to width so a height drift hides again, VBA2 stubs the PNG reader to
+ * the viewport size, which would make every family agree by construction);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 191;
+const MIN_PLANTS = 193;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

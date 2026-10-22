@@ -965,6 +965,24 @@
       "replacement": "const WITHOUT = WITH_ID.replace(assignment, 'interviewId = \"local-still\";');",
       "test": "tests/unit/storage-claims-match-the-code.test.ts",
       "pattern": "SC2 stays quiet when the flow proves locality by mechanism"
+    },
+    {
+      "name": "VBA1",
+      "desc": "the family comparison narrows to width, so a one-sided re-capture that changes the page height is invisible again",
+      "file": "tests/unit/visual-baselines-agree.test.ts",
+      "anchor": "const sizes = new Set([...plats.values()].map((d) => (d ? `${d.w}x${d.h}` : \"unreadable\")));",
+      "replacement": "const sizes = new Set([...plats.values()].map((d) => (d ? `${d.w}` : \"unreadable\")));",
+      "test": "tests/unit/visual-baselines-agree.test.ts",
+      "pattern": "catches a one-sided re-capture and passes a matched pair"
+    },
+    {
+      "name": "VBA2",
+      "desc": "the PNG reader stops reading and returns the viewport size, which would make every family agree by construction",
+      "file": "tests/unit/visual-baselines-agree.test.ts",
+      "anchor": "  return { w: bytes.readUInt32BE(16), h: bytes.readUInt32BE(20) };",
+      "replacement": "  return { w: 1280, h: 720 };",
+      "test": "tests/unit/visual-baselines-agree.test.ts",
+      "pattern": "the reader is the thing being trusted"
     }
   ]
 }
