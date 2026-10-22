@@ -1,6 +1,6 @@
 # EVALUATION_CARD — evidence-grounded rubric evaluation v2
 
-> Companion to `docs/audit/EVALUATION_V2_REPORT.md`. This card states what
+> Companion to `docs/audit/archive/EVALUATION_V2_REPORT.md`. This card states what
 > the evaluator guarantees, measures, and does NOT do.
 
 ## Method

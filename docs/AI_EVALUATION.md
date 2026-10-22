@@ -1,6 +1,6 @@
 # AI_EVALUATION
 
-> Details: `docs/audit/EVALUATION_V2_REPORT.md` + `docs/audit/EVAL_REPORT.md` + `docs/ai-governance/{MODEL_CARD,EVALUATION_CARD}.md` + `evals/`.
+> Details: `docs/audit/archive/EVALUATION_V2_REPORT.md` + `docs/audit/EVAL_REPORT.md` + `docs/ai-governance/{MODEL_CARD,EVALUATION_CARD}.md` + `evals/`.
 
 - Contract: 5 versioned rubrics (behavioral/technical/system-design/data-ml/general-v1), 1-5 anchors/dim, ≥1 verbatim evidence/dim (Zod-enforced), 0-100 = ×20 derivation, per-dim + overall (weakest-link) evaluator confidence, improvement drill/dim, readiness (`needs_foundation/developing/interview_ready/strongly_prepared`) + mandatory training-estimate disclaimer. No hire verdicts, no culture-fit.
 - Harness: `evals/golden.json` (12 synthetic, 6 tracks × strong/weak, anchor bands), `injection-cases.json` (4 vectors), `fairness-pairs.json` (surface-token swaps, no protected traits), `free.eval.test.ts` (≤3-call free smoke), `runner.ts` (in-process REAL handler, `ZHIPU_API_KEY`-gated, keyless skip), metrics (QW-Kappa/Spearman-tied/MAE/exact+adjacent/stdev) hand-verified.

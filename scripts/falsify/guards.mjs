@@ -171,13 +171,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * (DCM2 leaves the host name alone and breaks only the rule, so a hide that matches
  * an element but never stops it painting has to be caught too — that is precisely the
  * shape the PR #147 ubuntu run was in: zero magenta pixels in the capture, Next's
- * "N · 1 Issue" pill in the baseline);
+ * "N · 1 Issue" pill in the baseline); and 198 with the audit archive that opened after
+ * that ceiling saturated (ARC1 leaves a live document pointing at a register's pre-move
+ * path, ARC2 lets the ledger's note drift from the collector's own text, ARC3 parks a
+ * file in the archive with no declaration — the third is the one that matters, because a
+ * directory the ruler does not descend into is a ceiling dodge unless arrival is named);
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 195;
+const MIN_PLANTS = 198;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

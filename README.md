@@ -93,7 +93,7 @@ CI (`.github/workflows/ci.yml`, all free): install → lint → typecheck → un
 
 ## Deploy
 
-Vercel (`vercel.json`: `npm ci`) or Docker (`Dockerfile`: `node:24-alpine`, `npm ci`, `output:standalone`). Set `ZHIPU_API_KEY` + `SESSION_SECRET` + (optional) Supabase vars in the host env. Release gate: engineering all-green, zero fake AI, every score has evidence+uncertainty, injection/fairness/stability pass, RLS/auth/rate-limit pass, Lighthouse 达标或有解释 (the dated scores live in `docs/audit/LIGHTHOUSE_V10.md`, which is their only home), docs let a newcomer run clean-room.
+Vercel (`vercel.json`: `npm ci`) or Docker (`Dockerfile`: `node:24-alpine`, `npm ci`, `output:standalone`). Set `ZHIPU_API_KEY` + `SESSION_SECRET` + (optional) Supabase vars in the host env. Release gate: engineering all-green, zero fake AI, every score has evidence+uncertainty, injection/fairness/stability pass, RLS/auth/rate-limit pass, Lighthouse 达标或有解释 (the dated scores live in `docs/audit/archive/LIGHTHOUSE_V10.md`, which is their only home), docs let a newcomer run clean-room.
 
 ## Roadmap / Limitations
 
