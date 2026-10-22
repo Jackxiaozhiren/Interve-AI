@@ -101,55 +101,63 @@ test.describe('Automated a11y scans', () => {
 
 test.describe('Visual regression', () => {
   /**
-   * Next's dev overlay mounts into <nextjs-portal> and grows an "N · 1 Issue"
-   * pill whenever the dev server logs anything — /login logs a hydration
-   * warning today, and the pill alone is 3,735 px, nine times the diff budget.
-   * Nothing like it exists in production, so masking keeps the snapshot
-   * measuring the product rather than the harness.
+   * Next's dev-tools host has to be out of the frame, and the lane has to know it is.
+   *
+   * It used to be *masked* (`mask: [locator('nextjs-portal')]`), which is wrong twice
+   * over. A mask paints magenta over what it covers, so a mask that works leaves
+   * harness pixels in the baseline. And a mask whose element has no painted box covers
+   * nothing while still looking configured — which is what had actually happened: the
+   * PR #147 CI run's two ubuntu captures contain **zero magenta pixels**, and they
+   * differ from the committed baselines only in the bottom-left corner where the
+   * indicator lives (landing: 4,334 px inside x[1..74] y[661..733], the collapsed "N"
+   * badge; login: 9,064 px inside x[1..156] y[656..719], the expanded "N · 1 Issue ✕"
+   * pill). The pill had been written into the product's visual truth, and the lane
+   * kept passing against it because the baseline and the harness error changed
+   * together — until a run where the error did not fire.
+   *
+   * Hiding the host is deterministic and leaves no mask artefact. The two assertions
+   * after it are what make the hide load-bearing instead of decorative: the first
+   * fails if Next renames the host (nothing to hide), the second if the rule stops
+   * applying (hidden on paper, painted in the frame). Measured mechanism, on a
+   * synthetic `:host{all:initial}` shadow element painting a fixed pill from a
+   * document stylesheet: 2,236 pill pixels before the rule, 0 after.
    */
-  const devChrome = (page: Page) => page.locator('nextjs-portal');
+  const DEV_CHROME_HOST = 'nextjs-portal';
 
-  /**
-   * Prove the mask has something to mask, before letting a screenshot depend on it.
-   *
-   * Playwright's `mask` matches nothing *silently*. If Next renames or restructures
-   * the dev-tools host, the mask stops hiding the indicator, the lane still passes,
-   * and the next `-u` writes harness chrome straight back into the baseline. That is
-   * not hypothetical: `login-main-chrome-1280x720-darwin.png` carried Next's "N"
-   * badge in its bottom-left corner until PR #146 re-captured it, and the 925-pixel
-   * surprise was found only because a human opened the diff image.
-   *
-   * Measured on this stack (`/login`, dev server): the indicator lives in a
-   * `nextjs-portal` shadow host — `count(nextjs-portal) = 1`, `count(next-devtools)
-   * = 0` — so the selector is right today. This assertion is what keeps "right today"
-   * from becoming an untested assumption.
-   */
-  const expectChromeMaskable = async (page: Page) => {
+  const hideDevChrome = async (page: Page) => {
+    await page.addStyleTag({ content: `${DEV_CHROME_HOST}{display:none !important}` });
+    const portal = page.locator(DEV_CHROME_HOST);
     await expect(
-      devChrome(page),
-      'the dev-chrome mask matched no element: a screenshot taken now would capture Next\'s own indicator',
+      portal,
+      `Next's dev-tools host is not mounted as <${DEV_CHROME_HOST}>: this lane has nothing to hide, ` +
+        'and a screenshot taken now would capture whatever the indicator paints',
     ).toHaveCount(1);
+    await expect
+      .poll(() => portal.evaluate((el) => getComputedStyle(el).display), {
+        message:
+          `the dev-tools host is still painted: <${DEV_CHROME_HOST}> is visible to layout, so the ` +
+          'snapshot would capture Next\'s own indicator instead of the product',
+      })
+      .toBe('none');
   };
 
   test('landing hero matches snapshot', async ({ page }) => {
     await page.goto('/');
-    await expectChromeMaskable(page);
+    await hideDevChrome(page);
     await expect(page.locator('main')).toHaveScreenshot('landing-main.png', {
       animations: 'disabled',
       maxDiffPixels: 400,
-      mask: [devChrome(page)],
     });
   });
 
   test('login card matches snapshot', async ({ page }) => {
     await page.goto('/login');
-    await expectChromeMaskable(page);
+    await hideDevChrome(page);
     // 'main, body' looks like a fallback but CSS matches in DOM order, so
     // .first() always won <body> and the "card" snapshot was the whole page.
     await expect(page.locator('main')).toHaveScreenshot('login-main.png', {
       animations: 'disabled',
       maxDiffPixels: 400,
-      mask: [devChrome(page)],
     });
   });
 });
