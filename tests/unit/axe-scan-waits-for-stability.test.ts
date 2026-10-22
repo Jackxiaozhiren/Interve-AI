@@ -140,6 +140,16 @@ export function settleHelperDefects(sf: ts.SourceFile): string[] {
     out.push("settleForScan does not retry (no expect.poll), so one observation decides it");
   }
 
+  // The signature has to include *where* a text node sits, not only what it looks like.
+  // axe resolves a node's background from what is painted behind it, so a node translated
+  // a few pixels by an in-flight framer-motion transform is a different measurement. That
+  // is the mechanism behind both the room's 17/18 unresolved-count jitter and the
+  // intermittent `color-contrast` violation whose reported target was `:root` with an
+  // empty message — a pill sampled while AnimatePresence was remounting it.
+  if (!callsNamed(sf, body, (name) => /getBoundingClientRect$/.test(name)).length) {
+    out.push("settleForScan's signature ignores geometry — a node moved mid-animation reads as unchanged");
+  }
+
   // The sample interval must stay an interval: a second-scale delay is a sleep again.
   if (callsNamed(sf, body, (name) => name === "setTimeout").length) {
     let ms = NaN;
@@ -243,10 +253,18 @@ test('extra has no serious/critical axe violations', async ({ page }) => {
 };
 `;
     const LONG_SAMPLE = `const settleForScan = async (page) => {
-  const read = () => 1;
+  const read = () => document.body.getBoundingClientRect().width;
   await expect.poll(() => new Promise((resolve) => {
     const before = read();
     setTimeout(() => { const after = read(); resolve(before === after ? 'settled' : 'moving'); }, 9000);
+  })).toBe('settled');
+};
+`;
+    const OPACITY_ONLY = `const settleForScan = async (page) => {
+  const read = () => getComputedStyle(document.body).opacity;
+  await expect.poll(() => new Promise((resolve) => {
+    const before = read();
+    setTimeout(() => { const after = read(); resolve(before === after ? 'settled' : 'moving'); }, 200);
   })).toBe('settled');
 };
 `;
@@ -259,7 +277,10 @@ test('extra has no serious/critical axe violations', async ({ page }) => {
     expect(settleHelperDefects(fixture(LONG_SAMPLE))).toEqual([
       "settleForScan samples 9000 ms apart — that is a wait, not a sample",
     ]);
-    // The real helper passes, so the three arms above are not the only shape accepted.
+    expect(settleHelperDefects(fixture(OPACITY_ONLY))).toEqual([
+      "settleForScan's signature ignores geometry — a node moved mid-animation reads as unchanged",
+    ]);
+    // The real helper passes, so the arms above are not the only shape accepted.
     expect(settleHelperDefects(parse(SPEC, readRepo(SPEC)))).toEqual([]);
   });
 

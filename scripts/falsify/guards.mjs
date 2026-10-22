@@ -176,12 +176,15 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * path, ARC2 lets the ledger's note drift from the collector's own text, ARC3 parks a
  * file in the archive with no declaration — the third is the one that matters, because a
  * directory the ruler does not descend into is a ceiling dodge unless arrival is named);
+ * and 199 with the ceiling on contrast nodes axe could not judge (AXU1 sets an arm's
+ * ceiling to nothing, which is the only way to show the lane is really counting the nodes
+ * it used to discard rather than asserting against an empty list)
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 198;
+const MIN_PLANTS = 199;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1048,6 +1051,20 @@ const PLANTS = [
     replacement: `{display:inline !important}`,
     test: "tests/a11y-visual.spec.ts",
     pattern: "login card matches snapshot",
+  },
+  // The unresolved-contrast ceiling is a ratchet over a blind spot, so it has to be able
+  // to fail: set an arm's ceiling below what that arm measures and the lane must stop
+  // calling the scan clean.
+  {
+    name: "AXU1",
+    desc: "the ceiling on nodes axe could not judge is raised to nothing, and the lane keeps reporting a clean scan of text it never compared",
+    kind: "playwright",
+    slow: true,
+    file: "tests/a11y-visual.spec.ts",
+    anchor: `await expectNoSeriousViolations(page, 18);`,
+    replacement: `await expectNoSeriousViolations(page, 0);`,
+    test: "tests/a11y-visual.spec.ts",
+    pattern: "interview room has no serious/critical axe violations",
   },
   // ── the harness's own coverage may not shrink quietly ────────────────────
   // Written as one record on one line on purpose: FC1 is the only plant that
