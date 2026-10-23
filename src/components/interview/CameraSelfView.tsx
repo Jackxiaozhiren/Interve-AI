@@ -90,7 +90,11 @@ export const CameraSelfView = React.memo(() => {
         )}
 
         <div className="absolute bottom-3 left-3 right-3 z-10">
-          <div className="px-2 py-1 bg-black/30 backdrop-blur-md rounded-lg border border-white/20 shadow-sm">
+          {/* /70, not /30: the plate is composited over whatever the camera is showing,
+              and measured over a light frame `bg-black/30` resolved to #b1b0ae, which is
+              2.16:1 against the white label below. At /70 the same white-on-light
+              worst case resolves to #4c4c4c (~8.9:1). */}
+          <div className="px-2 py-1 bg-black/70 backdrop-blur-md rounded-lg border border-white/20 shadow-sm">
             <p className="text-[9px] font-medium text-white leading-relaxed">
               {t.interview.noVisualAnalysis}
             </p>

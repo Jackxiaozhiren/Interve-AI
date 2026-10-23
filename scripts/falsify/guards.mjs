@@ -178,13 +178,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * directory the ruler does not descend into is a ceiling dodge unless arrival is named);
  * and 199 with the ceiling on contrast nodes axe could not judge (AXU1 sets an arm's
  * ceiling to nothing, which is the only way to show the lane is really counting the nodes
- * it used to discard rather than asserting against an empty list)
+ * it used to discard rather than asserting against an empty list); and 200 with the
+ * alpha pin that keeps a transient notification from being measured mid-fade (AXR1 drops
+ * the toast half of the injected rule — sonner fades with a @keyframes animation that
+ * never appears in the style attribute, so a pin covering only framer-motion's inline
+ * opacity lets the lane report #838383 where the resting colour is #3f3f3f)
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 199;
+const MIN_PLANTS = 200;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

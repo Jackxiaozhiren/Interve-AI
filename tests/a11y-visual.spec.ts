@@ -26,16 +26,30 @@ test.describe('Automated a11y scans', () => {
    * change, not about translucency. When it does time out, the received value names the
    * moving node and its state, so the red says what to look at.
    *
-   * Position is part of the signature because axe resolves a text node's background by
-   * asking what is behind it. A node translated a few pixels by an in-flight
-   * framer-motion animation therefore overlaps a different set of layers, and the scan
-   * measures a different page. That is the measured cause of both symptoms this
-   * predicate now covers: the interview room's unresolved-contrast count alternating
-   * between 17 and 18 across identical runs, and an intermittent `color-contrast`
-   * *violation* on the status pill whose reported target was `:root` with an empty
-   * message — a node sampled while `AnimatePresence mode="wait"` was remounting it,
-   * mid-`transform`. Opacity alone could not see either, because a remount can finish at
-   * the same opacity and the same first twelve characters.
+   * The alpha has to be the **effective** one — the product down the ancestor chain —
+   * because that is what axe composites the text colour through. Measured on the
+   * recording toast, sampled every 25 ms from the arm's own click: `a=0.000 → #ffffff`
+   * (1.0:1), `a=0.408 → #b1b1b1`, `a=0.645 → #838383`, `a=0.983 → #424242`, settling at
+   * `#3f3f3f` — sonner's real resting colour, 10.9:1 and passing. The lane's
+   * intermittent `insufficient color contrast of 3.79 (#838383 on #ffffff)` was that
+   * third sample.
+   *
+   * Two honest limits on what this change buys. A control that ran both readers 200 ms
+   * apart through the same fade showed the old self-opacity reader calling it "moving"
+   * too (4 of 6 rounds) — not because it saw the alpha, but because the toast's text
+   * nodes appear between the samples. What a self-opacity read cannot see is a fade on
+   * text that is already mounted: the exit ramp was measured at `a=0.863` with the
+   * string unchanged, so the old signature reported it settled. And the toast can also
+   * mount *after* `settleForScan` returns, which no "is it stable now" predicate can
+   * prevent — that half is closed by `scanAtRest` pinning the toast's opacity instead.
+   *
+   * Position is part of the signature too, for the same reason as the alpha: axe
+   * resolves a background by asking what is behind a node, so a node translated a few
+   * pixels by an in-flight animation overlaps a different set of layers and the scan
+   * measures a different page. That is the measured cause of the room's
+   * unresolved-contrast count alternating between 17 and 18, and of an earlier
+   * violation whose target was `:root` with an empty message — a pill sampled while
+   * `AnimatePresence mode="wait"` was remounting it.
    */
   async function settleForScan(page: Page) {
     await expect
@@ -44,6 +58,13 @@ test.describe('Automated a11y scans', () => {
           page.evaluate(
             () =>
               new Promise<string>((resolve) => {
+                const effectiveAlpha = (el: Element) => {
+                  let a = 1;
+                  for (let cur: Element | null = el; cur; cur = cur.parentElement) {
+                    a *= Number(getComputedStyle(cur).opacity);
+                  }
+                  return a.toFixed(3);
+                };
                 const read = () =>
                   Array.from(document.querySelectorAll('*'))
                     .filter((el) =>
@@ -52,7 +73,7 @@ test.describe('Automated a11y scans', () => {
                     .map((el) => {
                       const r = el.getBoundingClientRect();
                       return (
-                        `${getComputedStyle(el).opacity}|` +
+                        `${effectiveAlpha(el)}|` +
                         `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}x${Math.round(r.height)}|` +
                         (el.textContent ?? '').trim().slice(0, 12)
                       );
@@ -84,13 +105,20 @@ test.describe('Automated a11y scans', () => {
    * the scan still failed once in eight runs, because a fade that starts and ends inside
    * the scan window is invisible to both checks.
    *
-   * Overriding the property removes the race instead of narrowing it. The selector is
-   * deliberately narrow: `[style*=…]` matches only the inline `opacity` that
-   * framer-motion writes per frame, so a class-driven `opacity-40` — the council titles
-   * are *designed* translucent and must still be judged — is left exactly as it is.
+   * Overriding the property removes the race instead of narrowing it. Two selectors,
+   * because two mechanisms write opacity: `[style*=…]` catches the inline value
+   * framer-motion writes per frame, and `[data-sonner-toast]` catches sonner's CSS
+   * `@keyframes` fade, which never touches the style attribute — that is the one the
+   * recording toast rides, and the first version of this rule missed it. Both are
+   * deliberately narrow: a class-driven `opacity-40` — the council titles are *designed*
+   * translucent and must still be judged — is left exactly as it is.
    */
   async function scanAtRest(page: Page) {
-    await page.addStyleTag({ content: '[style*="opacity"]{opacity:1 !important}' });
+    await page.addStyleTag({
+      content:
+        '[style*="opacity"]{opacity:1 !important}' +
+        '[data-sonner-toast]{opacity:1 !important;animation:none !important}',
+    });
     return new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
   }
 

@@ -49,3 +49,34 @@ export function firstGoto(sf: ts.SourceFile, body: ts.Node): string | null {
 export function parseSpec(rel: string, text: string): ts.SourceFile {
   return ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 }
+
+/**
+ * A function by name, in any of the shapes a spec writes one: `function f() {}`,
+ * `const f = (…) => …`, `const f = function () {}`, or a method. The first version of
+ * this lookup matched only the arrow-in-a-const form and reported the lane's real
+ * `async function settleForScan(page)` as missing — a guard that cannot find its
+ * subject is worse than no guard, because it reads as a pass.
+ */
+export function findFunctionByName(
+  sf: ts.SourceFile,
+  name: string,
+): { node: ts.FunctionLikeDeclaration; body: ts.Node | undefined } | undefined {
+  let found: { node: ts.FunctionLikeDeclaration; body: ts.Node | undefined } | undefined;
+  const visit = (n: ts.Node) => {
+    if (found) return;
+    if (
+      (ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n) || ts.isMethodDeclaration(n)) &&
+      n.name &&
+      ts.isIdentifier(n.name) &&
+      n.name.text === name
+    ) {
+      found = { node: n, body: n.body };
+    } else if (ts.isVariableDeclaration(n) && n.name.getText(sf) === name && n.initializer) {
+      const init = n.initializer;
+      if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) found = { node: init, body: init.body };
+    }
+    if (!found) ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return found;
+}
