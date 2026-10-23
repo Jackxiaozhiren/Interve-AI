@@ -3,7 +3,8 @@
   "_seededAt": "2026-10-06",
   "_verifiedBy": [
     "npm ls vitest --omit=dev  ->  `-- (empty)`  (the runner is not in the installed production tree)",
-    "no file under src/ imports vitest, and next.config sets output: 'standalone', so the deployed trace never contains it"
+    "no file under src/ imports vitest, and next.config sets output: 'standalone', so the deployed trace never contains it",
+    "npm ls dompurify -> one copy at 3.4.17 with the override, two copies (monaco on 3.4.8) without it (measured 2026-10-23)"
   ],
   "devOnlyCritical": [],
   "closed": [
@@ -38,6 +39,45 @@
       ],
       "title": "Tinypool: prototype-pollution gadget in worker options / run() options leads to RCE",
       "note": "Closed by removing the dependency: vitest 5.0.3 no longer depends on tinypool at all (`grep '\"node_modules/tinypool\"' package-lock.json` -> 0 hits), so there is no vulnerable version in the tree. The fix for this row was never an override — vitest 3.2.7 pins ^1.1.1, and putting an unsupported worker pool under the runner is how a green stops meaning anything."
+    },
+    {
+      "package": "next",
+      "was": "16.3.6",
+      "now": "16.4.2",
+      "advisories": [
+        "GHSA-2464-fhr4-w9xw",
+        "GHSA-cjq9-62q9-8jv4",
+        "GHSA-4jqv-mc3x-m676",
+        "GHSA-mcj8-r9mp-w47p",
+        "GHSA-p3m5-59mp-jv5r",
+        "GHSA-f87g-xv8r-7p7x",
+        "GHSA-3w37-wq28-93x7",
+        "GHSA-39w2-rjm5-chcv",
+        "GHSA-h694-7cp9-m8p3"
+      ],
+      "title": "Unauthenticated RCE in Image Optimization with SVG, SSRF in the same API, SSG/ISR cache poisoning in self-hosted builds, Server Action DoS, metadata-route information disclosure",
+      "how_it_got_into_production": "It is the framework: `dependencies.next` is pinned exactly, and `output: 'standalone'` means the self-hosted path is the one the cache-poisoning advisories describe. 16.4.2 is the first release outside the vulnerable ranges — the two newest advisories cover '<=16.4.0', so 16.3.8 would have left the Image Optimization RCE open.",
+      "scope_note": "Exposure here is concrete, not theoretical: `next.config.ts` allows three remote image hosts (Google, GitHub avatars, dicebear) for OAuth avatars, so /_next/image is reachable with attacker-influenced inputs. The resume path rejects SVG; the image optimiser is a separate surface.",
+      "note": "Closed 2026-10-23 by the version move. `npm ls next` reports 16.4.2 and `npm run audit:deps` reports shipped criticals=0."
+    },
+    {
+      "package": "dompurify",
+      "was": "3.4.8",
+      "now": "3.4.17",
+      "advisories": [
+        "GHSA-cmwh-pvxp-8882",
+        "GHSA-vxr8-fq34-vvx9",
+        "GHSA-55q2-fjhq-7xh7",
+        "GHSA-c2j3-45gr-mqc4",
+        "GHSA-6688-9rhm-gjv2",
+        "GHSA-cg2g-xh64-v4q7",
+        "GHSA-mrv2-3pqr-j5jr",
+        "GHSA-c6gr-qvv4-5v3f"
+      ],
+      "title": "Eight sanitizer-bypass advisories: ALLOWED_ATTR pollution via setConfig, trusted-types policy surviving clearConfig, IN_PLACE hook removal leaving a detached subtree executable, CUSTOM_ELEMENT_HANDLING bypass, SAFE_FOR_TEMPLATES split-expression bypass, SMIL guard skip",
+      "how_it_got_into_production": "Transitively, three ways: `monaco-editor` (the interview scratchpad) pins 3.4.8 exactly, `jspdf` (the dossier export) and `mermaid` each accept a range. Without an `overrides` entry npm resolves two copies — `npm ls dompurify` shows monaco still on 3.4.8 while the others take 3.4.17 — so the parent that matters is the one that will not move on its own, and `package.json` now forces 3.4.17.",
+      "scope_note": "The app never calls DOMPurify itself (zero references under src/); it is reached through monaco's and jspdf's own sanitisation of rendered content. The app's own HTML sink is `message-card.tsx` via `escapeHtml`, which is a different mechanism and is pinned by `security-surface.test.ts`.",
+      "note": "Closed 2026-10-23 by the override. Revisit by dropping the override once monaco-editor ships a range that includes 3.4.17; `npm ls dompurify` is the check."
     }
   ]
 }
