@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 import { waterfallVariant } from "@/lib/motion";
 
 const BADGE: Record<string, string> = {
-  sky: "text-sky-400/60",
-  emerald: "text-emerald-400/80",
+  sky: "text-sky-700",
+  emerald: "text-emerald-700",
 };
 
 /**

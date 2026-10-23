@@ -311,7 +311,7 @@ export default function ReplayPage() {
                         <h3 className="text-[11px] font-bold text-rose-500 uppercase tracking-widest font-mono flex items-center gap-2 mb-3">
                           <WarningCircle className="w-4 h-4" weight="fill" /> Delivery Flaws
                         </h3>
-                        <div className="text-rose-900/80 leading-relaxed font-medium text-[14px]">
+                        <div className="text-rose-900 leading-relaxed font-medium text-[14px]">
                           {interview.qaReview[selectedQAIndex].flaws}
                         </div>
                       </SpotlightCard>

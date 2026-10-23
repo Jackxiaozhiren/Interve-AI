@@ -27,6 +27,7 @@
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { readRepo, walkRepo } from "./repo-tree";
+import { testBodies } from "./spec-ast";
 
 const SPEC = "tests/a11y-visual.spec.ts";
 
@@ -44,21 +45,6 @@ function callsNamed(sf: ts.SourceFile, node: ts.Node, names: (name: string) => b
     ts.forEachChild(n, visit);
   };
   visit(node);
-  return out;
-}
-
-/** Every `test("…", async (…) => { … })` in the file, by title. */
-function testBodies(sf: ts.SourceFile): Map<string, ts.Node> {
-  const out = new Map<string, ts.Node>();
-  const visit = (n: ts.Node) => {
-    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "test" && n.arguments.length >= 2) {
-      const title = n.arguments[0];
-      const body = n.arguments[1];
-      if (ts.isStringLiteral(title) && body && ts.isArrowFunction(body) && body.body) out.set(title.text, body.body);
-    }
-    ts.forEachChild(n, visit);
-  };
-  visit(sf);
   return out;
 }
 
@@ -181,11 +167,12 @@ describe("the axe arms wait for the page to stop changing, not for a clock", () 
     expect(settleHelperDefects(sf), "the settle predicate can pass without seeing change").toEqual([]);
   });
 
-  it("the arms are the three flows the lane claims to cover", () => {
+  it("the arms are the four flows the lane claims to cover", () => {
     const titles = [...testBodies(sf).keys()].filter((t) => /axe violations/.test(t));
-    expect(titles.length, "an arm was renamed or dropped: retarget these rules").toBe(3);
-    expect(titles.join("|"), "the landing/login/room coverage moved").toMatch(/landing/);
+    expect(titles.length, "an arm was renamed or dropped: retarget these rules").toBe(4);
+    expect(titles.join("|"), "the landing/login/setup/room coverage moved").toMatch(/landing/);
     expect(titles.join("|")).toMatch(/login/);
+    expect(titles.join("|")).toMatch(/setup/);
     expect(titles.join("|")).toMatch(/interview room/);
   });
 });

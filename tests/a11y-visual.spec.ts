@@ -164,6 +164,23 @@ test.describe('Automated a11y scans', () => {
     await expectNoSeriousViolations(page, 11);
   });
 
+  /**
+   * `/setup` step 1 only. The wizard has six steps and the arm does not walk them, so
+   * this is a floor on coverage, not a claim about the page: the 16 `text-slate-400`
+   * sites in this file (2.49:1 on its near-white surfaces) are mostly on steps the scan
+   * never reaches. Two of them were live AA failures found on the arm's first run —
+   * the progress line and the step-index badge — and are fixed; the rest are recorded in
+   * `docs/audit/V11_REGISTER.md` rather than swept, because a repo-wide colour change
+   * driven by three scanned routes is a design decision, not a defect fix.
+   */
+  test('setup has no serious/critical axe violations', async ({ page }) => {
+    await loginAs(page);
+    await page.goto('/setup');
+    await settleForScan(page);
+    await expectNoSeriousViolations(page, 10);
+  });
+
+
   test('interview room has no serious/critical axe violations', async ({ page }) => {
     await loginAs(page);
     await page.goto('/interview?id=axe-room&testMode=true');
