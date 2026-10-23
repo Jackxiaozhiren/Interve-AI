@@ -985,6 +985,15 @@
       "pattern": "the reader is the thing being trusted"
     },
     {
+      "name": "AXR1",
+      "desc": "the resting-alpha pin stops covering sonner's toast, so the lane measures the recording notification halfway through its fade again",
+      "file": "tests/a11y-visual.spec.ts",
+      "anchor": "        '[data-sonner-toast]{opacity:1 !important;animation:none !important}',",
+      "replacement": "        '',",
+      "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
+      "pattern": "AX4: the scan pins the resting alpha"
+    },
+    {
       "name": "ARC1",
       "desc": "the guard's own exemption stops naming this file, so its fixtures are scanned as if they were live references",
       "file": "tests/unit/audit-archive-is-declared.test.ts",

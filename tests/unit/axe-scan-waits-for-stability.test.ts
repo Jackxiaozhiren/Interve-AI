@@ -27,7 +27,7 @@
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { readRepo, walkRepo } from "./repo-tree";
-import { testBodies } from "./spec-ast";
+import { findFunctionByName, testBodies } from "./spec-ast";
 
 const SPEC = "tests/a11y-visual.spec.ts";
 
@@ -136,6 +136,17 @@ export function settleHelperDefects(sf: ts.SourceFile): string[] {
     out.push("settleForScan's signature ignores geometry — a node moved mid-animation reads as unchanged");
   }
 
+  // And the alpha must be the product down the ancestor chain, not the node's own.
+  // A toast's `[data-description]` reports opacity 1 for its whole ~400 ms enter fade
+  // while the `li` above it ramps 0 → 1; axe composites through the ancestor, so a
+  // self-opacity signature watches a number that never moves and measures #838383
+  // (3.79:1) where the resting colour is #3f3f3f (10.9:1).
+  const walksAncestors = /parentElement/.test(body.getText(sf));
+  const multipliesAlpha = /\*\s*=?\s*[^;\n]*opacity/i.test(body.getText(sf)) || /opacity[^;\n]*\*/i.test(body.getText(sf));
+  if (!walksAncestors || !multipliesAlpha) {
+    out.push("settleForScan reads each node's own opacity — a fade on an ancestor is invisible to it");
+  }
+
   // The sample interval must stay an interval: a second-scale delay is a sleep again.
   if (callsNamed(sf, body, (name) => name === "setTimeout").length) {
     let ms = NaN;
@@ -148,6 +159,31 @@ export function settleHelperDefects(sf: ts.SourceFile): string[] {
     grab(body);
     if (!(ms >= 0 && ms <= 1000)) out.push(`settleForScan samples ${ms} ms apart — that is a wait, not a sample`);
   }
+  return out;
+}
+
+/**
+ * AX4: the scan has to pin the resting alpha for **both** mechanisms that write
+ * opacity in this app, because they are different mechanisms and a selector that
+ * catches one misses the other.
+ *
+ * framer-motion writes `style="opacity: …"` per frame, which `[style*="opacity"]`
+ * reaches. sonner's toast fades with a CSS `@keyframes` rule and never touches the
+ * style attribute — that is the one the recording toast rides, measured at
+ * `a=0.000 → #ffffff` and `a=0.645 → #838383` two samples after the arm's own click,
+ * against a resting `#3f3f3f` (10.9:1). And a pin without `animation:none` loses the
+ * cascade back to the next keyframe, so both halves are load-bearing.
+ */
+export function scanAtRestDefects(sf: ts.SourceFile): string[] {
+  const fn = findFunctionByName(sf, "scanAtRest");
+  if (!fn?.body) return ["scanAtRest is missing or has no body — the arms cannot pin the resting state"];
+  const text = fn.body.getText(sf);
+  const out: string[] = [];
+  if (!/addStyleTag/.test(text)) out.push("scanAtRest injects no stylesheet, so an animating element is measured mid-fade");
+  if (!/\[style\*="opacity"\]/.test(text)) out.push("scanAtRest does not pin the inline opacity framer-motion writes per frame");
+  if (!/\[data-sonner-toast\]/.test(text)) out.push("scanAtRest does not pin sonner's toast, whose fade is a @keyframes rule and never appears in the style attribute");
+  if (!/animation:\s*none/.test(text)) out.push("scanAtRest pins opacity but leaves the animation running, so the next keyframe overwrites the pin");
+  if (!/opacity:\s*1\s*!important/.test(text)) out.push("scanAtRest's rule lacks an !important opacity and loses the cascade to the animation");
   return out;
 }
 
@@ -165,6 +201,13 @@ describe("the axe arms wait for the page to stop changing, not for a clock", () 
 
   it("AX3: the settle helper is a comparison, and its delay is a sample", () => {
     expect(settleHelperDefects(sf), "the settle predicate can pass without seeing change").toEqual([]);
+  });
+
+  it("AX4: the scan pins the resting alpha for both mechanisms that write opacity", () => {
+    expect(
+      scanAtRestDefects(sf),
+      "the lane can measure an element mid-fade again: the injected rule no longer covers every path that writes opacity",
+    ).toEqual([]);
   });
 
   it("the arms are the four flows the lane claims to cover", () => {
@@ -240,7 +283,11 @@ test('extra has no serious/critical axe violations', async ({ page }) => {
 };
 `;
     const LONG_SAMPLE = `const settleForScan = async (page) => {
-  const read = () => document.body.getBoundingClientRect().width;
+  const read = () => {
+    let a = 1;
+    for (let c = document.body; c; c = c.parentElement) a *= Number(getComputedStyle(c).opacity);
+    return a + document.body.getBoundingClientRect().width;
+  };
   await expect.poll(() => new Promise((resolve) => {
     const before = read();
     setTimeout(() => { const after = read(); resolve(before === after ? 'settled' : 'moving'); }, 9000);
@@ -249,6 +296,14 @@ test('extra has no serious/critical axe violations', async ({ page }) => {
 `;
     const OPACITY_ONLY = `const settleForScan = async (page) => {
   const read = () => getComputedStyle(document.body).opacity;
+  await expect.poll(() => new Promise((resolve) => {
+    const before = read();
+    setTimeout(() => { const after = read(); resolve(before === after ? 'settled' : 'moving'); }, 200);
+  })).toBe('settled');
+};
+`;
+    const SELF_ALPHA = `const settleForScan = async (page) => {
+  const read = () => getComputedStyle(document.body).opacity + document.body.getBoundingClientRect().width;
   await expect.poll(() => new Promise((resolve) => {
     const before = read();
     setTimeout(() => { const after = read(); resolve(before === after ? 'settled' : 'moving'); }, 200);
@@ -266,9 +321,42 @@ test('extra has no serious/critical axe violations', async ({ page }) => {
     ]);
     expect(settleHelperDefects(fixture(OPACITY_ONLY))).toEqual([
       "settleForScan's signature ignores geometry — a node moved mid-animation reads as unchanged",
+      "settleForScan reads each node's own opacity — a fade on an ancestor is invisible to it",
+    ]);
+    expect(settleHelperDefects(fixture(SELF_ALPHA))).toEqual([
+      "settleForScan reads each node's own opacity — a fade on an ancestor is invisible to it",
     ]);
     // The real helper passes, so the arms above are not the only shape accepted.
     expect(settleHelperDefects(parse(SPEC, readRepo(SPEC)))).toEqual([]);
+  });
+
+  it("AX4 fires on a pin that misses a mechanism, and passes the real one", () => {
+    const NO_TOAST = `async function scanAtRest(page) {
+  await page.addStyleTag({ content: '[style*="opacity"]{opacity:1 !important;animation:none !important}' });
+  return new AxeBuilder({ page }).analyze();
+}
+`;
+    const NO_ANIMATION_OFF = `async function scanAtRest(page) {
+  await page.addStyleTag({ content: '[style*="opacity"]{opacity:1 !important}[data-sonner-toast]{opacity:1 !important}' });
+  return new AxeBuilder({ page }).analyze();
+}
+`;
+    const WEAK_PIN = `async function scanAtRest(page) {
+  await page.addStyleTag({ content: '[data-sonner-toast]{opacity:1;animation:none}' });
+  return new AxeBuilder({ page }).analyze();
+}
+`;
+    expect(scanAtRestDefects(fixture(NO_TOAST))).toEqual([
+      "scanAtRest does not pin sonner's toast, whose fade is a @keyframes rule and never appears in the style attribute",
+    ]);
+    expect(scanAtRestDefects(fixture(NO_ANIMATION_OFF))).toEqual([
+      "scanAtRest pins opacity but leaves the animation running, so the next keyframe overwrites the pin",
+    ]);
+    expect(scanAtRestDefects(fixture(WEAK_PIN))).toEqual([
+      "scanAtRest does not pin the inline opacity framer-motion writes per frame",
+      "scanAtRest's rule lacks an !important opacity and loses the cascade to the animation",
+    ]);
+    expect(scanAtRestDefects(parse(SPEC, readRepo(SPEC)))).toEqual([]);
   });
 
   it("the corpus is the file the lane actually runs", () => {
