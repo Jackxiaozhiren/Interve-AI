@@ -143,7 +143,7 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
               
               <div className="mt-4 pt-4 border-t border-slate-200">
                 <div className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2">Diagnostic Feedback</div>
-                <p className="text-sm text-rose-900/80">{qa.flaws}</p>
+                <p className="text-sm text-rose-900">{qa.flaws}</p>
               </div>
             </div>
 

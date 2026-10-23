@@ -270,7 +270,7 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
                         <div className="text-rose-600 text-[11px] font-bold font-mono tracking-widest uppercase mb-4 flex items-center gap-2">
                           Diagnostic
                         </div>
-                        <TextReveal text={qa.flaws} className="text-rose-900/80 text-[15px] font-medium leading-relaxed" />
+                        <TextReveal text={qa.flaws} className="text-rose-900 text-[15px] font-medium leading-relaxed" />
                       </div>
                     </div>
                   </div>

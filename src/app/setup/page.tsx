@@ -359,7 +359,7 @@ export default function SetupPage() {
         <div className="lg:w-[55%] p-8 lg:p-16 lg:py-24 overflow-y-auto z-10 flex flex-col">
           <div className="max-w-2xl mx-auto w-full flex-grow flex flex-col">
             {/* Step 眉题：维持 Setup → Interview → Review 叙事 */}
-            <p aria-live="polite" className="mb-6 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+            <p aria-live="polite" className="mb-6 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">
               Step {currentStep} of {totalSteps} · Setup → Interview → Review
             </p>
             {/* Stepper Progress */}
@@ -741,7 +741,7 @@ export default function SetupPage() {
                     <h3 className={`text-lg font-serif font-medium mb-1 transition-colors duration-300 ${stressTest ? 'text-rose-900' : 'text-slate-700'}`}>
                       FAANG Intensity
                     </h3>
-                    <p className={`text-[14px] leading-relaxed transition-colors duration-300 ${stressTest ? 'text-rose-700/80' : 'text-slate-500'}`}>
+                    <p className={`text-[14px] leading-relaxed transition-colors duration-300 ${stressTest ? 'text-rose-700' : 'text-slate-500'}`}>
                       Enable dynamic interruptions, tight constraints, and sharp follow-ups.
                     </p>
                   </div>
@@ -883,7 +883,7 @@ export default function SetupPage() {
                     <h3 className={`text-lg font-serif font-medium mb-1 transition-colors duration-300 ${includeCoding ? 'text-sky-900' : 'text-slate-700'}`}>
                       Coding Sandbox
                     </h3>
-                    <p className={`text-[14px] leading-relaxed transition-colors duration-300 ${includeCoding ? 'text-sky-700/80' : 'text-slate-500'}`}>
+                    <p className={`text-[14px] leading-relaxed transition-colors duration-300 ${includeCoding ? 'text-sky-700' : 'text-slate-500'}`}>
                       Enable the built-in code editor and technical problem statement during the interview.
                     </p>
                   </div>

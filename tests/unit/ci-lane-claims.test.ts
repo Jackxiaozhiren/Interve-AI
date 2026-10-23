@@ -15,6 +15,7 @@
  */
 import { readFileSync } from "node:fs";
 import { readRepo, walkRepo } from "./repo-tree";
+import { firstGoto, parseSpec, testBodies } from "./spec-ast";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
@@ -208,7 +209,31 @@ describe("every test title is either run by CI or declared in the doc", () => {
     // The union must be able to be non-empty: a lane that selects nothing would
     // make every file look uncollected and the next two cases would agree with
     // each other instead of with CI.
-    expect(collectedTitles("tests/a11y-visual.spec.ts").size).toBe(5);
+    // 6 = four axe arms (landing, login, setup, interview room) plus the two snapshot
+    // legs. Raised from 5 when `/setup` became a scanned route; the number is the
+    // guard's own tripwire, so a renamed or dropped arm has to come here and say why.
+    expect(collectedTitles("tests/a11y-visual.spec.ts").size).toBe(6);
+  });
+
+  it("names every route the axe lane actually navigates to", () => {
+    // The route list in the doc's own sentence is a claim about code, so read it from
+    // code: the first `page.goto()` inside each axe arm. When `/setup` became a scanned
+    // route, the count check above moved and this row did not — it still named three of
+    // the four, and nothing failed, because titles say nothing about destinations.
+    const spec = "tests/a11y-visual.spec.ts";
+    const sf = parseSpec(spec, read(spec));
+    const arms = [...testBodies(sf)].filter(([title]) => /axe violations/.test(title));
+    const routes = arms.map(([title, body]) => [title, firstGoto(sf, body)] as const);
+    expect(
+      routes.filter(([, r]) => r === null).map(([t]) => t),
+      "an axe arm navigates in a shape this guard cannot read: update it rather than skip the case",
+    ).toEqual([]);
+    const row = doc.split("\n").find((l) => l.includes("test:e2e:axe")) ?? "";
+    const named = (route: string) =>
+      route.startsWith("/interview") ? row.includes("interview room") : row.includes(`\`${route.split("?")[0]}\``);
+    const missing = routes.filter(([, r]) => !named(r as string)).map(([t, r]) => `${t} -> ${r}`);
+    expect(missing, `docs/TESTING.md's E2E axe row does not name every scanned route:\n${missing.join("\n")}`).toEqual([]);
+    expect(arms.length, "this row is vacuous if the lane has no arms").toBeGreaterThan(0);
   });
 
   it("collects a filtered file's titles across the lanes that split it", () => {

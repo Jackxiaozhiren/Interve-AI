@@ -91,7 +91,7 @@ export const CameraSelfView = React.memo(() => {
 
         <div className="absolute bottom-3 left-3 right-3 z-10">
           <div className="px-2 py-1 bg-black/30 backdrop-blur-md rounded-lg border border-white/20 shadow-sm">
-            <p className="text-[9px] font-medium text-white/90 leading-relaxed">
+            <p className="text-[9px] font-medium text-white leading-relaxed">
               {t.interview.noVisualAnalysis}
             </p>
           </div>

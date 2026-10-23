@@ -44,7 +44,7 @@ export function LiveCaptions({ isVisible, speaker, text }: LiveCaptionsProps) {
             role="log"
             aria-label="实时字幕历史"
             aria-live="off"
-            className="max-h-[60px] overflow-y-auto scrollbar-hide text-white/90 text-sm md:text-base font-medium leading-relaxed drop-shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded"
+            className="max-h-[60px] overflow-y-auto scrollbar-hide text-white text-sm md:text-base font-medium leading-relaxed drop-shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded"
           >
             {text}
           </div>
