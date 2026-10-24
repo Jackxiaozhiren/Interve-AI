@@ -49,7 +49,7 @@ export function FlowMap({ messageCount }: FlowMapProps) {
                   animate={{ 
                     width: isPast ? '100%' : isActive ? `${stageProgress * 100}%` : '0%' 
                   }}
-                  className="absolute left-0 top-3 h-[2px] -z-10 -translate-x-1/2 bg-sky-500 origin-left" 
+                  className="absolute left-0 top-3 h-[2px] -z-10 -translate-x-1/2 bg-sky-700 origin-left" 
                 />
              )}
              
@@ -58,10 +58,16 @@ export function FlowMap({ messageCount }: FlowMapProps) {
                   initial={false}
                   animate={{
                     scale: isActive ? 1.2 : 1,
-                    backgroundColor: isActive ? '#0ea5e9' : isPast ? '#0ea5e9' : '#f1f5f9',
-                    // Phase 14: #64748b (slate-500) meets 4.5:1 on the dot;
-                    // #94a3b8 did not. Animated props otherwise untouched.
-                    color: isActive || isPast ? '#ffffff' : '#64748b',
+                    backgroundColor: isActive ? '#0369a1' : isPast ? '#0369a1' : '#f1f5f9',
+                    // 5.93:1 for the white digits on #0369a1, 6.92:1 for #475569 on
+                    // the #f1f5f9 idle dot — both recomputed by
+                    // tests/unit/flowmap-dot-contrast.test.ts, which reds this file if
+                    // the numbers and the colours disagree. They replaced 2.77:1
+                    // (white on sky-500) and 4.34:1 (slate-500 on slate-100, not on
+                    // white — the comment here claimed 4.5:1 and nothing could
+                    // contradict it, because axe refuses to judge a one-character
+                    // node at all). sky-600 was tried and is still short.
+                    color: isActive || isPast ? '#ffffff' : '#475569',
                     boxShadow: isActive ? '0 0 0 4px rgba(14, 165, 233, 0.2)' : '0 0 0 0px rgba(14, 165, 233, 0)'
                   }}
                   className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border border-white/50"

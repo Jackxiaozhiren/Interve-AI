@@ -182,13 +182,20 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * alpha pin that keeps a transient notification from being measured mid-fade (AXR1 drops
  * the toast half of the injected rule — sonner fades with a @keyframes animation that
  * never appears in the style attribute, so a pin covering only framer-motion's inline
- * opacity lets the lane report #838383 where the resting colour is #3f3f3f)
+ * opacity lets the lane report #838383 where the resting colour is #3f3f3f); and 203
+ * with the two reads of what axe actually resolved (MFM1 re-arms the setup step numbers
+ * at the tone axe measured at 2.63:1, so the lane has to file it as a failure instead of
+ * counting it as unmeasurable — which is the shape the five dots were in for their whole
+ * life; DCM3 stops every axe arm hiding Next's dev-tools host, a harness pill sitting in
+ * a product denominator being V11-03 in a different currency; DCM4 removes one of the
+ * two resolved-colour checks from the unmeasured split only, which is the one way a node
+ * can be counted nowhere while both checks stay green)
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 200;
+const MIN_PLANTS = 203;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1065,10 +1072,48 @@ const PLANTS = [
     kind: "playwright",
     slow: true,
     file: "tests/a11y-visual.spec.ts",
-    anchor: `await expectNoSeriousViolations(page, 18);`,
-    replacement: `await expectNoSeriousViolations(page, 0);`,
+    anchor: `      bgOverlap: 7,`,
+    replacement: `      bgOverlap: 0,`,
     test: "tests/a11y-visual.spec.ts",
     pattern: "interview room has no serious/critical axe violations",
+  },
+  // A measured-but-unfiled contrast failure is the defect this lane was blind to
+  // longest, so the check that catches it has to be able to miss it. This re-arms
+  // the failure at its source — the step numbers axe computed at 2.63:1 and would
+  // not report — and the lane has to call it a failure rather than a blind spot.
+  {
+    name: "MFM1",
+    desc: "the setup step numbers go back to the tone axe measured at 2.63:1, and the lane files it as unmeasurable instead of as a failure",
+    kind: "playwright",
+    slow: true,
+    file: "src/app/setup/page.tsx",
+    anchor: `"bg-white border-2 border-slate-200 text-slate-500"`,
+    replacement: `"bg-white border-2 border-slate-200 text-slate-400"`,
+    test: "tests/a11y-visual.spec.ts",
+    pattern: "setup has no serious/critical axe violations",
+  },
+  // Both halves of the harness hide are load-bearing: the arms must hide Next's
+  // dev-tools host, and the two reads of "axe resolved this pair" must agree.
+  {
+    name: "DCM3",
+    desc: "every axe arm stops hiding Next's dev-tools host, so the harness's own pill is measured as if it were the product",
+    kind: "vitest",
+    file: "tests/a11y-visual.spec.ts",
+    anchor: `    await hideDevChrome(page);\n`,
+    replacement: ``,
+    count: 6,
+    test: "tests/unit/axe-scan-waits-for-stability.test.ts",
+    pattern: "AX5",
+  },
+  {
+    name: "DCM4",
+    desc: "the unmeasured split drops one of the two resolved-colour checks, so a node is neither a failure nor a blind spot and both checks stay green",
+    kind: "vitest",
+    file: "tests/a11y-visual.spec.ts",
+    anchor: `      return !(typeof d?.fgColor === 'string' && typeof d?.bgColor === 'string');`,
+    replacement: `      return !(typeof d?.bgColor === 'string');`,
+    test: "tests/unit/axe-scan-waits-for-stability.test.ts",
+    pattern: "AX5",
   },
   // ── the harness's own coverage may not shrink quietly ────────────────────
   // Written as one record on one line on purpose: FC1 is the only plant that

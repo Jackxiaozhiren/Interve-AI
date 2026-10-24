@@ -916,8 +916,8 @@
       "name": "AXP3",
       "desc": "an arm calls AxeBuilder itself, bypassing the shared helper that prints the violating selectors",
       "file": "tests/a11y-visual.spec.ts",
-      "anchor": "    await page.goto('/login');\n    await settleForScan(page);",
-      "replacement": "    await page.goto('/login');\n    await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();\n    await settleForScan(page);",
+      "anchor": "    await page.goto('/login');\n    await hideDevChrome(page);\n    await settleForScan(page);",
+      "replacement": "    await page.goto('/login');\n    await hideDevChrome(page);\n    await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();\n    await settleForScan(page);",
       "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
       "pattern": "one scan helper serves every arm"
     },
