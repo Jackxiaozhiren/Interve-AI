@@ -372,6 +372,12 @@ export default function SetupPage() {
                   transition={{ duration: 0.5, ease: "easeInOut" }}
                 />
               </div>
+              {/* Step numbers are one character, and axe's evaluator routes a *failed*
+                  ratio on a one-character node to incomplete/shortTextContent instead of
+                  filing it as a violation. So text-slate-400 here (2.56:1 on white) was
+                  measured, found short, and reported nowhere the suite reads. The a11y
+                  lane now takes the ratio back out of axe's own data and fails on it;
+                  slate-500 measures 4.76:1. */}
               {[1, 2, 3, 4, 5, 6].map((step) => (
                 <div 
                   key={step}
@@ -380,7 +386,7 @@ export default function SetupPage() {
                       ? "bg-slate-900 text-white shadow-md scale-110" 
                       : currentStep > step 
                         ? "bg-emerald-500 text-white" 
-                        : "bg-white border-2 border-slate-200 text-slate-400"
+                        : "bg-white border-2 border-slate-200 text-slate-500"
                   }`}
                 >
                   {currentStep > step ? <CheckCircle weight="bold" className="w-5 h-5" /> : step}

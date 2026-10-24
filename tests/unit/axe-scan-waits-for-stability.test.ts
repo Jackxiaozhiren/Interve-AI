@@ -48,6 +48,21 @@ function callsNamed(sf: ts.SourceFile, node: ts.Node, names: (name: string) => b
   return out;
 }
 
+/**
+ * Like `callsNamed`, but keeps the position: an arm's three steps are only ordered
+ * if their offsets are known, and asserting "hides before settles before scans"
+ * from the call names alone would pass on any order.
+ */
+function callPositions(sf: ts.SourceFile, node: ts.Node, name: string): number[] {
+  const out: number[] = [];
+  const visit = (n: ts.Node) => {
+    if (ts.isCallExpression(n) && n.expression.getText(sf) === name) out.push(n.getStart(sf));
+    ts.forEachChild(n, visit);
+  };
+  visit(node);
+  return out;
+}
+
 /** AX1: an axe arm that waits on a duration, or that scans without settling. */
 export function fixedDelayArms(sf: ts.SourceFile): string[] {
   const out: string[] = [];
@@ -187,6 +202,73 @@ export function scanAtRestDefects(sf: ts.SourceFile): string[] {
   return out;
 }
 
+/**
+ * AX5: what each arm measures has to be the product, and a node axe already
+ * measured must not be able to fall between the two checks.
+ *
+ * Two holes this closes, both found the same day:
+ *
+ *  - Next's dev-tools pill labels itself `div[data-description=""]` and arrives in
+ *    `incomplete` as a contrast node the app does not own. The visual lane has hid it
+ *    since PR #147 (DCM1/DCM2), but the axe lane never did, so one seat of every
+ *    arm's unresolved-contrast ceiling was spent on harness chrome — and it
+ *    appeared and disappeared between runs, which is a ±1 nobody could attribute.
+ *    An arm that does not hide it is measuring Next's indicator and calling the
+ *    result the product's accessibility.
+ *
+ *  - `measuredFailuresOf` and the `unmeasured` split have to agree on what "axe
+ *    resolved this pair" means. They are two reads of one condition, so if the
+ *    assertion starts requiring `fgColor` while the split still requires only
+ *    `bgColor`, a node can be declared neither a measured failure nor an
+ *    unmeasured blind spot — it drops out of both, and both stay green. That is a
+ *    ceiling nobody counts against, which is the failure this lane has now made
+ *    twice in two ways.
+ */
+export function laneCoverageDefects(sf: ts.SourceFile): string[] {
+  const out: string[] = [];
+  for (const [title, body] of testBodies(sf)) {
+    if (!/axe violations/.test(title)) continue;
+    const hide = callPositions(sf, body, "hideDevChrome");
+    const settle = callPositions(sf, body, "settleForScan");
+    const scan = callPositions(sf, body, "expectNoSeriousViolations");
+    if (!hide.length) {
+      out.push(`${title}: scans without hiding Next's dev-tools host, so harness chrome sits in the unresolved-contrast count`);
+    }
+    if (!hide.length || !settle.length || !scan.length) continue;
+    if (hide[0] > settle[0]) out.push(`${title}: hides the dev host after settling, so the settle signature still includes the indicator`);
+    if (settle[0] > scan[0]) out.push(`${title}: scans before settling`);
+    if (hide[0] > scan[0]) out.push(`${title}: hides the dev host after the scan runs`);
+  }
+
+  const measure = findFunctionByName(sf, "measuredFailuresOf");
+  if (!measure?.body) return [...out, "measuredFailuresOf is missing — a node axe measured and did not file would be counted as unmeasurable"];
+  const mtext = measure.body.getText(sf);
+  if (!/fgColor/.test(mtext) || !/bgColor/.test(mtext)) {
+    out.push("measuredFailuresOf does not require both resolved colours, so it reports nodes axe never measured as failures");
+  }
+  if (!/expectedContrastRatio/.test(mtext)) {
+    out.push("measuredFailuresOf ignores the ratio axe itself expected, so it cannot tell a failure from a pass");
+  }
+
+  // The split must key on the same fields, otherwise the two checks disagree about a
+  // node and it is counted nowhere. Matched loosely on the receiver's spelling so
+  // renaming `d` to `data` does not read as a disagreement.
+  const scanHelper = findFunctionByName(sf, "expectNoSeriousViolations");
+  if (!scanHelper?.body) return [...out, "expectNoSeriousViolations is missing"];
+  const stext = scanHelper.body.getText(sf);
+  if (!/measuredFailuresOf/.test(stext)) out.push("expectNoSeriousViolations never calls measuredFailuresOf");
+  const requiresField = (text: string, field: string) =>
+    new RegExp(`typeof\\s+[^)]*?${field}\\s+===\\s+['"]string['"]`).test(text);
+  for (const field of ["fgColor", "bgColor"]) {
+    if (requiresField(mtext, field) !== requiresField(stext, field)) {
+      out.push(
+        `the unmeasured split and measuredFailuresOf disagree on ${field}: a node can be neither a failure nor a blind spot, and both checks stay green`
+      );
+    }
+  }
+  return out;
+}
+
 describe("the axe arms wait for the page to stop changing, not for a clock", () => {
   const sf = parse(SPEC, readRepo(SPEC));
 
@@ -208,6 +290,10 @@ describe("the axe arms wait for the page to stop changing, not for a clock", () 
       scanAtRestDefects(sf),
       "the lane can measure an element mid-fade again: the injected rule no longer covers every path that writes opacity",
     ).toEqual([]);
+  });
+
+  it("AX5: every arm hides the harness and no measured node falls between the checks", () => {
+    expect(laneCoverageDefects(sf), "the lane's own coverage of what it measures").toEqual([]);
   });
 
   it("the arms are the four flows the lane claims to cover", () => {
@@ -357,6 +443,61 @@ test('extra has no serious/critical axe violations', async ({ page }) => {
       "scanAtRest's rule lacks an !important opacity and loses the cascade to the animation",
     ]);
     expect(scanAtRestDefects(parse(SPEC, readRepo(SPEC)))).toEqual([]);
+  });
+
+  it("AX5 fires on an arm that keeps the harness, on a reordered arm, and on two checks that disagree", () => {
+    const ARM = (stmts: string) => `test('landing has no serious/critical axe violations', async ({ page }) => {
+${stmts}});
+`;
+    const HELPER = (split: string, measure: string) => `
+function measuredFailuresOf(unresolved) {
+  return unresolved${measure};
+}
+async function expectNoSeriousViolations(page, ceilings) {
+  const unresolved = [];
+  const masked = measuredFailuresOf(unresolved);
+  expect(masked).toEqual([]);
+  const unmeasured = unresolved.filter(${split});
+  return unmeasured;
+}
+`;
+    const wellFormed = (inner: string, split: string, measure: string) =>
+      fixture(`${HELPER(split, measure)}\n${ARM(inner)}`);
+
+    const BOTH = `!(typeof n.any?.[0]?.data?.fgColor === "string" && typeof n.any?.[0]?.data?.bgColor === "string")`;
+    const FILTER = `.filter(({ d }) => typeof d?.fgColor === "string" && typeof d?.bgColor === "string" && Number(d?.contrastRatio) < Number(d?.expectedContrastRatio))`;
+
+    // Baseline: an arm in the right order with the two checks keyed identically.
+    expect(
+      laneCoverageDefects(wellFormed(`  await hideDevChrome(page);\n  await settleForScan(page);\n  await expectNoSeriousViolations(page, {});\n`, BOTH, FILTER)),
+      "the well-formed fixture must not report anything, or the rule is satisfied by nothing"
+    ).toEqual([]);
+
+    expect(laneCoverageDefects(wellFormed(`  await settleForScan(page);\n  await expectNoSeriousViolations(page, {});\n`, BOTH, FILTER))).toEqual([
+      "landing has no serious/critical axe violations: scans without hiding Next's dev-tools host, so harness chrome sits in the unresolved-contrast count",
+    ]);
+
+    expect(
+      laneCoverageDefects(wellFormed(`  await settleForScan(page);\n  await hideDevChrome(page);\n  await expectNoSeriousViolations(page, {});\n`, BOTH, FILTER))[0]
+    ).toMatch(/hides the dev host after settling/);
+
+    // The one that matters most: the assertion starts requiring only bgColor, so a
+    // node with fgColor resolved but bgColor missing is filed nowhere.
+    expect(
+      laneCoverageDefects(
+        wellFormed(
+          `  await hideDevChrome(page);\n  await settleForScan(page);\n  await expectNoSeriousViolations(page, {});\n`,
+          `!(typeof n.any?.[0]?.data?.bgColor === "string")`,
+          FILTER
+        )
+      )
+    ).toContain(
+      "the unmeasured split and measuredFailuresOf disagree on fgColor: a node can be neither a failure nor a blind spot, and both checks stay green"
+    );
+
+    expect(laneCoverageDefects(fixture(ARM(`  await hideDevChrome(page);\n  await settleForScan(page);\n  await expectNoSeriousViolations(page, {});\n`)))).toEqual([
+      "measuredFailuresOf is missing — a node axe measured and did not file would be counted as unmeasurable",
+    ]);
   });
 
   it("the corpus is the file the lane actually runs", () => {
