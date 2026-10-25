@@ -145,7 +145,7 @@ export function Navbar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 0, pointerEvents: "none" }}
               onClick={() => setIsMenuOpen(false)}
               className="fixed inset-0 bg-black z-40 sm:hidden"
             />

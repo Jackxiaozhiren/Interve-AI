@@ -189,13 +189,19 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * life; DCM3 stops every axe arm hiding Next's dev-tools host, a harness pill sitting in
  * a product denominator being V11-03 in a different currency; DCM4 removes one of the
  * two resolved-colour checks from the unmeasured split only, which is the one way a node
- * can be counted nowhere while both checks stay green)
+ * can be counted nowhere while both checks stay green); and 206 with the full-screen
+ * overlays that kept swallowing clicks for the whole length of their fade (OVL1 removes a
+ * release from an `exit` object, OVL2 writes the release as `pointerEvents: "auto"` — which
+ * satisfies the shape of the rule and changes nothing about the behaviour, which is the
+ * reason the guard has a second case — and OVL3 aims the census's own `inset-0` test at a
+ * class that exists nowhere, which is the only way to show the floor is counting elements
+ * rather than an empty list)
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 203;
+const MIN_PLANTS = 206;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

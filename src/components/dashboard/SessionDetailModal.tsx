@@ -46,7 +46,7 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      exit={{ opacity: 0, pointerEvents: "none" }}
       transition={{ duration: 0.4 }}
       className="fixed inset-0 z-50 flex justify-center items-end md:items-center bg-slate-900/40 backdrop-blur-sm px-0 md:px-6 py-0 md:py-12"
       onClick={onClose}

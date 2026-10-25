@@ -1019,6 +1019,33 @@
       "replacement": "",
       "test": "tests/unit/audit-archive-is-declared.test.ts",
       "pattern": "holds exactly the registers this file declares"
+    },
+    {
+      "name": "OVL1",
+      "desc": "an exiting full-screen overlay stops naming the pointer release, so the fade swallows clicks again and the guard's absence assertion has nothing to find",
+      "file": "src/components/interview/RoomOverlays.tsx",
+      "anchor": "exit={{ opacity: 0, backdropFilter: \"blur(0px)\", pointerEvents: \"none\" }}",
+      "replacement": "exit={{ opacity: 0, backdropFilter: \"blur(0px)\" }}",
+      "test": "tests/unit/overlay-exits-release-pointer.test.ts",
+      "pattern": "names the pointer release"
+    },
+    {
+      "name": "OVL2",
+      "desc": "the release is written as pointerEvents: \"auto\", which satisfies the shape of the rule and changes nothing about the behaviour",
+      "file": "src/components/interview/RoomOverlays.tsx",
+      "anchor": "exit={{ opacity: 0, scale: 0.95, pointerEvents: \"none\" }}",
+      "replacement": "exit={{ opacity: 0, scale: 0.95, pointerEvents: \"auto\" }}",
+      "test": "tests/unit/overlay-exits-release-pointer.test.ts",
+      "pattern": "not some other value"
+    },
+    {
+      "name": "OVL3",
+      "desc": "the overlay census stops matching any element, so all three cases pass against an empty list — the blindness this guard exists to catch",
+      "file": "tests/unit/overlay-exits-release-pointer.test.ts",
+      "anchor": "const isFullScreen = /\\bfixed\\b/.test(classText) && /\\binset-0\\b/.test(classText);",
+      "replacement": "const isFullScreen = /\\bfixed\\b/.test(classText) && /\\binset-9\\b/.test(classText);",
+      "test": "tests/unit/overlay-exits-release-pointer.test.ts",
+      "pattern": "the census finds"
     }
   ]
 }
