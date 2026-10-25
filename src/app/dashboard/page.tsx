@@ -168,7 +168,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Sessions</h3>
-                  <p className="text-[11px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">All Time</p>
+                  <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">All Time</p>
                 </div>
               </div>
               <div className="text-[3.5rem] font-light text-[#111111] leading-none mb-2">
@@ -190,7 +190,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Average Score</h3>
-                  <p className="text-[11px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">
+                  <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">
                     {readiness.scoredCount}/{readiness.totalCount} evaluated
                   </p>
                 </div>
@@ -201,7 +201,7 @@ export default function DashboardPage() {
                 ) : (
                   <AnimatedCounter value={readiness.average} />
                 )}
-                {readiness.average !== null && <span className="text-xl text-slate-400 ml-1">/100</span>}
+                {readiness.average !== null && <span className="text-xl text-muted-foreground ml-1">/100</span>}
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-4">
                 <motion.div
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Latest Session</h3>
-                  <p className="text-[11px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">
+                  <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">
                     {sessions[0]?.createdAt ? format(new Date(sessions[0].createdAt), "yyyy-MM-dd") : "N/A"}
                   </p>
                 </div>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                     }}
                   />
                 ) : (
-                  <div className="h-[280px] flex items-center justify-center text-slate-400 text-sm">
+                  <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">
                     Complete at least 2 sessions to see your growth trend
                   </div>
                 )}
@@ -312,7 +312,7 @@ export default function DashboardPage() {
                     showFirst={radar.comparable}
                   />
                 ) : (
-                  <div className="h-[280px] flex items-center justify-center text-slate-400 text-sm px-6 text-center">
+                  <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm px-6 text-center">
                     {completedSessions.length > 0
                       ? "This session has no scored dimensions yet — the breakdown appears once an evaluation lands."
                       : "Complete a session to see your skill breakdown"}
@@ -387,7 +387,7 @@ export default function DashboardPage() {
                         <span className="text-2xl font-bold text-[#111111] leading-none">
                           {sessionScore(session)}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Score</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Score</span>
                       </>
                     ) : (
                       <UserCircle weight="duotone" className="w-10 h-10 text-slate-300" />
@@ -423,7 +423,7 @@ export default function DashboardPage() {
 
                   {/* Action */}
                   <div className="shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-sky-500 text-slate-400 group-hover:text-white flex items-center justify-center transition-all duration-500 shadow-[0_0_0_0px_transparent] group-hover:shadow-[0_8px_20px_rgba(14,165,233,0.3)]">
+                    <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-sky-700 text-muted-foreground group-hover:text-white flex items-center justify-center transition-all duration-500 shadow-[0_0_0_0px_transparent] group-hover:shadow-[0_8px_20px_rgba(14,165,233,0.3)]">
                       <Play weight="fill" className="w-5 h-5" />
                     </div>
                   </div>

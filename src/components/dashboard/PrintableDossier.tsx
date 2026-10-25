@@ -40,7 +40,7 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
       {/* Readiness & Delivery */}
       <div className="flex gap-6 mb-10">
         <div className="flex-1 bg-slate-50 border border-slate-200 p-6 rounded-2xl">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">
             {view.legacy ? 'Final Verdict (Legacy Assessment)' : 'Interview Readiness'}
           </div>
           <div className="text-3xl font-bold text-slate-800 mb-2 capitalize">
@@ -48,18 +48,18 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
           </div>
           <p className="text-sm text-slate-600 leading-relaxed">{readinessRationale}</p>
           {!view.legacy && (
-            <p className="text-xs text-slate-400 leading-relaxed mt-2">{READINESS_DISCLAIMER}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-2">{READINESS_DISCLAIMER}</p>
           )}
         </div>
         
         {session.deliveryStats && (
           <div className="w-1/3 flex flex-col gap-4">
             <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Words Per Minute</div>
+              <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Words Per Minute</div>
               <div className="text-3xl font-light text-slate-800">{session.deliveryStats.wpm}</div>
             </div>
             <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Filler Words</div>
+              <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Filler Words</div>
               <div className="text-3xl font-light text-slate-800">{session.deliveryStats.fillerWords}</div>
             </div>
           </div>
@@ -69,7 +69,7 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
       {/* Dimensions (V2 with evidence, or legacy note) */}
       {view.dimensions.length > 0 && (
         <div className="mb-10 page-break-inside-avoid">
-          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">
+          <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">
             Rubric Dimensions{view.legacy ? ' (Legacy Assessment)' : ''}
           </div>
           {view.dimensions.map((dim) => (
@@ -91,7 +91,7 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
       {/* Council Debate (legacy rows only) */}
       {view.legacy && session.councilDebate && (
         <div className="mb-10 page-break-inside-avoid">
-          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Hiring Council Evaluation (Legacy · 历史评估)</div>
+          <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Hiring Council Evaluation (Legacy · 历史评估)</div>
           <div className="grid grid-cols-3 gap-6">
             <div className="bg-sky-50/30 border border-sky-100 p-5 rounded-2xl">
               <div className="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2">Technical</div>
@@ -115,7 +115,7 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
       {/* Cultural Traits (legacy rows only) */}
       {session.culturalTraits && session.culturalTraits.length > 0 && (
         <div className="mb-10 page-break-inside-avoid">
-          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Cultural & Behavioral Traits (Legacy Assessment · 历史评估)</div>
+          <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Cultural & Behavioral Traits (Legacy Assessment · 历史评估)</div>
           <div className="grid grid-cols-2 gap-6">
             {session.culturalTraits.map((trait, idx: number) => (
               <div key={idx} className="bg-slate-50 border border-slate-200 p-5 rounded-2xl">
@@ -132,13 +132,13 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
 
       {/* Q&A Review */}
       <div className="mb-6">
-        <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">Detailed Q&A Review</div>
+        <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">Detailed Q&A Review</div>
         {session.qaReview?.map((qa, idx: number) => (
           <div key={idx} className="mb-10 page-break-inside-avoid">
             <h3 className="text-lg font-serif text-slate-900 mb-4 font-bold">Q{idx + 1}: {qa.question}</h3>
             
             <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl mb-4">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Your Delivery</div>
+              <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Your Delivery</div>
               <p className="text-sm text-slate-700 italic">&quot;{qa.userAnswer}&quot;</p>
               
               <div className="mt-4 pt-4 border-t border-slate-200">
@@ -156,7 +156,7 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
       </div>
       
       {/* Footer */}
-      <div className="mt-auto pt-8 border-t border-slate-200 text-center text-xs text-slate-400">
+      <div className="mt-auto pt-8 border-t border-slate-200 text-center text-xs text-muted-foreground">
         Generated securely by Interve AI • For personal review only
       </div>
     </div>

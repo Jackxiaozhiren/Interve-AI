@@ -194,7 +194,7 @@ export default function RecruiterDashboard() {
                   <kpi.icon weight="duotone" className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{kpi.label}</p>
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{kpi.label}</p>
                   <p className="text-3xl font-light text-slate-900 mt-1">{kpi.value}</p>
                 </div>
               </div>
@@ -269,7 +269,7 @@ export default function RecruiterDashboard() {
                   button that sat here had no handler and no filter to open. */}
               <div className="flex items-center gap-3 w-full md:w-auto">
                 <div className="relative w-full md:w-64">
-                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input 
                     placeholder={t.common.search} 
                     className="pl-9 bg-white/50 border-slate-200 rounded-full h-10"
@@ -323,7 +323,7 @@ export default function RecruiterDashboard() {
                 </div>
                 <button 
                   onClick={() => setSelectedCandidate(null)}
-                  className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-muted-foreground hover:text-slate-600 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -333,11 +333,11 @@ export default function RecruiterDashboard() {
                 {/* Score & Stage Summary */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Match Score</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Match Score</p>
                     <div className="text-3xl font-light text-slate-900">{selectedCandidate.score}</div>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Current Stage</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Current Stage</p>
                     <div className="text-lg font-medium text-slate-900 mt-1">{selectedCandidate.stage}</div>
                   </div>
                 </div>

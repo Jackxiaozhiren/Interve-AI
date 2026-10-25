@@ -200,7 +200,7 @@ export default function PracticeSessionClient({ question }: { question: Intervie
                     </p>
                   </div>
                   <div className="ml-auto text-3xl font-bold text-emerald-600">
-                    {feedback.score}<span className="text-base text-slate-400 font-normal">/100</span>
+                    {feedback.score}<span className="text-base text-muted-foreground font-normal">/100</span>
                   </div>
                 </div>
 
@@ -289,7 +289,7 @@ export default function PracticeSessionClient({ question }: { question: Intervie
                 {attempts.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-emerald-100">
                     <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                      <History className="w-4 h-4 text-slate-400" />
+                      <History className="w-4 h-4 text-muted-foreground" />
                       Your attempts on this question
                     </h3>
                     <div className="flex flex-wrap gap-2">

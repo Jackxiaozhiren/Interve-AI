@@ -103,7 +103,7 @@ export default function CreateAssessmentPage() {
           <motion.div variants={fadeUpVariant} className="flex flex-col h-full">
             <SpotlightCard className="p-8 border-slate-100 shadow-sm bg-white/70 backdrop-blur-xl flex flex-col flex-1">
               <div className="flex items-center gap-2 mb-4">
-                <FileText className="w-6 h-6 text-slate-400" />
+                <FileText className="w-6 h-6 text-muted-foreground" />
                 <h3 className="text-xl font-semibold text-slate-900">Job Description</h3>
               </div>
               <textarea 
@@ -146,7 +146,7 @@ export default function CreateAssessmentPage() {
           <motion.div variants={fadeUpVariant} className="flex flex-col h-full">
             <SpotlightCard className="p-8 border-slate-100 shadow-sm bg-white/70 backdrop-blur-xl flex flex-col flex-1">
               {!generatedData && !isGenerating && (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4 min-h-[300px]">
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 min-h-[300px]">
                   <MagicWand className="w-12 h-12 opacity-50" />
                   <p>Questions will appear here</p>
                 </div>

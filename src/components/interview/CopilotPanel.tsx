@@ -158,7 +158,7 @@ export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) 
                ))}
              </motion.ul>
            ) : (
-             <p className="text-[12px] text-slate-400 italic mt-2">
+             <p className="text-[12px] text-muted-foreground italic mt-2">
                No specific experiences found. Focus on highlighting your soft skills.
              </p>
            )}

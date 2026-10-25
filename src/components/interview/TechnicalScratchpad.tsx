@@ -22,7 +22,7 @@ import {
 const Editor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center h-full text-slate-400">
+    <div className="flex items-center justify-center h-full text-muted-foreground">
       <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mr-2" />
       Loading Editor...
     </div>
@@ -248,7 +248,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
               size="icon-sm"
               onClick={onClose}
               aria-label="Close Scratchpad"
-              className="rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="rounded-full text-muted-foreground hover:text-slate-700 hover:bg-slate-200/50 focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -371,7 +371,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                       }
                     }}
                     loading={
-                      <div className="flex items-center justify-center h-full text-slate-400">
+                      <div className={`flex items-center justify-center h-full ${editorTheme === "vs-dark" ? "text-slate-400" : "text-muted-foreground"}`}>
                         <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mr-2" />
                         Loading Editor...
                       </div>
@@ -389,13 +389,13 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                       className="border-t border-slate-200 bg-[#0d1117] text-slate-300 font-mono text-[13px] flex flex-col overflow-hidden"
                     >
                       <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#161b22]">
-                        <div className="flex items-center gap-2 text-slate-400 text-xs uppercase tracking-widest font-bold">
+                        <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-widest font-bold">
                           <TerminalWindow className="w-4 h-4" />
                           Output Terminal
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" onClick={clearLogs} className="h-6 text-xs text-slate-400 hover:text-white px-2">Clear</Button>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setIsTerminalOpen(false)} className="text-slate-400 hover:text-white rounded-full">
+                          <Button variant="ghost" size="sm" onClick={clearLogs} className="h-6 text-xs text-muted-foreground hover:text-white px-2">Clear</Button>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setIsTerminalOpen(false)} className="text-muted-foreground hover:text-white rounded-full">
                             <X className="w-3.5 h-3.5" />
                           </Button>
                         </div>
@@ -459,15 +459,15 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
           </div>
 
           {/* Footer Info & Complexity Analysis */}
-          <div className="px-6 py-4 border-t border-white/60 bg-white/40 text-[11px] text-slate-400 font-bold uppercase tracking-widest flex justify-between items-center relative overflow-hidden">
+          <div className="px-6 py-4 border-t border-white/60 bg-white/40 text-[11px] text-muted-foreground font-bold uppercase tracking-widest flex justify-between items-center relative overflow-hidden">
             {mode === "code" && analysis && (
               <div className="flex items-center gap-4 text-xs normal-case tracking-normal">
                 <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-                  <span className="text-slate-400">Time:</span> 
+                  <span className="text-muted-foreground">Time:</span> 
                   <span className={analysis.timeComplexity.includes("n^2") || analysis.timeComplexity.includes("2^n") ? "text-rose-500 font-bold" : "text-emerald-600 font-bold"}>{analysis.timeComplexity}</span>
                 </span>
                 <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-                  <span className="text-slate-400">Space:</span> 
+                  <span className="text-muted-foreground">Space:</span> 
                   <span className="text-sky-600 font-bold">{analysis.spaceComplexity}</span>
                 </span>
                 {analysis.hints.length > 0 && (

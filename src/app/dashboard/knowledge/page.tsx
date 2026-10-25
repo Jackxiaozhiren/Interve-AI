@@ -58,7 +58,7 @@ export default function KnowledgePage() {
                 </Button>
               </Link>
 
-              <div className="mt-8 flex items-center justify-center gap-4 text-sm font-semibold text-slate-400">
+              <div className="mt-8 flex items-center justify-center gap-4 text-sm font-semibold text-muted-foreground">
                 <span className="flex items-center gap-1.5"><Books className="w-4 h-4" /> Resumes</span>
                 <span className="flex items-center gap-1.5"><Sparkle className="w-4 h-4" /> Extracted Skills</span>
               </div>

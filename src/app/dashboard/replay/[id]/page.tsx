@@ -178,7 +178,7 @@ export default function ReplayPage() {
             <h2 className="text-sm font-bold text-slate-600 uppercase tracking-widest font-mono flex items-center gap-2">
               <ChatCircleDots className="w-4 h-4" /> Transcript
             </h2>
-            <span className="text-xs text-slate-400">Click user messages to see analysis</span>
+            <span className="text-xs text-muted-foreground">Click user messages to see analysis</span>
           </div>
           
           <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth" ref={transcriptRef} role="log" aria-live="polite">
@@ -199,8 +199,8 @@ export default function ReplayPage() {
                     <div className="flex items-center gap-2 mb-1.5 px-1">
                       {isUser ? (
                         <>
-                          <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Candidate</span>
-                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Candidate</span>
+                          <User className="w-3.5 h-3.5 text-muted-foreground" />
                         </>
                       ) : (
                         <>
@@ -245,7 +245,7 @@ export default function ReplayPage() {
                 );
               })
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-70">
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-70">
                 <ChatCircleDots className="w-12 h-12 mb-4 text-slate-300" />
                 <p>No transcript data available for this session.</p>
               </div>
@@ -328,7 +328,7 @@ export default function ReplayPage() {
                       
                       {/* Context Question Reference */}
                       <div className="pt-4 border-t border-white/40">
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-2">Original Question Context</h3>
+                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono mb-2">Original Question Context</h3>
                         <p className="text-[13px] text-slate-600 italic mb-3">&quot;{interview.qaReview[selectedQAIndex].question}&quot;</p>
                         {/* Phase 7: Replay → Retry */}
                         <a
@@ -340,7 +340,7 @@ export default function ReplayPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400">
+                    <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground">
                       <div className="w-16 h-16 rounded-2xl bg-white/50 border border-white flex items-center justify-center mb-4 shadow-sm">
                         <Robot className="w-8 h-8 text-sky-300" />
                       </div>
@@ -370,7 +370,7 @@ export default function ReplayPage() {
                   {view.dimensions.length > 0 ? (
                     <DimensionsSection view={view} />
                   ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-12">
+                    <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground py-12">
                       <Star className="w-12 h-12 text-slate-300 mb-4" />
                       <p className="text-sm">Dimension data is not available for this session.</p>
                     </div>

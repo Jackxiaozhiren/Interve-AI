@@ -111,7 +111,7 @@ export function AchievementShowcase() {
                   <div>
                     <h4 className="font-bold text-[#111111] text-[1.1rem] leading-tight mb-1">{achievement.title}</h4>
                     <p className="text-slate-500 text-[13px] leading-relaxed font-medium mb-3">{achievement.description}</p>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
                       Unlocked {new Date(achievement.unlockedAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -128,12 +128,12 @@ export function AchievementShowcase() {
               >
                 <div className="relative z-10 flex gap-4">
                   <div className="shrink-0 w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center shadow-inner">
-                    <LockKey weight="duotone" className="w-6 h-6 text-slate-400" />
+                    <LockKey weight="duotone" className="w-6 h-6 text-muted-foreground" />
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-600 text-[1.1rem] leading-tight mb-1">{achievement.title}</h4>
-                    <p className="text-slate-400 text-[13px] leading-relaxed font-medium mb-3">{achievement.description}</p>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                    <p className="text-muted-foreground text-[13px] leading-relaxed font-medium mb-3">{achievement.description}</p>
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
                       LOCKED
                     </div>
                   </div>

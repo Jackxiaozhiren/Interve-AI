@@ -348,7 +348,7 @@ export default function SetupPage() {
                   <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />
                   <div className="absolute inset-[2px] rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]" />
                 </div>
-                <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">System Ready</span>
+                <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">System Ready</span>
               </div>
               <p className="text-slate-600 font-medium leading-relaxed">Model engines are primed. Configure parameters on the right to initialize your personalized session.</p>
             </div>
@@ -372,12 +372,16 @@ export default function SetupPage() {
                   transition={{ duration: 0.5, ease: "easeInOut" }}
                 />
               </div>
-              {/* Step numbers are one character, and axe's evaluator routes a *failed*
-                  ratio on a one-character node to incomplete/shortTextContent instead of
-                  filing it as a violation. So text-slate-400 here (2.56:1 on white) was
-                  measured, found short, and reported nowhere the suite reads. The a11y
-                  lane now takes the ratio back out of axe's own data and fails on it;
-                  slate-500 measures 4.76:1. */}
+              {/* Two numbers live on this row, and neither was checkable when it was
+                  written. The step digit is one character, and axe's evaluator routes a
+                  *failed* ratio on a one-character node to incomplete/shortTextContent
+                  instead of filing it as a violation — so the slate-400 that used to be
+                  here (2.56:1 on white) was measured, found short, and reported nowhere
+                  the suite reads. It is now the de-emphasis token, 7.58:1. The completed
+                  step is a graphic rather than text, so WCAG 1.4.11's 3:1 applies and
+                  `color-contrast` cannot see it at all: emerald-500 measured 2.54:1
+                  against white and 2.47:1 against the card's #FAFAFC, and emerald-600 is
+                  3.77:1 both ways. */}
               {[1, 2, 3, 4, 5, 6].map((step) => (
                 <div 
                   key={step}
@@ -385,8 +389,8 @@ export default function SetupPage() {
                     currentStep === step 
                       ? "bg-slate-900 text-white shadow-md scale-110" 
                       : currentStep > step 
-                        ? "bg-emerald-500 text-white" 
-                        : "bg-white border-2 border-slate-200 text-slate-500"
+                        ? "bg-emerald-600 text-white" 
+                        : "bg-white border-2 border-slate-200 text-muted-foreground"
                   }`}
                 >
                   {currentStep > step ? <CheckCircle weight="bold" className="w-5 h-5" /> : step}
@@ -432,7 +436,7 @@ export default function SetupPage() {
                       )}
                       <div className="relative z-10 flex justify-between items-start">
                         <div className={`p-3 rounded-[16px] transition-colors duration-300 ${
-                          isSelected ? 'bg-sky-50/80 text-sky-600 shadow-sm border border-sky-100/50' : 'bg-slate-50 text-slate-400 group-hover:text-slate-500'
+                          isSelected ? 'bg-sky-50/80 text-sky-600 shadow-sm border border-sky-100/50' : 'bg-slate-50 text-muted-foreground group-hover:text-slate-500'
                         }`}>
                            <Icon className="w-6 h-6" weight={isSelected ? "duotone" : "regular"} />
                         </div>
@@ -510,7 +514,7 @@ export default function SetupPage() {
                       <span className={`relative z-10 font-semibold tracking-wide text-[15px] transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
                         {company.name}
                       </span>
-                      <p className={`relative z-10 text-[13px] leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600' : 'text-slate-400'}`}>
+                      <p className={`relative z-10 text-[13px] leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
                         {company.desc}
                       </p>
                     </button>
@@ -547,7 +551,7 @@ export default function SetupPage() {
                         />
                       )}
                       <div className={`relative z-10 p-4 rounded-[20px] shrink-0 transition-colors duration-300 ${
-                        isSelected ? 'bg-white shadow-sm border border-white' : 'bg-slate-50/80 group-hover:bg-slate-100 text-slate-400'
+                        isSelected ? 'bg-white shadow-sm border border-white' : 'bg-slate-50/80 group-hover:bg-slate-100 text-muted-foreground'
                       }`}>
                         <Icon className={`w-7 h-7 ${isSelected ? persona.color : ''}`} weight={isSelected ? "duotone" : "regular"} />
                       </div>
@@ -608,7 +612,7 @@ export default function SetupPage() {
                       <span className={`relative z-10 font-semibold tracking-wide text-[15px] transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
                         {fw.name}
                       </span>
-                      <p className={`relative z-10 text-[13px] leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600' : 'text-slate-400'}`}>
+                      <p className={`relative z-10 text-[13px] leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
                         {fw.desc}
                       </p>
                     </button>
@@ -640,7 +644,7 @@ export default function SetupPage() {
                       <span className={`font-semibold tracking-wide text-[14px] ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
                         {t.name}
                       </span>
-                      <span className={`text-[12px] leading-snug ${isSelected ? 'text-slate-600' : 'text-slate-400'}`}>
+                      <span className={`text-[12px] leading-snug ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
                         {t.nameZh}
                       </span>
                     </button>
@@ -658,7 +662,7 @@ export default function SetupPage() {
                   className="w-full p-4 rounded-[20px] border border-slate-200/60 bg-white/70 text-[14px] text-slate-700 focus:outline-none focus:border-sky-300"
                 />
               )}
-              <p className="text-[13px] text-slate-400 leading-relaxed">
+              <p className="text-[13px] text-muted-foreground leading-relaxed">
                 Rubric: {RUBRICS[getInterviewType(selectedInterviewType).rubricId]?.track ?? "General"}
                 {getInterviewType(selectedInterviewType).needsCoding ? " · enables the coding scratchpad" : ""}
                 {getInterviewType(selectedInterviewType).needsWhiteboard ? " · uses the system-design whiteboard" : ""}
@@ -685,7 +689,7 @@ export default function SetupPage() {
                         }`}
                       >
                         <span className={`block font-semibold text-[14px] ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>{d.name}</span>
-                        <span className="block text-[12px] text-slate-400 mt-1 leading-snug">{d.desc}</span>
+                        <span className="block text-[12px] text-muted-foreground mt-1 leading-snug">{d.desc}</span>
                       </button>
                     );
                   })}
@@ -739,7 +743,7 @@ export default function SetupPage() {
                   <div className={`p-4 rounded-[20px] transition-all duration-500 ${
                     stressTest 
                       ? "bg-rose-500 shadow-[0_4px_20px_rgba(244,63,94,0.4)] text-white scale-110" 
-                      : "bg-slate-50/80 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-500"
+                      : "bg-slate-50/80 text-muted-foreground group-hover:bg-slate-100 group-hover:text-muted-foreground"
                   }`}>
                     <Lightning className="w-7 h-7" weight={stressTest ? "fill" : "regular"} />
                   </div>
@@ -798,7 +802,7 @@ export default function SetupPage() {
                         />
                       )}
                       <div className={`relative z-10 p-4 rounded-[20px] shrink-0 transition-colors duration-300 ${
-                        isSelected ? 'bg-sky-50 border border-sky-100' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100'
+                        isSelected ? 'bg-sky-50 border border-sky-100' : 'bg-slate-50 text-muted-foreground group-hover:bg-slate-100'
                       }`}>
                         <Icon className={`w-7 h-7 ${isSelected ? model.color : ''}`} weight={isSelected ? "duotone" : "regular"} />
                       </div>
@@ -839,9 +843,9 @@ export default function SetupPage() {
                   value={context}
                   onChange={(e) => setContext(e.target.value)}
                   placeholder="Paste job description, specific skills to test, or your resume background here..."
-                  className="relative w-full bg-transparent border-0 focus:ring-0 resize-none h-44 p-6 pl-16 text-[15px] text-slate-700 placeholder:text-slate-400/80 font-medium outline-none rounded-[28px] focus:bg-white/50 transition-colors"
+                  className="relative w-full bg-transparent border-0 focus:ring-0 resize-none h-44 p-6 pl-16 text-[15px] text-slate-700 placeholder:text-slate-500 font-medium outline-none rounded-[28px] focus:bg-white/50 transition-colors"
                 />
-                <div className="absolute bottom-5 right-6 text-xs text-slate-400 font-mono font-bold bg-white/80 px-2 py-1 rounded-md border border-slate-100 shadow-sm backdrop-blur-md">
+                <div className="absolute bottom-5 right-6 text-xs text-muted-foreground font-mono font-bold bg-white/80 px-2 py-1 rounded-md border border-slate-100 shadow-sm backdrop-blur-md">
                   {context.length}/500
                 </div>
               </div>
@@ -881,7 +885,7 @@ export default function SetupPage() {
                   <div className={`p-4 rounded-[20px] transition-all duration-500 ${
                     includeCoding 
                       ? "bg-sky-500 shadow-[0_4px_20px_rgba(14,165,233,0.4)] text-white scale-110" 
-                      : "bg-slate-50/80 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-500"
+                      : "bg-slate-50/80 text-muted-foreground group-hover:bg-slate-100 group-hover:text-muted-foreground"
                   }`}>
                     <TerminalWindow className="w-7 h-7" weight={includeCoding ? "fill" : "regular"} />
                   </div>
@@ -923,7 +927,7 @@ export default function SetupPage() {
                       value={problemStatement}
                       onChange={(e) => setProblemStatement(e.target.value)}
                       placeholder="Paste the technical problem statement here (e.g. LeetCode problem, React component requirements)..."
-                      className="relative w-full bg-transparent border-0 focus:ring-0 resize-none h-44 p-6 pl-16 text-[15px] text-slate-700 placeholder:text-slate-400/80 font-medium outline-none focus:bg-sky-50/30 transition-colors"
+                      className="relative w-full bg-transparent border-0 focus:ring-0 resize-none h-44 p-6 pl-16 text-[15px] text-slate-700 placeholder:text-slate-500 font-medium outline-none focus:bg-sky-50/30 transition-colors"
                     />
                   </motion.div>
                 )}

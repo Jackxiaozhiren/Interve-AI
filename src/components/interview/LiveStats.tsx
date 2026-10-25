@@ -137,7 +137,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
         >
           <div className="flex items-center justify-between mb-2 z-10">
             <div className="flex items-center gap-1">
-              <Brain weight="bold" className="w-3 h-3 text-slate-400" />
+              <Brain weight="bold" className="w-3 h-3 text-muted-foreground" />
               <span className="text-[10px] text-slate-600 font-bold font-sans uppercase tracking-wider">Strain</span>
             </div>
             <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md shadow-sm text-slate-600 bg-slate-100">

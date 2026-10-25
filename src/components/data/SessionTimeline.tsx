@@ -49,7 +49,7 @@ export function SessionTimeline({
             <div className="flex flex-wrap items-baseline gap-x-3">
               <p className="text-sm font-semibold text-slate-900">{item.title}</p>
               {item.time && (
-                <time className="font-mono text-xs text-slate-400">{item.time}</time>
+                <time className="font-mono text-xs text-muted-foreground">{item.time}</time>
               )}
             </div>
             {item.description && (

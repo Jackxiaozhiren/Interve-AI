@@ -183,7 +183,7 @@ export const SystemDesignBoard = React.memo(function SystemDesignBoard({ isOpen,
                 size="icon-sm"
                 onClick={onClose}
                 aria-label="Close System Design Board"
-                className="rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/50"
+                className="rounded-full text-muted-foreground hover:text-slate-700 hover:bg-slate-200/50"
               >
                 <X className="w-5 h-5" />
               </Button>
@@ -201,7 +201,7 @@ export const SystemDesignBoard = React.memo(function SystemDesignBoard({ isOpen,
           </div>
           
           {/* Footer Info */}
-          <div className="px-6 py-3 border-t border-slate-200/50 bg-white/40 text-[11px] text-slate-400 font-bold uppercase tracking-widest flex justify-between items-center z-10">
+          <div className="px-6 py-3 border-t border-slate-200/50 bg-white/40 text-[11px] text-muted-foreground font-bold uppercase tracking-widest flex justify-between items-center z-10">
             <span className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               AI Analysis Active

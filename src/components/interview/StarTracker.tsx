@@ -66,7 +66,7 @@ export function StarTracker() {
           <span>STAR Tracker</span>
         </h3>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-400 font-medium">Real-time Analysis</span>
+          <span className="text-[10px] text-muted-foreground font-medium">Real-time Analysis</span>
           <div className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
         </div>
       </div>
@@ -134,10 +134,10 @@ export function StarTracker() {
               </div>
 
               <div className="flex flex-col items-center">
-                <span className={`text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300 ${isComplete ? 'text-sky-600' : isActive ? 'text-slate-600' : 'text-slate-400'}`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300 ${isComplete ? 'text-sky-600' : isActive ? 'text-slate-600' : 'text-muted-foreground'}`}>
                   {step.label}
                 </span>
-                <span className="text-[9px] text-slate-400 mt-0.5 tabular-nums">
+                <span className="text-[9px] text-muted-foreground mt-0.5 tabular-nums">
                   {step.data.progress}%
                 </span>
               </div>

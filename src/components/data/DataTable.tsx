@@ -133,7 +133,7 @@ export function DataTable<T extends Record<string, unknown>>({
             <TableRow>
               <TableCell colSpan={columns.length} className="py-10 text-center">
                 <p className="font-medium text-slate-700">{emptyTitle}</p>
-                {emptyDescription && <p className="mt-1 text-slate-400">{emptyDescription}</p>}
+                {emptyDescription && <p className="mt-1 text-muted-foreground">{emptyDescription}</p>}
               </TableCell>
             </TableRow>
           )}

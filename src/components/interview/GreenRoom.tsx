@@ -192,7 +192,7 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
             <div className="w-full max-w-[280px] mt-2 mb-2 relative">
               <LiveWaveform stream={stream} isRecording={true} />
             </div>
-            <p className="text-xs text-slate-400 mt-2">请尝试说几句话测试音量</p>
+            <p className="text-xs text-muted-foreground mt-2">请尝试说几句话测试音量</p>
           </div>
         )}
 

@@ -45,7 +45,7 @@ export default function Loading() {
           >
             Interve AI
           </motion.h3>
-          <p className="text-xs text-slate-400 font-medium tracking-widest uppercase mt-1">
+          <p className="text-xs text-muted-foreground font-medium tracking-widest uppercase mt-1">
             Loading Experience
           </p>
         </div>
