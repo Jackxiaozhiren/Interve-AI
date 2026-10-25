@@ -73,7 +73,7 @@ export function OnboardingTour() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, pointerEvents: "none" }}
             className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm"
           />
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">

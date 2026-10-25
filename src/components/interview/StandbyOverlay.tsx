@@ -30,7 +30,7 @@ export function StandbyOverlay({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          exit={{ opacity: 0, pointerEvents: "none" }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-md"
         >
           <motion.div

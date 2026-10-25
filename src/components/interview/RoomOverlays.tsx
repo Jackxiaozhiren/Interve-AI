@@ -19,7 +19,7 @@ export function PauseOverlay({ isPaused }: { isPaused: boolean }) {
         <motion.div
           initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
           animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
-          exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+          exit={{ opacity: 0, backdropFilter: "blur(0px)", pointerEvents: "none" }}
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/30 text-slate-800"
         >
           <WarningCircle weight="duotone" className="w-16 h-16 text-rose-500 mb-4 animate-pulse" />
@@ -48,7 +48,7 @@ export function ThinkTimeOverlay({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+          exit={{ opacity: 0, scale: 0.95, pointerEvents: "none" }}
           className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-white/20 backdrop-blur-sm"
         >
           <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 flex flex-col items-center min-w-[300px]">
@@ -88,7 +88,7 @@ export function EndingOverlay({ isEnding }: { isEnding: boolean }) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          exit={{ opacity: 0, pointerEvents: "none" }}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-xl"
         >
           <DynamicLoader
