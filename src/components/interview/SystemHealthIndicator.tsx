@@ -84,7 +84,7 @@ export function SystemHealthIndicator({
               <span className="text-xs font-medium text-slate-700">{config.text}</span>
             </div>
             {online && status !== 'stress' && (
-              <div className="text-[10px] text-slate-400 font-mono ml-5">
+              <div className="text-[10px] text-muted-foreground font-mono ml-5">
                 Browser online · API latency in Dashboard
               </div>
             )}

@@ -69,7 +69,7 @@ export const InterviewTimeline = React.memo(({ events }: InterviewTimelineProps)
 
             <div className="bg-white/60 backdrop-blur-xl rounded-[24px] border border-white shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-6 group hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all">
               <div className="flex items-start gap-4 mb-3">
-                <span className="font-mono text-sm font-bold text-slate-400 bg-slate-100/50 px-3 py-1 rounded-lg">{timeStr}</span>
+                <span className="font-mono text-sm font-bold text-muted-foreground bg-slate-100/50 px-3 py-1 rounded-lg">{timeStr}</span>
                 <h4 className="font-serif text-xl tracking-tight text-[#111111] leading-tight pt-0.5">{event.title}</h4>
               </div>
               {event.description && (

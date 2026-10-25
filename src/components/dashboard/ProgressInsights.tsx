@@ -63,7 +63,7 @@ export function ProgressInsights({ sessions }: { sessions: Interview[] }) {
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{c.label}</span>
           </div>
           <div className="text-2xl font-light text-[#111111]">{c.display}</div>
-          <div className="text-[11px] text-slate-400 mt-1">{c.sub}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">{c.sub}</div>
         </div>
       ))}
       {insights.typePerformance.length > 0 && (
@@ -73,7 +73,7 @@ export function ProgressInsights({ sessions }: { sessions: Interview[] }) {
             {insights.typePerformance.map((t) => (
               <span key={t.type} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">
                 {t.type}
-                <span className="text-slate-400">×{t.count}</span>
+                <span className="text-muted-foreground">×{t.count}</span>
                 <span className="text-sky-600">{t.average ?? "—"}</span>
               </span>
             ))}

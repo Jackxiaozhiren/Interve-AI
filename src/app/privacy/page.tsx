@@ -70,7 +70,7 @@ export default function PrivacyPage() {
     <main className="min-h-screen bg-[#f8fafd]">
       <div className="mx-auto grid max-w-5xl gap-x-10 gap-y-12 px-6 py-16 lg:grid-cols-[176px_minmax(0,68ch)] lg:py-20">
         <nav aria-label="目录" className="hidden lg:sticky lg:top-16 lg:block lg:self-start">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">目录</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">目录</p>
           <ol className="mt-3 space-y-2">
             {SECTIONS.map((s) => (
               <li key={s.id}>
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
               <div className="mt-6 overflow-x-auto">
                 <table className="w-full min-w-[520px] border-collapse text-left text-[14px]">
                   <thead>
-                    <tr className="border-b border-slate-200 text-[12px] uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-slate-200 text-[12px] uppercase tracking-wider text-muted-foreground">
                       <th className="py-2 pr-4 font-semibold">数据</th>
                       <th className="py-2 pr-4 font-semibold">存在哪</th>
                       <th className="py-2 font-semibold">为什么</th>

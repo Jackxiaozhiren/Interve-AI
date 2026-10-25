@@ -91,7 +91,7 @@ export function OnboardingTour() {
                 <button 
                   onClick={handleClose}
                   aria-label="Close onboarding tour"
-                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  className="absolute top-4 right-4 text-muted-foreground hover:text-slate-600 transition-colors p-1"
                 >
                   <X className="w-5 h-5" />
                 </button>

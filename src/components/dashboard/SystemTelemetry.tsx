@@ -41,7 +41,7 @@ export function SystemTelemetry() {
             <Clock className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-widest">Avg Latency</span>
           </div>
-          <span className="text-2xl font-light text-slate-900">{avgLatency} <span className="text-sm font-bold text-slate-400">ms</span></span>
+          <span className="text-2xl font-light text-slate-900">{avgLatency} <span className="text-sm font-bold text-muted-foreground">ms</span></span>
         </div>
         
         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-1">
@@ -49,7 +49,7 @@ export function SystemTelemetry() {
             <CheckCircle className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-widest">Success Rate</span>
           </div>
-          <span className="text-2xl font-light text-slate-900">{successRate} <span className="text-sm font-bold text-slate-400">%</span></span>
+          <span className="text-2xl font-light text-slate-900">{successRate} <span className="text-sm font-bold text-muted-foreground">%</span></span>
         </div>
 
         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-1">
@@ -76,7 +76,7 @@ export function SystemTelemetry() {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
             No telemetry data available yet
           </div>
         )}

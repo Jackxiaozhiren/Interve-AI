@@ -45,7 +45,7 @@ export const PinnedQuestion = ({ questionText, isVisible, loopMeta }: PinnedQues
               </div>
               <span className="text-[12px] font-semibold tracking-wide text-sky-500 uppercase">当前问题</span>
               {loopMeta && (
-                <span className="ml-auto text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                <span className="ml-auto text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-wider">
                   {loopMeta}
                 </span>
               )}

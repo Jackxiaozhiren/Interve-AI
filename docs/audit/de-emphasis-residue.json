@@ -1,0 +1,29 @@
+{
+  "_about": "Every place still using the raw `text-slate-400` utility after the house de-emphasis colour became `--muted-foreground` (slate-600). 135 sites went in; 3 remain, and all three are here because slate-400 is the CORRECT colour on the surface they sit on. This file exists so the sweep has named exclusions rather than silent ones.",
+  "_how_measured": "Chrome resolves Tailwind v4 colours to `lab()`/`oklab()`, so compositing in JS would have meant reimplementing a colour pipeline to audit a colour choice. Instead the browser painted each candidate class over a known base and returned the pixel, and every number below is either that pixel's contrast or a value confirmed by reading the class string that carries it — `bg-slate-800`, `bg-[#111111]` and `bg-[#1e1e1e]` are all stated in the element's own ancestor, not inferred from a chain walk.",
+  "_rule": "tests/unit/de-emphasis-contrast.test.ts compares per-file counts with this file in both directions: a new raw site goes red, and removing one goes red until this file shrinks. Counts, not line numbers — a line moves when anything above it is edited, and a colour guard that goes red because someone added an import is a guard people learn to ignore.",
+  "_why_this_many": "132 of the 135 were resolved by reading the class string that carried them, not by an instrument: a hover pair like `bg-slate-50/80 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-500` states both of its surfaces, and both of them fail (2.45:1 at rest, 4.34:1 on hover — the same slate-500-on-slate-100 arithmetic that made the FlowMap dot wrong). Those are decidable from the text. The three below are the ones where the surface is dark on purpose, so the utility is right and the sweep would have broken it.",
+  "sites": {
+    "src/components/interview/ReplayTimeline.tsx": {
+      "count": 1,
+      "verdict": "correct-as-is",
+      "surface": "bg-slate-800 (#1e293b) — `TooltipContent`",
+      "measured": { "slate400": 5.7, "mutedForeground": 1.93 },
+      "why": "Light text on a dark tooltip. slate-400 clears AA there and the de-emphasis token does not: 1.93:1 is worse than what this sweep set out to fix. Sweeping it would have introduced the defect rather than removed it."
+    },
+    "src/components/dashboard/SessionDetailModal.tsx": {
+      "count": 1,
+      "verdict": "correct-as-is",
+      "surface": "bg-[#111111] — the Recommended STAR panel, dark by design (its border is `border-slate-800` and its accent is `bg-emerald-400`)",
+      "measured": { "slate400": 7.36, "mutedForeground": 2.49 },
+      "why": "The panel is an intentional near-black block inside a light modal. The label `Target Response` reads on it at 7.36:1 today; the token would drop it to 2.49:1."
+    },
+    "src/components/interview/TechnicalScratchpad.tsx": {
+      "count": 1,
+      "verdict": "theme-conditional",
+      "surface": "the editor container, which line 347 gives `bg-[#1e1e1e]` when `editorTheme === 'vs-dark'` and `bg-[#fffffe]` otherwise",
+      "measured": { "slate400": { "dark": 6.5, "light": 2.56 }, "mutedForeground": { "dark": 2.2, "light": 7.57 } },
+      "why": "One utility cannot serve two surfaces chosen by a user toggle: slate-400 is 6.50:1 in dark mode and 2.56:1 in light, so it failed in exactly one state — which is why it looked fine to anyone who had ever used the dark editor. The class is now conditional on `editorTheme`, keeping slate-400 for the dark branch and using the token for the light one. The spinner's `border-slate-400` beside it is the same question in graphic form (2.56:1 against light, under the 3:1 WCAG 1.4.11 asks of it) and is unresolved."
+    }
+  }
+}

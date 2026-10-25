@@ -43,7 +43,7 @@ export function PageHeader({
           </Link>
         )}
         {eyebrow && (
-          <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+          <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
             {eyebrow}
           </p>
         )}

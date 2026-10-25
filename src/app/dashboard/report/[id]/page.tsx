@@ -183,7 +183,7 @@ export default function InterviewReportPage() {
               <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-4 text-slate-500 hover:text-slate-900 -ml-2">
                 <ArrowLeft className="w-4 h-4 mr-2" /> 返回控制台
               </Button>
-              <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+              <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Step 3 · Review
               </p>
               <h1 className="text-4xl font-serif font-bold text-slate-900 tracking-tight">面试综合评估报告</h1>
@@ -260,7 +260,7 @@ export default function InterviewReportPage() {
                     </RadarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400">雷达图数据不可用</div>
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">雷达图数据不可用</div>
                 )}
               </div>
             </motion.div>
@@ -280,7 +280,7 @@ export default function InterviewReportPage() {
             {view.dimensions.length > 0 ? (
               <DimensionsSection view={view} />
             ) : (
-              <p className="text-slate-400">暂无维度数据。</p>
+              <p className="text-muted-foreground">暂无维度数据。</p>
             )}
           </motion.div>
 
@@ -304,7 +304,7 @@ export default function InterviewReportPage() {
                   <UsersThree className="w-5 h-5" weight="fill" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">招聘委员会决议 (Council Debate) <span className="text-xs font-bold text-slate-400 align-middle">· 历史评估</span></h2>
+                  <h2 className="text-xl font-bold text-slate-800">招聘委员会决议 (Council Debate) <span className="text-xs font-bold text-muted-foreground align-middle">· 历史评估</span></h2>
                   <p className="text-sm text-slate-500">多维度AI考官的独立评估意见（旧版评估保留，新版已改用证据型维度评估）</p>
                 </div>
               </div>
@@ -399,7 +399,7 @@ export default function InterviewReportPage() {
                 <div className="p-2.5 bg-orange-50 text-orange-600 rounded-xl">
                   <ShieldCheck className="w-5 h-5" weight="fill" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">行为与文化契合度 (Cultural Traits) <span className="text-xs font-bold text-slate-400 align-middle">· 历史评估</span></h2>
+                <h2 className="text-xl font-bold text-slate-800">行为与文化契合度 (Cultural Traits) <span className="text-xs font-bold text-muted-foreground align-middle">· 历史评估</span></h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {culturalTraits.map((trait, idx) => (
@@ -488,7 +488,7 @@ export default function InterviewReportPage() {
                       id={relatedEvent ? `transcript-time-${relatedEvent.timestamp}` : undefined}
                       className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                     >
-                      <span className="text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                      <span className="text-[11px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
                         {isUser ? 'You' : 'Interviewer'}
                       </span>
                       <div className={`px-5 py-3.5 rounded-2xl max-w-[85%] ${isUser ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}>
@@ -547,39 +547,39 @@ function DeliveryCoach({ stats }: {
       {/* Phase 8 (19.3): measured values only; "—" when unmeasured. */}
       <div className="flex flex-wrap gap-8 mb-6">
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1">语速（字或词 / 分钟）</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1">语速（字或词 / 分钟）</p>
           <p className="text-2xl font-serif text-slate-800">{wpm}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1">口头禅 (Filler Words)</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1">口头禅 (Filler Words)</p>
           <p className="text-2xl font-serif text-slate-800">{filler}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1">打断 (Interruptions)</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1">打断 (Interruptions)</p>
           <p className="text-2xl font-serif text-slate-800">{stats.interruptions ?? "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1">平均作答 (Avg Answer)</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1">平均作答 (Avg Answer)</p>
           <p className="text-2xl font-serif text-slate-800">{stats.avgAnswerSec !== undefined ? `${stats.avgAnswerSec}s` : "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1">平均往返 (Round Trip)</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1">平均往返 (Round Trip)</p>
           <p className="text-2xl font-serif text-slate-800">{stats.avgRoundTripMs !== undefined ? `${(stats.avgRoundTripMs / 1000).toFixed(1)}s` : "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1">STT 置信度</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1">STT 置信度</p>
           <p className="text-2xl font-serif text-slate-800">{stats.sttAvgConfidence !== undefined ? stats.sttAvgConfidence.toFixed(2) : "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1" title="发送到首个 AI 回复耗时">TTFT</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1" title="发送到首个 AI 回复耗时">TTFT</p>
           <p className="text-2xl font-serif text-slate-800">{stats.ttftMs !== undefined ? `${(stats.ttftMs / 1000).toFixed(1)}s` : "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1" title="本地语音转文字耗时">STT 耗时</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1" title="本地语音转文字耗时">STT 耗时</p>
           <p className="text-2xl font-serif text-slate-800">{stats.whisperMs !== undefined ? `${(stats.whisperMs / 1000).toFixed(1)}s` : "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 font-bold uppercase mb-1" title="语音请求到首次发声耗时">TTS 启动</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase mb-1" title="语音请求到首次发声耗时">TTS 启动</p>
           <p className="text-2xl font-serif text-slate-800">{stats.ttsStartupMs !== undefined ? `${(stats.ttsStartupMs / 1000).toFixed(1)}s` : "—"}</p>
         </div>
       </div>

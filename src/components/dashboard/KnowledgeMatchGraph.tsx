@@ -67,7 +67,7 @@ export function KnowledgeMatchGraph({ matchData }: KnowledgeMatchGraphProps) {
             {matchData.overallScore}%
           </motion.span>
         </div>
-        <p className="text-xs text-slate-400 text-center mt-2">
+        <p className="text-xs text-muted-foreground text-center mt-2">
           Alignment between your resume and the job description.
           {matchData.confidence ? ` Evaluator confidence: ${matchData.confidence}.` : ""}
         </p>
@@ -91,7 +91,7 @@ export function KnowledgeMatchGraph({ matchData }: KnowledgeMatchGraphProps) {
                   </span>
                 ))
               ) : (
-                <span className="text-sm text-slate-400 italic">No exact matches found.</span>
+                <span className="text-sm text-muted-foreground italic">No exact matches found.</span>
               )}
             </div>
           </div>
@@ -110,7 +110,7 @@ export function KnowledgeMatchGraph({ matchData }: KnowledgeMatchGraphProps) {
                   </span>
                 ))
               ) : (
-                <span className="text-sm text-slate-400 italic">No significant gaps identified.</span>
+                <span className="text-sm text-muted-foreground italic">No significant gaps identified.</span>
               )}
             </div>
           </div>

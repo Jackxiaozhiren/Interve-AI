@@ -144,7 +144,14 @@
   --secondary: #FAFAFC;
   --secondary-foreground: #4E5969;
   --muted: #FAFAFC;
-  --muted-foreground: #86909C;
+  /* slate-600. The step this replaces (#86909C) measures 3.24:1 on white and 2.99:1 on
+     the app's grey surfaces — under AA for body text. slate-500 is the obvious smaller
+     step and it is not enough either: 4.76 on white, but 4.34 on slate-100, which this
+     app paints (it is the FlowMap step dot's fill). slate-600 clears 4.5 on every
+     surface in this file — 7.58 white, 7.27 muted, 7.24 slate-50, 6.92 slate-100,
+     6.15 slate-200 — so it is the minimum that is AA everywhere rather than the last
+     step that happened to pass on one background. */
+  --muted-foreground: #475569;
   --accent: #F5F7FF;
   --accent-foreground: #165DFF;
   --destructive: #FFECEC;

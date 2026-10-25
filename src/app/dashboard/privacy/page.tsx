@@ -227,7 +227,7 @@ export default function PrivacyPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-widest text-slate-400 border-b border-slate-100">
+              <tr className="text-left text-[11px] uppercase tracking-widest text-muted-foreground border-b border-slate-100">
                 <th className="py-2 pr-4 font-bold">数据</th>
                 <th className="py-2 pr-4 font-bold">存储位置</th>
                 <th className="py-2 pr-4 font-bold">用途</th>
@@ -253,16 +253,16 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-bold text-slate-800 mb-1">你的面试会话</h2>
         <p className="text-sm text-slate-500 mb-6">逐条删除（含云端记录与本地快照）。</p>
         {loading ? (
-          <p className="text-sm text-slate-400">加载中…</p>
+          <p className="text-sm text-muted-foreground">加载中…</p>
         ) : sessions.length === 0 ? (
-          <p className="text-sm text-slate-400">暂无云端会话。本地快照可在下方清理。</p>
+          <p className="text-sm text-muted-foreground">暂无云端会话。本地快照可在下方清理。</p>
         ) : (
           <ul className="space-y-3">
             {sessions.map((s) => (
               <li key={s.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white/70">
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-slate-800 truncate">{s.title || "Untitled Session"}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     {s.createdAt ? new Date(s.createdAt).toLocaleString() : ""} · {s.status.replace(/_/g, " ")}
                   </p>
                 </div>

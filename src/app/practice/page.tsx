@@ -92,7 +92,7 @@ function PracticeHubInner() {
             <div className="flex items-center gap-2 mb-4 text-sm text-slate-500">
               <FlaskConical className="w-4 h-4 text-indigo-500" />
               <span className="font-medium">Retry drill — your previous question, another attempt (attempts are compared below).</span>
-              <button onClick={() => setRetryQuestion(null)} className="ml-auto text-xs font-bold text-slate-400 hover:text-slate-700 underline underline-offset-2">
+              <button onClick={() => setRetryQuestion(null)} className="ml-auto text-xs font-bold text-muted-foreground hover:text-slate-700 underline underline-offset-2">
                 Dismiss
               </button>
             </div>

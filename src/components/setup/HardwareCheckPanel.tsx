@@ -55,7 +55,7 @@ export function HardwareCheckPanel({ hardware }: { hardware: HardwareCheckState 
                     <div className="bg-slate-50/50 border border-slate-200/50 rounded-[24px] p-6 flex flex-col items-center justify-center text-center">
                       <div className="relative mb-4">
                         {micStatus === "success" && <div className="absolute inset-0 bg-emerald-400/20 rounded-full animate-ping" />}
-                        <div className={`relative p-3 rounded-full border ${micStatus === "success" ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-slate-100 border-slate-200 text-slate-400"}`}>
+                        <div className={`relative p-3 rounded-full border ${micStatus === "success" ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-slate-100 border-slate-200 text-muted-foreground"}`}>
                           <Microphone className="w-8 h-8" weight={micStatus === "success" ? "fill" : "duotone"} />
                         </div>
                       </div>
@@ -111,7 +111,7 @@ export function HardwareCheckPanel({ hardware }: { hardware: HardwareCheckState 
                           networkStatus === "good" ? "bg-emerald-100 border-emerald-200 text-emerald-600" :
                           networkStatus === "poor" ? "bg-amber-100 border-amber-200 text-amber-600" :
                           networkStatus === "offline" ? "bg-rose-100 border-rose-200 text-rose-600" :
-                          "bg-slate-100 border-slate-200 text-slate-400"
+                          "bg-slate-100 border-slate-200 text-muted-foreground"
                         }`}>
                           {networkStatus === "good" ? <WifiHigh className="w-6 h-6" weight="bold" /> :
                            networkStatus === "poor" ? <WifiLow className="w-6 h-6" weight="bold" /> :

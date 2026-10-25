@@ -261,7 +261,7 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
                         disabled={!modelsReady || isLoading}
                         placeholder="输入文本..."
                         aria-label="输入您的回答或向AI提问"
-                        className="w-full bg-transparent border-none focus:ring-0 h-10 pl-3 pr-12 text-[14px] text-slate-700 font-medium placeholder:text-slate-400 outline-none transition-all focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full"
+                        className="w-full bg-transparent border-none focus:ring-0 h-10 pl-3 pr-12 text-[14px] text-slate-700 font-medium placeholder:text-slate-500 outline-none transition-all focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full"
                       />
                       <Button 
                         size="icon"

@@ -52,7 +52,7 @@ export function ReadinessBadge({ view }: { view: EvaluationView }) {
 
 export function ReadinessDisclaimer() {
   return (
-    <p className="text-xs text-slate-400 leading-relaxed mt-2 flex items-start gap-1.5">
+    <p className="text-xs text-muted-foreground leading-relaxed mt-2 flex items-start gap-1.5">
       <CheckCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
       {READINESS_DISCLAIMER}
     </p>
@@ -99,7 +99,7 @@ export function DimensionsSection({ view }: { view: EvaluationView }) {
             </div>
             <div className="flex items-center gap-2">
               <ConfidenceChip level={dim.confidence} />
-              <span className="text-sm font-black text-indigo-600">{dim.score100}<span className="text-[10px] text-slate-400 font-bold">/100</span></span>
+              <span className="text-sm font-black text-indigo-600">{dim.score100}<span className="text-[10px] text-muted-foreground font-bold">/100</span></span>
             </div>
           </div>
           <div className="w-full h-1.5 bg-slate-100 rounded-full mb-3 overflow-hidden">
@@ -176,7 +176,7 @@ export function DrillPlan({ view }: { view: EvaluationView }) {
       {drills.map((drill) => (
         <div key={drill.id} className="p-5 border border-slate-100 rounded-2xl bg-white/60">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <span className="font-bold text-slate-800">{drill.title} <span className="font-medium text-slate-400">· {drill.titleZh}</span></span>
+            <span className="font-bold text-slate-800">{drill.title} <span className="font-medium text-muted-foreground">· {drill.titleZh}</span></span>
             <Link
               href={`/practice?q=${encodeURIComponent(drill.title)}`}
               className="text-xs font-bold text-indigo-600 hover:text-indigo-500 hover:underline"

@@ -121,7 +121,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                             className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-gradient-to-b from-sky-400 to-emerald-400 rounded-r-full shadow-[0_0_12px_rgba(56,189,248,0.6)]" 
                           />
                         )}
-                        <Icon weight={isActive ? "fill" : "regular"} className={`w-[22px] h-[22px] transition-transform duration-500 ${isActive ? "text-sky-500" : "text-slate-400 group-hover/navitem:scale-110 group-hover/navitem:text-slate-600"}`} />
+                        <Icon weight={isActive ? "fill" : "regular"} className={`w-[22px] h-[22px] transition-transform duration-500 ${isActive ? "text-sky-500" : "text-muted-foreground group-hover/navitem:scale-110 group-hover/navitem:text-slate-600"}`} />
                         <span className="tracking-wide">{item.name}</span>
                     </Link>
                   );
@@ -135,7 +135,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 variant="ghost" 
                 className="w-full justify-start gap-4 text-slate-500 hover:text-rose-600 hover:bg-rose-50/80 border border-transparent hover:border-rose-100/50 shadow-[0_4px_20px_rgba(0,0,0,0.0)] hover:shadow-[0_4px_20px_rgba(244,63,94,0.05)] transition-all duration-500 rounded-[20px] font-medium h-[52px] text-[14.5px] group/logout"
               >
-                <SignOut weight="regular" className="w-[22px] h-[22px] text-slate-400 group-hover/logout:text-rose-500 group-hover/logout:-translate-x-1 transition-all" />
+                <SignOut weight="regular" className="w-[22px] h-[22px] text-muted-foreground group-hover/logout:text-rose-500 group-hover/logout:-translate-x-1 transition-all" />
                 <span className="tracking-wide">Log out</span>
               </Button>
             </div>
