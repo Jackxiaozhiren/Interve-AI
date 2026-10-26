@@ -1046,6 +1046,24 @@
       "replacement": "const isFullScreen = /\\bfixed\\b/.test(classText) && /\\binset-9\\b/.test(classText);",
       "test": "tests/unit/overlay-exits-release-pointer.test.ts",
       "pattern": "the census finds"
+    },
+    {
+      "name": "DCM5",
+      "desc": "the axe and visual lanes hide Next's dev-tools host without ever reading it, which is how the harness's own \"1 Issue\" painted a baseline and stayed unnamed for three rounds",
+      "file": "tests/a11y-visual.spec.ts",
+      "anchor": "  await readDevIssues(page);\n",
+      "replacement": "",
+      "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
+      "pattern": "AX6"
+    },
+    {
+      "name": "DCM6",
+      "desc": "the indicator reader stops reaching the shadow tree and prints the host's own textContent instead, so the lane always reports the same string whatever the pill says",
+      "file": "tests/a11y-visual.spec.ts",
+      "anchor": "    const hostEl = document.querySelector(host);\n    if (!hostEl || !hostEl.shadowRoot) return null;\n    walk(hostEl.shadowRoot, 0);",
+      "replacement": "    const hostEl = document.querySelector(host);\n    if (!hostEl) return null;\n    return { texts: [hostEl.textContent || ''], attrs: [] };",
+      "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
+      "pattern": "AX6"
     }
   ]
 }
