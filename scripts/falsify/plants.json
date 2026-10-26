@@ -1064,6 +1064,24 @@
       "replacement": "    const hostEl = document.querySelector(host);\n    if (!hostEl) return null;\n    return { texts: [hostEl.textContent || ''], attrs: [] };",
       "test": "tests/unit/axe-scan-waits-for-stability.test.ts",
       "pattern": "AX6"
+    },
+    {
+      "name": "SCH1",
+      "desc": "the smoke row loses the sentence that makes a local failure schedule-relative, so one red spec at three workers is read as one regression",
+      "file": "docs/TESTING.md",
+      "anchor": "single-worker control",
+      "replacement": "single-worker check",
+      "test": "tests/unit/readme-testing-claims.test.ts",
+      "pattern": "lane schedule"
+    },
+    {
+      "name": "SCH2",
+      "desc": "the CI branch stops forcing one worker, which is the setting every local-vs-CI comparison in V11-20 is keyed on",
+      "file": "playwright.config.ts",
+      "anchor": "workers: process.env.CI ? 1 : undefined,",
+      "replacement": "workers: 2,",
+      "test": "tests/unit/readme-testing-claims.test.ts",
+      "pattern": "lane schedule"
     }
   ]
 }

@@ -199,13 +199,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * deleting (DCM5 hides Next's dev-tools host without looking at it, which is the exact
  * shape the "N · 1 Issue" needed to stay unnamed across three rounds; DCM6 keeps the read
  * and points it at the host's own `textContent`, so the lane prints a constant whatever
- * the indicator says)
+ * the indicator says); and 210 with the schedule that makes a local red mean something
+ * different from a CI red (SCH1 takes the sentence out of the smoke row that tells an
+ * owner to take the single-worker control, SCH2 changes the CI branch's worker count
+ * itself, which is the number every case in V11-20 is measured against)
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 208;
+const MIN_PLANTS = 210;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
