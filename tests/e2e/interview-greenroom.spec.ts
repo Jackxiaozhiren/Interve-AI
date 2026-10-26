@@ -38,25 +38,31 @@ test.describe('Interview Green Room', () => {
     // The button is server-rendered, so it is visible and "stable" before React
     // has hydrated and attached its handler; under parallel load the interview
     // route is still being compiled by the dev server at this moment and the
-    // click can land on dead DOM. Retrying the gesture until the effect is
-    // observed tolerates that race without weakening what is asserted — the
-    // green room must actually go away. Observed: at the default worker count
-    // every run failed (two of three probes never recovered inside 60s); at
-    // `--workers=1`, which is what CI uses, it passed three times unmodified.
+    // click can land on dead DOM. Retrying the gesture is what tolerates that race.
+    //
+    // What ends the retry used to be an absence — `detached` on the green-room
+    // heading, which is one instant of DOM and not the flow's outcome. Measured
+    // (docs/audit/V11_REGISTER.md V11-21): in a local multi-worker lane the loop
+    // broke on that signal, and the assertion three lines later found the heading
+    // visible on **all 29** of its own polls, so the bypass had never taken effect
+    // and the loop had reported success anyway. Waiting for the room to appear asks
+    // the question the test is actually answering, and a failure now names the
+    // gesture that did not work instead of a DOM state 15 s downstream.
+    const mainHeading = page.locator('h1:has-text("AI 面试间"), h2:has-text("实时对话")').first();
     for (let attempt = 1; ; attempt++) {
-      // The catch matters: if the previous click did land and the room is simply
-      // slow to unmount, this button is already gone and click() would throw
-      // rather than let the wait below observe the transition.
+      // The catch matters: a click that did land leaves this button gone, and
+      // click() would throw rather than let the wait below observe the arrival.
       await bypassButton.click({ timeout: 5000 }).catch(() => {});
-      const gone = await greenRoomHeading
-        .waitFor({ state: 'detached', timeout: 8000 })
+      const arrived = await mainHeading
+        .waitFor({ state: 'visible', timeout: 8000 })
         .then(() => true)
         .catch(() => false);
-      if (gone) break;
-      if (attempt >= 3) throw new Error(`green room still mounted after ${attempt} bypass clicks`);
+      if (arrived) break;
+      if (attempt >= 3) {
+        throw new Error(`the bypass press never reached the room after ${attempt} attempts`);
+      }
     }
     await expect(greenRoomHeading).not.toBeVisible();
-    const mainHeading = page.locator('h1:has-text("AI 面试间"), h2:has-text("实时对话")').first();
     await expect(mainHeading).toBeVisible();
     await captureScreenshot('02-interview-main-after-bypass');
   });
