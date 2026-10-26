@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import playwrightConfig from "../../playwright.config";
 
 /**
@@ -16,6 +16,39 @@ import playwrightConfig from "../../playwright.config";
 const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
 const ci = readFileSync(new URL("../../.github/workflows/ci.yml", import.meta.url), "utf8");
 const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
+const testing = readFileSync(new URL("../../docs/TESTING.md", import.meta.url), "utf8");
+
+/**
+ * Read the Playwright config as both schedules.
+ *
+ * `playwright.config.ts` picks its numbers off `process.env.CI`, so the file a
+ * contributor edits and the numbers a given run used are two different readings —
+ * and the difference between them is the whole of V11-20: three specs have failed
+ * inside a local lane, each at a different fixed budget, and each one passes alone.
+ * Re-importing with and without `CI` lets this say something about both branches
+ * instead of about whichever one the test process happens to sit in, which is how a
+ * green unit run in CI and a green unit run locally can assert the same thing.
+ */
+type Schedule = {
+  workers?: unknown;
+  retries?: number;
+  timeout?: number;
+  expect?: { timeout?: number };
+  webServer?: { reuseExistingServer?: boolean };
+};
+const loadSchedule = async (withCI: boolean): Promise<Schedule> => {
+  const previous = process.env.CI;
+  if (withCI) process.env.CI = "true";
+  else delete process.env.CI;
+  try {
+    vi.resetModules();
+    const mod = (await import("../../playwright.config")) as { default: Schedule };
+    return mod.default;
+  } finally {
+    if (previous === undefined) delete process.env.CI;
+    else process.env.CI = previous;
+  }
+};
 
 const ciRunLines = ci
   .split("\n")
@@ -93,5 +126,32 @@ describe("the README's testing claims match the machinery they describe", () => 
         /local-only|not a ci lane/,
       );
     }
+  });
+
+  it("keeps the local-vs-CI lane schedule visible where it is used", async () => {
+    const ciShape = await loadSchedule(true);
+    const localShape = await loadSchedule(false);
+
+    expect(ciShape.workers, "CI runs the browser lanes on one worker").toBe(1);
+    expect(ciShape.retries, "CI retries a failed attempt twice").toBe(2);
+    expect(ciShape.webServer?.reuseExistingServer, "CI must start its own dev server, never borrow :3000").toBe(false);
+
+    expect(localShape.workers, "a local lane runs on Playwright's default worker count").toBeUndefined();
+    expect(localShape.retries, "a local first attempt is never retried").toBe(0);
+    expect(localShape.webServer?.reuseExistingServer, "locally a lane can be served by a dev server another process owns").toBe(true);
+
+    // The budgets V11-20's three cases died inside. They are config numbers, so a
+    // change here has to move the finding's reading of them, not the other way round.
+    expect(localShape.timeout, "per-test budget").toBe(60000);
+    expect(localShape.expect?.timeout, "per-expectation budget").toBe(15000);
+
+    // The three assertions above are the config's own numbers; this one is the
+    // sentence an owner reads while deciding whether a red local spec means
+    // anything, so it has to stay next to the lane it describes.
+    const smokeRow = testing.split("\n").find((line) => line.includes("`npm run test:e2e:smoke`")) ?? "";
+    expect(smokeRow, "docs/TESTING.md no longer has a smoke row to attach the warning to").not.toBe("");
+    expect(smokeRow.replace(/\s+/g, " "), "a local smoke failure is schedule-relative and the doc must say so").toMatch(
+      /single-worker control/,
+    );
   });
 });
