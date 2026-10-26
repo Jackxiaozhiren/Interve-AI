@@ -195,13 +195,17 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * satisfies the shape of the rule and changes nothing about the behaviour, which is the
  * reason the guard has a second case — and OVL3 aims the census's own `inset-0` test at a
  * class that exists nowhere, which is the only way to show the floor is counting elements
- * rather than an empty list)
+ * rather than an empty list); and 208 with the pill this round finally read instead of
+ * deleting (DCM5 hides Next's dev-tools host without looking at it, which is the exact
+ * shape the "N · 1 Issue" needed to stay unnamed across three rounds; DCM6 keeps the read
+ * and points it at the host's own `textContent`, so the lane prints a constant whatever
+ * the indicator says)
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 206;
+const MIN_PLANTS = 208;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;

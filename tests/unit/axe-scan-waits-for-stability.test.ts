@@ -63,6 +63,48 @@ function callPositions(sf: ts.SourceFile, node: ts.Node, name: string): number[]
   return out;
 }
 
+/**
+ * Does this reader descend from the *host element's* shadow root?
+ *
+ * Keyed on the descent, not on the word: a reader can mention `shadowRoot` inside a
+ * helper it no longer calls — which is exactly what the first two versions of this
+ * rule let DCM6 walk past, once by matching the token anywhere in the body and once
+ * by matching any call argument whose text contained it. The fact that decides
+ * whether the lane reads anything is that the element `document.querySelector`
+ * returned is the one whose `shadowRoot` gets handed to the walk.
+ */
+function walksFromAShadowRoot(body: ts.Node): boolean {
+  const unwrap = (e: ts.Expression): ts.Expression => {
+    let x = e;
+    for (;;) {
+      if (ts.isParenthesizedExpression(x) || ts.isAsExpression(x) || ts.isSatisfiesExpression(x) || ts.isNonNullExpression(x) || ts.isAwaitExpression(x)) {
+        x = x.expression;
+      } else break;
+    }
+    return x;
+  };
+  const isQuerySelectorCall = (e: ts.Expression) => {
+    const x = unwrap(e);
+    return ts.isCallExpression(x) && ts.isPropertyAccessExpression(x.expression) && x.expression.name.text === "querySelector";
+  };
+  const hostVars = new Set<string>();
+  let found = false;
+  const visit = (n: ts.Node) => {
+    if (ts.isVariableDeclaration(n) && n.initializer && ts.isIdentifier(n.name)) {
+      if (isQuerySelectorCall(n.initializer)) hostVars.add(n.name.text);
+    }
+    if (ts.isCallExpression(n) && n.arguments.length) {
+      const a0 = unwrap(n.arguments[0]);
+      if (ts.isPropertyAccessExpression(a0) && a0.name.text === "shadowRoot" && ts.isIdentifier(a0.expression) && hostVars.has(a0.expression.text)) {
+        found = true;
+      }
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(body);
+  return found;
+}
+
 /** AX1: an axe arm that waits on a duration, or that scans without settling. */
 export function fixedDelayArms(sf: ts.SourceFile): string[] {
   const out: string[] = [];
@@ -238,6 +280,31 @@ export function laneCoverageDefects(sf: ts.SourceFile): string[] {
     if (hide[0] > settle[0]) out.push(`${title}: hides the dev host after settling, so the settle signature still includes the indicator`);
     if (settle[0] > scan[0]) out.push(`${title}: scans before settling`);
     if (hide[0] > scan[0]) out.push(`${title}: hides the dev host after the scan runs`);
+  }
+
+  // The hide is only honest if the lane read the indicator first. Removing the pill
+  // without saying what it said is how the harness's own "1 Issue" stayed unnamed
+  // across three rounds, so this is checked on the helper itself rather than on each
+  // arm — one place, and every arm inherits it. Only when the source actually defines
+  // the helper: the synthetic fixtures above do not, and deleting `hideDevChrome`
+  // altogether is already caught by the per-arm rule.
+  const hideFn = findFunctionByName(sf, "hideDevChrome");
+  if (hideFn?.body) {
+    const read = callPositions(sf, hideFn.body, "readDevIssues");
+    const styleAt = hideFn.body.getText(sf).search(/addStyleTag/);
+    if (!read.length) {
+      out.push("hideDevChrome never reads the indicator, so a dev-mode Issue is hidden rather than named");
+    } else if (styleAt >= 0 && read[0] > hideFn.body.getStart(sf) + styleAt) {
+      out.push("hideDevChrome reads the indicator after hiding it, so the read runs against a pill the lane has already taken off the page");
+    }
+    const reader = findFunctionByName(sf, "readDevIssues");
+    if (!reader?.body) {
+      out.push("readDevIssues is missing, so nothing prints what the dev-tools indicator reports");
+    } else if (!walksFromAShadowRoot(reader.body)) {
+      out.push(
+        "readDevIssues never descends from the host element's shadow root, so it reads the light DOM where the indicator keeps no text and prints the same string whatever the pill says"
+      );
+    }
   }
 
   const measure = findFunctionByName(sf, "measuredFailuresOf");
@@ -498,6 +565,104 @@ async function expectNoSeriousViolations(page, ceilings) {
     expect(laneCoverageDefects(fixture(ARM(`  await hideDevChrome(page);\n  await settleForScan(page);\n  await expectNoSeriousViolations(page, {});\n`)))).toEqual([
       "measuredFailuresOf is missing — a node axe measured and did not file would be counted as unmeasurable",
     ]);
+  });
+
+  /**
+   * The half of the hide that used to be missing.
+   *
+   * `hideDevChrome` deleted the only node in the page that knew what Next was
+   * complaining about, so the harness's own "1 Issue" was reported by the baseline
+   * pixels and by nothing else. The rule is on the helper rather than the arms,
+   * which is why these fixtures have to build the helper themselves: an arm calling
+   * a `hideDevChrome` that this synthetic source does not define is already covered
+   * by AX5, and saying nothing here is what keeps that case honest.
+   */
+  it("AX6 fires on a hide that stops saying what it hid", () => {
+    const HIDE_BODIES = `
+const measuredFailuresOf = (unresolved) => unresolved.filter(({ d }) => typeof d?.fgColor === "string" && typeof d?.bgColor === "string" && Number(d?.contrastRatio) < Number(d?.expectedContrastRatio));
+const expectNoSeriousViolations = async (page, ceilings) => {
+  const unresolved = [];
+  const failures = measuredFailuresOf(unresolved);
+  const unmeasured = unresolved.filter((n) => !(typeof n.any?.[0]?.data?.fgColor === "string" && typeof n.any?.[0]?.data?.bgColor === "string"));
+  expect(failures).toEqual([]);
+  expect(unmeasured.length).toBeLessThanOrEqual(0);
+};
+const hideDevChrome = async (page) => {
+  await readDevIssues(page);
+  await page.addStyleTag({ content: "nextjs-portal{display:none !important}" });
+  await expect(page.locator("nextjs-portal")).toHaveCount(1);
+};
+test('landing has no serious/critical axe violations', async ({ page }) => {
+  await hideDevChrome(page);
+  await settleForScan(page);
+  await expectNoSeriousViolations(page, {});
+});
+`;
+    const READER = `const readDevIssues = async (page) => {
+  const found = await page.evaluate(() => {
+    const acc = { texts: [] };
+    const walk = (root, depth) => {
+      if (depth > 4) return;
+      for (const el of Array.from(root.querySelectorAll("*"))) {
+        acc.texts.push(el.textContent);
+        if (el.shadowRoot) walk(el.shadowRoot, depth + 1);
+      }
+    };
+    const hostEl = document.querySelector("nextjs-portal");
+    if (!hostEl || !hostEl.shadowRoot) return null;
+    walk(hostEl.shadowRoot, 0);
+    return acc;
+  });
+  console.log("[dev-issues]", page.url(), JSON.stringify(found));
+};`;
+    const defectsOver = (hide: string, reader = READER) => laneCoverageDefects(fixture(`${reader}\n${hide}`));
+
+    // Well-formed: the reader reaches a shadow root, and the hide calls it first.
+    expect(defectsOver(HIDE_BODIES), "the well-formed hide must report nothing, or the rule is satisfied by nothing").toEqual([]);
+
+    expect(defectsOver(HIDE_BODIES.replace("  await readDevIssues(page);\n", ""))).toEqual([
+      "hideDevChrome never reads the indicator, so a dev-mode Issue is hidden rather than named",
+    ]);
+
+    expect(
+      defectsOver(
+        HIDE_BODIES.replace("  await readDevIssues(page);\n", "").replace(
+          '  await page.addStyleTag({ content: "nextjs-portal{display:none !important}" });',
+          '  await page.addStyleTag({ content: "nextjs-portal{display:none !important}" });\n  await readDevIssues(page);'
+        )
+      )[0]
+    ).toMatch(/reads the indicator after hiding it/);
+
+    expect(defectsOver(HIDE_BODIES, `const readDevIssues = async (page) => {\n  console.log("[dev-issues]", page.url());\n};`)).toEqual([
+      "readDevIssues never descends from the host element's shadow root, so it reads the light DOM where the indicator keeps no text and prints the same string whatever the pill says",
+    ]);
+
+    // DCM6's shape: the word survives, the descent does not. A check on the token
+    // alone is green here, which is how the first version of this rule missed it.
+    expect(
+      defectsOver(
+        HIDE_BODIES,
+        `const readDevIssues = async (page) => {
+  const found = await page.evaluate(() => {
+    const walk = (root) => Array.from(root.querySelectorAll("*")).map((e) => e.textContent);
+    const hostEl = document.querySelector("nextjs-portal");
+    if (!hostEl) return null;
+    const mentioned = hostEl.shadowRoot;
+    return { texts: walk(hostEl), attrs: [], mentioned };
+  });
+  console.log("[dev-issues]", page.url(), JSON.stringify(found));
+};`
+      )
+    ).toEqual([
+      "readDevIssues never descends from the host element's shadow root, so it reads the light DOM where the indicator keeps no text and prints the same string whatever the pill says",
+    ]);
+
+    expect(defectsOver(HIDE_BODIES, "")).toEqual([
+      "readDevIssues is missing, so nothing prints what the dev-tools indicator reports",
+    ]);
+
+    // And the real lane, which is the case that has to hold.
+    expect(laneCoverageDefects(parse(SPEC, readRepo(SPEC))), "the lane as shipped").toEqual([]);
   });
 
   it("the corpus is the file the lane actually runs", () => {
