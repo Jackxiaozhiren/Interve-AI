@@ -42,7 +42,61 @@ import { classifyContrastNode, type AxeContrastBucket } from './axe-incomplete-r
  */
 const DEV_CHROME_HOST = 'nextjs-portal';
 
+/**
+ * Say what the dev-tools indicator is reporting, then get out of the way.
+ *
+ * Hiding is the right thing for both lanes' measurements, and it was also the thing
+ * that made the harness's own complaint unattributable: PR #147's ubuntu baseline
+ * carried an "N · 1 Issue" pill, and nothing in the repo could say what the issue
+ * was, because the lane deleted the only node that knew. Measured 2026-10-25 from
+ * CI's own log, the pill's content is a React hydration mismatch on the interview
+ * room's text input — a single differing attribute, `style="caret-color: transparent"`
+ * — and it is reproducible locally under CI's schedule (see docs/audit/V11_REGISTER.md
+ * V11-19). The count without the message is noise; the message is a finding.
+ *
+ * This reads the shadow tree rather than a known selector, because the indicator's
+ * internals are Next's and change between versions; the text and the `data-*` labels
+ * are what a human would read off the screen. It prints whatever it finds, including
+ * nothing — an empty reading is the normal case and is logged as such, and a lane
+ * must not fail because a vendor's private DOM moved.
+ */
+const readDevIssues = async (page: Page) => {
+  const found = await page.evaluate((host: string) => {
+    const acc: { texts: string[]; attrs: string[] } = { texts: [], attrs: [] };
+    const walk = (root: ShadowRoot | Document, depth: number) => {
+      if (depth > 4) return;
+      for (const el of Array.from(root.querySelectorAll('*')) as Element[]) {
+        // The indicator's shadow tree carries its own stylesheets, and their text is
+        // not a message: a first version of this printed a whole Bootstrap reboot
+        // block per page (~70 KB) instead of the label.
+        if (/^(STYLE|SCRIPT|LINK|META|TITLE)$/.test(el.tagName)) continue;
+        const own = Array.from(el.childNodes)
+          .filter((n) => n.nodeType === 3)
+          .map((n) => (n.textContent || '').trim())
+          .join(' ')
+          .trim();
+        if (own) acc.texts.push(`${el.tagName.toLowerCase()}#${el.id || '-'}: ${own.slice(0, 160)}`);
+        for (const a of Array.from(el.attributes)) {
+          if (/^(data-description|data-status|aria-label|title)$/.test(a.name) && a.value) {
+            acc.attrs.push(`${el.tagName.toLowerCase()}[${a.name}]=${a.value}`);
+          }
+        }
+        const nested = (el as HTMLElement).shadowRoot;
+        if (nested) walk(nested, depth + 1);
+      }
+    };
+    const hostEl = document.querySelector(host);
+    if (!hostEl || !hostEl.shadowRoot) return null;
+    walk(hostEl.shadowRoot, 0);
+    return { texts: acc.texts.slice(0, 10), attrs: acc.attrs.slice(0, 10) };
+  }, DEV_CHROME_HOST);
+  console.log(
+    `[dev-issues] ${page.url()} :: ${found ? JSON.stringify(found) : `no readable shadow root on <${DEV_CHROME_HOST}>`}`
+  );
+};
+
 const hideDevChrome = async (page: Page) => {
+  await readDevIssues(page);
   await page.addStyleTag({ content: `${DEV_CHROME_HOST}{display:none !important}` });
   const portal = page.locator(DEV_CHROME_HOST);
   await expect(
