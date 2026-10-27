@@ -150,7 +150,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
             </div>
             <span className="text-sm font-bold text-slate-500 mb-0.5">%</span>
           </div>
-          <p className="text-[9px] text-slate-500 mt-2 z-10 leading-relaxed">
+          <p className="text-[11px] text-slate-500 mt-2 z-10 leading-relaxed">
             {t.interview.strainCaption}
           </p>
           {/* Strain bar */}
@@ -208,7 +208,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
               sessions without evidence render exactly as before. */}
           {starEvidence.length > 0 && (
             <div className="mt-3 z-10 border-t border-slate-100/70 pt-2">
-              <p className="text-[9px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] text-slate-500 leading-relaxed">
                 Basis in your answer: “{starEvidence[0]}”
                 {starEvidence.length > 1 ? ` (+${starEvidence.length - 1} more)` : ""}
                 {` · Evaluator confidence: ${starConfidence} (evidence sufficiency)`}
@@ -257,7 +257,7 @@ export const LiveStats = React.memo(({ wpm, fillerWordsCount, showAiEstimates = 
           {/* Steering envelope (§7): see STAR tile above. */}
           {traitsEvidence.length > 0 && (
             <div className="mt-3 z-10 border-t border-slate-100/70 pt-2">
-              <p className="text-[9px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] text-slate-500 leading-relaxed">
                 Basis in your answer: “{traitsEvidence[0]}”
                 {traitsEvidence.length > 1 ? ` (+${traitsEvidence.length - 1} more)` : ""}
                 {` · Evaluator confidence: ${traitsConfidence} (evidence sufficiency)`}

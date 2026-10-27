@@ -95,7 +95,7 @@ export const CameraSelfView = React.memo(() => {
               2.16:1 against the white label below. At /70 the same white-on-light
               worst case resolves to #4c4c4c (~8.9:1). */}
           <div className="px-2 py-1 bg-black/70 backdrop-blur-md rounded-lg border border-white/20 shadow-sm">
-            <p className="text-[9px] font-medium text-white leading-relaxed">
+            <p className="text-[11px] font-medium text-white leading-relaxed">
               {t.interview.noVisualAnalysis}
             </p>
           </div>
