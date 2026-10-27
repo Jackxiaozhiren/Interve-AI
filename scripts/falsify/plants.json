@@ -1082,6 +1082,34 @@
       "replacement": "workers: 2,",
       "test": "tests/unit/readme-testing-claims.test.ts",
       "pattern": "lane schedule"
+    },
+    {
+      "name": "GFX1",
+      "desc": "a paragraph drops back to 9px, which is legible in a contrast report and unreadable on a screen",
+      "file": "src/components/interview/CameraSelfView.tsx",
+      "anchor": "<p className=\"text-[11px] font-medium text-white leading-relaxed\">",
+      "replacement": "<p className=\"text-[9px] font-medium text-white leading-relaxed\">",
+      "test": "tests/unit/prose-font-floor.test.ts",
+      "pattern": "renders below"
+    },
+    {
+      "name": "GFX2",
+      "desc": "the census stops matching paragraph tags, so the floor is asserted against an empty list — the blindness every guard in this family has had to prove it can catch",
+      "file": "tests/unit/prose-font-floor.test.ts",
+      "anchor": "el.tagName.getText(sf) === \"p\"",
+      "replacement": "el.tagName.getText(sf) === \"span\"",
+      "test": "tests/unit/prose-font-floor.test.ts",
+      "pattern": "census counts"
+    },
+    {
+      "name": "GFX3",
+      "desc": "the excluded badge chips are widened to the floor as well, which is the design-system decision V11-11 says nobody authorised",
+      "file": "src/components/interview/LiveStats.tsx",
+      "anchor": "text-[9px]",
+      "replacement": "text-[11px]",
+      "count": 6,
+      "test": "tests/unit/prose-font-floor.test.ts",
+      "pattern": "excluded by tag"
     }
   ]
 }
