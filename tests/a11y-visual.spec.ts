@@ -52,7 +52,11 @@ const DEV_CHROME_HOST = 'nextjs-portal';
  * CI's own log, the pill's content is a React hydration mismatch on the interview
  * room's text input — a single differing attribute, `style="caret-color: transparent"`
  * — and it is reproducible locally under CI's schedule (see docs/audit/V11_REGISTER.md
- * V11-19). The count without the message is noise; the message is a finding.
+ * V11-19). It turned out to be the harness's own doing, not the product's: `page.screenshot` defaults
+ * to `caret: 'hide'`, and a controlled A/B on the same route showed the mismatch only in
+ * the run that took a screenshot. That is the value of printing it: a pill that reads like
+ * a product defect and is really the harness, and a pill that would have been a product
+ * defect, are no longer the same unknown object.
  *
  * This reads the shadow tree rather than a known selector, because the indicator's
  * internals are Next's and change between versions; the text and the `data-*` labels
