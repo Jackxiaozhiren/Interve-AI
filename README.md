@@ -36,7 +36,7 @@ Setup → interviews (Supabase) → Interview room (useChat stream + Whisper/Kok
 
 ## Stack
 
-`Next 16.3.5 / React 19.3.0 / TS strict / AI SDK v7 (ai@7.0.111, @ai-sdk/* 4.x) / Zhipu GLM (OpenAI-compat) + Gemini + optional OpenAI / Supabase Postgres / zustand + Context + Orama / next-pwa / MediaRecorder + SpeechRecognition + Whisper (transformers.js) + Kokoro-82M (kokoro-js) + energy VAD / Monaco / tldraw / recharts`. Node 24.x (`engines`, Docker `node:24-alpine`, CI `node-version: 24`).
+`Next 16.3.5 / React 19.3.0 / TS strict / AI SDK v7 (ai@7.0.111, @ai-sdk/* 4.x) / Zhipu GLM (OpenAI-compat) + Gemini + optional OpenAI / Supabase Postgres / zustand + Context + Orama / MediaRecorder + SpeechRecognition + Whisper (transformers.js) + Kokoro-82M (kokoro-js) + energy VAD / Monaco / tldraw / recharts`. Node 24.x (`engines`, Docker `node:24-alpine`, CI `node-version: 24`).
 
 ## Quickstart (clean room)
 
