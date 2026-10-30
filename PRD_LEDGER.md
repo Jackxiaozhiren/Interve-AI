@@ -176,7 +176,7 @@ path ever reads it.
 | tier | who | status |
 |---|---|---|
 | 1 — domain-level block monitor | agent | pending in this commit; recorded in §8a when read |
-| 2 — one mainland phone, cellular, Wi-Fi off, proxy off | owner | **pending** — no artifact received |
+| 2 — one mainland phone, cellular, Wi-Fi off, proxy off | owner | **owner-reported pass, with gaps.** Verbatim, 2026-10-30: "我这些都已经实测中国移动，大陆IP手机是可以正常打开无报错的" — China Mobile, mainland IP, phone, opens with no error. Not witnessed by the agent; no seconds recorded; no screenshot supplied; not stated whether all three origins were opened |
 | 3 — mainland 拨测, 电信/联通/移动 | owner | **pending** — no artifact received |
 | 4 — five humans | deferrable | not scheduled |
 
@@ -202,6 +202,24 @@ Two limits stated plainly rather than smoothed over:
   "blocked" for §7-R4; it is a reason to run tier 2 and tier 3, nothing more.
 
 So **tier 1 is partial, and no origin is marked green.**
+
+### 8b. Tier 2 reading (2026-10-30)
+
+Owner's words, transcribed without embellishment: **"我这些都已经实测中国移动，大陆IP手机是可以正常打开无报错的"**
+— China Mobile, mainland IP, phone, opens with no error.
+
+What this establishes, and what it does not:
+
+| established | not established |
+|---|---|
+| a mainland mobile-network path reaches **something** it opened, with no error, on 2026-10-30 | **which** origin(s) were opened — the app, `huggingface.co`, `cdn-lfs.huggingface.co`, or only the first |
+| the negative case is not the current state — the site is not wholesale blocked for a China Mobile phone | **seconds to first paint** — §6.1 tier 2 asks for this and R5's budget needs it |
+| — | whether the path was **cellular** rather than mainland Wi-Fi, and whether a proxy or Private Relay was active |
+| — | an artifact. No screenshot on disk. Nothing in this file may cite tier 2 as witnessed |
+
+Per §6.1 a pass at tier 2 **licenses tier 4 but does not substitute for it**, and per
+§6.3 it does not by itself green §7-R4. It does clear the blocking case: no tier has
+returned a negative, so hosting does not displace the product work.
 
 ## 9. Human trial
 
