@@ -217,15 +217,14 @@ So **tier 1 is partial, and no origin is marked green.**
 
 Owner's words, transcribed without embellishment: **"我这些都已经实测中国移动，大陆IP手机是可以正常打开无报错的"**
 — China Mobile, mainland IP, phone, opens with no error.
-
-What this establishes, and what it does not:
+Follow-up, same day: **"三个地址都开了"**, **"首屏2s"** — all three origins opened, two seconds to first paint.
 
 | established | not established |
 |---|---|
-| a mainland mobile-network path reaches **something** it opened, with no error, on 2026-10-30 | **which** origin(s) were opened — the app, `huggingface.co`, `cdn-lfs.huggingface.co`, or only the first |
-| the negative case is not the current state — the site is not wholesale blocked for a China Mobile phone | **seconds to first paint** — §6.1 tier 2 asks for this and R5's budget needs it |
-| — | whether the path was **cellular** rather than mainland Wi-Fi, and whether a proxy or Private Relay was active |
-| — | an artifact. No screenshot on disk. Nothing in this file may cite tier 2 as witnessed |
+| a mainland China Mobile path reaches **all three origins** — the app, `huggingface.co`, `cdn-lfs.huggingface.co` — with no error, 2026-10-30 | an artifact: no screenshot on disk, nothing here may cite tier 2 as witnessed |
+| **time to first paint ≈ 2 s** [reported by owner 2026-10-30] — inside R5's budget at the landing surface | whether the 2 s is first paint of the app or of the heaviest surface, and whether the interview room's `modelsReady` gate was reached |
+| the negative case is not the current state | whether the path was **cellular** rather than mainland Wi-Fi, and whether a proxy or Private Relay was active |
+| "opens" ≠ "completes a task": the weights origin answering is not the same as the interview starting | §6.4c: a device that loads a page is not a person who completes a task |
 
 Per §6.1 a pass at tier 2 **licenses tier 4 but does not substitute for it**, and per
 §6.3 it does not by itself green §7-R4. It does clear the blocking case: no tier has
