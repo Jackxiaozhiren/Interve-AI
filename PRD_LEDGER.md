@@ -296,7 +296,7 @@ the migration it asks about is already live. §15.1 gates everything downstream
 
 | commit | item | gate output | rc |
 |---|---|---|---|
-| `T3` | **phone width** | `npx playwright test --project=phone-390x844` — **before**: 1 failed, `the content column keeps a usable width: Expected >= 320, Received 64`; **after**: 1 passed (8.0s). `npm run typecheck` 0. `npm run facts:check` `facts ratchet: OK`. `readme-testing-claims` + `readme-architecture-claims` 16/16 after the matrix count was corrected from 12 to 13 | 0 |
+| `T3` | **phone width** | `npx playwright test --project=phone-390x844` — **before**: 1 failed, `the content column keeps a usable width: Expected >= 320, Received 64`; **after**: 1 passed (8.0s). Desktop regression: `npx playwright test tests/dashboard.spec.ts --project=chrome-1280x720` **8 passed (25.9s)**. `npm run typecheck` 0. `npm run facts:check` `facts ratchet: OK`. `readme-testing-claims` + `readme-architecture-claims` 16/16 after the matrix count was corrected from 12 to 13 | 0 |
 
 What changed and why it is one unit: `dashboard-shell.tsx` had a fixed `w-[280px]` sidebar
 with `m-6` gutters and a `flex` (row) parent, so at 390 px the content column measured
@@ -305,6 +305,13 @@ original value behind `md:` — so the desktop rendering is the composition it a
 `playwright.config.ts` gained one project, `phone-390x844`, scoped by `testMatch` to the
 new spec, because the matrix modelled four browsers at three desktop widths and no phone
 at all. The check was written first and watched go red before the layout was touched.
+
+Operational note for whoever runs the e2e lanes next: in this environment the
+dev server cannot boot twice in a row without help — Next deletes `.next/dev/logs`
+on startup and the host's bulk-delete guard refuses it
+(`[safe-delete] broker denied delete: path=…/.next/dev/logs`). Moving `.next`
+aside before a run is enough; the directory is a build cache, and nothing in this
+commit depends on it being absent.
 
 ## 14. Deliberately not done
 
