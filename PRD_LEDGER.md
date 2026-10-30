@@ -30,7 +30,7 @@ plants and selects **200** in fast mode; `--slow` adds 13 browser plants
 [measured `node scripts/falsify/guards.mjs --list`, which prints
 `(200/213 selected; --slow adds the browser plants)`, 2026-10-30]. So the fast
 gate is complete for what it covers, and the 13 Playwright plants were **not run
-this session** — see §12.
+this session** — see §14.
 
 ## 2. Pre-flight (not §2.2, recorded because it shaped the session)
 
@@ -99,7 +99,7 @@ a reading rather than a typo.
 | B12 | README:39 still lists `next-pwa` in the stack; `docs/audit/REPOSITORY_TRUTH.md:37` describes PWA config | contradicts B11 — see §7 |
 | B14 | 4 adjudicated orphans: `analyze-chunk`, `analyze-trends`, `health`, `init-context` (+ `csp-report`) | `tests/unit/orphan-api-routes.test.ts:13-40` |
 | B15 | rc 1 on the manifest; rc 1 on `window.analytics`/`track(` | control: `TelemetryProvider` matches (`src/lib/telemetry.tsx:6`) → the app has first-party telemetry and **no vendor analytics** |
-| B16 | 7 tables referenced from `src/lib`: interviews 8, achievements 6, practice_sessions 4, evaluations 4, telemetry 3, orama_index 3, assessments 2 [measured grep `from('<t>')` 2026-10-30] | read/write split per table not yet separated — see §12 |
+| B16 | 7 tables referenced from `src/lib`: interviews 8, achievements 6, practice_sessions 4, evaluations 4, telemetry 3, orama_index 3, assessments 2 [measured grep `from('<t>')` 2026-10-30] | read/write split per table not yet separated — see §14 |
 | B17 | 21 hits; live-render ones include `SessionDetailModal.tsx:210-215`, `PrintableDossier.tsx:108-109`, `PrintLayout.tsx:98`, `export.ts:74-93` | schema-side: `db.ts:71`, `eval-compat.ts:125-132` |
 | B17t | 2 hits: `evaluation-contract.test.ts:64-65` bans `hireVerdict`, `councilDebate`, `cultureFitAdvisor`, `culturalTraits` **in the eval shape** | the ban is contract-level, and the render paths are outside that contract |
 | B18 | 2 hits, both `href="/chat"` (`HeroSection.tsx:29`, `landing/page.tsx:67`); guard list at `proxy.ts:20` | no `href="/setup"` in the marketing surface |
@@ -163,9 +163,24 @@ No tier is marked green. Per §6.4a no `hk`/`sg`/`us` node and no reading from t
 laptop may stand in for any tier; this host resolves through a proxy, so its own
 result would describe the proxy.
 
-### 8a. Tier 1 reading
+### 8a. Tier 1 reading (2026-10-30)
 
-_pending — filled in the commit that records it._
+Monitor used: ViewDNS Chinese Firewall Test (`viewdns.info/chinesefirewall`), which
+queries DNS resolvers inside the mainland. Scope: **DNS layer only**, not HTTP.
+
+| origin | mainland resolvers | answer | verdict |
+|---|---|---|---|
+| `huggingface.co` | Beijing, Shenzhen, Inner Mongolia, Heilongjiang, Yunnan | all five returned `45.114.11.238`; root servers return `13.226.251.112/.20/.66/.81` (AWS) | **inconclusive-leaning-negative.** The monitor's own wording: "DNS servers in China returned different IP addresses to those returned by the root servers. This could indicate DNS poisoning by the Great Firewall of China. It could also just indicate the presence of GeoDNS on this domain name." |
+| `cdn-lfs.huggingface.co` | — | "Sorry, I couldn't seem to find that domain." | no reading |
+| the app's own production origin | — | not tested | **blocked: domain unknown.** §6.1 step 1 requires it from the deployment host, not from the repo; not yet supplied |
+
+Two limits stated plainly rather than smoothed over:
+- **No test timestamp** appears on the result page; the page was retrieved
+  2026-10-30 and that retrieval date is all this row can claim.
+- A DNS-layer divergence is not an HTTP verdict. It cannot license "reachable" or
+  "blocked" for §7-R4; it is a reason to run tier 2 and tier 3, nothing more.
+
+So **tier 1 is partial, and no origin is marked green.**
 
 ## 9. Human trial
 
@@ -175,12 +190,59 @@ _pending — filled in the commit that records it._
 
 Empty. N4 is unmet and no milestone claims a user outcome.
 
-## 10. Triage
+## 10. §6.2 posture brief — three postures, priced, none chosen
 
-_pending §10.3 — written after the owner answers §15's five decisions. No source
-file is edited before that approval._
+Presented, not decided (N5). Each row names what it costs, not what it is worth.
 
-## 11. Fix log
+| posture | what it means | named cost | what it forgoes |
+|---|---|---|---|
+| **A. Non-public pilot** | named group (a class, club, 社团, one career centre); not offered to the public | no new filing; the cost is the owner's time to recruit one group and the honesty to call it a pilot | scale; "广大用户" in the literal sense; any public growth claim |
+| **B. Public, overseas-hosted, ungated** | ship to the mainland public as today | no cash cost; the cost is **legal exposure carried by the owner personally** and reachability the owner does not control (tier 1 already shows mainland DNS diverging on the model origin) | legal defensibility; predictable reachability |
+| **C. Public, properly registered** | commercial service with a mainland entity | business licence (individual or 个体工商户 path), ICP + public-security filing, algorithm filing or the downstream-app route, a paid mainland-reachable host, an approved generative-AI upstream | the zero-budget constraint (N6 makes this unavailable today) |
+
+Two measurements that bear on the choice, both already in this file: the free
+model pool sustains ~26 concurrent completions (§6), and the only configured
+credentials are Google/GitHub OAuth (`src/lib/auth.ts:4`), while the primary door
+`POST /api/session` verifies nothing (B2). Posture A is the only one that fits the
+constraint set **and** produces the sessions §9's metrics need — stated as a
+recommendation for the owner to accept or reject, not as a decision taken here.
+
+---
+
+## 11. §10.3 Triage — ranked, awaiting approval
+
+Rank key: *users unblocked × effort × risk*. No item below is edited before the
+owner approves the round. Every item names its exit gate and its falsification.
+
+| rank | id | item (evidence) | users unblocked | effort | risk | exit gate | falsification proof |
+|---|---|---|---|---|---|---|---|
+| 1 | T1 | **Identity is a demo.** `POST /api/session` accepts any well-formed identity and issues an HMAC cookie (`route.ts:27-37`, `requireSession: false`); the client mints the id (`LoginForm.tsx:86`, `signup/page.tsx:55`). The only real credentials are Google/GitHub OAuth (`src/lib/auth.ts:4`). | everyone — nothing a user saves is protected by a secret | high | high: auth surface | a test that fails when an unverified identity can mint a session | plant: restore `requireSession: false`; the new test must go red |
+| 2 | T2 | **The promise has no test.** 「面试记录、报告与回放都会保存」 at `LoginForm.tsx:132`, `signup/page.tsx:100` (B1). | every signup | low | low | either a test that fails when the row is not persisted, or the sentence is deleted | delete the persistence call; the sentence's test must go red |
+| 3 | T3 | **Phone width is unsupported.** No phone device in the matrix (B5), zero viewport branching in the interview surface (B6), fixed `w-[280px]` chrome (B4), two `min-w` above 390 px (B23: `table.tsx:14` 640, `TechnicalScratchpad.tsx:221` 400). | the rank-1 audience, which is on a phone | medium | medium: layout | a phone project in `playwright.config.ts` plus geometry assertions on the core loop | remove the breakpoint; geometry assertion must fail |
+| 4 | T4 | **Employment verdicts reach the user.** `cultureFitAdvisor` rendered at `SessionDetailModal.tsx:210-215`, `PrintableDossier.tsx:108-109`, `PrintLayout.tsx:98`, exported at `export.ts:74-93`, while the contract bans those keys (`evaluation-contract.test.ts:64`). | every user who exports a report | low-medium | medium: data shape | render/export paths removed; a test that bans the keys in **rendered output**, not only in the schema | re-add one render branch; the output test must go red |
+| 5 | T5 | **The quota is invisible until it bites.** No client reads `RateLimit-Remaining` (B9); the 200/day is shared by user **and** egress IP (`user-budget.ts:76-95`) and the UI sentence does not say so (`PricingSection.tsx:47`). | every user behind campus/carrier NAT | low | low | a visible remaining-quota surface plus the corrected sentence | stub the header to 0; the surface must show it |
+| 6 | T6 | **Prose claims a PWA the build does not emit.** `README.md:39`, `docs/audit/REPOSITORY_TRUTH.md:37` vs no manifest, no `sw.js`, plugin removed (`next.config.ts:3-9`). | none directly — it costs trust (N8/N10) | trivial | none | docs corrected, or the feature restored with a build assertion | put `next-pwa` back in the manifest; the doc-claims test must go red |
+| 7 | T7 | **Pooled free key caps concurrency at ~26** (§6, measured). | every user, at once | n/a — a decision | high: it decides whether S2/BYOK is optional | §15.1 answered with this curve in hand | n/a |
+
+Ordering rationale: T1 and T2 are the same user harm seen from two sides — a
+promise about saved records, made by a door that verifies nothing. T3 is next
+because the rank-1 audience cannot complete the loop at phone width at all; T4 is
+an ethics-line breach (§12.8) that is cheap to close; T5 and T6 are honesty
+repairs; T7 is not code.
+
+## 12. §15's five decisions, priced
+
+| # | decision | options, with the cost of each | what the price is paid in |
+|---|---|---|---|
+| §15.1 | deployment posture | A pilot / B public-ungated / C registered (§10) | A: owner's recruiting time. B: personal legal exposure. C: money + filing time (blocked by N6 today) |
+| §15.2 | identity provider | (a) Google/GitHub OAuth as configured — **both providers are poorly reachable from a mainland phone**, so this is not a zero-cost answer for rank-1; (b) Supabase email OTP/magic link — needs a sending domain and an SMTP free tier that does not demand a card; (c) phone OTP — costs money per message in the mainland, breaks N6; (d) keep demo identity — not defensible for any public posture | (a) users who cannot authenticate; (b) a domain + DNS + a mail provider decision; (c) per-message cash; (d) the product's credibility |
+| §15.3 | apply `005_interview_session_columns.sql` to the shared production DB | **Reversibility: additive columns, so the forward step is safe; the reverse step drops columns and destroys whatever was written into them.** Cannot verify current state — §2.4's live probe is blocked (§4) | a schema change on a shared database; §12.4 requires a per-action yes |
+| §15.4 | institutional data to a career centre | offering anonymised aggregates needs a minimum reportable cohort; below it, a "class average" identifies individuals. Proposed floor: **≥10 respondents per cell**, no cell published below it | legal exposure and the trust of the pilot institution |
+| §15.5 | delete legacy verdict render paths | depends on whether real historical rows carry `hireVerdict`/`cultureFitAdvisor`. **Unverifiable this session** — the DB reading is blocked (§4). Deleting the paths without that reading risks blanking real reports | user data that may be the only copy of a past report |
+
+No decision is taken here. §15.1 gates everything downstream (§6, N5).
+
+## 13. Fix log
 
 | commit | item | gate output | rc |
 |---|---|---|---|
@@ -188,7 +250,7 @@ file is edited before that approval._
 
 Empty: no source file has been edited in this lane.
 
-## 12. Deliberately not done
+## 14. Deliberately not done
 
 1. **The 13 `--slow` browser plants were not run.** They need Playwright browsers
    and a running app; `--slow` was not attempted. The fast gate covers 200/213.
