@@ -15,6 +15,17 @@ test.describe("phone width (390x844)", () => {
     await page.goto("/dashboard");
     await page.waitForLoadState("domcontentloaded");
 
+    // Measure after the shell mounts. Reading at domcontentloaded returned
+    // `main` width 0 and failed on an unrendered page — and the same early read
+    // would have let the other specs pass against an empty document, which is the
+    // one failure mode a geometry assertion must never have.
+    await page.waitForSelector("main");
+    await page.waitForFunction(
+      () => (document.querySelector("main")?.getBoundingClientRect().width ?? 0) > 0,
+      undefined,
+      { timeout: 15000 },
+    );
+
     const m = await page.evaluate(() => {
       const main = document.querySelector("main");
       return {
@@ -35,20 +46,33 @@ test.describe("phone width (390x844)", () => {
   });
 
   // The rest of the core loop. These assert only that the document does not
-  // scroll sideways: a page can be cramped and still be a page, but a page that
-  // pushes itself wider than the screen hides controls off the right edge with no
-  // way to reach them on a touch device.
-  for (const route of ["/setup", "/interview"]) {
-    test(`${route} does not scroll sideways at phone width`, async ({ page }) => {
+  // scroll sideways: a page can be cramped and still be a page, but content
+  // pushed past the right edge is unreachable on a touch device.
+  //
+  // /interview is not reachable without `?id=` — src/proxy.ts:74-79 redirects a
+  // bare /interview to /setup as a preflight check. That is a URL requirement, not
+  // a setup-state one, so the surface can be measured without seeding a session.
+  const surfaces = [
+    { route: "/setup", path: "/setup" },
+    { route: "/interview", path: "/interview?id=e2e-phone-width" },
+  ];
+  for (const { route, path } of surfaces) {
+    test(`${route} keeps its content inside a phone viewport`, async ({ page }) => {
       await loginAs(page);
-      await page.goto(route);
+      await page.goto(path);
       await page.waitForLoadState("domcontentloaded");
 
-      // Measuring the wrong page is worse than not measuring: /interview without
-      // a completed setup redirects, and a geometry assertion against the page it
-      // lands on would report the setup wizard twice under two names.
+      // Measuring the wrong page is worse than not measuring: a geometry
+      // assertion against a page the route redirected to would report one surface
+      // twice under two names.
       const landed = new URL(page.url()).pathname;
+      console.log(`[phone-width] requested ${path}, landed ${landed}`);
       test.skip(landed !== route, `redirected to ${landed} — the ${route} surface was not reached, so it is not measured`);
+
+      // Same trap as the dashboard spec: an unrendered document measures 0 wide,
+      // which satisfies every "does not exceed" assertion. Wait until there is
+      // something to measure, then prove there was.
+      await page.waitForFunction(() => document.body.innerText.trim().length > 0, undefined, { timeout: 15000 });
 
       const m = await page.evaluate(() => {
         const vw = window.innerWidth;
@@ -83,6 +107,7 @@ test.describe("phone width (390x844)", () => {
       // edge becomes unreachable while the document still measures clean. /setup
       // has exactly that root. The edge test below is immune to clipping.
       expect(m.docScroll, `no horizontal scroll on ${route}`).toBeLessThanOrEqual(m.vw + 1);
+      expect(m.widest, "something was actually rendered and measured").toBeGreaterThan(120);
       expect(m.widest, `nothing reaches past the viewport on ${route}: ${m.offenders.join(" | ")}`).toBeLessThanOrEqual(m.vw + 1);
     });
   }

@@ -339,7 +339,23 @@ greens meant anything:
 |---|---|
 | `/dashboard` | **fixed** — content column 64 px → ≥320 px, asserted |
 | `/setup` | content does not pass the right edge (asserted, green on arrival, plant-proven able to fail) |
-| `/interview` | **SKIPPED, not measured**: without completed setup the route redirects, and the test now refuses to measure whatever page it lands on. The core surface is therefore still unmeasured at phone width |
+| `/interview` | **measured, green.** The surface is reached with `?id=`, see the correction below |
+
+**Correction (§16.2), second one this session.** The previous paragraph said
+`/interview` "without completed setup … redirects". That was wrong. `src/proxy.ts:74-79`
+redirects a bare `/interview` to `/setup` when the **`id` query parameter is
+missing** — a URL-shape preflight, not a session-state check. Nothing had to be
+seeded; `/interview?id=…` renders the room. The earlier skip was the test reporting
+its own missing input, not a product gate.
+
+**A flake found and closed before it could be trusted.** With the surface reachable,
+the dashboard assertion failed with `Received: 0`: the measurement ran at
+`domcontentloaded`, before `main` had mounted. The same early read would have let the
+`/setup` and `/interview` specs pass **against an empty document**, because an
+unrendered page measures zero wide and satisfies every "does not exceed" assertion.
+Both specs now wait for the shell to mount, and the surface spec additionally asserts
+`widest > 120` — "something was actually rendered" — so a vacuous pass is impossible.
+Stability: `--repeat-each=3` → **9 passed (13.2 s)**.
 
 ## 14. Deliberately not done
 
