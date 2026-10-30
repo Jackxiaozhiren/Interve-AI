@@ -66,9 +66,19 @@ No law is VOID: each of the ten carries an executable `check:`.
 
 ## 4. §2.4 platform readings
 
-Taken by the owner from a shell with egress on 2026-10-30 (this host resets TLS to
-the project host: `SSL_ERROR_SYSCALL` via proxy, `Connection reset by peer` direct,
-DNS resolving — so the reading could not be taken here).
+Taken by the owner from a shell with egress on 2026-10-30, and **independently
+reproduced from this host at 19:13 the same day** — see the correction note below.
+
+Correction (§16.2). At 19:04 this host could not reach the project: TLS reset via
+proxy (`SSL_ERROR_SYSCALL`) and `Connection reset by peer` direct. At 19:13 the
+same host, same worktree, same key returned `HTTP 200` on `/auth/v1/settings` and
+`rc 0 / PASS` on the repo probe. **The block was transient, not a platform fact**,
+and the earlier sentence in this file that called these readings unmeasurable here
+was wrong. Both readings below are therefore corroborated from two vantages. What
+this does *not* change: the redirect allowlist is still admin-only, and OAuth
+providers are still unreachable from this host (`api.openai.com` and
+`generativelanguage.googleapis.com` answer `502` through the proxy), so an OAuth
+flow still cannot be completed end-to-end here.
 
 | reading | probe | result |
 |---|---|---|
