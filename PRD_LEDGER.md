@@ -74,8 +74,16 @@ DNS resolving — so the reading could not be taken here).
 |---|---|---|
 | anon read reachable / rows visible | `npm run verify:supabase-free` | **rc 0, PASS**: "anon read reachable (status 200, body 2 chars)". The script's own note: rows visible are legacy unowned (`user_id IS NULL`) by 002 design; owned rows stay invisible to anon. [measured 2026-10-30] |
 | auth providers enabled | `GET /auth/v1/settings` | rc 0. `external`: **google=true, github=true, email=true**; every other provider `false`, including **phone=false** (`sms_provider: twilio` but the provider is off). `disable_signup: false`, `mailer_autoconfirm: false`, `phone_autoconfirm: false`, `anonymous_users: false`, `passkeys_enabled: false`, `saml_enabled: false`. [measured 2026-10-30] |
-| which columns exist in the live DB | not yet taken | `verify:supabase-free` proves reachability, not the column inventory — its body was `2 chars`. Still open; see the one remaining command in the transcript. |
+| which columns exist in the live DB | per-column probe + one combined `select` on `interviews` | **all six of 005's columns exist.** Individually: `interview_type` 200, `difficulty` 200, `time_budget_sec` 200, `plan` 200, `evaluation_v2` 200; `custom_type_description` returned `000` (transport failure, not 400) on the first pass, then the combined `select=interview_type,custom_type_description,difficulty,time_budget_sec,plan,evaluation_v2` returned **HTTP 200** with body `[]` — PostgREST resolves the whole list or rejects it with 400 naming the missing column, so all six are present and the `[]` is RLS hiding owned rows, not a missing column. [measured 2026-10-30] |
 | redirect allowlist | admin-only | not obtainable with an anon key — dashboard-only, not attempted |
+
+**Method limit, recorded rather than worked around.** `GET /rest/v1/` answers
+`{"message": "Secret API key required", "hint": "Only secret API keys can be used
+for this endpoint."}` [measured 2026-10-30], so the anon key **cannot enumerate the
+schema**. Column existence is therefore established indirectly, by asking PostgREST
+to resolve a named column list — a probe that distinguishes "column missing" (400)
+from "no rows visible" (`200 []`), and does not distinguish "column exists but type
+drifted".
 
 **What the platform state says that the repo does not.** Three providers are
 enabled upstream, and the app calls exactly two of them: `signInWithOAuth` for
@@ -243,17 +251,19 @@ because the rank-1 audience cannot complete the loop at phone width at all; T4 i
 an ethics-line breach (§12.8) that is cheap to close; T5 and T6 are honesty
 repairs; T7 is not code.
 
-## 12. §15's five decisions, priced
+## 12. §15's five decisions, priced (one closed by measurement)
 
 | # | decision | options, with the cost of each | what the price is paid in |
 |---|---|---|---|
 | §15.1 | deployment posture | A pilot / B public-ungated / C registered (§10) | A: owner's recruiting time. B: personal legal exposure. C: money + filing time (blocked by N6 today) |
 | §15.2 | identity provider | measured starting point (§4): `google=true`, `github=true`, `email=true`, **`phone=false`**, `mailer_autoconfirm=false`, `disable_signup=false`. Options — (a) **keep google/github OAuth**: zero cash, but both hosts are the ones mainland mobile networks reach worst, so this fails rank-1 by construction; (b) **Supabase email magic link**: the provider is already on, but `mailer_autoconfirm=false` means a confirmation mail must actually arrive, which needs custom SMTP + a domain + a reset page that does not exist yet, and no code path is written; (c) **phone OTP**: `phone=false` and `sms_provider: twilio`, so enabling it is per-message cash and breaks N6; (d) **keep demo auth**: any posture except a named pilot becomes indefensible | (a) the mainland phone; (b) a domain, DNS, a mail provider and the confirmation flow; (c) per-message money; (d) the product's credibility |
-| §15.3 | apply `005_interview_session_columns.sql` to the shared production DB | **Reversibility: additive columns, so the forward step is safe; the reverse step drops columns and destroys whatever was written into them.** Cannot verify current state — §2.4's live probe is blocked (§4) | a schema change on a shared database; §12.4 requires a per-action yes |
+| §15.3 | apply `005_interview_session_columns.sql` to the shared production DB | **RESOLVED BY MEASUREMENT — no decision needed.** All six columns already exist on `interviews` (§4), so the forward migration is a no-op and there is nothing to apply. The reversibility question that made this expensive (additive columns safe, dropping them destroys data) therefore does not arise. Scope note: this proves 005; it does **not** prove 006's anon-grant closure is applied, which is a different question and is not asked by §15.3 | nothing — the change is already live |
 | §15.4 | institutional data to a career centre | offering anonymised aggregates needs a minimum reportable cohort; below it, a "class average" identifies individuals. Proposed floor: **≥10 respondents per cell**, no cell published below it | legal exposure and the trust of the pilot institution |
 | §15.5 | delete legacy verdict render paths | depends on whether real historical rows carry `hireVerdict`/`cultureFitAdvisor`. **Unverifiable this session** — the DB reading is blocked (§4). Deleting the paths without that reading risks blanking real reports | user data that may be the only copy of a past report |
 
-No decision is taken here. §15.1 gates everything downstream (§6, N5).
+Four decisions remain open. §15.3 closed by measurement rather than by a choice —
+the migration it asks about is already live. §15.1 gates everything downstream
+(§6, N5).
 
 ## 13. Fix log
 
@@ -267,11 +277,11 @@ Empty: no source file has been edited in this lane.
 
 1. **The 13 `--slow` browser plants were not run.** They need Playwright browsers
    and a running app; `--slow` was not attempted. The fast gate covers 200/213.
-2. **Two of §2.4's four readings remain unmeasured**: the live column inventory
-   (the probe proves reachability, not columns — its body was 2 chars) and the
-   redirect allowlist (admin-only). Neither is inferred from `.env.example` or
-   from `docs/`. The two that were measured are in §4, taken by the owner from a
-   shell with egress.
+2. **One of §2.4's four readings remains unmeasured**: the redirect allowlist
+   (admin-only; the anon key cannot read it, and `/rest/v1/` answers "Secret API
+   key required"). The live column inventory is now measured — §4 — by a probe
+   that proves existence, not type. Nothing in this file is inferred from
+   `.env.example` or from `docs/`.
 3. **B21's phone-viewport walk is not done** — it belongs to Ring A, which §10.4
    sequences after this ring.
 4. **B16's read/write split per table is not separated.** Counts above are total
