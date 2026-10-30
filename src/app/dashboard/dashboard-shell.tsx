@@ -74,7 +74,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           }}
           transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
           style={{ transformOrigin: "top center" }}
-          className="flex-1 bg-[#FAFAFA] flex selection:bg-sky-200/50 relative overflow-hidden w-full origin-top"
+          className="flex-1 bg-[#FAFAFA] flex flex-col md:flex-row selection:bg-sky-200/50 relative overflow-hidden w-full origin-top"
         >
           <ScrollProgress containerRef={mainRef} />
           {/* D1: data-dense route opts out of JS-driven decor (static snapshot). */}
@@ -85,8 +85,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               delete-session button on a CI runner). */}
           {pathname === "/dashboard" && <OnboardingTour />}
 
-          {/* Floating Sidebar - Liquid Glassmorphism */}
-          <aside className="w-[280px] m-6 rounded-[2.5rem] border border-white shadow-[0_12px_40px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.8)] flex flex-col justify-between sticky top-6 h-[calc(100vh-3rem-64px)] z-40 bg-white/70 backdrop-blur-3xl overflow-hidden group/sidebar">
+          {/* Floating Sidebar - Liquid Glassmorphism. Below md it stops being a
+              fixed 280px column: at 390px that plus its gutters left the content
+              64px wide, which is the phone-width defect tests/e2e/phone-width.spec.ts
+              measures. From md up every utility here is the one it always was. */}
+          <aside className="w-auto md:w-[280px] mx-4 my-4 md:m-6 rounded-[2.5rem] border border-white shadow-[0_12px_40px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.8)] flex flex-col justify-between md:sticky md:top-6 md:h-[calc(100vh-3rem-64px)] z-40 bg-white/70 backdrop-blur-3xl overflow-hidden group/sidebar">
             <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/10 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-1000 pointer-events-none" />
             <div className="p-8 relative z-10">
               <Link href="/" className="text-[22px] font-serif font-semibold tracking-tight text-[#111111] flex items-center gap-3 mb-12 pl-1 group/logo relative">
@@ -142,7 +145,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </aside>
 
           {/* Main Content Area */}
-          <main ref={mainRef} className="flex-1 p-8 lg:p-12 overflow-y-auto relative z-10 w-full h-[100dvh] responsive-container" role="main">
+          <main ref={mainRef} className="flex-1 p-5 md:p-8 lg:p-12 overflow-y-auto relative z-10 w-full md:h-[100dvh] responsive-container" role="main">
             <div className="max-w-6xl mx-auto h-full">
               {children}
             </div>

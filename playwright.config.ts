@@ -64,6 +64,15 @@ export default defineConfig({
         });
       }
     }
+    // The rank-1 audience opens this on a phone, and no project above models one:
+    // three desktop widths across four browsers still cannot answer "does it fit
+    // in 390px". Scoped to the geometry spec so the visual lanes keep their
+    // existing baselines rather than growing a phone image per route.
+    generatedProjects.push({
+      name: 'phone-390x844',
+      use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
+      testMatch: /phone-width\.spec\.ts/,
+    });
     return generatedProjects;
   })(),
 
