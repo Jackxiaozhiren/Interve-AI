@@ -187,7 +187,7 @@ path ever reads it.
 |---|---|---|
 | 1 — domain-level block monitor | agent | pending in this commit; recorded in §8a when read |
 | 2 — one mainland phone, cellular, Wi-Fi off, proxy off | owner | **owner-reported pass, with gaps.** Verbatim, 2026-10-30: "我这些都已经实测中国移动，大陆IP手机是可以正常打开无报错的" — China Mobile, mainland IP, phone, opens with no error. Not witnessed by the agent; no seconds recorded; no screenshot supplied; not stated whether all three origins were opened |
-| 3 — mainland 拨测, 电信/联通/移动 | owner | **pending** — no artifact received |
+| 3 — mainland 拨测, 电信/联通/移动 | owner | **NOT PERFORMED.** Owner, 2026-10-30: "目前没办法截这张图、我只能更你直接说明手机端运行正常无误" — no 拨测 run, no screenshot. Tier 2 is **not** substituted for it (§6.4a): one phone is one carrier, one province, one egress. |
 | 4 — five humans | deferrable | not scheduled |
 
 No tier is marked green. Per §6.4a no `hk`/`sg`/`us` node and no reading from this
@@ -229,6 +229,12 @@ Follow-up, same day: **"三个地址都开了"**, **"首屏2s"** — all three o
 Per §6.1 a pass at tier 2 **licenses tier 4 but does not substitute for it**, and per
 §6.3 it does not by itself green §7-R4. It does clear the blocking case: no tier has
 returned a negative, so hosting does not displace the product work.
+
+**Tier 3 stands at not performed**, and the owner has said no screenshot is
+available. That is recorded as the state of the evidence, not as a pass: §6.1 asks
+for 电信/联通/移动 nodes precisely because one handset on one carrier cannot show
+whether a province-level DNS divergence exists. R4 therefore reads **"no negative
+observed on one China Mobile path"**, never "reachable in the mainland".
 
 ## 9. Human trial
 
@@ -312,6 +318,28 @@ on startup and the host's bulk-delete guard refuses it
 (`[safe-delete] broker denied delete: path=…/.next/dev/logs`). Moving `.next`
 aside before a run is enough; the directory is a build cache, and nothing in this
 commit depends on it being absent.
+
+**Second increment, same item.** The check was extended to `/setup` and
+`/interview`, and two things had to be fixed in the check itself before its
+greens meant anything:
+
+1. `document.scrollWidth` is defeatable. `/setup`'s root carries `overflow-hidden`,
+   which clips an overflowing child and leaves no scrollbar — a control pushed off
+   the right edge would be unreachable while the document measured clean. The
+   assertion now measures the rightmost **content** edge instead. Proven able to
+   fail: a 900 px block planted in `src/app/setup/page.tsx` produced
+   `nothing reaches past the viewport on /setup: div. @900`; the plant was reverted
+   and `git status` confirms the file is back at `HEAD`.
+2. The first version flagged `div.absolute … w-[500px] h-[500px] bg-sky-300/30` —
+   a decorative ambient blob inside the clipped root, hiding nothing a finger could
+   reach. Decoration is now excluded (`aria-hidden` or no text and not a control);
+   without that rule the assertion would have reported a defect that does not exist.
+
+| route | phone-width result |
+|---|---|
+| `/dashboard` | **fixed** — content column 64 px → ≥320 px, asserted |
+| `/setup` | content does not pass the right edge (asserted, green on arrival, plant-proven able to fail) |
+| `/interview` | **SKIPPED, not measured**: without completed setup the route redirects, and the test now refuses to measure whatever page it lands on. The core surface is therefore still unmeasured at phone width |
 
 ## 14. Deliberately not done
 
