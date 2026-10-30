@@ -38,6 +38,19 @@ export interface GuardContext<T> {
   data: T;
   /** AbortSignal combining client disconnect + server timeout budget. */
   signal: AbortSignal;
+  /**
+   * What is left of today's allowance *after* this call was counted, or undefined
+   * when the route opts out of the budget (`userBudget: false`) or the caller has
+   * no session.
+   *
+   * It is carried on the context, not only on the 429, because a ceiling the user
+   * first learns about by hitting it is indistinguishable from a failure. A route
+   * that spreads `rateLimitHeaders(quota.remaining, quota.resetMs)` onto its
+   * success response lets the client show the number before it reaches zero.
+   * Nothing consumes this yet — that is the next unit, and it is why the field is
+   * documented here rather than discovered later.
+   */
+  quota?: { remaining: number; resetMs: number };
 }
 
 /**
@@ -87,6 +100,10 @@ export async function guardRequest<T>(
   const startTime = performance.now();
   const done = (status: number, extra?: { model?: string; fallback?: boolean; reason?: string }) =>
     logApi(opts.route, { requestId, status, latencyMs: Math.round(performance.now() - startTime), ...extra });
+
+  // Filled in by step 5 when this caller has a session and a budget. Undefined is
+  // meaningful: it means the route opted out, so a client must not render "0 left".
+  let quota: { remaining: number; resetMs: number } | undefined;
 
   // 1. Rate limit (pre-auth).
   const clientIp = getClientIp(req);
@@ -149,6 +166,7 @@ export async function guardRequest<T>(
         }),
       };
     }
+    quota = { remaining: budget.remaining, resetMs: budget.resetMs };
   }
 
   return {
@@ -158,6 +176,7 @@ export async function guardRequest<T>(
       session,
       data: body.data,
       signal: combineSignal(req, opts.timeoutMs ?? 25000),
+      quota,
     },
   };
 }

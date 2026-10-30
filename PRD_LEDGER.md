@@ -304,6 +304,15 @@ the migration it asks about is already live. §15.1 gates everything downstream
 |---|---|---|---|
 | `T3` | **phone width** | `npx playwright test --project=phone-390x844` — **before**: 1 failed, `the content column keeps a usable width: Expected >= 320, Received 64`; **after**: 3 passed, `--repeat-each=3` → **9 passed (13.2 s)**. Desktop regression: `npx playwright test tests/dashboard.spec.ts --project=chrome-1280x720` **8 passed (25.9s)**. `npm run typecheck` 0. `npm run facts:check` OK | 0 |
 | `T6` | **README's PWA claim** | `readme-pwa-claim` 1/1; `readme-testing-claims` + `readme-architecture-claims` + `readme-pwa-claim` **17/17**; `npm run facts:check` `facts ratchet: OK`. Guard proven able to fail: `next-pwa` put back into the stack line → `AssertionError: README names next-pwa, but the plugin was removed…`; restored, and the file now contains the token **0** times | 0 |
+| `T5a` | **quota on the success path** (first slice of T5) | `guard-quota` 3/3; regression `guard-timeout` + `route-budget` + `model-route-budget-coverage` **18/18**; `npm run typecheck` 0; `npm run facts:check` OK. Guard proven able to fail: the assignment removed → `a budgeted route must expose its remaining allowance: expected undefined to be defined`; restored from a copy kept outside the repo, **not** `git checkout`, which had already eaten an uncommitted edit once this session | 0 |
+
+`T5a` delivers the value, not the surface: `GuardContext` now carries
+`quota?: { remaining, resetMs }`, filled from the same `checkUserBudget` call that
+already decided the 429, and left **undefined** when a route opts out — because a
+client that cannot tell "no budget" from "zero left" would print a lie the user
+cannot check. What is still missing, and is the next unit: a route that spreads
+`rateLimitHeaders(quota.remaining, quota.resetMs)` onto its success response, and a
+surface that reads it. Until both exist the number is reachable but nothing shows it.
 
 What changed and why it is one unit: `dashboard-shell.tsx` had a fixed `w-[280px]` sidebar
 with `m-6` gutters and a `flex` (row) parent, so at 390 px the content column measured
