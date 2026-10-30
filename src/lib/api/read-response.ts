@@ -16,6 +16,8 @@
  * app's. `malformed` exists so that shape is named rather than reported as a
  * parse failure in the feature's own words.
  */
+import { recordQuota } from "./quota";
+
 export interface ApiFailure {
   status: number;
   code?: string;
@@ -32,6 +34,10 @@ interface ErrorEnvelope {
 }
 
 export async function readApiJson<T>(res: Response): Promise<ApiResult<T>> {
+  // Before parsing: the quota headers are on every response the guard touches,
+  // success or not, and a failed call still learns the number.
+  recordQuota(res);
+
   let body: unknown = null;
   let malformed = false;
   try {

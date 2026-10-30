@@ -1,7 +1,7 @@
 import { streamText, convertToModelMessages } from "ai";
 import { z } from "zod";
 import { UI_MESSAGE_ROLES, toUiMessages } from "@/lib/message-text";
-import { guardRequest, errorResponse } from "@/lib/api/guard";
+import { guardRequest, errorResponse, rateLimitHeaders } from "@/lib/api/guard";
 import { logApi, logStreamUsage } from "@/lib/api/logging";
 import { classifyUpstreamError, streamErrorNotice } from "@/lib/api/classify-error";
 import { resolveChatModel, zhipu, MODEL_IDS, FALLBACK_MAX_RETRIES } from "@/ai/providers/registry";
@@ -15,6 +15,21 @@ export const runtime = 'edge';
 export const maxDuration = 60;
 
 const ROUTE = "interview-chat";
+
+/**
+ * Put what is left of today's allowance on the response the client keeps.
+ *
+ * The chat turn is the only call the room makes on every message, so it is the
+ * only place a quota reading can stay current. Without this the number exists
+ * server-side (guard ctx) and nowhere the user can see it — the failure mode R7
+ * names: a ceiling you learn about by hitting it.
+ */
+function stampQuota(res: Response, quota?: { remaining: number; resetMs: number }) {
+  if (!quota) return;
+  for (const [key, value] of Object.entries(rateLimitHeaders(quota.remaining, quota.resetMs))) {
+    res.headers.set(key, value);
+  }
+}
 
 // Input contract mirrors what useChat transports send today. Unknown keys
 // are stripped; `model` is length-bounded and unknown values fall through
@@ -58,7 +73,7 @@ export async function POST(req: Request) {
     timeoutMs: 55000,
   });
   if (!gate.ok) return gate.response;
-  const { requestId, data, signal } = gate.ctx;
+  const { requestId, data, signal, quota } = gate.ctx;
   const { messages, context, codeContext, systemDesignContext, role, level, persona, stressTest, setupContext, framework, company, resumeText, starProgress, behavioralTraits, model, interviewLoop, interviewType } = data as {
     messages: Array<{ role: string; content?: unknown; parts?: unknown }>;
     context?: string; codeContext?: string; systemDesignContext?: string;
@@ -185,6 +200,7 @@ export async function POST(req: Request) {
       
       response.headers.set('X-Response-Time', `${(endTime - startTime).toFixed(2)}ms`);
       response.headers.set('x-request-id', requestId);
+      stampQuota(response, quota);
       return response;
     } catch (primaryError) {
       logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: model || 'zhipu', fallback: true, reason: classifyUpstreamError(primaryError) });
@@ -206,6 +222,7 @@ export async function POST(req: Request) {
       response.headers.set('X-Response-Time', `${(fallbackEndTime - fallbackStartTime).toFixed(2)}ms`);
       response.headers.set('x-request-id', requestId);
       response.headers.set('x-fallback', MODEL_IDS.zhipuFlash);
+      stampQuota(response, quota);
       return response;
     }
   } catch (e) {
