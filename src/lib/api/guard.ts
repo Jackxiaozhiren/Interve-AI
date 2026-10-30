@@ -92,6 +92,25 @@ export function rateLimitHeaders(remaining: number, resetMs: number): Record<str
   };
 }
 
+/**
+ * Stamp the remaining-allowance headers onto a response, when there is a reading.
+ *
+ * Returns the response unchanged when `quota` is undefined — the opt-out case must
+ * stay distinguishable from "zero left", or a client will render a number it
+ * invented. Kept here rather than in each route so the two spellings of a header
+ * name cannot drift apart.
+ */
+export function applyQuotaHeaders(
+  res: Response,
+  quota?: { remaining: number; resetMs: number }
+): Response {
+  if (!quota) return res;
+  for (const [key, value] of Object.entries(rateLimitHeaders(quota.remaining, quota.resetMs))) {
+    res.headers.set(key, value);
+  }
+  return res;
+}
+
 export async function guardRequest<T>(
   req: Request,
   opts: GuardOptions<T>

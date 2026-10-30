@@ -320,6 +320,13 @@ and a `0` would read as an outage; and the mock path (`AI_MOCK=1`) returns befor
 the stamping code, so a mock-mode run will not light it. Neither is exercised by an
 end-to-end chat turn in this session.
 
+| `T5c` | **one stamping path, two routes** | `quota-reading` **9/9**; regression `read-response` + `guard-quota` **26/26**; `npm run typecheck` 0; `npm run facts:check` OK; `phone-390x844` **3 passed**. Guard proven able to fail: the header loop removed from `applyQuotaHeaders` → `× writes both headers from a reading` and `× never writes a negative remainder`; restored from a copy outside the repo | 0 |
+
+`T5c` moves the stamping into `applyQuotaHeaders` in `guard.ts` and routes
+`interview-chat` and `generate-hint` through it, so the two spellings of a header
+name cannot drift. `generate-hint` is the room's other frequent call, so the reading
+now refreshes outside the chat loop too. Still unstamped: the other 16 routes.
+
 What changed and why it is one unit: `dashboard-shell.tsx` had a fixed `w-[280px]` sidebar
 with `m-6` gutters and a `flex` (row) parent, so at 390 px the content column measured
 **64 px**. Every utility I touched is now paired — base value for small screens, the
