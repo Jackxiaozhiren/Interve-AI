@@ -64,19 +64,28 @@ change is not in the authorized surface.
 
 No law is VOID: each of the ten carries an executable `check:`.
 
-## 4. §2.4 platform readings — BLOCKED, with the command that shows it
+## 4. §2.4 platform readings
 
-All three readings need the platform, not the repo. Two were attempted and failed at the network layer:
+Taken by the owner from a shell with egress on 2026-10-30 (this host resets TLS to
+the project host: `SSL_ERROR_SYSCALL` via proxy, `Connection reset by peer` direct,
+DNS resolving — so the reading could not be taken here).
 
 | reading | probe | result |
 |---|---|---|
-| migration columns in the live DB | `node scripts/verify-supabase-free.mjs` with the anon key from `Interve-AI/.env.local` | **rc 1**, `[supabase-free] FAIL: network error: TypeError: fetch failed` [measured 2026-10-30] |
-| auth providers enabled | `GET {SUPABASE_URL}/auth/v1/settings` | TLS reset: via the host proxy `SSL_ERROR_SYSCALL`; direct `Connection reset by peer` [measured `curl -v`, 2026-10-30]. DNS resolves (`104.18.38.10`), so this is not a name-resolution failure. |
-| redirect allowlist | admin-only; the anon key cannot read it | not attempted — no credential class exists for it |
+| anon read reachable / rows visible | `npm run verify:supabase-free` | **rc 0, PASS**: "anon read reachable (status 200, body 2 chars)". The script's own note: rows visible are legacy unowned (`user_id IS NULL`) by 002 design; owned rows stay invisible to anon. [measured 2026-10-30] |
+| auth providers enabled | `GET /auth/v1/settings` | rc 0. `external`: **google=true, github=true, email=true**; every other provider `false`, including **phone=false** (`sms_provider: twilio` but the provider is off). `disable_signup: false`, `mailer_autoconfirm: false`, `phone_autoconfirm: false`, `anonymous_users: false`, `passkeys_enabled: false`, `saml_enabled: false`. [measured 2026-10-30] |
+| which columns exist in the live DB | not yet taken | `verify:supabase-free` proves reachability, not the column inventory — its body was `2 chars`. Still open; see the one remaining command in the transcript. |
+| redirect allowlist | admin-only | not obtainable with an anon key — dashboard-only, not attempted |
 
-`/auth/v1/settings` and the migration probe are therefore **unmeasured**, not
-green and not red. The owner can run both from a shell with egress; commands were
-handed over in the transcript.
+**What the platform state says that the repo does not.** Three providers are
+enabled upstream, and the app calls exactly two of them: `signInWithOAuth` for
+google/github (`src/lib/auth.ts:4`). No `signUp`, `signInWithPassword`,
+`signInWithOtp` or `resetPasswordForEmail` exists anywhere in `src/` — the only
+hit is a comment explaining why the reset link was *removed*
+(`LoginForm.tsx:188-193`: "under demo auth … no password is ever checked, so there
+is nothing to reset"). So **the enabled `email` provider is dead configuration**,
+and `phone=false` means a mainland phone number cannot be used to authenticate at
+all. [measured 2026-10-30]
 
 ## 5. Appendix B census (2026-10-30)
 
@@ -146,9 +155,13 @@ question rather than answering it.
 | C-3 | stack includes `next-pwa` | `README.md:39` | plugin removed; no `manifest` in `src`, no `sw.js` emitted (`next.config.ts:3-9`) | B11 |
 | C-4 | PWA config described as live | `docs/audit/REPOSITORY_TRUTH.md:37` | same as C-3 | B11 |
 | C-5 | council/culture-fit verdicts rendered to the user | `SessionDetailModal.tsx:210-215`, `PrintableDossier.tsx:108-109`, `PrintLayout.tsx:98`, `export.ts:74-93` | the eval **contract** bans these keys (`evaluation-contract.test.ts:64`), so the ban stops at the schema and does not reach render/export | contract test bans the shape; no test bans the render |
+| C-6 | a **password field** on both doors | `LoginForm.tsx:186-199` labels an input "Password"; `signup/page.tsx` mirrors it | the value is never verified — `/api/session` accepts any well-formed identity (B2), and the file says so itself: "no password is ever checked, so there is nothing to reset" (`LoginForm.tsx:188-191`) | none: a field that does nothing has no test that can fail |
+| C-7 | email sign-up available (platform state) | `auth/v1/settings` → `email: true`, `disable_signup: false` | no `signUp` / `signInWithPassword` / `signInWithOtp` / `resetPasswordForEmail` anywhere in `src/` — the provider is configured upstream and unreachable from the product | n/a — dead configuration, not a claim to the user |
 
 N10 reading: C-1 is the promise with no failing test behind it; C-5 is the ethics
-line enforced at the contract and not at the surface.
+line enforced at the contract and not at the surface; C-6 is the sharpest of the
+three — the UI collects a secret, tells the user it is a credential, and no code
+path ever reads it.
 
 ## 8. Ring C — the two gates (§10.2)
 
@@ -216,7 +229,7 @@ owner approves the round. Every item names its exit gate and its falsification.
 
 | rank | id | item (evidence) | users unblocked | effort | risk | exit gate | falsification proof |
 |---|---|---|---|---|---|---|---|
-| 1 | T1 | **Identity is a demo.** `POST /api/session` accepts any well-formed identity and issues an HMAC cookie (`route.ts:27-37`, `requireSession: false`); the client mints the id (`LoginForm.tsx:86`, `signup/page.tsx:55`). The only real credentials are Google/GitHub OAuth (`src/lib/auth.ts:4`). | everyone — nothing a user saves is protected by a secret | high | high: auth surface | a test that fails when an unverified identity can mint a session | plant: restore `requireSession: false`; the new test must go red |
+| 1 | T1 | **Identity is a demo.** `POST /api/session` accepts any well-formed identity and issues an HMAC cookie (`route.ts:27-37`, `requireSession: false`); the client mints the id (`LoginForm.tsx:86`, `signup/page.tsx:55`); the password field collects a value nothing reads (C-6). Platform state confirms the gap: only google/github/email are enabled, **phone is false**, and the app calls none of the email paths (C-7, §4). | everyone — nothing a user saves is protected by a secret | high | high: auth surface | a test that fails when an unverified identity can mint a session | plant: restore `requireSession: false`; the new test must go red |
 | 2 | T2 | **The promise has no test.** 「面试记录、报告与回放都会保存」 at `LoginForm.tsx:132`, `signup/page.tsx:100` (B1). | every signup | low | low | either a test that fails when the row is not persisted, or the sentence is deleted | delete the persistence call; the sentence's test must go red |
 | 3 | T3 | **Phone width is unsupported.** No phone device in the matrix (B5), zero viewport branching in the interview surface (B6), fixed `w-[280px]` chrome (B4), two `min-w` above 390 px (B23: `table.tsx:14` 640, `TechnicalScratchpad.tsx:221` 400). | the rank-1 audience, which is on a phone | medium | medium: layout | a phone project in `playwright.config.ts` plus geometry assertions on the core loop | remove the breakpoint; geometry assertion must fail |
 | 4 | T4 | **Employment verdicts reach the user.** `cultureFitAdvisor` rendered at `SessionDetailModal.tsx:210-215`, `PrintableDossier.tsx:108-109`, `PrintLayout.tsx:98`, exported at `export.ts:74-93`, while the contract bans those keys (`evaluation-contract.test.ts:64`). | every user who exports a report | low-medium | medium: data shape | render/export paths removed; a test that bans the keys in **rendered output**, not only in the schema | re-add one render branch; the output test must go red |
@@ -235,7 +248,7 @@ repairs; T7 is not code.
 | # | decision | options, with the cost of each | what the price is paid in |
 |---|---|---|---|
 | §15.1 | deployment posture | A pilot / B public-ungated / C registered (§10) | A: owner's recruiting time. B: personal legal exposure. C: money + filing time (blocked by N6 today) |
-| §15.2 | identity provider | (a) Google/GitHub OAuth as configured — **both providers are poorly reachable from a mainland phone**, so this is not a zero-cost answer for rank-1; (b) Supabase email OTP/magic link — needs a sending domain and an SMTP free tier that does not demand a card; (c) phone OTP — costs money per message in the mainland, breaks N6; (d) keep demo identity — not defensible for any public posture | (a) users who cannot authenticate; (b) a domain + DNS + a mail provider decision; (c) per-message cash; (d) the product's credibility |
+| §15.2 | identity provider | measured starting point (§4): `google=true`, `github=true`, `email=true`, **`phone=false`**, `mailer_autoconfirm=false`, `disable_signup=false`. Options — (a) **keep google/github OAuth**: zero cash, but both hosts are the ones mainland mobile networks reach worst, so this fails rank-1 by construction; (b) **Supabase email magic link**: the provider is already on, but `mailer_autoconfirm=false` means a confirmation mail must actually arrive, which needs custom SMTP + a domain + a reset page that does not exist yet, and no code path is written; (c) **phone OTP**: `phone=false` and `sms_provider: twilio`, so enabling it is per-message cash and breaks N6; (d) **keep demo auth**: any posture except a named pilot becomes indefensible | (a) the mainland phone; (b) a domain, DNS, a mail provider and the confirmation flow; (c) per-message money; (d) the product's credibility |
 | §15.3 | apply `005_interview_session_columns.sql` to the shared production DB | **Reversibility: additive columns, so the forward step is safe; the reverse step drops columns and destroys whatever was written into them.** Cannot verify current state — §2.4's live probe is blocked (§4) | a schema change on a shared database; §12.4 requires a per-action yes |
 | §15.4 | institutional data to a career centre | offering anonymised aggregates needs a minimum reportable cohort; below it, a "class average" identifies individuals. Proposed floor: **≥10 respondents per cell**, no cell published below it | legal exposure and the trust of the pilot institution |
 | §15.5 | delete legacy verdict render paths | depends on whether real historical rows carry `hireVerdict`/`cultureFitAdvisor`. **Unverifiable this session** — the DB reading is blocked (§4). Deleting the paths without that reading risks blanking real reports | user data that may be the only copy of a past report |
@@ -254,8 +267,11 @@ Empty: no source file has been edited in this lane.
 
 1. **The 13 `--slow` browser plants were not run.** They need Playwright browsers
    and a running app; `--slow` was not attempted. The fast gate covers 200/213.
-2. **§2.4's two platform readings are unmeasured**, blocked by network reset at
-   this host (§4). Not inferred from `.env.example`, not inferred from `docs/`.
+2. **Two of §2.4's four readings remain unmeasured**: the live column inventory
+   (the probe proves reachability, not columns — its body was 2 chars) and the
+   redirect allowlist (admin-only). Neither is inferred from `.env.example` or
+   from `docs/`. The two that were measured are in §4, taken by the owner from a
+   shell with egress.
 3. **B21's phone-viewport walk is not done** — it belongs to Ring A, which §10.4
    sequences after this ring.
 4. **B16's read/write split per table is not separated.** Counts above are total
