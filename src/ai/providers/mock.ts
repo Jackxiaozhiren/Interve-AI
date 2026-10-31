@@ -159,5 +159,14 @@ export function mockV2Evaluation() {
     weaknesses: ["Mock gap"],
     nextDrills: ["Mock drill"],
     qaReview: [],
+    // The contract says a V2 evaluation carries a roadmap, and the report reads it as
+    // the candidate's first question ("what do I do next"). The mock omitted it, so the
+    // section never rendered in the mock lane — which is why the fold assertion below
+    // could not be written until now. Same shape the schema requires.
+    trainingRoadmap: {
+      technical: ["Mock technical focus: explain the trade-off before the code."],
+      behavioral: ["Mock behavioural focus: quantify the outcome."],
+      resources: ["Mock resource: re-read the rubric anchor for depth."],
+    },
   };
 }

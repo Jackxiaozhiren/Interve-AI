@@ -133,9 +133,17 @@ export default function InterviewReportPage() {
     );
   }
 
-  const { radarScores, qaReview, verdictRationale, culturalTraits, timelineEvents, trainingRoadmap, transcript } = interview;
+  const { radarScores, qaReview, verdictRationale, culturalTraits, timelineEvents, transcript } = interview;
   // Phase 4: single view model over V2 (evidence-grounded) and legacy rows.
   const view = toEvaluationView(interview);
+
+  // Where the roadmap actually lives depends on which model produced the row. Legacy
+  // rows carry it at the top level; V2 rows keep it inside `evaluationV2`, because that
+  // is where the contract puts it (evaluation-contract.ts:91) and where the settlement
+  // writes it (useInterviewSettlement.ts:112). Reading only the top-level field meant
+  // "next steps" — the section a candidate opens the report for — was never rendered on
+  // any V2 report at all. The fallback is the fix, not a new copy of the data.
+  const trainingRoadmap = interview.trainingRoadmap ?? interview.evaluationV2?.trainingRoadmap;
 
   const timelineDuration = timelineEvents && timelineEvents.length > 0 
     ? timelineEvents[timelineEvents.length - 1].timestamp + 10000 // Add 10s buffer
@@ -199,6 +207,66 @@ export default function InterviewReportPage() {
               {!view.legacy && <ReadinessDisclaimer />}
             </div>
           </motion.div>
+
+          {/* Training Roadmap */}
+          {trainingRoadmap && (
+            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] col-span-1 lg:col-span-2">
+              <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+                <Compass className="w-6 h-6 text-indigo-500" />
+                下一步练什么 (Next Steps)
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Technical Focus */}
+                <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
+                  <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
+                    <Code className="w-5 h-5 text-blue-500" />
+                    Technical Focus
+                  </h4>
+                  <ul className="space-y-3">
+                    {trainingRoadmap.technical.map((item, i) => (
+                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Behavioral Focus */}
+                <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
+                  <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
+                    <Users className="w-5 h-5 text-emerald-500" />
+                    Behavioral Focus
+                  </h4>
+                  <ul className="space-y-3">
+                    {trainingRoadmap.behavioral.map((item, i) => (
+                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Recommended Resources */}
+                <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
+                  <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
+                    <BookOpen className="w-5 h-5 text-purple-500" />
+                    Recommended Resources
+                  </h4>
+                  <ul className="space-y-3">
+                    {trainingRoadmap.resources.map((item, i) => (
+                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Replay Timeline */}
           {timelineEvents && timelineEvents.length > 0 && (
@@ -301,66 +369,6 @@ export default function InterviewReportPage() {
               judgement about a person, which N2 forbids the product to display; the
               evaluation contract stopped producing these keys, and the display kept
               rendering whatever an old row held. */}
-
-          {/* Training Roadmap */}
-          {trainingRoadmap && (
-            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] col-span-1 lg:col-span-2">
-              <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
-                <Compass className="w-6 h-6 text-indigo-500" />
-                Personalized Training Roadmap
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Technical Focus */}
-                <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
-                  <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
-                    <Code className="w-5 h-5 text-blue-500" />
-                    Technical Focus
-                  </h4>
-                  <ul className="space-y-3">
-                    {trainingRoadmap.technical.map((item, i) => (
-                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Behavioral Focus */}
-                <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
-                  <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
-                    <Users className="w-5 h-5 text-emerald-500" />
-                    Behavioral Focus
-                  </h4>
-                  <ul className="space-y-3">
-                    {trainingRoadmap.behavioral.map((item, i) => (
-                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Recommended Resources */}
-                <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
-                  <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
-                    <BookOpen className="w-5 h-5 text-purple-500" />
-                    Recommended Resources
-                  </h4>
-                  <ul className="space-y-3">
-                    {trainingRoadmap.resources.map((item, i) => (
-                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           {/* Cultural Traits */}
           {culturalTraits && culturalTraits.length > 0 && (

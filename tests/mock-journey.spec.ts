@@ -143,6 +143,21 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     await expect(page).toHaveURL(/.*\/dashboard\/report\/\d+/, { timeout: 90000 });
     await expect(page.getByText(/Developing|Interview Ready|Needs Foundation|Strongly Prepared/)).toBeVisible({ timeout: 30000 });
 
+    // The report belongs to the candidate (owner decision, 2026-10-31), and the
+    // question they open it with is "what do I do next". So that section is measured
+    // against the first screen rather than described as "near the top": a heading
+    // 1200 px down a 720 px window is not above the fold, whatever the file order says.
+    const nextSteps = page.getByRole('heading', { name: /下一步练什么/ });
+    await expect(nextSteps).toBeVisible({ timeout: 15000 });
+    const box = await nextSteps.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box, "the next-steps heading rendered without a box").not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(
+      Math.round((box?.y ?? 0) + (box?.height ?? 0)),
+      `next steps sits below the first screen (${viewport?.height}px tall)`,
+    ).toBeLessThanOrEqual(viewport?.height ?? 0);
+
     const reportId = page.url().match(/report\/(\d+)/)?.[1];
     expect(reportId).toBeTruthy();
 

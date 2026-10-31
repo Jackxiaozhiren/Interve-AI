@@ -829,3 +829,45 @@ structure is still ordered for an engineer — timeline, radar, six rubric dimen
 then the training roadmap that a candidate would want first. Reordering it is the next
 slice, and it needs a judgement call rather than a deletion: which section answers
 "what do I do next" and whether it belongs above the fold.
+
+## 24. R6, second slice: "next steps" was never rendered at all (2026-10-31)
+
+| gate | command | rc | reading |
+|---|---|---|---|
+| the journey, with the fold assertion | `E2E_MOCK=1 npx playwright test tests/mock-journey.spec.ts --project=chrome-1280x720` | **0** | **1 passed (54.0 s)** — the heading is present and inside the first 720 px |
+| falsification | a 1200 px spacer placed before the section | **1** | `next steps sits below the first screen (720px tall)`; spacer removed, journey green again |
+| contract + report guards | `evaluation-contract` + `eval-compat` + `report-speaks-to-the-candidate` | **0** | 25/25 |
+| typecheck / lint / facts | | **0 / 0 / 0** | 1 pre-existing warning |
+
+**The ordering question turned out to be the smaller half.** Going to measure "how far
+down is next steps" failed at the first step: the heading was not on the page. The cause
+is a field mismatch, not a layout choice —
+
+- the contract puts the roadmap inside the evaluation: `evaluationV2.trainingRoadmap`
+  (`evaluation-contract.ts:91`);
+- the settlement writes the whole evaluation to the row (`useInterviewSettlement.ts:112`);
+- the report read a **top-level** `interview.trainingRoadmap`, a field only legacy rows
+  ever had.
+
+So every report produced by the current model rendered no next-steps section at all.
+The candidate's first question — "what do I do next" — had no section, on any report,
+since the V2 evaluation shipped. The section is now read from where it is actually
+written (legacy field first, evaluation second), and it is the first section after the
+header.
+
+Two supporting corrections came with it:
+
+1. `mockV2Evaluation()` did not carry a roadmap at all, which is why the mock lane could
+   never have shown the section — the mock was less faithful than the contract it claims
+   to match ("Minimal V2 evaluation mock (matches EvaluationV2Schema)"). It carries one now.
+2. The section order moved from *timeline → rationale → radar → dimensions → roadmap* to
+   **roadmap → timeline → rationale → radar → dimensions**. DOM order, not CSS `order`,
+   so the reading order and the visual order stay the same for a screen reader.
+
+### What is still not readable
+
+The section is now first and the four stack numbers are gone, but the roadmap is three
+short lists of English strings ("technical / behavioral / resources") under a Chinese
+heading. Making it read like advice — one sentence the person can act on, tied to the
+evidence that produced it — is the next slice, and it is a content decision, not a
+layout one.
