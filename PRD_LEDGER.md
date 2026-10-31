@@ -712,3 +712,45 @@ The journey's own title said "signup → setup → …" and was corrected to "si
 The journey runs at 1280 px only. R3 asks for the *journey* at phone width, and what
 exists at 390 px is geometry (three routes), not the loop. That remains the largest
 honest gap in the rank-1 requirement.
+
+## 21. R3, actually attempted: the room cannot be advanced on a phone (2026-10-31)
+
+| gate | command | rc | reading |
+|---|---|---|---|
+| journey at 390 px | `E2E_MOCK=1 npx playwright test --project=phone-390x844` with the journey collected | **1** | **the send button cannot be clicked.** `locator.click` resolved the button, found it visible, enabled and stable — and three different layers intercepted the pointer in turn |
+| flow-map contrast | `flowmap-dot-contrast` | **0** | 4/4 |
+| journey at 1280 px | `E2E_MOCK=1 npx playwright test tests/mock-journey.spec.ts --project=chrome-1280x720` | **0** | **1 passed (56.5 s)** — the fix below changed nothing on desktop |
+
+**The finding.** On a 390 px viewport the interview room mounts and looks intact, but
+the message cannot be sent. Playwright's call log names the interceptors, in the order
+it met them:
+
+1. `<span>Wrap-up</span>` inside `div.px-2.shrink-0` — the `FlowMap` progress row.
+   **Fixed:** a read-out with nothing clickable now carries `pointer-events-none`, and
+   on a narrow screen only the active stage keeps its label.
+2. the same `div.px-2.shrink-0` — still intercepting after (1), so part of that row is
+   not the flow map.
+3. the `glass-toast` error notification (`data-type="error"`, `data-y-position="top"`),
+   raised by the model fetch failing — an error banner sitting over the primary action.
+4. `div.flex.flex-col.h-screen … p-4.gap-4` — a full-height container.
+
+(2)–(4) are one defect class, not three: the room's stacking on a narrow screen puts
+decorative and notification layers above the input. Fixing them one CSS property at a
+time produced a new interceptor each run — the first fix moved the click onto (2)
+immediately — so this stops here and is recorded rather than thrashed at.
+
+**Why the journey is not left collected in the phone project.** A lane that is
+permanently red says nothing new after the first run, and a skipped one says nothing at
+all. `playwright.config.ts` carries the reason in place, so the next person to add the
+journey there reads what they are walking into.
+
+**What this says about the earlier green.** Three geometry assertions passed on
+`/interview` while the surface was unusable: nothing overflowed the viewport, and
+nothing could be tapped. That is exactly the gap §16.1's geometry class cannot close,
+and §15-§19 could not have found it — the loop had to be walked.
+
+### Next unit, named
+
+Find what (2)–(4) are, fix the room's z-order/stacking at narrow widths, then collect
+the journey at 390 px for good. The gate is the journey passing at both widths, not a
+screenshot.

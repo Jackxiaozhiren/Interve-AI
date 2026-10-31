@@ -75,6 +75,14 @@ export default defineConfig({
     generatedProjects.push({
       name: 'phone-390x844',
       use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
+      // Geometry only, for now. The journey was added here on 2026-10-31 and it
+      // failed for a real reason worth keeping visible: at 390 px the interview room
+      // cannot be advanced, because three separate layers intercept the send button
+      // (`div.px-2.shrink-0`, the error toast, and a full-height
+      // `flex flex-col h-screen` container). That is a stacking defect in the room,
+      // not a test-tuning problem — one part of it (FlowMap's labels) is fixed, the
+      // rest is not. Collecting the journey here again before that is fixed would
+      // mean a permanently red lane or a skipped one; neither is a reading.
       testMatch: /phone-width\.spec\.ts/,
     });
     return generatedProjects;

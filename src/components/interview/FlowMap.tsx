@@ -30,7 +30,13 @@ export function FlowMap({ messageCount }: FlowMapProps) {
   const stageProgress = Math.min(1, Math.max(0, (messageCount - currentThreshold) / (nextThreshold - currentThreshold)));
 
   return (
-    <div className="w-full flex items-center justify-between px-6 py-4 bg-white/40 backdrop-blur-2xl rounded-[24px] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.02)] mb-4">
+    // `pointer-events-none`: this is a progress read-out with nothing to click, and
+    // at 390 px its five 11 px labels overflowed their columns far enough to sit on
+    // top of the send button — the click landed on "Wrap-up" and the interview could
+    // not be advanced at all. The row is now transparent to the pointer and the
+    // labels shrink to the active stage on a narrow screen, so nothing needs to be
+    // clicked through it in the first place.
+    <div className="w-full flex items-center justify-between px-6 py-4 bg-white/40 backdrop-blur-2xl rounded-[24px] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.02)] mb-4 pointer-events-none">
       {stages.map((stage, idx) => {
         const isActive = idx === currentStageIndex;
         const isPast = idx < currentStageIndex;
@@ -82,7 +88,11 @@ export function FlowMap({ messageCount }: FlowMapProps) {
                 </motion.div>
                 {/* Phase 14: active sky-700 (was sky-600, 4.02) and idle
                     slate-500 (was slate-400, 2.63) meet 4.5:1. */}
-                <span className={`text-[11px] font-semibold transition-colors duration-300 ${isActive ? 'text-sky-700' : isPast ? 'text-slate-600' : 'text-slate-500'}`}>
+                <span
+                  className={`text-[11px] font-semibold transition-colors duration-300 max-w-full truncate px-1 ${
+                    isActive ? "text-sky-700" : "hidden sm:inline " + (isPast ? "text-slate-600" : "text-slate-500")
+                  }`}
+                >
                   {stage.label}
                 </span>
               </div>
