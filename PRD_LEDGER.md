@@ -444,8 +444,8 @@ Stability: `--repeat-each=3` → **9 passed (13.2 s)**.
 ## 15. Phase 5 report (§10.6)
 
 Window: 2026-10-30 16:33 → 2026-10-31 10:45 (Asia/Shanghai). Lane `prd/mainline`,
-worktree `/Users/jackson/Interve AI/wt-prd`. Nothing was pushed; every commit is
-local.
+worktree `/Users/jackson/Interve AI/wt-prd`. At the time of writing nothing had been
+pushed; §25 records the push that came later, with its own date.
 
 ### 15.1 What changed
 
@@ -871,3 +871,35 @@ short lists of English strings ("technical / behavioral / resources") under a Ch
 heading. Making it read like advice — one sentence the person can act on, tied to the
 evidence that produced it — is the next slice, and it is a content decision, not a
 layout one.
+
+## 25. The push (2026-10-31 18:37, owner's word "推送")
+
+| step | result |
+|---|---|
+| `git fetch origin` | **failed** — `CONNECT tunnel failed, response 502`. This host's egress proxy refuses github.com over HTTPS, which is the same wall that made the OAuth round trip impossible (§17) |
+| `git push` over HTTPS | **failed**, same cause |
+| `ssh -T git@github.com` | **reaches GitHub** — `Permission denied (publickey)`: the network is fine, this machine had no key |
+| deploy key added by the owner | repo-scoped, write access, no passphrase, private half at `~/.ssh/id_ed25519_interve` |
+| `git push ssh://… prd/mainline` | **rc 0**, `* [new branch] prd/mainline -> prd/mainline` |
+| `git ls-remote` | `e64714c…` = local `HEAD` — 28 commits, verified on the remote |
+
+What was pushed is a **branch**, not `main`. N7 stands: `main` deploys to production,
+and the merge is the owner's click.
+
+PR surface: https://github.com/Jackxiaozhiren/Interve-AI/pull/new/prd/mainline
+
+### What the branch does not contain, and cannot
+
+- An OAuth round trip. The door has no way round it (§16, §17), but nobody has walked
+  through it: `google` and `github` answer `502` from this host. **This is the one
+  action that would turn "a door" into "a door people use".**
+- Any evidence that a record persists. Production held zero rows at §15.6 and this
+  branch does not change that.
+- The phone journey's fix. §21's stacking defect remains, out of scope by the owner's
+  web-only decision (§22).
+
+### Bookkeeping note
+
+This section is a 29th commit. It is **not** pushed: consent for one push does not
+carry to the next commit set (§12.6). It is documentation only — one sentence in §15.1
+that said "nothing was pushed" and would otherwise stay true-looking after being false.
