@@ -798,3 +798,34 @@ project removed. Result:
 With R3 waived, the top product item is **R6 — the report as a readable object**,
 followed by **R2**, which is gated on the same single OAuth click as R1. T5's remaining
 16 routes are mechanical and lower value.
+
+## 23. R6, first slice: the report is the candidate's, so it shows the candidate (2026-10-31)
+
+Owner decision recorded: **候选人** — the report is read by the person who sat the
+interview. That settles a question the PRD left open ("readable object" for whom) and
+it makes N2's ban on hire verdicts a product-design constraint rather than only an
+ethics one.
+
+| gate | command | rc | reading |
+|---|---|---|---|
+| the guard | `npx vitest run tests/unit/report-speaks-to-the-candidate.test.ts` | **0** | **5/5**; four of them were red first, naming TTFT / STT 耗时 / TTS 启动 / 平均往返 |
+| desktop journey | `npx playwright test tests/dashboard.spec.ts --project=chrome-1280x720` | **0** | **8 passed (23.8 s)** |
+| typecheck / lint / facts | | **0 / 0 / 0** | 1 pre-existing warning |
+
+**What was wrong.** The report's stats strip mixed two kinds of number in one type
+scale: what the candidate did (interruptions, average answer length) and how fast this
+product's stack ran (round trip, TTFT, Whisper duration, TTS startup). "TTS 启动 0.9s"
+is not feedback about a person, and shown next to "打断 3 次" it reads as one more
+thing they were scored on.
+
+The four stack numbers are gone. The two behavioural ones stay, and the guard asserts
+they stay — removing the strip wholesale would have passed the absence checks and
+thrown away real feedback.
+
+### What this is not
+
+It is not "the report is now readable". One defect of a class was removed; the
+structure is still ordered for an engineer — timeline, radar, six rubric dimensions,
+then the training roadmap that a candidate would want first. Reordering it is the next
+slice, and it needs a judgement call rather than a deletion: which section answers
+"what do I do next" and whether it belongs above the fold.

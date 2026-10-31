@@ -533,27 +533,15 @@ function DeliveryCoach({ stats }: {
           <p className="text-2xl font-serif text-slate-800">{stats.avgAnswerSec !== undefined ? `${stats.avgAnswerSec}s` : "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground font-bold uppercase mb-1">平均往返 (Round Trip)</p>
-          <p className="text-2xl font-serif text-slate-800">{stats.avgRoundTripMs !== undefined ? `${(stats.avgRoundTripMs / 1000).toFixed(1)}s` : "—"}</p>
-        </div>
-        <div>
           <p className="text-xs text-muted-foreground font-bold uppercase mb-1">STT 置信度</p>
           <p className="text-2xl font-serif text-slate-800">{stats.sttAvgConfidence !== undefined ? stats.sttAvgConfidence.toFixed(2) : "—"}</p>
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground font-bold uppercase mb-1" title="发送到首个 AI 回复耗时">TTFT</p>
-          <p className="text-2xl font-serif text-slate-800">{stats.ttftMs !== undefined ? `${(stats.ttftMs / 1000).toFixed(1)}s` : "—"}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground font-bold uppercase mb-1" title="本地语音转文字耗时">STT 耗时</p>
-          <p className="text-2xl font-serif text-slate-800">{stats.whisperMs !== undefined ? `${(stats.whisperMs / 1000).toFixed(1)}s` : "—"}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground font-bold uppercase mb-1" title="语音请求到首次发声耗时">TTS 启动</p>
-          <p className="text-2xl font-serif text-slate-800">{stats.ttsStartupMs !== undefined ? `${(stats.ttsStartupMs / 1000).toFixed(1)}s` : "—"}</p>
-        </div>
       </div>
       
+      {/* Four numbers were removed from this strip: round trip, TTFT, Whisper
+          duration and TTS startup. They measure this product's stack, not the person
+          who sat the interview, and the strip presented them in the same type as the
+          two numbers that are about the candidate. What remains is behaviour. */}
       <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
         <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
           <Lightbulb className="w-4 h-4 text-amber-500" weight="fill" />
