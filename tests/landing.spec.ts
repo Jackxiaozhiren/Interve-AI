@@ -11,11 +11,16 @@ test.describe('Landing', () => {
     await expect(page.getByRole('link', { name: /免费开始|Sign up/i }).first()).toBeVisible();
   });
 
-  test('login page should render the sign-in form', async ({ page }) => {
+  test('login page offers both provider doors and collects no password', async ({ page }) => {
+    // The email + password form was removed with §15.2 = a: no password was ever
+    // checked, and the session endpoint now requires a verified provider token, so
+    // the form could not succeed. This asserts the replacement contract directly —
+    // the two doors exist, and there is no password field to mistake for one.
     await page.goto('/login');
-    await expect(page.getByLabel('Email address')).toBeVisible();
-    await expect(page.getByLabel('Password')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Google' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'GitHub' })).toBeVisible();
+    await expect(page.getByLabel('Password')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Sign In' })).toHaveCount(0);
   });
 
   test('a Google press opens the provider door on the page that can receive it', async ({ page }) => {
@@ -99,61 +104,27 @@ test.describe('Landing', () => {
     await expect.poll(() => page.url(), { timeout: 10000 }).toMatch(new RegExp(`^${BASE_URL}/dashboard`));
   });
 
-  test('a failed signup press says so instead of sitting silent', async ({ page }) => {
-    // `login()` POSTs /api/session, and its rejection used to be caught and
-    // written to the console only: the visitor pressed Sign Up, and the page did
-    // not move, change, or explain. Same defect class as the provider button on
-    // this page, which reported nothing either.
-    let attempted = 0;
-    await page.route('**/api/session', async (route) => {
-      attempted += 1;
-      await route.abort();
-    });
+  test('the signup page offers the same doors and no identity fields', async ({ page }) => {
+    // Same change, same reason: an account is created by the first provider
+    // sign-in, and the form that asked for a name and an email created a local
+    // identity nobody owned (`crypto.randomUUID()`), then stopped working entirely
+    // once the session endpoint began requiring a verified token.
     await page.goto('/signup');
-    // Both fields: `Full Name` is `required`, so leaving it out stops the form at
-    // native validation and the handler never runs — which reads exactly like the
-    // silence this arm is meant to detect. First run of this test was red for that
-    // reason alone, with no request fired at all.
-    await page.getByLabel('Full Name').fill('New Candidate');
-    await page.getByLabel('Email address').fill('new.candidate@example.com');
-    await page.getByRole('button', { name: 'Sign Up' }).click();
-
-    // The press has to have reached the server for the rest of this to mean
-    // anything: without this, a form that never submits would "pass" by showing
-    // nothing and going nowhere.
-    await expect.poll(() => attempted, { timeout: 5000 }).toBe(1);
-    const notice = page.locator('[role="alert"], [role="status"]').filter({ hasText: /sign up failed/i });
-    await expect.poll(async () => page.url(), { timeout: 5000 }).toMatch(/\/signup/);
-    await expect(notice).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Google' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'GitHub' })).toBeVisible();
+    await expect(page.getByLabel('Full Name')).toHaveCount(0);
+    await expect(page.getByLabel('Email address')).toHaveCount(0);
   });
 
-  test('a refused sign-in is announced, not only painted', async ({ page }) => {
-    // The credential error has sat in a plain `<motion.div>` since the first commit:
-    // the sentence appears on screen, and assistive tech is never told. No existing
-    // lane could have noticed — `test:e2e:axe` scans the page as it first renders and
-    // this container only mounts after a press fails, and axe has no rule requiring an
-    // async message to sit in a live region because WCAG 4.1.3 is AAA. So the door is
-    // pressed for real here: same request-abort shape as the signup arm above, and the
-    // press is proven to have reached the server before the UI is read.
-    let attempted = 0;
-    await page.route('**/api/session', async (route) => {
-      attempted += 1;
-      await route.abort();
-    });
-    await page.goto('/login');
-    await page.getByLabel('Email address').fill('candidate@example.com');
-    await page.getByLabel('Password').fill('not-the-password');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-
-    await expect.poll(() => attempted, { timeout: 5000 }).toBe(1);
-    await expect.poll(async () => page.url(), { timeout: 5000 }).toMatch(/\/login/);
-    // `alert`, not `status`: the surface clears itself after 5s (LoginForm's timer), so
-    // a polite region can be missed before the node is gone. That distinction is
-    // asserted over the source by tests/unit/failure-messages-are-announced.test.ts.
-    const alert = page.getByRole('alert').filter({ hasText: /login failed/i });
-    await expect(alert).toBeVisible();
+  test('a refused provider handoff is announced, not only painted', async ({ page }) => {
+    // The door's remaining refusal path. A provider that refuses the handoff sends
+    // the browser back with the failure in the fragment; the page consumes it on
+    // mount. What is asserted is where the sentence lands: a live region, so a
+    // screen reader hears it, rather than a div that is only painted.
+    await page.goto('/login#error=access_denied&error_description=Denied');
+    const notice = page.locator('[role="alert"], [role="status"]').filter({ hasText: /\S/ });
+    await expect(notice.first()).toBeVisible({ timeout: 10000 });
   });
-
   test('the data strip admits it cannot know anything about a signed-out visitor', async ({ page }) => {
     // The numbers here come from the account's rows, and an anonymous read
     // answers `[]` — which used to render as "本地模拟面试 0" under a hint saying

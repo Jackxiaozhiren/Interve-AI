@@ -49,6 +49,33 @@ function parse(rel: string, source: string): ts.SourceFile {
 }
 
 /** `[value, setter]` bindings of `useState(...)` in this file. */
+/**
+ * Message states written by a provider callback rather than a catch.
+ *
+ * Both doors used to obtain a refusal from their own submit `catch`. After
+ * §15.2 = a the doors have no submit: the provider handoff is what can fail, and
+ * its result reaches the same state through `onResult={setError}`. The property
+ * this file exists to protect — a refusal the page shows must land in a live
+ * region — is unchanged, so the analyser learns the second source rather than the
+ * assertion being dropped.
+ */
+function providerMessageStates(sf: ts.SourceFile, bindings: Map<string, string>): Set<string> {
+  const setterToValue = new Map([...bindings].map(([value, setter]) => [setter, value]));
+  const out = new Set<string>();
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxAttribute(node) && node.name.getText(sf).startsWith("on")) {
+      const init = node.initializer;
+      if (init && ts.isJsxExpression(init) && init.expression && ts.isIdentifier(init.expression)) {
+        const name = init.expression.text;
+        if (setterToValue.has(name)) out.add(setterToValue.get(name) as string);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 function stateBindings(sf: ts.SourceFile): Map<string, string> {
   const out = new Map<string, string>();
   const visit = (node: ts.Node) => {
@@ -294,8 +321,12 @@ describe("a message the page shows after an await is announced", () => {
     // region; a door that stops doing it silently drops the parity #141 established.
     for (const rel of [LOGIN, SIGNUP]) {
       const sf = parse(rel, tree.get(rel) as string);
-      const names = catchMessageStates(sf, stateBindings(sf));
-      expect([...names].length, `${rel} no longer writes a refusal message from a catch`).toBeGreaterThan(0);
+      const bindings = stateBindings(sf);
+      const names = new Set([
+        ...catchMessageStates(sf, bindings),
+        ...providerMessageStates(sf, bindings),
+      ]);
+      expect(names.size, `${rel} no longer writes a refusal message from a catch or a provider callback`).toBeGreaterThan(0);
       expect(unannounced(rel, sf, names, (role) => role === "alert"), `${rel} shows a refusal without asserting it`).toEqual([]);
     }
   });
@@ -475,7 +506,16 @@ describe("the walk sees every shape a message can be rendered in", () => {
     // Each of the four fixed surfaces still writes a literal message from a setter.
     for (const rel of [LOGIN, ASSESSMENTS, GREENROOM, COPILOT]) {
       const sf = parse(rel, tree.get(rel) as string);
-      expect(messageStates(sf, stateBindings(sf)).size, `${rel} no longer renders a message state`).toBeGreaterThan(0);
+      const bindings = stateBindings(sf);
+      // LOGIN is the one door that no longer composes its own refusal text: the
+      // provider handoff is the only thing that can fail, and it reports through
+      // `onResult`. The surface still owns a message state and still renders it in
+      // an alert region (M3 above), so the count includes that source. The other
+      // three keep the stricter literal-message requirement.
+      const owns =
+        messageStates(sf, bindings).size +
+        (rel === LOGIN ? providerMessageStates(sf, bindings).size : 0);
+      expect(owns, `${rel} no longer renders a message state`).toBeGreaterThan(0);
     }
   });
 });

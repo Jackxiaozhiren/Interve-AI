@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { MagneticButton } from "@/components/ui/magnetic-button";
-import { ArrowRight } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { GlobalBackground } from "@/components/ui/global-background";
 import { useAuth } from "@/context/AuthContext";
@@ -15,10 +11,8 @@ import { ROUTES } from "@/utils/constants";
 import { OAuthProviderButtons } from "@/components/auth/oauth-buttons";
 
 export default function SignupPage() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   // One surface for anything the door refused, exactly as /login does it: the
   // provider press lifecycle reports here, and so does a failed demo submit,
   // which used to be a console.error and nothing else.
@@ -43,21 +37,6 @@ export default function SignupPage() {
       return () => clearTimeout(timer);
     }
   }, [error]);
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-
-    setError(null);
-    try {
-      // In a real app, this would be an API call to register
-      // For now, we'll just log them in to mock the flow
-      await login();
-    } catch (err) {
-      console.error("Signup failed", err);
-      setError("Sign up failed. Please try again.");
-    }
-  };
 
   // This used to be a fake: both buttons called login() with a hardcoded
   // `oauth_user@example.com` identity and never touched Supabase, so the page
@@ -94,10 +73,17 @@ export default function SignupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
+            <div className="space-y-5">
+              {/* One door, same as /login. The name + email form that used to sit
+                  here created a local identity with `crypto.randomUUID()` — an
+                  account nobody owned — and after §15.2 = a it could not produce a
+                  session at all. */}
               <div>
                 <p className="text-sm font-semibold text-slate-700 mb-3">
-                  用账号注册 · 面试记录、报告与回放都会保存
+                  用 Google 或 GitHub 注册
+                </p>
+                <p className="text-[13px] text-slate-500 mb-3 leading-relaxed">
+                  首次用这两个账号之一登录时会自动创建账号。你不需要为本站单独设置密码。
                 </p>
                 <OAuthProviderButtons onResult={setError} />
                 {error && (
@@ -106,56 +92,6 @@ export default function SignupPage() {
                   </p>
                 )}
               </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-[#f8fafd] px-2 text-slate-600 font-semibold tracking-wider">或用演示账号(不保存数据)</span>
-                </div>
-              </div>
-
-              <form onSubmit={handleSignup} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-700 font-medium">Full Name</Label>
-                  <Input 
-                    id="name" 
-                    type="text" 
-                    placeholder="John Doe" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="h-12 bg-white/50 border-slate-200 focus-visible:ring-sky-500/50 rounded-xl"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700 font-medium">Email address</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="name@example.com" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-12 bg-white/50 border-slate-200 focus-visible:ring-sky-500/50 rounded-xl"
-                  />
-                </div>
-                
-                <MagneticButton
-                  className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-[0_4px_12px_rgba(15,23,42,0.15)] flex justify-center items-center group transition-all"
-                  disabled={isLoading}
-                  aria-label="Sign Up"
-                  aria-busy={isLoading}
-                >
-                  {isLoading ? (
-                    <span aria-hidden="true" className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                  ) : (
-                    <>Sign Up <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" /></>
-                  )}
-                </MagneticButton>
-              </form>
             </div>
           </CardContent>
         </Card>

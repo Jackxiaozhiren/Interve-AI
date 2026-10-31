@@ -4,10 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { MagneticButton } from "@/components/ui/magnetic-button";
-import { ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { ROUTES } from "@/utils/constants";
@@ -16,13 +12,10 @@ import { OAuthProviderButtons } from "@/components/auth/oauth-buttons";
 import { consumeProviderCallbackFailure } from "@/lib/auth";
 
 export function LoginForm() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [providerNotice, setProviderNotice] = useState<string | null>(null);
 
@@ -69,25 +62,6 @@ export function LoginForm() {
     }
   }, [error]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // NOTE (Phase 2): demo auth accepts any non-empty password. Real credential
-    // verification arrives with the Supabase Auth cutover (see STABILIZATION_REPORT).
-    // Requiring a non-empty password is a minimal anti-mistake guard, not security.
-    if (!email || !password) {
-      setError("Please enter your email and password.");
-      return;
-    }
-    setError(null);
-
-    try {
-      // In a real app, this would validate credentials with the backend
-      await login();
-    } catch {
-      setError("Login failed. Please check your credentials and try again.");
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 1, y: 0 }}
@@ -118,14 +92,18 @@ export function LoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {/* Account sign-in is the only path that can persist anything (the
-                server refuses ownerless content writes), so it carries the
-                primary weight and the caption states what the other path does
-                not: the demo form below runs locally and saves nothing. */}
+          <div className="space-y-5">
+            {/* One door. The email + password form that used to sit below this
+                collected a password no code read, and since the session endpoint
+                began requiring a verified token (§15.2 = a) it could not succeed
+                anyway. Keeping it would be a credential the product pretends to
+                check, so it is gone rather than disabled. */}
             <div>
               <p className="text-sm font-semibold text-slate-700 mb-3">
-                用账号登录 · 面试记录、报告与回放都会保存
+                用 Google 或 GitHub 登录
+              </p>
+              <p className="text-[13px] text-slate-500 mb-3 leading-relaxed">
+                账号由 Google 或 GitHub 验证。本站不接收、也不校验你为这里单独设置的密码。
               </p>
               <OAuthProviderButtons onResult={setError} />
               {providerNotice && (
@@ -135,19 +113,6 @@ export function LoginForm() {
               )}
             </div>
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[#f8fafd] px-2 text-slate-600 font-semibold tracking-wider">
-                  或用演示账号(不保存数据)
-                </span>
-              </div>
-            </div>
-
-            {/* Error Message */}
             {error && (
               <motion.div
                 role="alert"
@@ -159,83 +124,6 @@ export function LoginForm() {
                 {error}
               </motion.div>
             )}
-
-            {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="login-email" className="text-slate-700 font-medium">
-                  Email address
-                </Label>
-                <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  className="h-12 bg-white/50 border-slate-200 focus-visible:ring-sky-500/50 rounded-xl"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="login-password" className="text-slate-700 font-medium">
-                  Password
-                </Label>
-                {/* "Forgot password?" used to sit here as href="#". It was a dead
-                    link and, under demo auth, a meaningless one: no password is
-                    ever checked, so there is nothing to reset. Removed rather
-                    than pointed at resetPasswordForEmail, which would send real
-                    mail from the production project and need a reset page that
-                    does not exist yet. */}
-                <div className="relative">
-                  <Input
-                    id="login-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                    className="h-12 bg-white/50 border-slate-200 focus-visible:ring-sky-500/50 rounded-xl pr-12"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-6 min-h-6 text-muted-foreground hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded"
-                    aria-label={showPassword ? "隐藏密码" : "显示密码"}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? (
-                      <EyeSlash weight="regular" className="w-5 h-5" />
-                    ) : (
-                      <Eye weight="regular" className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* The loading branch swaps the label for a bare spinner, which
-                  leaves a submit button with no accessible name at the exact
-                  moment a screen-reader user needs feedback. aria-label keeps
-                  the name stable (identical to the visible text, so 2.5.3
-                  still holds) and aria-busy carries the state. */}
-              <MagneticButton
-                className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-[0_4px_12px_rgba(15,23,42,0.15)] flex justify-center items-center group transition-all"
-                disabled={isLoading}
-                aria-label="Sign In"
-                aria-busy={isLoading}
-              >
-                {isLoading ? (
-                  <span aria-hidden="true" className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                ) : (
-                  <>
-                    Sign In{" "}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </MagneticButton>
-            </form>
           </div>
         </CardContent>
       </Card>

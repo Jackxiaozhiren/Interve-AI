@@ -579,3 +579,39 @@ listed here rather than left to be discovered.
    owner is required** before this can be called verified end to end.
 3. **Production has zero interviews** (§15.6), so no persisted row has ever been
    stamped by this path. A successful sign-in is not evidence that a record lands.
+
+## 17. T2 — the door the product actually has (2026-10-31)
+
+| gate | command | rc | reading |
+|---|---|---|---|
+| landing journey | `npx playwright test tests/landing.spec.ts --project=chrome-1280x720` | **0** | **9 passed (15.8 s)**; the server log shows the refusal path firing: `[auth] provider callback failed: access_denied — Denied` |
+| phone geometry | `npx playwright test --project=phone-390x844` | **0** | 3 passed (8.7 s) |
+| a11y message guard | `failure-messages-are-announced` | **0** | 11/11 after the analyser learned the provider source |
+| claims | `no-unverifiable-claims` + `anchor-integrity` + `privacy-claims` + `demo-auth-status` | **0** | 54/54 |
+| typecheck / lint / facts | `npm run typecheck`, `npm run lint`, `npm run facts:check` | **0 / 0 / 0** | 1 pre-existing warning |
+
+**What went.** The email + password form on `/login` and the name + email form on
+`/signup`. Neither could succeed after §15.2 = a, and neither verified anything
+before it: the password was collected and never read (`LoginForm.tsx:186-199` before
+this commit), and signup minted a `crypto.randomUUID()` identity. The copy that
+claimed "面试记录、报告与回放都会保存" above them is gone with them.
+
+**What replaced it.** One sentence naming the mechanism — the account is verified by
+Google or GitHub, and this site neither receives nor checks a password — above the
+two provider buttons that were already there.
+
+**Three guard re-bases, listed so they can be checked:**
+`failure-messages-are-announced` M3 (the refusal now originates in the provider
+callback, so the analyser recognises `onResult={setX}`); its "five named surfaces"
+row (LOGIN only, and only that row, now counts a provider-fed message state — the
+other three keep the literal-message requirement); and three `landing.spec.ts` arms
+that drove the removed form, rewritten to assert the replacement contract (both
+doors present, no password field, no identity fields, refusal announced in a live
+region). No assertion was deleted; the total count of checked properties went up.
+
+### Limit
+
+Still unverified end to end: no OAuth round trip has been completed from this host
+(`google` and `github` answer `502` here). **The owner's one click remains the gate**
+for calling the door working, and until then this is "a door with no way round it",
+not "a door people have walked through".
