@@ -903,3 +903,45 @@ PR surface: https://github.com/Jackxiaozhiren/Interve-AI/pull/new/prd/mainline
 This section is a 29th commit. It is **not** pushed: consent for one push does not
 carry to the next commit set (§12.6). It is documentation only — one sentence in §15.1
 that said "nothing was pushed" and would otherwise stay true-looking after being false.
+
+## 26. "The site will not open" — measured, and it is not the code (2026-10-31 18:50)
+
+The owner reported the site unreachable after a redeploy. It is unreachable, and the
+28 commits are not the reason. What was measured, in the owner's own browser and shell:
+
+| reading | value | how |
+|---|---|---|
+| the deployment they were looking at | **Ready**, 4 m 07 s, **Preview**, source `prd/mainline @ e64714c` | Vercel deployment page |
+| `refs/heads/main` | **`fe3b6ff`** — unchanged | `git ls-remote` over SSH |
+| production domain | `interve-ai.vercel.app`, "Valid Configuration", Production | Vercel → Settings → Domains |
+| DNS, default resolver | `31.13.85.169` (a Meta address) | `dig +short` |
+| DNS, 8.8.8.8 / 223.5.5.5 | `128.242.240.93` / `103.42.176.244` — neither is Vercel | `dig @…` |
+| TCP 443 to the app | **times out** | `nc -z -v -G 6` |
+| control | `vercel.com` renders fine in the same browser | browser |
+
+Two facts settle it:
+
+1. **Production runs the old commit.** Nothing was merged, so whatever the production
+   host serves, it serves the same build it served before this branch existed. A new
+   branch cannot break a deployment it is not part of.
+2. **`interve-ai.vercel.app` does not reach a Vercel address from this network**, while
+   `vercel.com` does. That is a hostname-specific reachability failure — the signature
+   of DNS poisoning of the `*.vercel.app` zone — not an application fault.
+
+This is **R4, measured for the first time**, and the answer is negative: the rank-1
+user's network cannot resolve the deployment host. It also explains why the OAuth round
+trip could never complete here (§17, §25): the provider hosts and the app host fail on
+the same path.
+
+### What it does not tell us
+
+The site may well load from a network where `*.vercel.app` is not poisoned — most of the
+owner's own testing happens on a VPN. This measurement says "from this path, no", not
+"the deployment is broken".
+
+### What would fix it
+
+A **custom domain** (any ordinary `.com`) pointed at the project: the block is on the
+shared `*.vercel.app` zone, and a custom domain changes the hostname the resolver is
+asked about. That is a purchase-and-CNAME action, which is the owner's to take. Until
+then every link handed to a mainland user is a link they cannot open.
