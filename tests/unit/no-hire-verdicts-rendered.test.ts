@@ -62,3 +62,19 @@ describe("the verdict cannot come back through the readiness label", () => {
     expect(view.readinessLabel).toBeNull();
   });
 });
+
+describe("the trends analysis is not fed a hire decision", () => {
+  it("the route builds its prompt input without a verdict or a council rationale", () => {
+    // This one is indirect: nothing here is rendered. The route summarised legacy
+    // rows into a prompt that asked the model for trends, and it handed over
+    // `hireVerdict` plus the council justifications — so the model could describe a
+    // no-hire trend, which is the same judgement aggregated. The evaluation contract
+    // already says "Readiness only" (prompts/evaluation.ts:87); the input now matches.
+    const text = readFileSync("src/app/api/analyze-trends/route.ts", "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    expect(text.match(/hireVerdict/g) ?? []).toEqual([]);
+    expect(text.match(/cultureFitAdvisor/g) ?? []).toEqual([]);
+    expect(text.match(/councilReasoning/g) ?? []).toEqual([]);
+  });
+});

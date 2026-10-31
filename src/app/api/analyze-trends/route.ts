@@ -49,25 +49,22 @@ export async function POST(req: Request) {
     // Phase 4: prefer V2 evaluation fields, fall back to legacy rows.
     const sessionData = (sessions as Array<Record<string, unknown>>).map((s, index: number) => {
       const qaReview = s["qaReview"];
-      const councilDebate = s["councilDebate"] as
-        | { technicalAdvisor?: { reasoning?: unknown }; hrAdvisor?: { reasoning?: unknown }; cultureFitAdvisor?: { reasoning?: unknown } }
-        | undefined;
       const evaluationV2 = s["evaluationV2"] as
         | { readiness?: unknown; readinessRationale?: unknown; dimensions?: Array<{ id?: unknown; score?: unknown; rationale?: unknown; improvement?: unknown }> }
         | undefined;
       return {
         sessionIndex: index + 1,
         title: s["title"],
-        verdict: evaluationV2?.readiness ?? s["hireVerdict"],
+        // Readiness only. The legacy fallback used to be `s["hireVerdict"]`, which
+        // handed the model a hire decision to summarise — and the evaluation contract
+        // already forbids producing one ("No hire/no-hire verdicts … Readiness
+        // only", prompts/evaluation.ts:87). A trend line built from those values is
+        // the same judgement, aggregated.
+        verdict: evaluationV2?.readiness ?? null,
         flaws: Array.isArray(qaReview)
           ? qaReview.map((qa) => (qa as { flaws?: unknown }).flaws).filter(Boolean)
           : [],
-        weaknesses: evaluationV2?.dimensions?.map((d) => d.improvement).filter(Boolean) ?? [],
-        councilReasoning: councilDebate ? [
-          councilDebate.technicalAdvisor?.reasoning,
-          councilDebate.hrAdvisor?.reasoning,
-          councilDebate.cultureFitAdvisor?.reasoning,
-        ] : []
+        weaknesses: evaluationV2?.dimensions?.map((d) => d.improvement).filter(Boolean) ?? []
       };
     });
 

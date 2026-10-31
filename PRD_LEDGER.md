@@ -654,3 +654,31 @@ History survives as data; it no longer survives as a judgement.
   `achievements.ts:160` still unlocks a badge for `strong_hire`. That is a reward for
   having been judged, not a verdict shown to a user; it is listed, not silently kept.
 - `analyze-trends` still aggregates a `verdict` field for trend charts.
+
+## 19. The last verdict door: the trends prompt (2026-10-31)
+
+| gate | command | rc | reading |
+|---|---|---|---|
+| the guard | `npx vitest run tests/unit/no-hire-verdicts-rendered.test.ts` | **0** | **7/7**; the seventh case was watched go red by putting `s["hireVerdict"]` back |
+| adjacent routes | `orphan-api-routes` + `ai-registry` + `catch-reason-resolution` + `route-budget` + the guard | **0** | **41/41** |
+| typecheck / lint / facts | | **0 / 0 / 0** | 1 pre-existing warning |
+
+Nothing here is rendered, which is why it survived the previous unit. `analyze-trends`
+built a per-session prompt input and handed the model `s["hireVerdict"]` plus the
+council justifications, so a trend paragraph could describe a no-hire trajectory. That
+is the same judgement as a council card, aggregated over time.
+
+The route now sends `evaluationV2.readiness ?? null` and no council reasoning. The
+evaluation contract already required this of the *output* side — "No hire/no-hire
+verdicts. No culture-fit or personality claims. Readiness only."
+(`prompts/evaluation.ts:87`) — and the input side simply had not been brought in line.
+
+### Remaining, and deliberately left
+
+- `interview.hireVerdict` stays in `db.ts:71` and the column it maps to. Deleting a
+  column is a migration, not a code change, and the type is what a legacy row is
+  parsed into; the field now reaches no surface.
+- `achievements.ts:160` still unlocks a badge for `strong_hire`. It is a reward for
+  having been judged, shown only to the person judged. Flagged here rather than
+  quietly changed, because whether that badge should exist is a product decision, not
+  an N2 violation.
