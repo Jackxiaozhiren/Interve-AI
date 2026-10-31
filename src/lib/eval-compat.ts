@@ -87,13 +87,14 @@ function legacyDimensions(interview: Interview): DimensionView[] {
     }));
 }
 
-const LEGACY_VERDICT_LABELS: Record<string, string> = {
-  strong_hire: "Strong Hire (legacy)",
-  hire: "Hire (legacy)",
-  leaning_hire: "Leaning Hire (legacy)",
-  leaning_no_hire: "Leaning No Hire (legacy)",
-  no_hire: "No Hire (legacy)",
-};
+// The legacy verdict used to be turned into a display label here — "No Hire
+// (legacy)", "Strong Hire (legacy)" — and that string was rendered by
+// EvaluationView, the dashboard list, and the printable dossier. Removing the
+// council card was therefore only half the job: the verdict survived as a
+// readiness label. A legacy row now reports no readiness at all, which the three
+// surfaces already handle ("Legacy"), because the current model has no verdict to
+// map and N2 forbids inventing one.
+
 
 export function toEvaluationView(interview: Interview): EvaluationView {
   const v2 = interview.evaluationV2 as EvaluationV2 | undefined;
@@ -129,7 +130,7 @@ export function toEvaluationView(interview: Interview): EvaluationView {
       kind: "legacy",
       legacy: true,
       rubricId: null,
-      readinessLabel: interview.hireVerdict ? (LEGACY_VERDICT_LABELS[interview.hireVerdict] ?? interview.hireVerdict) : null,
+      readinessLabel: null,
       readinessRationale: interview.verdictRationale ?? null,
       average: avg,
       confidence: "low",

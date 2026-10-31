@@ -50,7 +50,12 @@ describe("toEvaluationView", () => {
     const v = toEvaluationView(LEGACY_ROW);
     expect(v.kind).toBe("legacy");
     expect(v.legacy).toBe(true);
-    expect(v.readinessLabel).toMatch(/legacy/i);
+    // History is preserved as *data* — the row is still flagged legacy, its
+    // dimensions and average still exist — but the hire verdict is no longer
+    // dressed up as a readiness level. "No Hire (legacy)" in this field was how
+    // the verdict reached EvaluationView, the dashboard list and the printable
+    // dossier after the council card was removed.
+    expect(v.readinessLabel).toBeNull();
     expect(v.average).toBe(73); // (80+70+75+65+60+90)/6 = 73.3
     expect(v.confidence).toBe("low");
     expect(v.disclaimer).toMatch(/Legacy/);

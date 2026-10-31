@@ -63,38 +63,12 @@ export function exportInterviewToMarkdown(interview: Interview): string {
     });
   }
 
-  // Council Debate (legacy rows only — preserved history)
-  if (interview.councilDebate) {
-    lines.push("## Council Debate & Synthesis");
-    if (interview.verdictRationale) {
-      lines.push(`**Verdict Synthesis:** ${interview.verdictRationale}`);
-      lines.push("");
-    }
-    
-    const { technicalAdvisor, hrAdvisor, cultureFitAdvisor } = interview.councilDebate;
-    
-    if (technicalAdvisor) {
-      lines.push("### Technical Advisor");
-      lines.push(`**Stance:** ${technicalAdvisor.stance.replace(/_/g, " ")}`);
-      lines.push(`**Reasoning:** ${technicalAdvisor.reasoning}`);
-      lines.push("");
-    }
-
-    if (hrAdvisor) {
-      lines.push("### HR Advisor");
-      lines.push(`**Stance:** ${hrAdvisor.stance.replace(/_/g, " ")}`);
-      lines.push(`**Reasoning:** ${hrAdvisor.reasoning}`);
-      lines.push("");
-    }
-
-    if (cultureFitAdvisor) {
-      lines.push("### Culture Fit Advisor");
-      lines.push(`**Stance:** ${cultureFitAdvisor.stance.replace(/_/g, " ")}`);
-      lines.push(`**Reasoning:** ${cultureFitAdvisor.reasoning}`);
-      lines.push("");
-    }
-  }
-
+  // Council Debate was removed here, not preserved. It rendered an advisor "stance"
+  // — a hire verdict with a different label — next to a quoted justification, which
+  // is exactly what N2 forbids the product from saying about a person. The old
+  // comment called it "preserved history"; it was exported to a file the candidate
+  // could be shown, or a recruiter could forward. Rows predating the removal are
+  // still in the table; they are simply no longer turned into a document.
   // Full Transcript
   if (interview.transcript && interview.transcript.length > 0) {
     lines.push("## Full Transcript");

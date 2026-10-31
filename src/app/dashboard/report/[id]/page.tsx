@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { 
   ArrowLeft, FileText, CheckCircle, XCircle,
   Lightbulb, ShieldCheck, UsersThree, ChartLineUp, Clock,
-  Quotes, Code, Handshake
+  Quotes, Code
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/data";
@@ -133,7 +133,7 @@ export default function InterviewReportPage() {
     );
   }
 
-  const { radarScores, councilDebate, qaReview, verdictRationale, culturalTraits, timelineEvents, trainingRoadmap, transcript } = interview;
+  const { radarScores, qaReview, verdictRationale, culturalTraits, timelineEvents, trainingRoadmap, transcript } = interview;
   // Phase 4: single view model over V2 (evidence-grounded) and legacy rows.
   const view = toEvaluationView(interview);
 
@@ -297,40 +297,10 @@ export default function InterviewReportPage() {
           </motion.div>
 
           {/* Council Debate (legacy rows only — preserved history, not produced anymore) */}
-          {view.legacy && councilDebate && (
-            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-md">
-                  <UsersThree className="w-5 h-5" weight="fill" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-800">招聘委员会决议 (Council Debate) <span className="text-xs font-bold text-muted-foreground align-middle">· 历史评估</span></h2>
-                  <p className="text-sm text-slate-500">多维度AI考官的独立评估意见（旧版评估保留，新版已改用证据型维度评估）</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <AdvisorCard 
-                  title="Technical Advisor" 
-                  icon={<Code className="w-5 h-5" />} 
-                  advisor={councilDebate.technicalAdvisor} 
-                  color="blue"
-                />
-                <AdvisorCard 
-                  title="HR Advisor" 
-                  icon={<UsersThree className="w-5 h-5" />} 
-                  advisor={councilDebate.hrAdvisor} 
-                  color="emerald"
-                />
-                <AdvisorCard 
-                  title="Culture Fit Advisor" 
-                  icon={<Handshake className="w-5 h-5" />} 
-                  advisor={councilDebate.cultureFitAdvisor} 
-                  color="amber"
-                />
-              </div>
-            </motion.div>
-          )}
+          {/* The council verdict block was removed here. An advisor stance is a hire
+              judgement about a person, which N2 forbids the product to display; the
+              evaluation contract stopped producing these keys, and the display kept
+              rendering whatever an old row held. */}
 
           {/* Training Roadmap */}
           {trainingRoadmap && (
@@ -602,45 +572,3 @@ function DeliveryCoach({ stats }: {
   );
 }
 
-function AdvisorCard({ title, icon, advisor, color }: { title: string, icon: React.ReactNode, advisor: { stance?: string, reasoning?: string }, color: 'blue' | 'emerald' | 'amber' }) {
-  const getVerdictLabel = (verdict: string) => {
-    switch (verdict) {
-      case "strong_hire": return "Strong Hire";
-      case "hire": return "Hire";
-      case "leaning_hire": return "Leaning Hire";
-      case "leaning_no_hire": return "Leaning No Hire";
-      case "no_hire": return "No Hire";
-      default: return verdict;
-    }
-  };
-
-  const isHire = advisor.stance?.includes("hire") && !advisor.stance?.includes("no");
-  
-  const colorMap = {
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    amber: "bg-amber-50 text-amber-600 border-amber-100",
-  };
-
-  return (
-    <div className="p-6 border border-slate-100 rounded-2xl bg-white shadow-sm flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <div className={`p-2 rounded-lg ${colorMap[color]}`}>
-          {icon}
-        </div>
-        <h3 className="font-bold text-slate-800">{title}</h3>
-      </div>
-      
-      <div className={`self-start px-3 py-1 rounded-full text-xs font-bold mb-4 flex items-center gap-1.5
-        ${isHire ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}
-      `}>
-        {isHire ? <CheckCircle weight="fill" /> : <XCircle weight="fill" />}
-        {getVerdictLabel(advisor.stance || "neutral")}
-      </div>
-
-      <p className="text-sm text-slate-600 leading-relaxed flex-1">
-        &quot;{advisor.reasoning}&quot;
-      </p>
-    </div>
-  );
-}

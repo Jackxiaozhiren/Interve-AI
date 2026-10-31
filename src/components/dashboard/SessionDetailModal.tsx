@@ -152,72 +152,10 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
             )}
 
             {/* Council Debate (legacy rows only — preserved history) */}
-            {view.legacy && session.councilDebate && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <h4 className="text-[1.5rem] font-serif text-[#111111] leading-relaxed">Hiring Council Debate</h4>
-                  <div className="h-px flex-1 bg-slate-100"></div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Technical Advisor */}
-                  <div className="bg-white border border-slate-100 rounded-[24px] p-8 shadow-sm relative overflow-hidden group/advisor">
-                    <div className="absolute inset-0 bg-gradient-to-br from-sky-50/50 to-transparent opacity-0 group-hover/advisor:opacity-100 transition-opacity duration-500" />
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 rounded-[16px] bg-sky-50 border border-sky-100 flex items-center justify-center">
-                          <span className="text-sky-500 font-mono font-bold text-lg">T</span>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest font-mono">Technical</div>
-                          <div className={`text-sm font-bold uppercase tracking-wide ${session.councilDebate.technicalAdvisor.stance.includes('no_hire') ? 'text-rose-600' : session.councilDebate.technicalAdvisor.stance.includes('leaning') ? 'text-amber-600' : 'text-emerald-600'}`}>
-                            {session.councilDebate.technicalAdvisor.stance.replace(/_/g, ' ')}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-slate-600 text-[14px] leading-relaxed font-medium">&quot;{session.councilDebate.technicalAdvisor.reasoning}&quot;</p>
-                    </div>
-                  </div>
-
-                  {/* HR Advisor */}
-                  <div className="bg-white border border-slate-100 rounded-[24px] p-8 shadow-sm relative overflow-hidden group/advisor">
-                    <div className="absolute inset-0 bg-gradient-to-br from-rose-50/50 to-transparent opacity-0 group-hover/advisor:opacity-100 transition-opacity duration-500" />
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 rounded-[16px] bg-rose-50 border border-rose-100 flex items-center justify-center">
-                          <span className="text-rose-500 font-mono font-bold text-lg">H</span>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest font-mono">HR / Comms</div>
-                          <div className={`text-sm font-bold uppercase tracking-wide ${session.councilDebate.hrAdvisor.stance.includes('no_hire') ? 'text-rose-600' : session.councilDebate.hrAdvisor.stance.includes('leaning') ? 'text-amber-600' : 'text-emerald-600'}`}>
-                            {session.councilDebate.hrAdvisor.stance.replace(/_/g, ' ')}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-slate-600 text-[14px] leading-relaxed font-medium">&quot;{session.councilDebate.hrAdvisor.reasoning}&quot;</p>
-                    </div>
-                  </div>
-
-                  {/* Culture Fit Advisor */}
-                  <div className="bg-white border border-slate-100 rounded-[24px] p-8 shadow-sm relative overflow-hidden group/advisor">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover/advisor:opacity-100 transition-opacity duration-500" />
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 rounded-[16px] bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-                          <span className="text-emerald-500 font-mono font-bold text-lg">C</span>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest font-mono">Culture Fit</div>
-                          <div className={`text-sm font-bold uppercase tracking-wide ${session.councilDebate.cultureFitAdvisor.stance.includes('no_hire') ? 'text-rose-600' : session.councilDebate.cultureFitAdvisor.stance.includes('leaning') ? 'text-amber-600' : 'text-emerald-600'}`}>
-                            {session.councilDebate.cultureFitAdvisor.stance.replace(/_/g, ' ')}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-slate-600 text-[14px] leading-relaxed font-medium">&quot;{session.councilDebate.cultureFitAdvisor.reasoning}&quot;</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* The council verdict block was removed here. An advisor stance is a hire
+              judgement about a person, which N2 forbids the product to display; the
+              evaluation contract stopped producing these keys, and the display kept
+              rendering whatever an old row held. */}
 
             {/* Cultural Traits (legacy rows only — preserved history) */}
             {session.culturalTraits && session.culturalTraits.length > 0 && (

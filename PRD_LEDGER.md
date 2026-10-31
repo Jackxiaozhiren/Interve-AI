@@ -615,3 +615,42 @@ Still unverified end to end: no OAuth round trip has been completed from this ho
 (`google` and `github` answer `502` here). **The owner's one click remains the gate**
 for calling the door working, and until then this is "a door with no way round it",
 not "a door people have walked through".
+
+## 18. T4 / §7-R8 — no employment verdict reaches a user (2026-10-31)
+
+| gate | command | rc | reading |
+|---|---|---|---|
+| the guard | `npx vitest run tests/unit/no-hire-verdicts-rendered.test.ts` | **0** | **6/6**. Written first and watched go red on all five files; then a sixth case was added when the first five went green and the *second* door appeared (`readinessLabel`) |
+| evaluation surfaces | `eval-compat` + `dashboard-readiness-average` + `prohibitions` + the new file | **0** | **26/26** |
+| desktop journey | `npx playwright test tests/dashboard.spec.ts --project=chrome-1280x720` | **0** | **8 passed (19.0 s)** |
+| typecheck / lint / facts | | **0 / 0 / 0** | 1 pre-existing warning |
+
+**What was rendering a verdict, in the order it was found.**
+
+1. `SessionDetailModal`, `PrintableDossier`, `PrintLayout`, `export.ts` — the four
+   B3 named. Each rendered `stance` (values include `no_hire`, `leaning_no_hire`) in
+   a large label next to a quoted justification. `export.ts` shipped it into a
+   markdown file under the heading "preserved history".
+2. `report/[id]/page.tsx` — three `AdvisorCard`s with the same stance, plus the
+   `AdvisorCard` definition itself. Not in B3's list; the most prominent rendering.
+3. **`eval-compat.ts` — the door nobody was watching.** A legacy row's verdict was
+   mapped to a `readinessLabel` string, `"No Hire (legacy)"`, and that string is
+   rendered by `EvaluationView`, the dashboard list, and the printable dossier. The
+   first five removals would have left the verdict on screen under a different word.
+   Found because the guard scanned for `stance` and this path has none.
+
+**Why this was safe now.** Production `interviews` held **zero rows** (§15.6, owner's
+SQL Editor reading, 2026-10-31). Removing display paths destroys no one's report. With
+rows present this would have needed a migration, not a deletion.
+
+**One guard re-based:** `eval-compat.test.ts` asserted `readinessLabel` matches
+`/legacy/i` on a legacy row. It now asserts `null`, and keeps every other assertion —
+the row is still `kind: "legacy"`, still carries its six dimensions and its 73 average.
+History survives as data; it no longer survives as a judgement.
+
+### What is still true, and not fixed here
+
+- `interview.hireVerdict` still exists in the type and the column (`db.ts:71`), and
+  `achievements.ts:160` still unlocks a badge for `strong_hire`. That is a reward for
+  having been judged, not a verdict shown to a user; it is listed, not silently kept.
+- `analyze-trends` still aggregates a `verdict` field for trend charts.

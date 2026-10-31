@@ -79,35 +79,10 @@ export function PrintLayout({ interview }: { interview: Interview }) {
         </div>
       )}
 
-      {/* Council Debate (legacy rows only) */}
-      {interview.councilDebate && (
-        <div className="mb-8 break-inside-avoid">
-          <h2 className="text-xl font-bold mb-4 uppercase tracking-widest text-gray-800 border-b border-gray-200 pb-2">Council Debate & Synthesis (Legacy · 历史评估)</h2>
-          
-          {interview.verdictRationale && (
-            <div className="mb-4 p-4 bg-gray-100 rounded-lg border border-gray-300">
-              <h3 className="font-bold mb-2">Verdict Synthesis</h3>
-              <p className="text-sm text-gray-800">{interview.verdictRationale}</p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { title: "Technical Advisor", data: interview.councilDebate.technicalAdvisor },
-              { title: "HR Advisor", data: interview.councilDebate.hrAdvisor },
-              { title: "Culture Fit Advisor", data: interview.councilDebate.cultureFitAdvisor },
-            ].map((advisor, idx) => advisor.data && (
-              <div key={idx} className="border border-gray-200 p-4 rounded-lg break-inside-avoid">
-                <div className="font-bold mb-2 flex justify-between items-center">
-                  <span className="text-sm">{advisor.title}</span>
-                  <span className="text-[10px] uppercase bg-gray-200 px-2 py-0.5 rounded-full">{advisor.data.stance.replace(/_/g, ' ')}</span>
-                </div>
-                <p className="text-xs text-gray-700">{advisor.data.reasoning}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          {/* The council verdict block was removed here. An advisor stance is a hire
+              judgement about a person, which N2 forbids the product to display; the
+              evaluation contract stopped producing these keys, and the display kept
+              rendering whatever an old row held. */}
 
       {/* Diagnostic Review */}
       {interview.qaReview && interview.qaReview.length > 0 && (

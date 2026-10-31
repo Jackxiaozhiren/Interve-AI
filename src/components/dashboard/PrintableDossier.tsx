@@ -88,29 +88,10 @@ export const PrintableDossier = React.forwardRef<HTMLDivElement, { session: Inte
         </div>
       )}
 
-      {/* Council Debate (legacy rows only) */}
-      {view.legacy && session.councilDebate && (
-        <div className="mb-10 page-break-inside-avoid">
-          <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Hiring Council Evaluation (Legacy · 历史评估)</div>
-          <div className="grid grid-cols-3 gap-6">
-            <div className="bg-sky-50/30 border border-sky-100 p-5 rounded-2xl">
-              <div className="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2">Technical</div>
-              <div className="font-bold text-sm mb-2 capitalize text-sky-900">{session.councilDebate.technicalAdvisor.stance.replace(/_/g, ' ')}</div>
-              <div className="text-xs text-slate-600">&quot;{session.councilDebate.technicalAdvisor.reasoning}&quot;</div>
-            </div>
-            <div className="bg-rose-50/30 border border-rose-100 p-5 rounded-2xl">
-              <div className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2">HR / Comms</div>
-              <div className="font-bold text-sm mb-2 capitalize text-rose-900">{session.councilDebate.hrAdvisor.stance.replace(/_/g, ' ')}</div>
-              <div className="text-xs text-slate-600">&quot;{session.councilDebate.hrAdvisor.reasoning}&quot;</div>
-            </div>
-            <div className="bg-emerald-50/30 border border-emerald-100 p-5 rounded-2xl">
-              <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Culture Fit</div>
-              <div className="font-bold text-sm mb-2 capitalize text-emerald-900">{session.councilDebate.cultureFitAdvisor.stance.replace(/_/g, ' ')}</div>
-              <div className="text-xs text-slate-600">&quot;{session.councilDebate.cultureFitAdvisor.reasoning}&quot;</div>
-            </div>
-          </div>
-        </div>
-      )}
+          {/* The council verdict block was removed here. An advisor stance is a hire
+              judgement about a person, which N2 forbids the product to display; the
+              evaluation contract stopped producing these keys, and the display kept
+              rendering whatever an old row held. */}
 
       {/* Cultural Traits (legacy rows only) */}
       {session.culturalTraits && session.culturalTraits.length > 0 && (
