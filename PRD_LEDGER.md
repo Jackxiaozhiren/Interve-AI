@@ -317,8 +317,28 @@ plain-fetch call site, and `QuotaBadge` renders in the room header.
 Two limits stated rather than papered over: the badge renders **nothing** until a
 real response carries the number — no placeholder, because a placeholder is a guess
 and a `0` would read as an outage; and the mock path (`AI_MOCK=1`) returns before
-the stamping code, so a mock-mode run will not light it. Neither is exercised by an
-end-to-end chat turn in this session.
+the stamping code runs, so a mock-mode run will not light it. Neither is exercised
+by an end-to-end chat turn in this session.
+
+### Correction (§16.2) — the transport wrapper was withdrawn
+
+The `T5b` note above says the AI SDK does not surface response headers and that the
+transport's `fetch` was wrapped to read them. That was true and it worked, and it was
+also a **ratchet breach**: it added a raw `fetch(` call site, and
+`capabilities.networkLayer.rawFetchCalls` is a count that may only go down —
+`tests/unit/fetch-call-sites.test.ts` went `15 → 16` and failed. The wrapper was
+withdrawn rather than the ceiling raised.
+
+Consequence, stated plainly: the reading now refreshes from every `readApiJson` call
+site (the room's hint and code-analysis calls among them) but **not from the chat
+stream itself**. Per-turn freshness would need a shared fetch helper in
+`src/lib/` first, which is a unit of its own.
+
+A second defect in the same area, found the same way: the new spec was being
+collected by all twelve desktop projects, because those carry a global
+`**/*.spec.ts` match — a 390 px assertion would have run at 1280 px and passed for
+the wrong reason. `testIgnore` now scopes it, and `docs/TESTING.md` carries the row
+the CI-lane guard demands.
 
 | `T5c` | **one stamping path, two routes** | `quota-reading` **9/9**; regression `read-response` + `guard-quota` **26/26**; `npm run typecheck` 0; `npm run facts:check` OK; `phone-390x844` **3 passed**. Guard proven able to fail: the header loop removed from `applyQuotaHeaders` → `× writes both headers from a reading` and `× never writes a negative remainder`; restored from a copy outside the repo | 0 |
 
@@ -393,10 +413,112 @@ Stability: `--repeat-each=3` → **9 passed (13.2 s)**.
    sequences after this ring.
 4. **B16's read/write split per table is not separated.** Counts above are total
    `from('<table>')` call sites, not reads vs writes.
-5. **No `npm run build`, `npm run lint` or `npm run typecheck` was run.** They are
-   not in §2.2, and running them would be a gate reading this ledger does not
-   claim.
+5. **No `lint` / `typecheck` / `build` in the Phase 0 baseline.** They are not in
+   §2.2. Two of them, and the full suite, were run later under §11.1 to write §15's
+   report; that reading belongs to the report and is **not** claimed as a baseline.
 6. **Nothing was pushed.** All commits are local to `prd/mainline`.
 7. **The audit machinery's internal health was not inspected** (§10.2 excludes it).
-8. **`/tmp/wt-prd-node_modules.bak`** (2.0G) still exists; cleaning a backup is an
-   owner decision.
+8. **`/tmp/wt-prd-node_modules.bak`** (2.0GB) and 14 `.next` copies (~1.9GB) still
+   exist under `/tmp`; they clear on reboot, and deleting them now would refill the
+   Trash this session already emptied twice. Owner's call.
+
+### Requirements and phases skipped, by number (§10.6)
+
+| §7 / §10 item | status | why |
+|---|---|---|
+| R1 identity that survives a forgotten password | **not started** | T1 is gated on §15.2. The platform offers google/github/email and no phone; picking one is an owner decision (N5), and the fix cannot be verified end-to-end from this host (OAuth hosts answer `502` here, and there is no inbox) |
+| R2 persistence that lands, or the promise is deleted | **not started** | the promise's real defect is the unverified identity the rows are stamped with, so it collapses into R1 |
+| R3 phone-width core loop | **partially done** — dashboard fixed, `/setup` and `/interview` asserted | the journey is not walked end to end at phone width; only geometry is asserted |
+| R4 reachability | **partially measured** — tier 1 partial, tier 2 owner-reported | tier 3 not performed (no 拨测, no artifact); tier 4 not scheduled |
+| R5 time to first value | **one number only** — 2 s first paint, owner-reported | no instrumented measurement; §9's events do not exist |
+| R6 score as an object | **not started** | §10.5 Phase 4 was not entered |
+| R7 quota the user can see | **partially done** — guard value, two routes, badge | 16 of 18 routes still unstamped; copy still does not state that the budget is shared per egress IP |
+| R8 retire employment-verdict residue | **not started** | needs the historical-row count (§15.5) that only a secret-key read can give |
+| R9 growth loop | **not started** | §10.5 Phase 4 was not entered |
+| R10 monetization route | **not started** | follows §15.1's posture, which is A (pilot) |
+| §10.5 Phase 4 | **not entered** | requires Phase 3 green, and Phase 3 holds one green unit (T3) plus three partials |
+| §9.1–9.3 instrumentation | **not attempted** | out of this lane's stated scope |
+
+---
+
+## 15. Phase 5 report (§10.6)
+
+Window: 2026-10-30 16:33 → 2026-10-31 10:45 (Asia/Shanghai). Lane `prd/mainline`,
+worktree `/Users/jackson/Interve AI/wt-prd`. Nothing was pushed; every commit is
+local.
+
+### 15.1 What changed
+
+| commit | kind | what |
+|---|---|---|
+| `29ef701` | docs | Phase 0 ledger: baseline, liveness table, Appendix B census, concurrency curve |
+| `40a633a` | docs | tier-1 reading, §6.2 posture brief, ranked triage with §15 priced |
+| `ad46c9a` | docs | §2.4 platform readings: provider matrix, dead email path, the password field |
+| `b5aab6e` | docs | live column inventory; §15.3 closed by measurement |
+| `938537a` | docs | owner-reported tier-2 pass, gaps named |
+| `4dcaf73` | docs | §15.1 recorded as A on the owner's written delegation |
+| `836d819` | docs | §2.4 block corrected — the host reached Supabase at 19:13 |
+| `215dcc7` | docs | tier-2 detail: all three origins, 2 s |
+| `b394a1d` | **code** | dashboard shell lays out at phone width + 390 px geometry check |
+| `086aa22` | docs | desktop regression run + the e2e cache-guard workaround |
+| `b1562e0` | **test** | phone-width checks for `/setup`, with a redirect guard |
+| `b89cd76` | **test** | the room reached by its `?id=` param; refuse to pass on an unrendered page |
+| `adeb907` | **docs+css** | README stops naming a PWA plugin the build does not ship, guarded |
+| `49b68e4` | **code** | `GuardContext.quota` — the value on the success path |
+| `6660d39` | **code** | quota headers on the chat route, reader, and the room badge |
+| `7a93ba5` | **code** | one stamping helper, two routes |
+| `19bf958` | fix | withdrawn the raw-fetch wrapper; phone spec scoped to its lane; CI-lane row |
+
+Four source-level outcomes: a phone-width layout that was 64 px wide, a README claim
+the build contradicted, a quota value no client could see, and two test-harness
+defects of my own making (a spec collected by twelve desktop projects, and a fetch
+wrapper that breached a downward-only ratchet).
+
+### 15.2 Gates, each with its own exit code (§11.1)
+
+Every command below was run on 2026-10-31 from the worktree, output to a file, exit
+code read from the command itself.
+
+| stage | command | rc | reading |
+|---|---|---|---|
+| facts | `npm run facts:check` | **0** | `facts ratchet: OK` |
+| lint | `npm run lint` | **0** | `✖ 1 problem (0 errors, 1 warning)` — a pre-existing unused-var warning in `tests/unit/de-emphasis-contrast.test.ts:86`, a file this session never touched |
+| typecheck | `npm run typecheck` | **0** | `tsc --noEmit` clean |
+| test | `npm run test` | **1** | 156 files, **1388 tests: 1358 passed, 30 failed**. All 30 are `Error: Test timed out` (5000 ms) and **zero are assertion failures**. The same files pass when run alone: 3 files that timed out under full parallelism gave `39 passed` in isolation (2026-10-30). |
+| build | `npm run build` | **0** | `✓ Compiled successfully`, 41 routes. First attempt recorded `Failed to copy traced files for …/api/parse-resume/route.js … refused by file policy` — the host sandbox, not the code; re-run without the sandbox: clean, no refused copies. |
+| e2e phone | `npx playwright test --project=phone-390x844` | **0** | **3 passed (11.0 s)** |
+| e2e desktop | `npx playwright test tests/dashboard.spec.ts --project=chrome-1280x720` | **0** | **8 passed (25.9 s)** |
+| falsify | `npm run falsify` | **0** | `200/213 selected`, `ALL_PLANTS_CAUGHT` |
+
+`npm run verify` as one command was **not** used as the headline number, because
+`&&` short-circuits: its rc would have reported the first failure and hidden the
+four stages after it. The five stages were run separately for that reason.
+
+**The suite is not green on this host, and that is not a product red.** Every
+failure is a 5 s timeout under full parallelism; `--repeat-each=3` on the phone
+project and isolated runs of the timing-out files are green. Reporting it as green
+would be false; reporting it as a defect would be equally false.
+
+### 15.3 What was measured, with dates
+
+| reading | value | when / how |
+|---|---|---|
+| concurrency ceiling, `glm-4-flash` | knee between 16 and 32; N=32 → 26 ok / 6 × 429; N=64 → 23 ok / 41 × 429 | 2026-10-30, driven from this worktree |
+| live columns on `interviews` (005) | all six present | 2026-10-30, per-column probe + combined select |
+| enabled auth providers | google, github, email; **phone false**; `mailer_autoconfirm:false` | 2026-10-30, owner's shell, corroborated here at 19:13 |
+| anon reachability | 200, `[]` — RLS hides owned rows | 2026-10-30 |
+| model-origin DNS in the mainland | five resolvers → `45.114.11.238` vs root `13.226.251.x` | 2026-10-30, ViewDNS; no date on the page |
+| phone path | all three origins open, 2 s first paint, China Mobile | 2026-10-30, owner-reported, no artifact |
+| content column at 390 px | 64 px before, ≥320 px after | 2026-10-31, `phone-width.spec.ts` |
+
+### 15.4 Human trial record
+
+Empty. No person other than the author has used this build, no artifact exists, and
+N4 remains unmet. **No claim in this file is a user-outcome claim.** The tier-2
+report is a network measurement, not a trial (§6.4c).
+
+### 15.5 What was not done
+
+See §14 and its §7/§10 table. The short version: identity (R1/R2) waits on §15.2,
+the verdict paths (R8) wait on a database read, and Phase 4 was never entered
+because Phase 3 holds one finished unit rather than a green ring.
