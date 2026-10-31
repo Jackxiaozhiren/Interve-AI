@@ -542,3 +542,40 @@ readings follow, and they point in the same direction:
    evidence that persistence is untested. This does not prove writes are broken, and
    it would be wrong to report it as such — but it does mean C-1 cannot be closed by
    argument, only by a row that arrives and can be read back.
+
+## 16. T1 — the door requires proof (2026-10-31)
+
+| gate | command | rc | reading |
+|---|---|---|---|
+| the new contract | `npx vitest run tests/unit/session-verified-identity.test.ts` | **0** | **3/3**. Before the change the same three were red, and the third failure was the vulnerability itself: `expected 'b4b4…' to be 'a3a3…'` — the caller held a token for `a3a3…` and the cookie was stamped `b4b4…`, the id from the request body |
+| re-based guards | `api-hardening` + `demo-auth-status` + the new file | **0** | **34/34** |
+| adjacent auth surfaces | `privacy-claims`, `failure-messages-are-announced`, `degradation-matrix`, `provider-callback-failure`, `parse-resume-budget`, `anchor-integrity` | **0** | **65/65** |
+| typecheck / facts | `npm run typecheck`, `npm run facts:check` | **0 / 0** | clean / `facts ratchet: OK` |
+| e2e smoke | `npx playwright test --project=phone-390x844` | **0** | **3 passed (10.8 s)** |
+
+What changed, and the one thing that makes it a boundary rather than a filter:
+`POST /api/session` now takes the identity from a **verified Supabase access token**
+(`verifySupabaseToken` → `auth.getUser`), and the request body is accepted and
+ignored. The body's `id` previously became the cookie's `sub`; that is why the old
+client could mint an id with `crypto.randomUUID()` and be believed.
+
+**Two guards were re-based, and that is a judgement the owner should be able to
+check.** `api-hardening` asserted "bad identity → 400, good identity → 200"; both
+now hold only with a token, so the test moved to "no token → 401, no `Set-Cookie`"
+plus a mocked verified identity → 200. `demo-auth-status` required the route's
+comment to say "demo auth"; it now requires the comment to name the real mechanism
+and **forbids** the demo wording from surviving. Neither assertion was deleted or
+loosened — but a re-based guard is weaker evidence than a fresh one, and it is
+listed here rather than left to be discovered.
+
+### Stated limits — the app is mid-migration
+
+1. **The email + password form is still on `/login` and `/signup`, and it now always
+   fails** with "请使用 Google 或 GitHub 登录". The fields collect a secret that no
+   code checks (C-6); removing them is the next unit, not this one.
+2. **The acceptance path is proven only against a mocked verifier.** A real OAuth
+   round trip cannot be completed from this host: `google` and `github` answer `502`
+   through its proxy, and there is no inbox for a magic link. **One click by the
+   owner is required** before this can be called verified end to end.
+3. **Production has zero interviews** (§15.6), so no persisted row has ever been
+   stamped by this path. A successful sign-in is not evidence that a record lands.

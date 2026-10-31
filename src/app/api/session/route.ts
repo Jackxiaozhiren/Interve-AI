@@ -9,23 +9,30 @@ import {
   clearSessionCookieHeader,
 } from "@/lib/api/session";
 import { logApi } from "@/lib/api/logging";
+import { verifySupabaseToken } from "@/lib/api/verify-supabase-token";
 import { getRequestId } from "@/lib/api/request-id";
 
 export const runtime = "edge";
 
 const ROUTE = "session";
 
+// The body no longer carries authority. It is accepted and ignored so an old
+// client gets a clean 401 instead of a 400 that reads like a validation bug.
 const LoginSchema = z.object({
-  id: z.string().uuid().max(64),
-  email: z.string().email().max(254),
-  username: z.string().min(1).max(64),
-});
+  id: z.string().max(64).optional(),
+  email: z.string().max(254).optional(),
+  username: z.string().max(64).optional(),
+}).partial();
 
 /**
  * POST /api/session — issues the HMAC-signed session cookie.
- * Demo auth (no password store yet): accepts a well-formed identity and
- * binds it to an unforgeable cookie. Credential verification arrives with
- * the Supabase Auth cutover (STABILIZATION_REPORT).
+ *
+ * The identity is taken from a **verified Supabase access token**, never from the
+ * request body. Before this change the endpoint accepted any well-formed identity
+ * (`LoginSchema` checked the shape, not the ownership), so a caller could mint a
+ * cookie for an account they did not control — and the client did exactly that with
+ * a `crypto.randomUUID()` id. §15.2 chose Google/GitHub OAuth as the only
+ * credential, so this is now the single door, and it opens on proof.
  */
 export async function POST(req: Request) {
   const started = performance.now();
@@ -37,7 +44,27 @@ export async function POST(req: Request) {
     requireSession: false,
   });
   if (!gate.ok) return gate.response;
-  const { requestId, data } = gate.ctx;
+  const { requestId } = gate.ctx;
+
+  const authorization = req.headers.get("authorization") ?? "";
+  const token = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+  const identity = token ? await verifySupabaseToken(token) : null;
+  if (!identity) {
+    logApi(ROUTE, {
+      requestId,
+      status: 401,
+      latencyMs: Math.round(performance.now() - started),
+      reason: token ? "unverified_token" : "no_token",
+    });
+    return errorResponse(
+      "UNAUTHORIZED",
+      "Sign-in requires a verified Google or GitHub account.",
+      401,
+      requestId
+    );
+  }
 
   const secret = getSessionSecret();
   if (!secret) {
@@ -53,7 +80,10 @@ export async function POST(req: Request) {
     console.warn("[session] SESSION_SECRET is not set; using dev-only fallback. Set SESSION_SECRET in production.");
   }
 
-  const signed = await signSession({ id: data.id, email: data.email, username: data.username }, secret);
+  const signed = await signSession(
+    { id: identity.id, email: identity.email, username: identity.username },
+    secret
+  );
   const secure = process.env.NODE_ENV === "production";
   logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - started) });
   return okResponse({ ok: true }, requestId, {

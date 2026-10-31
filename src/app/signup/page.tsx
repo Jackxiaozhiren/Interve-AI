@@ -52,7 +52,7 @@ export default function SignupPage() {
     try {
       // In a real app, this would be an API call to register
       // For now, we'll just log them in to mock the flow
-      await login({ id: crypto.randomUUID(), username: name || email.split('@')[0], email });
+      await login();
     } catch (err) {
       console.error("Signup failed", err);
       setError("Sign up failed. Please try again.");

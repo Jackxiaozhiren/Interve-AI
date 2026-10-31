@@ -120,7 +120,13 @@ describe("demo-auth status stays disclosed, bounded, and consistent", () => {
     });
 
     it("keeps the route's own comment honest about what it does", () => {
-      expect(read(ROUTE)).toMatch(/[Dd]emo auth/);
+      // The comment is a disclosure, so it has to name the mechanism. It said
+      // "demo auth" while any identity was accepted; the mechanism is now proof
+      // from a verified token, and the assertion moves with it rather than away.
+      const route = read(ROUTE);
+      expect(route).toMatch(/verified/i);
+      expect(route).toMatch(/access token/i);
+      expect(route, "the demo-auth wording must not survive the change").not.toMatch(/[Dd]emo auth/);
     });
   }
 });

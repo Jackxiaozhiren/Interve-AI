@@ -82,11 +82,7 @@ export function LoginForm() {
 
     try {
       // In a real app, this would validate credentials with the backend
-      await login({
-        id: crypto.randomUUID(),
-        username: email.split("@")[0],
-        email,
-      });
+      await login();
     } catch {
       setError("Login failed. Please check your credentials and try again.");
     }

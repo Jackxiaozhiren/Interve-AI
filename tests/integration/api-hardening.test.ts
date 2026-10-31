@@ -3,7 +3,14 @@
 // These hit the real Route Handler POST functions but stop at the gate:
 // 401/400/413/429 are all decided BEFORE any AI provider call, so no
 // network or API keys are needed.
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// The session endpoint now asks the platform who a token belongs to (§15.2 = a).
+// Mocked here so the contract is testable without a network call to Supabase; the
+// real verifier is exercised by the platform itself, and its failure modes all
+// collapse to the same 401.
+const { verifyMock } = vi.hoisted(() => ({ verifyMock: vi.fn() }));
+vi.mock("../../src/lib/api/verify-supabase-token", () => ({ verifySupabaseToken: verifyMock }));
 import { signSession } from "../../src/lib/api/session";
 import { resetRateLimits } from "../../src/lib/api/rate-limit";
 
@@ -43,12 +50,13 @@ async function signedCookie(): Promise<string> {
   return `interveai_user=${encodeURIComponent(signed)}`;
 }
 
-function jsonReq(body: unknown, opts: { cookie?: string; ip?: string } = {}): Request {
+function jsonReq(body: unknown, opts: { cookie?: string; ip?: string; authorization?: string } = {}): Request {
   const headers: Record<string, string> = {
     "content-type": "application/json",
     "x-forwarded-for": opts.ip ?? freshIp(),
   };
   if (opts.cookie) headers.cookie = opts.cookie;
+  if (opts.authorization) headers.authorization = opts.authorization;
   return new Request("http://test/api/x", { method: "POST", headers, body: JSON.stringify(body) });
 }
 
@@ -182,12 +190,18 @@ describe("rate limiting (429)", () => {
 
 describe("session endpoint", () => {
   it("issues verifiable sessions and rejects bad identities", async () => {
-    const bad = await sessionPost(jsonReq({ id: "not-a-uuid", email: "x", username: "" }));
-    expect(bad.status).toBe(400);
+    // §15.2 = a: the body carries no authority. A caller who names an identity but
+    // presents no token is refused, and no cookie is issued.
+    const bad = await sessionPost(jsonReq({ id: crypto.randomUUID(), email: "u@e.st", username: "u" }));
+    expect(bad.status).toBe(401);
+    expect(bad.headers.get("set-cookie")).toBeNull();
 
-    const good = await sessionPost(
-      jsonReq({ id: crypto.randomUUID(), email: "u@e.st", username: "u" })
-    );
+    verifyMock.mockResolvedValue({
+      id: "c5c5c5c5-c5c5-45c5-85c5-c5c5c5c5c5c5",
+      email: "u@e.st",
+      username: "u",
+    });
+    const good = await sessionPost(jsonReq({}, { authorization: "Bearer verified-token" }));
     expect(good.status).toBe(200);
     const setCookie = good.headers.get("set-cookie") ?? "";
     expect(setCookie).toContain("interveai_user=");

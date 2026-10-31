@@ -17,21 +17,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const bridgedRef = useRef(false);
 
-  const login = useCallback(async (userData: Omit<User, 'loginTime'>) => {
-    // Phase 2: the server binds this identity to an HMAC-signed HttpOnly
-    // cookie (/api/session). The cookie is no longer forgeable client-side.
-    // Credential verification itself is still demo-grade (any identity
-    // accepted) until the Supabase Auth cutover — see STABILIZATION_REPORT.
+  const login = useCallback(async () => {
+    // The server now issues the cookie only for an identity it has verified
+    // (§15.2: Google/GitHub are the only credentials). So the token travels with
+    // the request, and the identity shown in the UI is the platform's — not
+    // whatever the caller passed in. `userData` used to be the authority here;
+    // accepting it still would let a caller label their own cookie as someone
+    // else, even though the cookie itself is now theirs.
+    const { data } = await supabase.auth.getSession();
+    const session = data?.session;
+    if (!session?.access_token || !session.user?.email) {
+      throw new Error("请使用 Google 或 GitHub 登录");
+    }
+
     const res = await fetch("/api/session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: userData.id, email: userData.email, username: userData.username }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: "{}",
     });
     if (!res.ok) {
       throw new Error("Failed to establish server session");
     }
+
+    const su = session.user;
+    const email = su.email;
+    if (!email) throw new Error("请使用 Google 或 GitHub 登录");
     const newUser: User = {
-      ...userData,
+      id: su.id,
+      email,
+      username: (
+        (su.user_metadata?.name as string | undefined) ??
+        (su.user_metadata?.user_name as string | undefined) ??
+        email.split("@")[0]
+      ).slice(0, 64),
+      avatar:
+        (su.user_metadata?.avatar_url as string | undefined) ??
+        (su.user_metadata?.picture as string | undefined),
       loginTime: Date.now(),
     };
     // Local copy drives UI only; authority is the HttpOnly server cookie.
@@ -43,16 +67,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // shape, so the mount-time lookup and the SIGNED_IN event cannot drift.
   const bridgeSupabaseUser = useCallback(async (su: SupabaseUser) => {
     if (!su.email) return;
-    await login({
-      id: su.id,
-      email: su.email,
-      username: (
-        (su.user_metadata?.name as string | undefined) ??
-        (su.user_metadata?.user_name as string | undefined) ??
-        su.email.split('@')[0]
-      ).slice(0, 64),
-      avatar: (su.user_metadata?.avatar_url as string | undefined) ?? (su.user_metadata?.picture as string | undefined),
-    });
+    // The identity is no longer passed in: `login` reads the verified session from
+    // Supabase and the server stamps the cookie from the token.
+    await login();
   }, [login]);
 
   useEffect(() => {

@@ -10,6 +10,6 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (userData: Omit<User, 'loginTime'>) => Promise<void>;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
 }
