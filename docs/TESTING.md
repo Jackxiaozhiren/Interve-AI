@@ -47,6 +47,7 @@ is wired in; the guard fails on stale rows too.
 |---|---|
 | `tests/keyboard.spec.ts` → "mic button is keyboard-operable" (1) | Failed on its first-ever runner execution after being added to smoke. The mic button is `disabled={!modelsReady \|\| isLoading}`, so Enter is swallowed until the Whisper worker reports ready, and on a cold runner that never happened inside the budget; the test previously asserted only *visibility*, which a disabled button satisfies. Its three sibling tests do pass on the runner and are collected by `npm run test:e2e:keyboard`. Whether `modelsReady` is reachable in CI at all is still open — no other CI test has ever started a recording. |
 | `tests/e2e/core-visual-consistency.spec.ts` (1) | Contains zero assertions: it navigates, writes PNGs under `artifacts/`, and logs PASS/ERROR. It cannot fail for a product reason, so collecting it would buy runtime rather than coverage. |
+| `tests/e2e/phone-width.spec.ts` (3) | Lives in the `phone-390x844` project, which no CI command names yet. It is chromium-based, so wiring it in is a CI change rather than a browser-availability one; until then the geometry assertions run locally only, and this row is what stops that from being silent. |
 
 Golden journey: Signup→Setup→resume+JD→Preflight→answer→complete→analysis→Replay→Drill→delete-session. `testMatch:**/*.spec.ts` keeps Playwright off vitest files. `E2E_MOCK=1` runs `tests/mock-journey.spec.ts` keyless.
 

@@ -6,8 +6,62 @@
 // These are geometry assertions, not screenshots: a baseline image only says the
 // page looks the same as last time, while these say the content column is wide
 // enough to read and that nothing pushes the document sideways.
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { loginAs } from "../helpers";
+
+/**
+ * The shared body for the two non-dashboard surfaces. Kept as a function rather
+ * than a loop because the CI-lane guard reads literal `test(...)` calls — a
+ * generated title is invisible to it, and an invisible test is one the inventory
+ * cannot account for.
+ */
+async function assertSurfaceFits(page: Page, route: string, path: string): Promise<void> {
+  await loginAs(page);
+  await page.goto(path);
+  await page.waitForLoadState("domcontentloaded");
+
+  // Measuring the wrong page is worse than not measuring: a geometry assertion
+  // against a page the route redirected to would report one surface twice.
+  const landed = new URL(page.url()).pathname;
+  console.log(`[phone-width] requested ${path}, landed ${landed}`);
+  test.skip(landed !== route, `redirected to ${landed} — the ${route} surface was not reached, so it is not measured`);
+
+  // An unrendered document measures 0 wide and satisfies every "does not exceed"
+  // assertion, so wait until there is something to measure.
+  await page.waitForFunction(() => document.body.innerText.trim().length > 0, undefined, { timeout: 15000 });
+
+  const m = await page.evaluate(() => {
+    const vw = window.innerWidth;
+    // Decoration may hang off the edge: these pages paint blurred ambient blobs
+    // (w-[500px] h-[500px] bg-sky-300/30) inside a clipped root, and an empty
+    // aria-hidden div past the right edge hides nothing a finger could reach.
+    const isContent = (el: Element) => {
+      if (el.getAttribute("aria-hidden") === "true") return false;
+      const tag = el.tagName.toLowerCase();
+      if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) return true;
+      return ((el as HTMLElement).innerText ?? "").trim().length > 0;
+    };
+    const content = Array.from(document.querySelectorAll("body *")).filter(isContent);
+    const past = content
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.right > vw + 1 && r.width > 0)
+      .sort((a, b) => b.r.right - a.r.right)
+      .slice(0, 3)
+      .map(({ el, r }) => `${el.tagName.toLowerCase()}.${String((el as HTMLElement).className).slice(0, 50)} @${Math.round(r.right)}`);
+    return {
+      vw,
+      docScroll: document.documentElement.scrollWidth,
+      widest: content.reduce((a, el) => Math.max(a, el.getBoundingClientRect().right), 0),
+      offenders: past,
+    };
+  });
+
+  // `docScroll` alone is defeatable: /setup's root carries `overflow-hidden`,
+  // which clips the overflow and leaves no scrollbar. The edge test is immune.
+  expect(m.docScroll, `no horizontal scroll on ${route}`).toBeLessThanOrEqual(m.vw + 1);
+  expect(m.widest, "something was actually rendered and measured").toBeGreaterThan(120);
+  expect(m.widest, `nothing reaches past the viewport on ${route}: ${m.offenders.join(" | ")}`).toBeLessThanOrEqual(m.vw + 1);
+}
 
 test.describe("phone width (390x844)", () => {
   test("the dashboard is laid out for a phone, not a shrunken desktop", async ({ page }) => {
@@ -52,63 +106,11 @@ test.describe("phone width (390x844)", () => {
   // /interview is not reachable without `?id=` — src/proxy.ts:74-79 redirects a
   // bare /interview to /setup as a preflight check. That is a URL requirement, not
   // a setup-state one, so the surface can be measured without seeding a session.
-  const surfaces = [
-    { route: "/setup", path: "/setup" },
-    { route: "/interview", path: "/interview?id=e2e-phone-width" },
-  ];
-  for (const { route, path } of surfaces) {
-    test(`${route} keeps its content inside a phone viewport`, async ({ page }) => {
-      await loginAs(page);
-      await page.goto(path);
-      await page.waitForLoadState("domcontentloaded");
+  test("/setup keeps its content inside a phone viewport", async ({ page }) => {
+    await assertSurfaceFits(page, "/setup", "/setup");
+  });
 
-      // Measuring the wrong page is worse than not measuring: a geometry
-      // assertion against a page the route redirected to would report one surface
-      // twice under two names.
-      const landed = new URL(page.url()).pathname;
-      console.log(`[phone-width] requested ${path}, landed ${landed}`);
-      test.skip(landed !== route, `redirected to ${landed} — the ${route} surface was not reached, so it is not measured`);
-
-      // Same trap as the dashboard spec: an unrendered document measures 0 wide,
-      // which satisfies every "does not exceed" assertion. Wait until there is
-      // something to measure, then prove there was.
-      await page.waitForFunction(() => document.body.innerText.trim().length > 0, undefined, { timeout: 15000 });
-
-      const m = await page.evaluate(() => {
-        const vw = window.innerWidth;
-        // Decoration is allowed to hang off the edge: these pages paint blurred
-        // ambient blobs (`w-[500px] h-[500px] bg-sky-300/30`) inside a clipped
-        // root, and an empty aria-hidden div past the right edge hides nothing a
-        // finger could reach. What may not overflow is *content*: text, controls,
-        // and the things that carry them.
-        const isContent = (el: Element) => {
-          if (el.getAttribute("aria-hidden") === "true") return false;
-          const tag = el.tagName.toLowerCase();
-          if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) return true;
-          return ((el as HTMLElement).innerText ?? "").trim().length > 0;
-        };
-        const content = Array.from(document.querySelectorAll("body *")).filter(isContent);
-        const past = content
-          .map((el) => ({ el, r: el.getBoundingClientRect() }))
-          .filter(({ r }) => r.right > vw + 1 && r.width > 0)
-          .sort((a, b) => b.r.right - a.r.right)
-          .slice(0, 3)
-          .map(({ el, r }) => `${el.tagName.toLowerCase()}.${String((el as HTMLElement).className).slice(0, 50)} @${Math.round(r.right)}`);
-        return {
-          vw,
-          docScroll: document.documentElement.scrollWidth,
-          widest: content.reduce((a, el) => Math.max(a, el.getBoundingClientRect().right), 0),
-          offenders: past,
-        };
-      });
-
-      // `docScroll` alone is defeatable: a root with `overflow-hidden` clips the
-      // overflow and produces no scrollbar, so a control pushed past the right
-      // edge becomes unreachable while the document still measures clean. /setup
-      // has exactly that root. The edge test below is immune to clipping.
-      expect(m.docScroll, `no horizontal scroll on ${route}`).toBeLessThanOrEqual(m.vw + 1);
-      expect(m.widest, "something was actually rendered and measured").toBeGreaterThan(120);
-      expect(m.widest, `nothing reaches past the viewport on ${route}: ${m.offenders.join(" | ")}`).toBeLessThanOrEqual(m.vw + 1);
-    });
-  }
+  test("/interview keeps its content inside a phone viewport", async ({ page }) => {
+    await assertSurfaceFits(page, "/interview", "/interview?id=e2e-phone-width");
+  });
 });

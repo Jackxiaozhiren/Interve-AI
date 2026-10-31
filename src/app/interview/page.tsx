@@ -32,7 +32,6 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { loopBadge } from "@/lib/interview/difficulty-label";
 import { createLatencySpan } from "@/lib/interview/latency";
 import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
-import { recordQuota } from "@/lib/api/quota";
 import { useVADInterruption } from "@/hooks/useVADInterruption";
 import { createSttSession } from "@/lib/audio/stt";
 // Phase E1: pure slices extracted from this God component (unit-tested).
@@ -260,15 +259,7 @@ function InterviewRoomContent() {
         cognitiveLoad: useInterveStore.getState().cognitiveLoad,
         starProgress: useInterveStore.getState().starProgress,
         behavioralTraits: useInterveStore.getState().behavioralTraits
-      },
-      // The chat turn is the only call the room makes on every message, and the
-      // AI SDK's transport does not surface response headers. Wrapping fetch is
-      // the one place that sees them without replacing the transport.
-      fetch: async (input, init) => {
-        const res = await fetch(input, init);
-        recordQuota(res);
-        return res;
-      },
+      }
     }),
     onFinish: (event) => {
       // Phase 8: send→complete round trip (includes generation time).

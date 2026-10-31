@@ -45,6 +45,10 @@ export default defineConfig({
       for (const res of resolutions) {
         generatedProjects.push({
           name: `${browser.name}-${res.width}x${res.height}`,
+          // The phone geometry spec belongs to its own project. Without this the
+          // desktop lanes collect it too and assert a 390px layout at 1280px,
+          // which passes for the wrong reason and says nothing.
+          testIgnore: /phone-width\.spec\.ts/,
           use: {
             ...browser.use,
             viewport: res,
