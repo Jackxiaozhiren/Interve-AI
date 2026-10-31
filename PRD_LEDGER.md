@@ -754,3 +754,47 @@ and §15-§19 could not have found it — the loop had to be walked.
 Find what (2)–(4) are, fix the room's z-order/stacking at narrow widths, then collect
 the journey at 390 px for good. The gate is the journey passing at both widths, not a
 screenshot.
+
+## 22. Scope decision: web only (owner, 2026-10-31 16:48)
+
+Recorded as an **owner override**, not as a finding. The PRD ranked the phone first
+(§3, R3, and the §6.1 reachability tiers); the owner has decided the product is a web
+product. That is a legitimate call and it is now part of the brief, not a gap in it.
+
+| item | before | after |
+|---|---|---|
+| **R3** phone-width core loop | rank 2, and the largest open gap | **waived by owner.** The three geometry assertions stay (9 s, local-only, chromium) as a cheap regression, but they are no longer a release gate, and the note in `playwright.config.ts` saying the journey is not collected there is now a scope fact rather than a debt |
+| **R4** mainland reachability | rank 4, tiers 1-2 done, tier 3 not performed | **unchanged and not waived.** It asks whether the site can be loaded from China at all. A desktop browser in Beijing crosses the same border as a phone in Beijing; dropping mobile drops nothing from this question. It stays `NOT PERFORMED` at tier 3 |
+| room stacking defect (§21) | rank 1 blocker | **downgraded with evidence**, below |
+
+### The measurement that decides how far the downgrade goes
+
+A temporary `chrome-1024x768` project was added, the journey run there, and the
+project removed. Result:
+
+- **the journey passes at 1024×768** (`49 passed` in that run, journey not among the
+  failures) and at 1280×720 (56.5 s). It fails only at 390×844.
+- therefore the send-button blocking is a **phone** defect, not a narrow-window one.
+  Under a web-only brief it is out of scope, and §21 stays as the record of what it
+  was rather than an open blocker.
+- that run also produced 7 non-journey failures at 1024: **2 snapshot** tests (a new
+  project has no baseline — an artefact of the measurement, not the app) and **5
+  unclassified** (3 axe scans on /login, /setup, /interview; 2 flow specs). Those five
+  are named here as unexamined. They are not claimed as defects and not claimed as
+  passing; a web-only product does have 1024-wide users, so they deserve a look before
+  anyone says "desktop is fine".
+
+### What the scope decision does not do
+
+- It does not close C-1: nothing has been saved in production, so "records are saved"
+  is still untested (§15.6).
+- It does not close R1/R2 beyond the token requirement already landed (§16, §17):
+  the owner still has to complete one OAuth round trip for the door to be verified.
+- It does not make the report readable, the score an object, or the growth loop exist —
+  R6/R9 were never started.
+
+### Where the ranking now points
+
+With R3 waived, the top product item is **R6 — the report as a readable object**,
+followed by **R2**, which is gated on the same single OAuth click as R1. T5's remaining
+16 routes are mechanical and lower value.
