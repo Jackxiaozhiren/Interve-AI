@@ -1,6 +1,6 @@
 // Phase E1: interview settlement slice (结算) extracted from the God
 // component — behavior-verbatim. Guarded by the mock journey
-// (signup → setup → interview → analysis → replay → export → delete).
+// (signed in → setup → interview → analysis → replay → export → delete).
 "use client";
 
 import { useState } from "react";

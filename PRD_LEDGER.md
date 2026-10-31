@@ -682,3 +682,33 @@ verdicts. No culture-fit or personality claims. Readiness only."
   having been judged, shown only to the person judged. Flagged here rather than
   quietly changed, because whether that badge should exist is a product decision, not
   an N2 violation.
+
+## 20. The journey the change broke, and did not know it had (2026-10-31)
+
+| gate | command | rc | reading |
+|---|---|---|---|
+| mock journey | `E2E_MOCK=1 npx playwright test tests/mock-journey.spec.ts --project=chrome-1280x720` | **0** | **1 passed (50.1 s)** — the whole loop: setup → interview → analysis → replay → retry → export → delete |
+| CI lane inventory | `ci-lane-claims` | **0** | 19/19 |
+| typecheck / lint / facts | | **0 / 0 / 0** | 1 pre-existing warning |
+
+§17 removed the signup form. Nothing in that unit's gates ran the mock journey, so
+nothing noticed that the journey started by *filling that form*: it would have failed
+on its next run, in a lane nobody had asked to run. It was found by asking what else
+touched the door, not by a green light.
+
+The fix is not a workaround. A browser test can no longer become an account — the
+endpoint refuses anything without a verified token — so it arrives as one:
+`seedSupabaseSession` establishes the Supabase identity, `loginAs` mints the app
+cookie, and both use the same uid (a new optional third argument on `loginAs`), which
+is what keeps owner-stamped writes from falling back to `local-<uuid>`. The signup
+surface is still asserted where it is now testable: `landing.spec.ts`, both doors, no
+password field.
+
+The journey's own title said "signup → setup → …" and was corrected to "signed in →
+…", along with the same phrase in `useInterviewSettlement.ts`. A title is a claim.
+
+### Still not done
+
+The journey runs at 1280 px only. R3 asks for the *journey* at phone width, and what
+exists at 390 px is geometry (three routes), not the loop. That remains the largest
+honest gap in the rank-1 requirement.

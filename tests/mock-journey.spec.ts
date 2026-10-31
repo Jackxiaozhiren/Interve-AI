@@ -8,7 +8,7 @@
 // export → delete. It does NOT prove provider quality or real persistence
 // (those need funded keys + staging — tracked).
 import { test, expect } from '@playwright/test';
-import { createPostgrestStub, seedSupabaseSession } from './helpers';
+import { createPostgrestStub, loginAs, seedSupabaseSession } from './helpers';
 
 test.skip(!process.env.E2E_MOCK, 'needs E2E_MOCK=1 (mock AI server + stubbed DB)');
 
@@ -20,7 +20,7 @@ test.describe('Mock full journey (no keys, no DB)', () => {
   test.describe.configure({ retries: 1 });
   test.setTimeout(180000);
 
-  test('signup → setup → interview → analysis → replay → retry → export → delete', async ({ page }) => {
+  test('signed in → setup → interview → analysis → replay → retry → export → delete', async ({ page }) => {
     // Host-agnostic PostgREST stub: the app client defaults to the
     // placeholder host, but a linked .env.local serves the REAL project URL
     // to the dev server. Matching only the placeholder let real traffic
@@ -33,17 +33,18 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     // tables, and the app's cookie login alone is not a Supabase identity.
     // Without this the write declines to local-<uuid> — the very fallback the
     // comment above exists to catch — for the wrong reason.
-    await seedSupabaseSession(page);
+    const journeyUid = await seedSupabaseSession(page);
 
-    // 1. Signup (mock auth accepts anything) → dashboard.
-    // NOTE: signup does not auto-redirect (tracked UX debt) — navigate on.
-    await page.goto('/signup');
-    await page.getByLabel('Full Name').fill('Journey Tester');
-    await page.getByLabel(/Email/i).fill('journey@example.com');
-    await page.getByRole('button', { name: /Sign Up|Create|注册/i }).click();
-    // Signup has no auto-redirect (tracked UX debt): wait for the session
-    // to land before navigating, or the in-flight login POST gets aborted.
-    await page.waitForFunction(() => !!localStorage.getItem('interveai_user'), null, { timeout: 30000 });
+    // 1. Authenticate, then start at the dashboard.
+    //
+    // This used to drive the signup form. That form is gone (§15.2 = a: Google or
+    // GitHub are the only credentials, and POST /api/session refuses anything that
+    // is not a verified token), so a browser test can no longer *become* an account
+    // — it can only arrive as one. The two helpers below are how every other spec
+    // does that: a signed cookie for the app, a seeded Supabase identity for owner
+    // stamping, and the same uid for both. The signup surface itself is still
+    // asserted, in tests/landing.spec.ts (both doors present, no password field).
+    await loginAs(page, 'journey@example.com', journeyUid);
     await page.goto('/dashboard');
     await page.waitForLoadState('domcontentloaded');
 

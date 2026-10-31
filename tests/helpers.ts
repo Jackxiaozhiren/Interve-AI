@@ -56,8 +56,15 @@ function ensureSessionSecret(): void {
  * production signer, so a spec can never authenticate with a cookie the real
  * verifier would reject.
  */
-export async function loginAs(page: Page, email = "e2e@example.com"): Promise<void> {
-  const id = randomUUID();
+export async function loginAs(
+  page: Page,
+  email = "e2e@example.com",
+  // Callers that also seed a Supabase session must use the same uid for both, or
+  // the cookie's subject and the Supabase user disagree and owner-stamped writes
+  // fall back to `local-<uuid>`. Defaults to a fresh id so existing callers are
+  // unaffected.
+  id: string = randomUUID(),
+): Promise<void> {
   const username = email.split("@")[0] || "e2e";
   ensureSessionSecret();
   const secret = getSessionSecret();
@@ -67,7 +74,12 @@ export async function loginAs(page: Page, email = "e2e@example.com"): Promise<vo
         "Set SESSION_SECRET for the test process, as the perf job does."
     );
   }
-  const signed = await signSession({ id, email, username }, secret);
+  // The signer types `id` as a UUID template literal; callers that pair this with a
+  // seeded Supabase session pass the uid that helper returned, which is a string.
+  const signed = await signSession(
+    { id: id as `${string}-${string}-${string}-${string}-${string}`, email, username },
+    secret,
+  );
 
   // HttpOnly, so it has to go through the context cookie jar rather than the
   // page's document.cookie. The origin comes from the config, not page.url():
