@@ -522,3 +522,23 @@ report is a network measurement, not a trial (§6.4c).
 See §14 and its §7/§10 table. The short version: identity (R1/R2) waits on §15.2,
 the verdict paths (R8) wait on a database read, and Phase 4 was never entered
 because Phase 3 holds one finished unit rather than a green ring.
+
+### 15.6 Owner answers (2026-10-31 11:00)
+
+| question | answer | consequence |
+|---|---|---|
+| §15.2 identity provider | **`a`** — Google / GitHub only | T1 unblocked. The email+password form goes: no password is verified today (`LoginForm.tsx:186-199`), so keeping it would be a credential the product pretends to check. Consequence accepted: a user without one of those two accounts cannot sign in — acceptable for posture A (named pilot), not for a public launch |
+| §15.5 historical verdicts | **`total = 0`, `with_verdict = 0`** — SQL Editor screenshot, 2026-10-31 11:00, project `Interve AI / main / PRODUCTION` | R8 is **unblocked and safe**: there are no rows to preserve, so the legacy verdict render paths can be retired without blanking anyone's report |
+| tier 3 (拨测) | **declined** — "第三件不需要" | stays `NOT PERFORMED`; R4 keeps reading "no negative observed on one China Mobile path", never "reachable in the mainland" |
+
+**The `0` is itself a finding, and a large one.** The SQL Editor runs as the table
+owner, so RLS does not filter it: production `interviews` holds **zero rows**. Two
+readings follow, and they point in the same direction:
+
+1. **N4 is not merely unmet — there is no user.** No human has produced a record in
+   production, so nothing in this file may speak about user outcomes.
+2. **The "records are saved" promise has never been exercised in production.** A
+   promise that has never had a row behind it is not evidence of persistence; it is
+   evidence that persistence is untested. This does not prove writes are broken, and
+   it would be wrong to report it as such — but it does mean C-1 cannot be closed by
+   argument, only by a row that arrives and can be read back.
