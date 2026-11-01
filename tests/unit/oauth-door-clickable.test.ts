@@ -425,21 +425,34 @@ describe("a sign-in press is never gated on an answer it does not need", () => {
   it("R4: the inventories are the ones R1-R2 claim to check", () => {
     // Without this, a reader that went blind — on the probe destructuring, on
     // the handler attribution, or on JSX attributes — turns R1 and R2 green.
-    expect([...PROBE_FILES.keys()].sort()).toEqual(
-      expect.arrayContaining(["src/app/signup/page.tsx", "src/components/auth/LoginForm.tsx"])
-    );
+    // Pinned as an exact inventory, not as "contains these two". /login and /signup
+    // left this set on 2026-11-01 with the only presses that had put them in it: the
+    // password reveal and the email submit. Both went with the demo door (§15.2 = a),
+    // and the provider press lives in the shared component, which cannot see the
+    // probe at all. The reader is not blind — it still finds the two files below —
+    // so a third member, or one of these two returning, is a deliberate edit here
+    // rather than a silent change in what R1 and R2 are looking at.
+    expect([...PROBE_FILES.keys()].sort()).toEqual([
+      "src/app/dashboard/dashboard-shell.tsx",
+      "src/components/auth/ProtectedRoute.tsx",
+    ]);
     // Exactly one file owns a provider press. Both doors used to carry their own
     // copy of the pair, which is how the probe gate came to be written twice and
     // how Sonar scored the repair 3.7% duplicated new code; a second entry here
     // means the lifecycle was duplicated again instead of shared.
     expect(doorFiles().sort()).toEqual(["src/components/auth/oauth-buttons.tsx"]);
     const presses = sessionIndependentPresses(PROBE_FILES);
-    // Measured floor of the local-action presses the reader sees in components
-    // that can reach the probe: the password reveal on /login and a control in
-    // the dashboard shell. The provider pair lives in the door now, so it is
-    // counted on the other side. A real removal is a deliberate edit to these
-    // numbers, never a silent narrowing of the rule.
-    expect(presses.length, `reader saw: ${presses.join(", ")}`).toBeGreaterThanOrEqual(2);
+    // This used to be a floor of 2, counting the password reveal on /login and a
+    // control in the dashboard shell. The reveal left with the demo door
+    // (§15.2 = a), so the count is now pinned as the set it is: one file, and
+    // named. A floor of 1 would read the same today and would go quietly green
+    // tomorrow if the reader lost this file too; an exact set fails in that
+    // direction. A real removal is a deliberate edit here, never a silent
+    // narrowing of the rule.
+    expect(
+      [...new Set(presses.map((p) => p.split(":")[0]))].sort(),
+      `reader saw: ${presses.join(", ")}`,
+    ).toEqual(["src/app/dashboard/dashboard-shell.tsx"]);
     // One JSX element in the door, rendered once per provider from the table —
     // so the source count is 1 and the two buttons a visitor sees are pinned by
     // tests/landing.spec.ts (the press reaches /auth/v1/authorize) and by the

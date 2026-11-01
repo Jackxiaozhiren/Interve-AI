@@ -37,22 +37,22 @@ function redirectGates(rel: string): string[] {
   return out;
 }
 
-/** Does the submit handler's `catch` say anything, or only log? */
-function catchReports(rel: string, handler: string): { logs: boolean; sets: boolean } {
-  const file = sf(rel);
-  let logs = false;
-  let sets = false;
+/**
+ * The `catch` of the door's press handler, read from the parse tree.
+ *
+ * Not "does the handler call onResult somewhere": the first version of this arm
+ * asked that, and a plant that deleted the failure report still passed, because
+ * the handler's own `onResult(null)` — the line that clears the previous message
+ * before the round trip — satisfied it. The refusal is the thing to read, so the
+ * catch block is the thing to read.
+ */
+function pressCatch(source: string): string {
+  const file = ts.createSourceFile("door.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let out = "";
   const visit = (node: ts.Node) => {
-    const isHandler =
-      (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === handler) ||
-      (ts.isFunctionDeclaration(node) && node.name?.text === handler);
-    if (isHandler) {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === "press") {
       const scan = (inner: ts.Node) => {
-        if (ts.isCatchClause(inner)) {
-          const text = inner.getText(file);
-          logs = /console\.error\(/.test(text);
-          sets = /\bset[A-Z]\w*\(/.test(text);
-        }
+        if (ts.isCatchClause(inner)) out += inner.getText(file);
         ts.forEachChild(inner, scan);
       };
       scan(node);
@@ -60,7 +60,7 @@ function catchReports(rel: string, handler: string): { logs: boolean; sets: bool
     ts.forEachChild(node, visit);
   };
   visit(file);
-  return { logs, sets };
+  return out;
 }
 
 describe("both sign-in doors answer an already-authenticated visitor", () => {
@@ -80,14 +80,31 @@ describe("both sign-in doors answer an already-authenticated visitor", () => {
 });
 
 describe("a refused press is reported on both doors", () => {
-  it("the signup submit handler's catch says so, not only to the console", () => {
-    const shape = catchReports(SIGNUP, "handleSignup");
-    expect(shape.logs, "no console record either — this reader missed the handler").toBe(true);
-    expect(shape.sets, "the catch logs and shows nothing, so the page looks idle").toBe(true);
+  // Rewritten 2026-11-01. These two arms used to read `handleSignup` and
+  // `handleLogin` — the email/password submit handlers. Both handlers and their
+  // forms are gone (§15.2 = a), which left the arms failing on a reader that
+  // could not find its subject rather than on a defect. The rule they encoded —
+  // a refusal must reach the page, not just the console — is unchanged and now
+  // points at the press that still exists: the provider door, which reports
+  // through `onResult` so each page keeps its own surface.
+  const DOOR = "src/components/auth/oauth-buttons.tsx";
+
+  it("the door tells the page instead of only the console", () => {
+    const refusal = pressCatch(readRepo(DOOR));
+    expect(refusal, `${DOOR} has no catch in its press handler to read`).not.toBe("");
+    expect(refusal, "the door stopped recording the failure at all").toMatch(/console\.error/);
+    expect(refusal, "the refusal never reaches the page, so the button looks like it did nothing").toMatch(
+      /onResult\(/,
+    );
   });
 
-  it("the login submit handler keeps its own message", () => {
-    const shape = catchReports(LOGIN, "handleLogin");
-    expect(shape.sets, "the login door regressed to silence").toBe(true);
+  it("both doors render the refusal where a screen reader announces it", () => {
+    for (const [name, rel] of [["login", LOGIN], ["signup", SIGNUP]] as const) {
+      const src = readRepo(rel);
+      expect(src, `${name} does not hand the provider result to its own surface`).toMatch(
+        /onResult=\{set/,
+      );
+      expect(src, `${name} renders no alert for a refusal`).toMatch(/role="alert"|role="status"/);
+    }
   });
 });

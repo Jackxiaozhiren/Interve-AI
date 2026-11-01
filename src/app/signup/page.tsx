@@ -80,7 +80,7 @@ export default function SignupPage() {
                   session at all. */}
               <div>
                 <p className="text-sm font-semibold text-slate-700 mb-3">
-                  用 Google 或 GitHub 注册
+                  用账号注册（Google 或 GitHub） · 面试记录、报告与回放都会保存
                 </p>
                 <p className="text-[13px] text-slate-500 mb-3 leading-relaxed">
                   首次用这两个账号之一登录时会自动创建账号。你不需要为本站单独设置密码。
