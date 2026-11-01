@@ -37,6 +37,13 @@ export function HeroSection() {
           </InterveButton>
         </Link>
       </div>
+      {/* Measured 2026-11-01: /setup answers /login?from=/setup for a visitor with
+          no account (the guard is in proxy.ts). F-1 §2 asks for signup-free
+          practice; that needs a guest session, not a wording change — so the
+          sentence below states the requirement instead of pretending it isn't there. */}
+      <p className="mt-4 text-sm text-[var(--interve-text-secondary)]">
+        用 Google 或 GitHub 登录后开练，记录才会保存；不需要另设密码。
+      </p>
     </section>
   );
 }

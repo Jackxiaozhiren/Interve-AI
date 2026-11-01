@@ -74,9 +74,20 @@ describe("the home page addresses the candidate", () => {
     const hero = readRepo("src/components/home/HeroSection.tsx");
     expect(hero).toMatch(/开始练一场/);
     // /chat is a conversation surface, not the interview; the practice path is
-    // /setup and it is reachable without an account (no guard on that route),
-    // which is what §2 means by "练完再登录保存".
+    // /setup.
     expect(hero).toMatch(/href="\/setup"/);
     expect(hero, "the hero no longer leads with the chat surface").not.toMatch(/href="\/chat"/);
+  });
+
+  it("does not promise practice without an account, which this build cannot do", () => {
+    const hero = readRepo("src/components/home/HeroSection.tsx");
+    // Measured in a browser on 2026-11-01 against the local build: /setup answers
+    // /login?from=/setup for an anonymous visitor (the guard lives in proxy.ts, not
+    // middleware.ts — which is how the first version of this CTA came to promise
+    // "不要求先注册"). PRD F-1 §2 does ask for signup-free practice; that is a guest
+    // session in B-1, not a copy change. Until it exists, the hero must say the
+    // account is required, because §1.2 principle 3 forbids claiming the unbuilt.
+    expect(hero, "the hero must not claim signup-free practice").not.toMatch(/免注册|无需注册|不要求先注册/);
+    expect(hero, "the hero must say an account is required").toMatch(/登录/);
   });
 });

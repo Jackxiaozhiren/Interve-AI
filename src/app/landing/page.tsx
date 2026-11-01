@@ -75,6 +75,9 @@ export default function LandingPage() {
               </InterveButton>
             </Link>
           </div>
+          <p className="mt-4 text-sm text-[var(--interve-text-secondary)]">
+            用 Google 或 GitHub 登录后开练，记录才会保存；不需要另设密码。
+          </p>
         </section>
 
         {/* Features Section */}
