@@ -19,6 +19,8 @@ import { toEvaluationView } from "@/lib/eval-compat";
 import { WPM_REFERENCE_BAND } from "@/lib/interview/delivery-metrics";
 import { retryPracticeHref } from "@/lib/retry-link";
 import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills, DrillPlan } from "@/components/evaluation/EvaluationView";
+import { TopImprovements } from "@/components/evaluation/TopImprovements";
+import { topImprovements } from "@/lib/report-improvements";
 
 const renderFlawsWithSTAR = (flawsText: string) => {
   if (!flawsText) return null;
@@ -93,6 +95,9 @@ export default function InterviewReportPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentTimelineTime, setCurrentTimelineTime] = useState(0);
+  // P0-2: which turn the reader just asked to see, so the citation lands on
+  // something instead of merely scrolling near it.
+  const [citedMessageId, setCitedMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadInterview() {
@@ -158,6 +163,24 @@ export default function InterviewReportPage() {
     }
   };
 
+  // P0-2: the three improvements the report opens with, each derived from a
+  // dimension's own improvement + evidence (never invented), with the round it
+  // came from located in the transcript.
+  const firstScreen = topImprovements(view, transcript ?? []);
+
+  const handleCite = (messageId: string) => {
+    setCitedMessageId(messageId);
+    // Matched through the dataset rather than a selector: message ids are
+    // caller-supplied strings, and interpolating one into a CSS selector is how
+    // a quote mark turns a jump into a crash.
+    const target = Array.from(document.querySelectorAll<HTMLElement>("[data-transcript-id]")).find(
+      (el) => el.dataset.transcriptId === messageId,
+    );
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   // Radar: V2 dimensions (up to 6) or legacy 5-subject scores. Historical
   // bodyLanguage values render if present; nothing new is written (Phase 3).
   const radarData = view.kind === "v2"
@@ -206,6 +229,11 @@ export default function InterviewReportPage() {
               <ReadinessBadge view={view} />
               {!view.legacy && <ReadinessDisclaimer />}
             </div>
+          </motion.div>
+
+          {/* P0-2: the first screen — what to change, and the words it came from. */}
+          <motion.div variants={fadeIn}>
+            <TopImprovements items={firstScreen} onCite={handleCite} />
           </motion.div>
 
           {/* Training Roadmap */}
@@ -464,7 +492,13 @@ export default function InterviewReportPage() {
                     <div 
                       key={msg.id || index} 
                       id={relatedEvent ? `transcript-time-${relatedEvent.timestamp}` : undefined}
-                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+                      data-transcript-id={msg.id || undefined}
+                      data-cited={citedMessageId && citedMessageId === msg.id ? "true" : undefined}
+                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} transition-shadow duration-300 ${
+                        citedMessageId && citedMessageId === msg.id
+                          ? 'rounded-2xl ring-2 ring-indigo-300 ring-offset-4 ring-offset-white/70'
+                          : ''
+                      }`}
                     >
                       <span className="text-[11px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
                         {isUser ? 'You' : 'Interviewer'}
