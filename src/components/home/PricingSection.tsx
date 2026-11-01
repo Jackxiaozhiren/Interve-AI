@@ -24,7 +24,7 @@ export function PricingSection() {
       <div className="text-center">
         <h2 className="text-3xl font-semibold text-[var(--interve-text-title)] mb-4">当前完全免费</h2>
         <p className="text-[var(--interve-text-secondary)] max-w-xl mx-auto">
-          没有付费档位、企业版或销售流程。下面是现在就能用到的全部能力。
+          没有付费档位，也没有销售流程。下面是现在就能用到的全部能力。
         </p>
       </div>
 

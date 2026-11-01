@@ -66,6 +66,10 @@ const VERIFIED: Record<string, Entry> = {
     digits: ["100", "3"],
     why: "/100 scale suffix; 'Step 3 · Review' is a step label, not a measurement",
   },
+  "src/app/landing/page.tsx": {
+    digits: ["2"],
+    why: "the ordinal in '重录第 2 题' — an example of the kind of action a drill names, not a measurement of anything",
+  },
   "src/app/not-found.tsx": { digits: ["404"], why: "the HTTP status of the page it renders" },
   "src/app/practice/[id]/client.tsx": { digits: ["100"], why: "/100 scale suffix" },
   "src/app/privacy/page.tsx": {
@@ -89,6 +93,10 @@ const VERIFIED: Record<string, Entry> = {
   "src/components/evaluation/EvaluationView.tsx": {
     digits: ["100", "5"],
     why: "/100 scale suffix and the rubric's 1-5 anchors (DimensionSchema: int().min(1).max(5))",
+  },
+  "src/components/home/FeaturesSection.tsx": {
+    digits: ["2"],
+    why: "the same ordinal in '重录第 2 题' — a named example action, not a measurement",
   },
   "src/components/home/PricingSection.tsx": { digits: ["0"], why: "¥0 — the app has no billing code and no paid tier" },
   "src/components/interview/PrintLayout.tsx": { digits: ["100"], why: "/100 scale suffix" },

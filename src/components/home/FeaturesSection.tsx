@@ -5,7 +5,7 @@ export function FeaturesSection() {
     <section id="features" className="flex flex-col items-center gap-16">
       <div className="text-center">
         <h2 className="text-3xl font-semibold text-[var(--interve-text-title)] mb-4">核心优势</h2>
-        <p className="text-[var(--interve-text-secondary)]">重塑招聘流程，带来无与伦比的体验</p>
+        <p className="text-[var(--interve-text-secondary)]">从开练到复盘，每一步都站在你这边</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
@@ -16,9 +16,9 @@ export function FeaturesSection() {
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">智能面试助手</h3>
+          <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">追问跟着你的回答走</h3>
           <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
-            自适应追问机制，根据候选人的回答动态调整面试深度，全面考察技术与软技能。
+            从自我介绍到项目深挖，你提到一个数字，它就问这个数字怎么来的；你说「参与了」，它就问哪一部分是你做的。
           </p>
         </div>
 
@@ -29,9 +29,9 @@ export function FeaturesSection() {
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">实时反馈分析</h3>
+          <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">每个结论都有出处</h3>
           <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
-            面试过程中实时生成能力图谱与多维评价，帮助企业高效筛选高匹配度人才。
+            报告里的每条判断都指回你的原话，标出是第几轮说的，点一下就能跳回那句话。没有证据就不下结论。
           </p>
         </div>
 
@@ -42,9 +42,9 @@ export function FeaturesSection() {
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">个性化学习</h3>
+          <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">练完知道下一步</h3>
           <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
-            为求职者提供详细的复盘报告与针对性提升建议，助力职业技能的快速成长。
+            最弱的维度排在最前面，配一条能当天做完的动作——不是「多练习」，是「重录第 2 题，把结果量化成一个数字」。
           </p>
         </div>
       </div>
