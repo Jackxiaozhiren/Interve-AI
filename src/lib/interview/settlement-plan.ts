@@ -103,6 +103,13 @@ export function unsavedNotice(reason: Exclude<UnsavedReason, null>): SettlementN
  * Copy for a write that threw. "Never saved" and "saved the row, failed the
  * write" need different sentences; the old one promised retained data in both
  * cases.
+ *
+ * P0-1: the title is the requirement, not a preference — a candidate has to be
+ * told "这次记录没有保存" in those words, because the alternative (navigating to
+ * a report that says "评估中") reads as a slow report rather than as data loss.
+ * The description is deliberately true of both failure points (the evaluation
+ * call and the write): it claims neither that an evaluation exists nor that
+ * anything already reached the database.
  */
 export function persistenceFailureNotice(err: unknown): SettlementNotice {
   const message = err instanceof Error ? err.message : String(err);
@@ -113,7 +120,7 @@ export function persistenceFailureNotice(err: unknown): SettlementNotice {
     };
   }
   return {
-    title: "保存评估时出错",
-    description: "评估已生成但没能写入。请稍后重试结束面试，或从控制台查看本场记录。",
+    title: "这次记录没有保存",
+    description: "中途出错，这场面试的内容没有进数据库。点「重试保存」再写一次；重试只重写这一条记录，不会重复生成评估，也不会留下重复的记录。",
   };
 }

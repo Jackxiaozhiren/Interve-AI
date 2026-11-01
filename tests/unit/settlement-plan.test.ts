@@ -104,10 +104,15 @@ describe("persistenceFailureNotice", () => {
     expect(neverSaved.description).not.toMatch(/保留部分数据/);
 
     const writeFailed = persistenceFailureNotice(new Error("could not connect to stream: Service Unavailable"));
-    expect(writeFailed.title).toBe("保存评估时出错");
+    // P0-1 rewrite (was "保存评估时出错"): the title is now the sentence the
+    // product owes the candidate — "这次记录没有保存" — because the old wording
+    // ("保存时出错") named the operation, not the loss, and sat in a toast that
+    // the immediate page reload destroyed. Not a relaxation: the assertion still
+    // pins an exact string, and the new one is stricter about what happened.
+    expect(writeFailed.title).toBe("这次记录没有保存");
   });
 
   it("survives a thrown non-Error", () => {
-    expect(persistenceFailureNotice("boom").title).toBe("保存评估时出错");
+    expect(persistenceFailureNotice("boom").title).toBe("这次记录没有保存");
   });
 });
