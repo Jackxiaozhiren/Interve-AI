@@ -205,19 +205,19 @@ export default function InterviewReportPage() {
         />
       </div>
 
-      <main className="max-w-6xl mx-auto px-6 pt-12 relative z-10">
+      <main className="max-w-6xl mx-auto px-6 pt-8 relative z-10">
         <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="space-y-8">
           
           {/* Header */}
-          <motion.div variants={fadeIn} className="flex items-center justify-between mb-8">
+          <motion.div variants={fadeIn} className="flex items-center justify-between mb-5">
             <div>
-              <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-4 text-slate-500 hover:text-slate-900 -ml-2">
+              <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-2 text-slate-500 hover:text-slate-900 -ml-2">
                 <ArrowLeft className="w-4 h-4 mr-2" /> 返回控制台
               </Button>
               <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Step 3 · Review
               </p>
-              <h1 className="text-4xl font-serif font-bold text-slate-900 tracking-tight">面试综合评估报告</h1>
+              <h1 className="text-3xl font-serif font-bold text-slate-900 tracking-tight">面试综合评估报告</h1>
               <p className="text-slate-500 mt-2 flex items-center gap-2">
                 <Clock className="w-4 h-4" /> 
                 {new Date(interview.createdAt).toLocaleString()} | 职位: {interview.title || '未知'}

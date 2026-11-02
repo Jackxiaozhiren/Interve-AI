@@ -12,6 +12,10 @@ import type { CitedImprovement } from "@/lib/report-improvements";
  * turn. The quote is a button, not decoration: clicking it takes them to the
  * words in the transcript and marks them, because a citation you cannot open is
  * a claim you have to take on faith.
+ *
+ * Quotes print as fragments, never whole answers (PRD F-4 says 原话片段), and a
+ * sentence already cited by an earlier item is not printed a second time — the
+ * advice differs, the evidence does not, so the repeat points back instead.
  */
 export function TopImprovements({
   items,
@@ -25,16 +29,16 @@ export function TopImprovements({
   return (
     <section
       aria-labelledby="top-improvements-heading"
-      className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+      className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
     >
-      <div className="flex items-baseline justify-between gap-4 mb-4">
-        <h2 id="top-improvements-heading" className="text-xl font-bold text-slate-800">
+      <div className="flex items-baseline justify-between gap-4 mb-3">
+        <h2 id="top-improvements-heading" className="text-lg font-bold text-slate-800">
           本次最该改的三件事
         </h2>
         <p className="text-xs text-slate-500">按最弱的维度排，每条都指回你的原话</p>
       </div>
 
-      <ol className="space-y-3">
+      <ol className="space-y-2.5">
         {items.map((item, index) => (
           <li key={item.dimensionId} className="flex items-start gap-4">
             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-bold text-indigo-600">
@@ -52,12 +56,20 @@ export function TopImprovements({
                     <ArrowDown className="h-3 w-3" aria-hidden="true" />
                     第 {item.round} 轮
                   </button>
-                ) : (
+                ) : item.repeatOf === null ? (
                   <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-500">
                     原话
                   </span>
+                ) : null}
+                {item.repeatOf !== null ? (
+                  <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-500">
+                    同第 {item.repeatOf} 条原话
+                  </span>
+                ) : (
+                  <q className="line-clamp-1 min-w-0 flex-1 text-[13px] italic leading-relaxed text-slate-600">
+                    {item.fragment}
+                  </q>
                 )}
-                <q className="text-[13px] italic leading-relaxed text-slate-600">{item.quote}</q>
               </div>
             </div>
           </li>
