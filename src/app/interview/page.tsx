@@ -6,7 +6,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useAccessibilityStore } from "@/store/useAccessibilityStore";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import dynamic from "next/dynamic";
@@ -97,6 +97,7 @@ function InterviewRoomContent() {
   const [activeUserTranscript, setActiveUserTranscript] = useState("");
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
   const [isStandby, setIsStandby] = useState(true);
+  const router = useRouter();
   const [isPaused, setIsPaused] = useState(false);
   const [isThinkTimeEnabled, setIsThinkTimeEnabled] = useState(false);
   const [thinkCountdown, setThinkCountdown] = useState<number | null>(null);
@@ -921,6 +922,7 @@ function InterviewRoomContent() {
       <GreenRoom 
         onComplete={() => setIsGreenRoom(false)} 
         onBypass={() => setIsGreenRoom(false)} 
+        onExit={() => router.push("/dashboard")}
       />
     );
   }
@@ -1039,6 +1041,7 @@ function InterviewRoomContent() {
         modelsReady={modelsReady}
         loadError={modelLoadError}
         onStart={startFromStandby}
+        onExit={() => router.push("/dashboard")}
       />
 
       <EndingOverlay isEnding={isEnding} />

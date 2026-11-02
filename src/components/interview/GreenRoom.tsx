@@ -10,9 +10,10 @@ import { micConstraints, getPreferredMicDevice, setPreferredMicDevice } from "@/
 interface GreenRoomProps {
   onComplete: () => void;
   onBypass: () => void;
+  onExit: () => void;
 }
 
-export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
+export function GreenRoom({ onComplete, onBypass, onExit }: GreenRoomProps) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0);
@@ -212,6 +213,17 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
             aria-label="跳过语音测试，以纯文本模式继续"
           >
             跳过语音测试，以纯文本模式继续
+          </button>
+
+          {/* The room is a gate, not a trap: before this, opening an interview and
+              changing your mind meant the browser's back button, which is not an
+              affordance the product should outsource. */}
+          <button
+            type="button"
+            onClick={onExit}
+            className="text-ui-xs font-medium text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-all"
+          >
+            先不面试，返回控制台
           </button>
         </div>
       </motion.div>

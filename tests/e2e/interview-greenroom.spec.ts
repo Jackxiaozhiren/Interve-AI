@@ -66,4 +66,41 @@ test.describe('Interview Green Room', () => {
     await expect(mainHeading).toBeVisible();
     await captureScreenshot('02-interview-main-after-bypass');
   });
+
+  // PRD F-2's premise is that opening a room is a decision the candidate can
+  // reverse. Before this, both gates were one-way: the Green Room and the standby
+  // card are full-screen, the end-interview control lives behind them, and the
+  // only exit was the browser's back button — a control the product does not own
+  // and a phone does not always show.
+  test('a room that has not started can be left from either gate', async ({ page }) => {
+    await loginAs(page);
+
+    // The control is server-rendered before React attaches its handler (the same
+    // race the bypass test above documents), so a single press can land on dead
+    // DOM. What ends the retry is the outcome the test is actually asking for —
+    // the dashboard URL — never a DOM state.
+    const leave = async () => {
+      for (let attempt = 1; ; attempt++) {
+        await page.getByRole('button', { name: '先不面试，返回控制台' }).click({ timeout: 5000 }).catch(() => {});
+        const left = await page
+          .waitForURL(/\/dashboard/, { timeout: 6000 })
+          .then(() => true)
+          .catch(() => false);
+        if (left) return;
+        if (attempt >= 3) throw new Error(`the exit press never reached the dashboard after ${attempt} attempts`);
+      }
+    };
+
+    // Gate 1: the device check.
+    await page.goto('/interview?id=e2e-exit', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1:has-text("设备自检室")')).toBeVisible();
+    await leave();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    // Gate 2: the standby card, which sits on top of the room at z-50.
+    await page.goto('/interview?id=e2e-exit&testMode=true', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('准备好开始了吗？')).toBeVisible({ timeout: 30000 });
+    await leave();
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
 });

@@ -210,13 +210,15 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * by way of a guard that looked like a tightening); and 215 with the first screen's two
  * (QTF1 the whole answer printed back to the candidate, REP1 the same sentence printed
  * once per dimension — the two defects a production session found in P0-2 after its
- * own tests had gone green on ten-character fixture quotes)
+ * own tests had gone green on ten-character fixture quotes); and 216 with the interview
+ * room's exit (EXIT1 keeps the button and cuts the wire, so "rendered" and "connected"
+ * stop being the same claim)
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 215;
+const MIN_PLANTS = 216;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1297,6 +1299,17 @@ const PLANTS = [
     replacement: `        repeatOf: null,`,
     test: "tests/unit/report-improvements.test.ts",
     pattern: "marks a sentence an earlier item already cited",
+  },
+  // ── the interview room's way out ──────────────────────────────────────────
+  {
+    name: "EXIT1",
+    desc: "the Green Room keeps its exit button but stops calling anything, which is the shape a component test cannot see",
+    kind: "vitest",
+    file: "src/app/interview/page.tsx",
+    anchor: `        onBypass={() => setIsGreenRoom(false)} \n        onExit={() => router.push("/dashboard")}`,
+    replacement: `        onBypass={() => setIsGreenRoom(false)} `,
+    test: "tests/unit/interview-exit.test.ts",
+    pattern: "the page connects both gates to the same destination",
   },
   // ── guards that assert an absence and had no witness of any kind ───────────
   // Each of these suites reads a corpus (src/, a workflow, the Dockerfile) and asserts
