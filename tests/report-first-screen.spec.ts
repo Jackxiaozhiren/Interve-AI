@@ -11,9 +11,18 @@
 // The fixture is seeded into the stubbed PostgREST table rather than produced by
 // a run: the report page reads one row and renders it, and a seeded row lets the
 // quotes be chosen to exercise the mapping (one exact quote, one paraphrase that
-// must NOT be given a round number).
+// must NOT be given a round number). Quotes are production-scale: on a real
+// session (2026-11-02, interviews id=2) GLM wrote a 138-character evidence
+// sentence, printed it whole on the card, and reused it for three dimensions —
+// this fixture reproduces both failures at slightly under that size.
 import { test, expect } from '@playwright/test';
 import { createPostgrestStub, loginAs, seedSupabaseSession } from './helpers';
+
+// 67 characters — beyond the 60-character fragment cut.
+const LONG_QUOTE =
+  '那次优化我们主要做了路由懒加载和组件拆分，整体来说页面渲染的速度大概是快了一点点，具体没有做很精确的测量，但是从用户反馈来看体验是有提升的。';
+const OTHER_LONG_QUOTE =
+  '我负责了那个项目的前端部分，包括组件的拆分和状态管理，还带着两个实习生一起做需求，项目最后按时上线了，用户量也涨了不少。';
 
 test.describe('P0-2 report first screen', () => {
   // Next dev compiles each route on first request; a cold /dashboard/report is
@@ -27,7 +36,9 @@ test.describe('P0-2 report first screen', () => {
     await loginAs(page, 'report@example.com', uid);
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
-    const created = await page.evaluate(async () => {
+    // The evaluate body runs in the browser: the quotes must travel as arguments,
+    // not as Node-scope constants the page context cannot see.
+    const created = await page.evaluate(async ({ longQuote, otherLongQuote }) => {
       const res = await fetch('/rest/v1/interviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,7 +55,7 @@ test.describe('P0-2 report first screen', () => {
               {
                 id: 'specificity',
                 score: 2,
-                evidence: ['我们大概快了一点点'],
+                evidence: [longQuote],
                 rationale: '没有数字，听众无法判断量级。',
                 confidence: 'high',
                 improvement: '重录第 2 题，把结果量化成一个数字。',
@@ -52,7 +63,7 @@ test.describe('P0-2 report first screen', () => {
               {
                 id: 'star_completeness',
                 score: 3,
-                evidence: ['我负责了那个项目'],
+                evidence: [otherLongQuote],
                 rationale: '只说了职责，没有说任务与结果。',
                 confidence: 'medium',
                 improvement: '补上 Result：项目上线后发生了什么。',
@@ -60,7 +71,9 @@ test.describe('P0-2 report first screen', () => {
               {
                 id: 'ownership',
                 score: 4,
-                evidence: ['我推动了这次迁移'],
+                // The measured bug: the model hands the same sentence to three
+                // dimensions. This one must not print the quote a second time.
+                evidence: [longQuote],
                 rationale: '有主语，但决策过程没说清。',
                 confidence: 'high',
                 improvement: '说清你做的那个决定，以及为什么。',
@@ -85,15 +98,14 @@ test.describe('P0-2 report first screen', () => {
             { id: 'm1', role: 'assistant', content: '先做个自我介绍吧。' },
             { id: 'm2', role: 'user', content: '我有三年 React 经验，做过中后台系统。' },
             { id: 'm3', role: 'assistant', content: '那次性能优化带来多少提升？' },
-            { id: 'm4', role: 'user', content: '我们大概快了一点点，具体没测。' },
+            { id: 'm4', role: 'user', content: longQuote },
             { id: 'm5', role: 'assistant', content: '项目里你做了什么？' },
-            { id: 'm6', role: 'user', content: '我负责了那个项目的前端部分。' },
-            { id: 'm7', role: 'user', content: '我推动了这次迁移，方案是我定的。' },
+            { id: 'm6', role: 'user', content: otherLongQuote },
           ],
         }),
       });
       return (await res.json()) as { id: number };
-    });
+    }, { longQuote: LONG_QUOTE, otherLongQuote: OTHER_LONG_QUOTE });
 
     await page.goto(`/dashboard/report/${created.id}`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
@@ -111,18 +123,42 @@ test.describe('P0-2 report first screen', () => {
     await expect(items.nth(1)).toContainText('补上 Result');
     await expect(items.nth(2)).toContainText('说清你做的那个决定');
 
-    // 3. Each item carries a quote AND names the round it came from.
+    // 3. A production-scale quote prints as a fragment, not the whole answer.
+    await expect(items.nth(0)).toContainText('那次优化我们主要做了路由懒加载');
+    await expect(block).not.toContainText('从用户反馈来看体验是有提升的');
+
+    // 4. Each item names the round it came from, and the citation still points at
+    //    the words even when the card only prints a fragment.
     await expect(items.nth(0)).toContainText('第 2 轮');
-    await expect(items.nth(0)).toContainText('我们大概快了一点点');
     await expect(items.nth(1)).toContainText('第 3 轮');
 
-    // 4. On the first screen: a heading below the fold is not a first screen.
+    // 5. The measured bug: ownership cites the same sentence as specificity, so it
+    //    points back instead of printing the quote a second time.
+    await expect(items.nth(2)).toContainText('同第 1 条原话');
+    await expect(items.nth(2)).not.toContainText('那次优化我们主要做了路由懒加载');
+
+    // 6. On the first screen: a heading below the fold is not a first screen.
+    //    The failure message carries the geometry, because "788 > 720" alone never
+    //    says whether the header or the items ate the viewport — that distinction
+    //    is what turned this from a test-tuning question into a layout fix.
     const box = await block.boundingBox();
     const viewport = page.viewportSize();
     expect(box, 'the block rendered without a box').not.toBeNull();
-    expect(Math.round((box?.y ?? 0) + (box?.height ?? 0))).toBeLessThanOrEqual(viewport?.height ?? 0);
+    const geometry = await page.evaluate(() => {
+      const out: Record<string, number> = {};
+      const b = document.querySelector('[aria-labelledby="top-improvements-heading"]');
+      if (b) out.blockTop = Math.round(b.getBoundingClientRect().top);
+      document.querySelectorAll('[aria-labelledby="top-improvements-heading"] li').forEach((li, i) => {
+        out[`item${i}`] = Math.round(li.getBoundingClientRect().height);
+      });
+      return out;
+    });
+    expect(
+      Math.round((box?.y ?? 0) + (box?.height ?? 0)),
+      `block bottom ${Math.round((box?.y ?? 0) + (box?.height ?? 0))} vs viewport ${viewport?.height} — ${JSON.stringify(geometry)}`,
+    ).toBeLessThanOrEqual(viewport?.height ?? 0);
 
-    // 5. The citation is a control, and it takes the reader to the words.
+    // 7. The citation is a control, and it takes the reader to the words.
     const cited = page.locator('[data-transcript-id="m4"]');
     await expect(cited).not.toHaveAttribute('data-cited', 'true');
     await items.nth(0).getByRole('button', { name: /第 2 轮/ }).click();

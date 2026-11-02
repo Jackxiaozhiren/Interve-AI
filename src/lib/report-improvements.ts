@@ -31,9 +31,54 @@ export interface CitedImprovement {
   sentence: string;
   /** Verbatim quote from this session (the dimension's own evidence). */
   quote: string;
+  /** What the card prints: the quote as a fragment, never the whole answer. */
+  fragment: string;
   /** 1-based index among the candidate's turns, or null when unverified. */
   round: number | null;
   messageId: string | null;
+  /**
+   * When an earlier item already cites this same sentence, its 1-based position.
+   *
+   * Measured on a real session (2026-11-02, interviews id=2): GLM wrote the same
+   * 138-character evidence sentence for three dimensions, and the block printed it
+   * three times over — three different pieces of advice, one wall of repeated text.
+   * The advice is not the model's mistake; repeating the quote is mine.
+   */
+  repeatOf: number | null;
+}
+
+/**
+ * A quote longer than this is cut to a fragment. PRD F-4 says 原话片段.
+ *
+ * 40, not the 60 first tried: the card is 808 px wide at 1280, the round badge
+ * takes ~100 px of the row, and 13 px CJK type fits ~46 characters in what is
+ * left. At 60 the fragment wrapped under the badge and every cited item grew a
+ * line — three items then pushed the block 90 px below a 720 px fold, which is
+ * the defect this fix exists for. One line, one clause, and the click opens the
+ * whole turn anyway.
+ */
+const FRAGMENT_MAX = 40;
+
+const BREAK_AFTER = /[，。；、！？,.;!?]/;
+
+/**
+ * The first `max` characters of a quote, cut at a clause boundary when there is
+ * one near the limit, with an ellipsis. A fragment, not a summary: the words are
+ * still the candidate's own, which is the whole point of the citation.
+ */
+export function quoteFragment(quote: string, max = FRAGMENT_MAX): string {
+  const text = quote.trim();
+  if (text.length <= max) return text;
+  let cut = max;
+  // `max - 1` and not `max`: a break at index max would make the slice max + 1
+  // characters long, and the caller's one-line budget is a hard limit.
+  for (let i = Math.min(max, text.length - 1) - 1; i >= max - 15 && i > 0; i--) {
+    if (BREAK_AFTER.test(text[i])) {
+      cut = i + 1;
+      break;
+    }
+  }
+  return `${text.slice(0, cut).trimEnd()}…`;
 }
 
 /** Quoted text is compared without whitespace, quotes or punctuation. */
@@ -95,16 +140,27 @@ export function topImprovements(
     .map((dim) => ({ dim, order: view.dimensions.indexOf(dim) }))
     .sort((a, b) => (a.dim.score100 - b.dim.score100) || (a.order - b.order))
     .slice(0, limit)
-    .map(({ dim }) => {
+    .map(({ dim }, index, all) => {
       const quote = dim.evidence[0];
       const hit = locateQuote(quote, transcript);
+      // Same turn, or (when the quote could not be placed) the same words: either
+      // way the reader has already been shown this sentence.
+      const key = hit?.messageId ?? stripForMatch(quote);
+      const earlier = all.findIndex((other, i) => {
+        if (i >= index) return false;
+        const otherQuote = other.dim.evidence[0];
+        const otherKey = locateQuote(otherQuote, transcript)?.messageId ?? stripForMatch(otherQuote);
+        return otherKey === key;
+      });
       return {
         dimensionId: dim.id,
         name: dim.name,
         sentence: dim.improvement,
         quote,
+        fragment: quoteFragment(quote),
         round: hit?.round ?? null,
         messageId: hit?.messageId ?? null,
+        repeatOf: earlier >= 0 ? earlier + 1 : null,
       };
     });
 }

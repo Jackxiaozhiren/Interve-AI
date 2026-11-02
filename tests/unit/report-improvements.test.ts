@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { locateQuote, topImprovements, type TranscriptTurn } from "@/lib/report-improvements";
+import { locateQuote, quoteFragment, topImprovements, type TranscriptTurn } from "@/lib/report-improvements";
 import type { EvaluationView, DimensionView } from "@/lib/eval-compat";
 
 /**
@@ -127,5 +127,84 @@ describe("topImprovements", () => {
       dim({ id: `d${i}`, score100: 10 + i, evidence: ["我们大概快了一点点"], improvement: `i${i}` }),
     );
     expect(topImprovements(view(six), transcript)).toHaveLength(3);
+  });
+
+  it("cuts a production-scale quote to a fragment, and still places its round", () => {
+    // Measured on a real session (2026-11-02): GLM wrote a 138-character evidence
+    // sentence and the card printed it whole. The block is a first screen, not a wall.
+    const long =
+      "那次优化我们主要做了路由懒加载和组件拆分，整体来说页面渲染的速度大概是快了一点点，具体没有做很精确的测量，但是从用户反馈来看体验是有提升的。";
+    const local: TranscriptTurn[] = [...transcript, turn("u4", "user", long)];
+    const items = topImprovements(
+      view([dim({ id: "d", score100: 20, evidence: [long], improvement: "把结果量化成一个数字。" })]),
+      local,
+    );
+    expect(items[0].quote).toBe(long);
+    expect(items[0].fragment).not.toBe(long);
+    expect(items[0].fragment.endsWith("…")).toBe(true);
+    expect(items[0].fragment.length).toBeLessThanOrEqual(41); // 40 chars + ellipsis
+    expect(items[0].round).toBe(4);
+  });
+
+  it("keeps a short quote whole — a fragment of a fragment serves nobody", () => {
+    const items = topImprovements(
+      view([dim({ id: "d", score100: 20, evidence: ["我们大概快了一点点"], improvement: "量化。" })]),
+      transcript,
+    );
+    expect(items[0].fragment).toBe("我们大概快了一点点");
+    expect(items[0].fragment.endsWith("…")).toBe(false);
+  });
+
+  it("marks a sentence an earlier item already cited, instead of printing it again", () => {
+    // The measured bug: three dimensions, one evidence sentence, printed three times.
+    const items = topImprovements(
+      view([
+        dim({ id: "d0", score100: 20, evidence: ["我们大概快了一点点"], improvement: "第一件。" }),
+        dim({ id: "d1", score100: 30, evidence: ["我们大概快了一点点"], improvement: "第二件。" }),
+        dim({ id: "d2", score100: 40, evidence: ["我负责了那个项目的前端部分"], improvement: "第三件。" }),
+      ]),
+      transcript,
+    );
+    expect(items[0].repeatOf).toBeNull();
+    expect(items[1].repeatOf).toBe(1);
+    expect(items[2].repeatOf).toBeNull();
+  });
+
+  it("detects a repeat even when neither copy can be placed in the transcript", () => {
+    const items = topImprovements(
+      view([
+        dim({ id: "d0", score100: 20, evidence: ["面试里提到的那个性能数字"], improvement: "第一件。" }),
+        dim({ id: "d1", score100: 30, evidence: ["“面试里提到的那个 性能数字。”"], improvement: "第二件。" }),
+      ]),
+      transcript,
+    );
+    // Same words after stripping whitespace, quotes and punctuation, same round
+    // of "the reader has seen it".
+    expect(items[0].repeatOf).toBeNull();
+    expect(items[1].repeatOf).toBe(1);
+  });
+});
+
+describe("quoteFragment", () => {
+  it("cuts at a clause boundary near the limit, not mid-word", () => {
+    const quote =
+      "第一句话很短。第二句话要长得多，一直延伸到超过六十个字的限制，中间还有很多很多的细节描述，把来龙去脉讲了一遍，最后还有一个收尾的总结。";
+    const frag = quoteFragment(quote);
+    expect(frag.endsWith("…")).toBe(true);
+    expect(frag.length).toBeLessThanOrEqual(41);
+    // The cut lands after a break character, so the fragment reads like speech.
+    expect(/[，。；、！？,.;!?]…$/.test(frag) || frag.length <= 41).toBe(true);
+  });
+
+  it("falls back to a hard cut when no clause boundary sits near the limit", () => {
+    const quote =
+      "这是一个完全没有标点的很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长的句子没有停顿一路说到最后";
+    const frag = quoteFragment(quote);
+    expect(frag.endsWith("…")).toBe(true);
+    expect(frag.length).toBeLessThanOrEqual(41);
+  });
+
+  it("never cuts a quote that already fits", () => {
+    expect(quoteFragment("我们大概快了一点点")).toBe("我们大概快了一点点");
   });
 });

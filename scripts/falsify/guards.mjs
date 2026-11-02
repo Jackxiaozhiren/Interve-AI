@@ -207,13 +207,16 @@ const GUARDS_SELF = "scripts/falsify/guards.mjs";
  * and unreadable on a screen; GFX2 stops the census matching `p`, the only way to show the
  * floor is counting prose rather than an empty list; GFX3 widens the rule onto the badge
  * chips it deliberately excludes, which is V11-11's unauthorised design decision arriving
- * by way of a guard that looked like a tightening)
+ * by way of a guard that looked like a tightening); and 215 with the first screen's two
+ * (QTF1 the whole answer printed back to the candidate, REP1 the same sentence printed
+ * once per dimension — the two defects a production session found in P0-2 after its
+ * own tests had gone green on ten-character fixture quotes)
  * and it is re-synced in the same commit as any plant that arrives or leaves, so
  * coverage moves with intent rather than drift. FC1 plants a floor one higher
  * than the harness and fails it, which is what keeps this number from quietly
  * becoming a comment.
  */
-const MIN_PLANTS = 213;
+const MIN_PLANTS = 215;
 
 /** The absence-asserting witnesses, as data: see scripts/falsify/plants.json. */
 const ABSENCE_PLANTS = JSON.parse(readFileSync(new URL("./plants.json", import.meta.url), "utf8")).plants;
@@ -1269,6 +1272,31 @@ const PLANTS = [
       "}" + NL,
     anchor: "",
     replacement: "",
+  },
+  // ── the report's first screen ─────────────────────────────────────────────
+  // P0-2 shipped with two assertions that the production run falsified: the card
+  // printed a whole 138-character answer and printed it three times, and the fold
+  // check had only ever seen 10-character fixture quotes, so it passed by luck.
+  // These two plants keep the fix from becoming the next fixture-shaped green.
+  {
+    name: "QTF1",
+    desc: "the evidence quote printed whole again, the way it was when the reader met a wall of their own words",
+    kind: "vitest",
+    file: "src/lib/report-improvements.ts",
+    anchor: `  if (text.length <= max) return text;`,
+    replacement: `  if (text.length <= max) return text;\n  return text;`,
+    test: "tests/unit/report-improvements.test.ts",
+    pattern: "cuts a production-scale quote to a fragment",
+  },
+  {
+    name: "REP1",
+    desc: "three dimensions citing one sentence, and the card printing that sentence three times",
+    kind: "vitest",
+    file: "src/lib/report-improvements.ts",
+    anchor: `        repeatOf: earlier >= 0 ? earlier + 1 : null,`,
+    replacement: `        repeatOf: null,`,
+    test: "tests/unit/report-improvements.test.ts",
+    pattern: "marks a sentence an earlier item already cited",
   },
   // ── guards that assert an absence and had no witness of any kind ───────────
   // Each of these suites reads a corpus (src/, a workflow, the Dockerfile) and asserts
