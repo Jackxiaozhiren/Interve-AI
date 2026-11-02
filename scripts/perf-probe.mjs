@@ -2,6 +2,10 @@
 // Measures LCP/CLS/TBT/transfer/heap on guarded pages Lighthouse cannot
 // reach without a login flow. Run: `node scripts/perf-probe.mjs [baseURL]`.
 import { chromium } from "playwright";
+// The session signer is the production one, imported rather than reimplemented: a
+// probe that signs its own format would authenticate against a server that never
+// accepts it, and the failure would look like a budget breach.
+import { SESSION_COOKIE, getSessionSecret, signSession } from "../src/lib/api/session.ts";
 
 const ARGS = process.argv.slice(2);
 // NOTE: flags must be filtered out of the positional BASE — `npm run
@@ -12,11 +16,24 @@ const BASE = ARGS.find((a) => !a.startsWith("-")) || "http://localhost:3100";
 const now = Date.now();
 const uid = `00000000-0000-4000-8000-${String(now).slice(-12).padStart(12, "0")}`;
 
+/**
+ * Put a session cookie in the context instead of asking the server for one.
+ *
+ * This used to POST {id, email, username} to /api/session and take whatever it
+ * minted. Since §15.2 that endpoint accepts nothing but a verified token — it
+ * answers 401 — so every probe route read as "probe failed" and the budgets step
+ * died on a login error rather than on transfer size. The CI step already exports
+ * SESSION_SECRET for exactly this: a throwaway key the local prod server verifies
+ * with. Signing here uses the same signer and the same resolver tests/helpers.ts
+ * uses, so the probe cannot authenticate with a cookie production would reject.
+ */
 async function login(context) {
-  const res = await context.request.post(`${BASE}/api/session`, {
-    data: { id: uid, email: "perf@local.test", username: "perf" },
-  });
-  if (!res.ok()) throw new Error(`login failed: ${res.status()}`);
+  const secret = process.env.SESSION_SECRET || getSessionSecret();
+  if (!secret) throw new Error("login failed: no SESSION_SECRET and no dev fallback");
+  const signed = await signSession({ id: uid, email: "perf@local.test", username: "perf" }, secret);
+  await context.addCookies([
+    { name: SESSION_COOKIE, value: encodeURIComponent(signed), url: BASE, httpOnly: true, sameSite: "Lax" },
+  ]);
   return uid;
 }
 
