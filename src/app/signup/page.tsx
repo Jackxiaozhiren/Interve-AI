@@ -67,9 +67,9 @@ export default function SignupPage() {
 
         <Card className="bg-white/70 border border-white/90 shadow-[0_12px_40px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,1)] backdrop-blur-2xl rounded-[32px] overflow-hidden">
           <CardHeader className="pb-6 text-center">
-            <CardTitle className="text-2xl font-serif text-slate-900">Create an account</CardTitle>
-            <CardDescription className="text-slate-500 text-[15px]">
-              Start your journey to interview mastery
+            <CardTitle className="text-ui-2xl font-serif text-slate-900">创建账号</CardTitle>
+            <CardDescription className="text-slate-500 text-ui-lg">
+              开始你的面试练习
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -79,10 +79,10 @@ export default function SignupPage() {
                   account nobody owned — and after §15.2 = a it could not produce a
                   session at all. */}
               <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">
+                <p className="text-ui-base font-semibold text-slate-700 mb-3">
                   用账号注册（Google 或 GitHub） · 面试记录、报告与回放都会保存
                 </p>
-                <p className="text-[13px] text-slate-500 mb-3 leading-relaxed">
+                <p className="text-ui-sm text-slate-500 mb-3 leading-relaxed">
                   首次用这两个账号之一登录时会自动创建账号。你不需要为本站单独设置密码。
                 </p>
                 <OAuthProviderButtons onResult={setError} />
@@ -96,10 +96,10 @@ export default function SignupPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-slate-500 text-sm mt-8 font-medium">
-          Already have an account?{" "}
+        <p className="text-center text-slate-500 text-ui-base mt-8 font-medium">
+          已有账号？{" "}
           <Link href="/login" className="text-sky-700 font-bold hover:underline">
-            Sign in
+            登录
           </Link>
         </p>
       </motion.div>

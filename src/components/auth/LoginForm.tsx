@@ -86,9 +86,9 @@ export function LoginForm() {
       {/* Login Card */}
       <Card className="bg-white/70 border border-white/90 shadow-[0_12px_40px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,1)] backdrop-blur-2xl rounded-[32px] overflow-hidden">
         <CardHeader className="pb-6 text-center">
-          <CardTitle className="text-2xl font-serif text-slate-900">Welcome back</CardTitle>
-          <CardDescription className="text-slate-500 text-[15px]">
-            Sign in to continue your interview journey
+          <CardTitle className="text-ui-2xl font-serif text-slate-900">欢迎回来</CardTitle>
+          <CardDescription className="text-slate-500 text-ui-lg">
+            登录后继续你的面试练习
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -99,10 +99,10 @@ export function LoginForm() {
                 anyway. Keeping it would be a credential the product pretends to
                 check, so it is gone rather than disabled. */}
             <div>
-              <p className="text-sm font-semibold text-slate-700 mb-3">
+              <p className="text-ui-base font-semibold text-slate-700 mb-3">
                 用账号登录（Google 或 GitHub） · 面试记录、报告与回放都会保存
               </p>
-              <p className="text-[13px] text-slate-500 mb-3 leading-relaxed">
+              <p className="text-ui-sm text-slate-500 mb-3 leading-relaxed">
                 账号由 Google 或 GitHub 验证。本站不接收、也不校验你为这里单独设置的密码。
               </p>
               <OAuthProviderButtons onResult={setError} />
@@ -129,10 +129,10 @@ export function LoginForm() {
       </Card>
 
       {/* Switch to Signup */}
-      <p className="text-center text-slate-500 text-sm mt-8 font-medium">
-        Don&apos;t have an account?{" "}
+      <p className="text-center text-slate-500 text-ui-base mt-8 font-medium">
+        还没有账号？{" "}
         <Link href="/signup" className="text-sky-700 font-bold hover:underline">
-          Sign up
+          注册
         </Link>
       </p>
     </motion.div>
