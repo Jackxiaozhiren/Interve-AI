@@ -16,39 +16,32 @@ import { describe, expect, it } from "vitest";
 
 const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
 
-const EXIT_LABEL = "先不面试，返回控制台";
-
-const GREEN_ROOM = "src/components/interview/GreenRoom.tsx";
-const STANDBY = "src/components/interview/StandbyOverlay.tsx";
+const BUTTON = "src/components/interview/LeaveRoomButton.tsx";
+const GATES = ["src/components/interview/GreenRoom.tsx", "src/components/interview/StandbyOverlay.tsx"];
 const ROOM_PAGE = "src/app/interview/page.tsx";
 
 describe("the room can be left before it starts", () => {
-  it("the Green Room renders an exit wired to its own handler", () => {
-    const src = read(GREEN_ROOM);
-    expect(src).toContain("onExit: () => void");
+  it("one control owns the words and the handler", () => {
+    const src = read(BUTTON);
     expect(src).toContain("onClick={onExit}");
-    expect(src).toContain(EXIT_LABEL);
+    expect(src).toContain("先不面试，返回控制台");
   });
 
-  it("the standby card renders the same exit, under the start button", () => {
-    const src = read(STANDBY);
+  it.each(GATES)("%s renders that control and passes its own handler", (gate) => {
+    const src = read(gate);
     expect(src).toContain("onExit: () => void");
-    expect(src).toContain("onClick={onExit}");
-    expect(src).toContain(EXIT_LABEL);
-    // The start CTA owns the eye; the exit is a way out, not a second invitation.
-    expect(src.indexOf(EXIT_LABEL)).toBeGreaterThan(src.indexOf("开始面试"));
+    expect(src).toContain("<LeaveRoomButton onExit={onExit} />");
+    // A gate that re-types the label is a gate that can drift from the other one.
+    expect(src).not.toContain("先不面试，返回控制台");
   });
 
   it("the page connects both gates to the same destination", () => {
-    const src = read(ROOM_PAGE);
-    const wired = src.match(/onExit=\{\(\) => router\.push\("\/dashboard"\)\}/g) ?? [];
+    const wired = read(ROOM_PAGE).match(/onExit=\{\(\) => router\.push\("\/dashboard"\)\}/g) ?? [];
     expect(wired).toHaveLength(2);
   });
 
-  it("the exit says where it goes, in the room's own words", () => {
-    // "返回控制台" is the wording every other report surface uses for the same
-    // destination; an exit that says "取消" leaves the reader guessing.
-    expect(read(GREEN_ROOM)).toContain("返回控制台");
-    expect(read(STANDBY)).toContain("返回控制台");
+  it("the standby exit sits under the start CTA, not beside it", () => {
+    const src = read(GATES[1]);
+    expect(src.indexOf("<LeaveRoomButton")).toBeGreaterThan(src.indexOf("开始面试"));
   });
 });

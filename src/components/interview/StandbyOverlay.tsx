@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Play } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { LeaveRoomButton } from "@/components/interview/LeaveRoomButton";
 
 /**
  * The pre-room standby card. Presentational only — the decision it triggers
@@ -64,13 +65,7 @@ export function StandbyOverlay({
               {/* This layer is z-50 and covers the room, including the end-interview
                   control in the transcript panel. Before it, the only way out of a
                   room you had not started was the browser's back button. */}
-              <button
-                type="button"
-                onClick={onExit}
-                className="text-ui-xs font-medium text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-all"
-              >
-                先不面试，返回控制台
-              </button>
+              <LeaveRoomButton onExit={onExit} />
             </div>
           </motion.div>
         </motion.div>
