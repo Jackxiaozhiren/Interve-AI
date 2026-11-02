@@ -1,18 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { loginAs } from './helpers';
 
 test.describe('Interve AI Core Interview Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // 1. Visit the login page and authenticate
-    await page.goto('/login');
-    // Set onboarding to true so it doesn't show up
-    await page.evaluate(() => {
-      window.localStorage.setItem("interve_has_seen_onboarding", "true");
-    });
-    
-    await page.getByLabel('Email address').fill('test@example.com');
-    await page.getByLabel('Password').fill('123456');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('**/dashboard');
+    // Same replacement as tests/setup.spec.ts: the email/password door this hook
+    // filled was removed with §15.2 = a. `loginAs` sets the onboarding flag too,
+    // so both the manual localStorage write and the /login round trip go.
+    await loginAs(page);
+    await page.goto('/dashboard');
   });
 
   test('should navigate from home to setup and then to interview room', async ({ page }) => {
