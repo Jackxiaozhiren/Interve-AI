@@ -87,8 +87,8 @@
       "name": "APH1",
       "desc": "the account caption stops promising that anything is saved",
       "file": "src/components/auth/LoginForm.tsx",
-      "anchor": "用账号登录 · 面试记录、报告与回放都会保存",
-      "replacement": "用账号登录",
+      "anchor": "用账号登录（Google 或 GitHub） · 面试记录、报告与回放都会保存",
+      "replacement": "用账号登录（Google 或 GitHub）",
       "test": "tests/unit/auth-path-honesty.test.ts",
       "pattern": "offers an account path and marks it as the saving one"
     },
@@ -130,12 +130,12 @@
     },
     {
       "name": "ADD1",
-      "desc": "the demo divider reworded to a friendly label, which drops the disclosure",
+      "desc": "an email/password field returns to the sign-in door, which is the path §15.2 removed",
       "file": "src/components/auth/LoginForm.tsx",
-      "anchor": "或用演示账号(不保存数据)",
-      "replacement": "快速体验",
+      "anchor": "              <OAuthProviderButtons onResult={setError} />",
+      "replacement": "              <input type=\"password\" aria-label=\"Password\" />\n              <OAuthProviderButtons onResult={setError} />",
       "test": "tests/unit/auth-demo-disclosure.test.ts",
-      "pattern": "renders what the demo path costs, in the JSX"
+      "pattern": "offers no email/password door"
     },
     {
       "name": "SPB1",
@@ -788,12 +788,12 @@
     },
     {
       "name": "SU1",
-      "desc": "the signup submit's failed press goes back to being a console line only, so the page looks idle after a real refusal",
+      "desc": "the signup door renders a refusal without announcing it, so a screen reader hears nothing after a real failure",
       "file": "src/app/signup/page.tsx",
-      "anchor": "      console.error(\"Signup failed\", err);\n      setError(\"Sign up failed. Please try again.\");",
-      "replacement": "      console.error(\"Signup failed\", err);",
+      "anchor": "                  <p role=\"alert\" className=\"mt-3 text-sm font-medium text-rose-600\">",
+      "replacement": "                  <p className=\"mt-3 text-sm font-medium text-rose-600\">",
       "test": "tests/unit/signin-doors-alike.test.ts",
-      "pattern": "the signup submit handler's catch says so"
+      "pattern": "both doors render the refusal where a screen reader announces it"
     },
     {
       "name": "SU2",
