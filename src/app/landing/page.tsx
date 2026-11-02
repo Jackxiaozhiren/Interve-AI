@@ -55,33 +55,36 @@ export default function LandingPage() {
             {`Interve AI v${APP_VERSION} 现已发布`}
           </div>
           <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-[var(--interve-text-title)] max-w-4xl mb-6 leading-[1.1]">
-            面试从未如此 <br />
+            练完，给你一份 <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--interve-brand-accent)] to-[#8BB7FF]">
-              智能与自然
+              能照着改的复盘
             </span>
           </h1>
           <p className="text-lg lg:text-xl text-[var(--interve-text-secondary)] max-w-2xl mb-10 leading-relaxed">
-            专为现代团队打造的 AI 面试平台。以极简体验驱动，帮助您准确评估候选人能力，发掘顶尖人才。
+            给正在准备面试的你。按目标岗位练一场中文面试，结束后拿到带原话证据的复盘：哪一句站得住、缺了哪一块、下一句怎么说。
           </p>
           <div className="flex items-center gap-4">
-            <Link href="/chat">
+            <Link href="/setup">
               <InterveButton size="lg" className="shadow-[var(--interve-shadow-button)]">
-                立即开始对话 →
+                开始练一场
               </InterveButton>
             </Link>
             <Link href="#demo">
               <InterveButton variant="secondary" size="lg">
-                观看演示
+                看一段真实对话
               </InterveButton>
             </Link>
           </div>
+          <p className="mt-4 text-sm text-[var(--interve-text-secondary)]">
+            用 Google 或 GitHub 登录后开练，记录才会保存；不需要另设密码。
+          </p>
         </section>
 
         {/* Features Section */}
         <section id="features" className="flex flex-col items-center gap-16">
           <div className="text-center">
             <h2 className="text-3xl font-semibold text-[var(--interve-text-title)] mb-4">核心优势</h2>
-            <p className="text-[var(--interve-text-secondary)]">重塑招聘流程，带来无与伦比的体验</p>
+            <p className="text-[var(--interve-text-secondary)]">从开练到复盘，每一步都站在你这边</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
@@ -92,9 +95,9 @@ export default function LandingPage() {
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">智能面试助手</h3>
+              <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">追问跟着你的回答走</h3>
               <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
-                自适应追问机制，根据候选人的回答动态调整面试深度，全面考察技术与软技能。
+                从自我介绍到项目深挖，你提到一个数字，它就问这个数字怎么来的；你说「参与了」，它就问哪一部分是你做的。
               </p>
             </div>
 
@@ -105,9 +108,9 @@ export default function LandingPage() {
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">实时反馈分析</h3>
+              <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">每个结论都有出处</h3>
               <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
-                面试过程中实时生成能力图谱与多维评价，帮助企业高效筛选高匹配度人才。
+                报告里的每条判断都指回你的原话，标出是第几轮说的，点一下就能跳回那句话。没有证据就不下结论。
               </p>
             </div>
 
@@ -118,9 +121,9 @@ export default function LandingPage() {
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">个性化学习</h3>
+              <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">练完知道下一步</h3>
               <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
-                为求职者提供详细的复盘报告与针对性提升建议，助力职业技能的快速成长。
+                最弱的维度排在最前面，配一条能当天做完的动作——不是「多练习」，是「重录第 2 题，把结果量化成一个数字」。
               </p>
             </div>
           </div>

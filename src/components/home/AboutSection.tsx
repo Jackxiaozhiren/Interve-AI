@@ -20,7 +20,7 @@ export function AboutSection() {
           Interve AI 由一群热爱技术与教育的工程师打造，致力于通过人工智能重新定义面试体验。我们相信每个人都值得一次公平、高效、深度的面试机会。
         </p>
         <p className="text-sm text-[var(--interve-text-secondary)] leading-relaxed">
-          产品仍在早期：没有付费档位，没有企业版，也没有销售联系渠道。
+          产品仍在早期：没有付费档位，也没有销售联系渠道。
           练习题目由模型按你的目标与岗位实时生成，不存在固定题库。
         </p>
       </div>

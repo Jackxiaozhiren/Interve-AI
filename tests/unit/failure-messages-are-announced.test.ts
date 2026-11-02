@@ -269,7 +269,13 @@ export function unannouncedMessages(files: Sources): Finding[] {
   const out: Finding[] = [];
   for (const [rel, source] of files) {
     const sf = parse(rel, source);
-    const names = messageStates(sf, stateBindings(sf));
+    // M1 read only literals written in this file. After §15.2 the doors stopped
+    // writing one — `setError` arrives through `onResult={setError}` — so the rule
+    // went blind on exactly the surface it was built for, and a plant that deleted
+    // the live region stayed green. A message state fed by a provider callback is
+    // still a message someone wrote; the source moved, the requirement did not.
+    const bindings = stateBindings(sf);
+    const names = new Set([...messageStates(sf, bindings), ...providerMessageStates(sf, bindings)]);
     out.push(
       ...unannounced(rel, sf, names, (role) => role === "alert" || role === "status" || role === "polite" || role === "assertive"),
     );

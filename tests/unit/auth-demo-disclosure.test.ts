@@ -1,13 +1,18 @@
-// The email sign-in path is a demo: login() mints a client-side identity with no
-// verification, and stampOwner() then refuses to write content rows without a
-// Supabase session, so an account made that way can run an interview but cannot
-// keep it.
+// What this file guards changed on 2026-11-01, and the change is the point.
 //
-// Both forms already say so — the divider reads 或用演示账号(不保存数据). That copy
-// is the candidate's only warning before they spend 40 minutes on a session that
-// will not persist, so it is pinned here rather than trusted: rewording the
-// divider to something like "快速体验" keeps the sentence flowing and drops the
-// disclosure, and no other test notices.
+// Until then both doors carried a demo email/password form, and login() minted a
+// client-side identity that stampOwner() would then refuse to write: an account
+// that could run an interview and never keep it. The warning pinned here was the
+// divider 或用演示账号(不保存数据) — the candidate's only notice before spending
+// forty minutes on a session that would not persist.
+//
+// That form is gone (§15.2 = a: POST /api/session only accepts a verified token,
+// so the form collected a password nothing read and could not produce a session).
+// The arm below therefore pins the absence instead of the warning: with no demo
+// path there is nothing to disclose, and the live risk is the path coming back
+// without anyone deciding to — a password field is a credential the product
+// pretends to check. The persistence claim it used to bracket is still pinned, by
+// the 都会保存 arm.
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -47,11 +52,16 @@ function countPlaceholderAnchors(sourceText: string, fileName: string): number {
   return n;
 }
 
-describe("demo-auth disclosure", () => {
+describe("the demo sign-in door is closed", () => {
   for (const [name, src] of [["signup", signup], ["login", loginForm]]) {
-    it(`${name} renders what the demo path costs, in the JSX`, () => {
-      // Asserted as JSX text, so a comment that mentions it cannot pass.
-      expect(src, `${name} divider`).toMatch(/>\s*或用演示账号\(不保存数据\)/);
+    it(`${name} offers no email/password door`, () => {
+      // Stricter than the arm it replaces, not looser: that one asked whether the
+      // demo path was labelled, this one asks whether it exists. A label can be
+      // reworded by anyone; a password field is a decision.
+      expect(src, `${name} renders a password field again`).not.toMatch(/type="password"/);
+      expect(src, `${name} still labels a demo account`).not.toMatch(/演示账号/);
+      // And the door it does offer is the real provider door, not a placeholder.
+      expect(src, `${name} advertises no provider door`).toContain("OAuthProviderButtons");
     });
   }
 

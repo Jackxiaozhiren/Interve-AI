@@ -54,6 +54,7 @@ import { GreenRoom } from "@/components/interview/GreenRoom";
 import { RoomHeader } from "@/components/interview/RoomHeader";
 import { StandbyOverlay } from "@/components/interview/StandbyOverlay";
 import { PauseOverlay, ThinkTimeOverlay, EndingOverlay } from "@/components/interview/RoomOverlays";
+import { UnsavedSessionBanner } from "@/components/interview/UnsavedSessionBanner";
 import { TelemetryRow } from "@/components/interview/TelemetryRow";
 import { TranscriptPanel } from "@/components/interview/TranscriptPanel";
 
@@ -653,7 +654,7 @@ function InterviewRoomContent() {
   }, []);
 
   // Phase E1: settlement slice (useInterviewSettlement) — behavior-verbatim.
-  const { isEnding, handleEndCall } = useInterviewSettlement({
+  const { isEnding, handleEndCall, saveFailure, isRetrying, retrySave, leaveWithoutSaving } = useInterviewSettlement({
     messages,
     framework,
     interviewType: searchParams?.get("interviewType") || undefined,
@@ -1041,6 +1042,14 @@ function InterviewRoomContent() {
       />
 
       <EndingOverlay isEnding={isEnding} />
+      {saveFailure && (
+        <UnsavedSessionBanner
+          notice={saveFailure.notice}
+          retrying={isRetrying}
+          onRetry={retrySave}
+          onLeave={leaveWithoutSaving}
+        />
+      )}
       <TextSelectionMenu />
     </div>
   );

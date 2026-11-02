@@ -100,7 +100,7 @@ export function LoginForm() {
                 check, so it is gone rather than disabled. */}
             <div>
               <p className="text-sm font-semibold text-slate-700 mb-3">
-                用 Google 或 GitHub 登录
+                用账号登录（Google 或 GitHub） · 面试记录、报告与回放都会保存
               </p>
               <p className="text-[13px] text-slate-500 mb-3 leading-relaxed">
                 账号由 Google 或 GitHub 验证。本站不接收、也不校验你为这里单独设置的密码。

@@ -1,17 +1,14 @@
 import { test, expect } from '@playwright/test';
+import { loginAs } from './helpers';
 
 test.describe('Setup and Model Selection', () => {
   test.beforeEach(async ({ page }) => {
-    // Visit the login page and authenticate (English labels match LoginForm)
-    await page.goto('/login');
-    await page.getByLabel('Email address').fill('test@example.com');
-    await page.getByLabel('Password').fill('123456');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('**/dashboard');
-    // Set onboarding to true so it doesn't show up
-    await page.evaluate(() => {
-      window.localStorage.setItem("interve_has_seen_onboarding", "true");
-    });
+    // This hook used to type into 'Email address' and 'Password' and press
+    // 'Sign In'. That form is gone (§15.2 = a): /login now offers the provider
+    // door only, because POST /api/session accepts nothing but a verified token.
+    // `loginAs` mints the app session the way every other spec does, and it sets
+    // the onboarding flag this hook was setting by hand.
+    await loginAs(page);
     await page.goto('/setup');
     await page.waitForLoadState('networkidle');
   });

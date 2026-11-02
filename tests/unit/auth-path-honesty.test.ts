@@ -43,9 +43,16 @@ describe("login paths state what actually differs", () => {
   const form = read("src/components/auth/LoginForm.tsx");
   const door = read(DOOR);
 
-  it("names persistence as the difference between the two paths", async () => {
-    const mentionsSave = /(不会?保存|仅保存在|不持久化|no.*sav|not.*persist|本地)/i.test(form);
-    expect(mentionsSave, "LoginForm must tell demo users their session will not be saved").toBe(true);
+  it("names persistence for the one path that has it", () => {
+    // Was "names persistence as the difference between the two paths", which
+    // passed on any of 不会保存 / 不持久化 / 本地 — words that only make sense while
+    // a second, non-persisting path exists. The demo door is gone (§15.2 = a), so
+    // the arm now makes the claim it was standing next to: the door says an
+    // account keeps the session, and no second path is advertised without one.
+    expect(form, "the door no longer says what an account keeps").toMatch(/都会保存/);
+    expect(form, "a second sign-in path reappeared without a disclosure").not.toMatch(
+      /演示账号|type="password"/,
+    );
   });
 
   it("offers an account path and marks it as the saving one", () => {

@@ -398,7 +398,24 @@ test.describe('Automated a11y scans', () => {
     await page.goto('/login');
     await hideDevChrome(page);
     await settleForScan(page);
-    await expectNoSeriousViolations(page, { bgImage: 10, elmPartiallyObscured: 1 });
+    // `elmPartiallyObscuring: 1` is an adjudication, not a cleanup, and it is
+    // recorded here so the next reader sees the trade. The node is the 13px
+    // provider-verification sentence inside the sign-in card. It arrived with the
+    // §15.2 refactor: axe passed this arm on main (run 40447566565, 2026-10-27),
+    // and the only thing that changed is the card's height once the email/password
+    // form left, which moved the sentence across the fixed decorative layer. axe
+    // cannot compute a pair for it and files it as "this text partly covers
+    // something else"; measured in the browser at 1280×720 on 2026-11-02 with
+    // elementFromPoint sampled across the paragraph's box, nothing overlaps it. So
+    // one seat is bought for a harness classification, not for a defect — and it is
+    // one: a second node under this key is a new cause and fails the run. The
+    // product-side fix (an opaque plate under the sentence, or a card that does not
+    // sit on the fixed background) is a design decision this lane should not make.
+    await expectNoSeriousViolations(page, {
+      bgImage: 10,
+      elmPartiallyObscured: 1,
+      elmPartiallyObscuring: 1,
+    });
   });
 
   /**

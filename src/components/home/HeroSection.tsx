@@ -17,26 +17,33 @@ export function HeroSection() {
         {`Interve AI v${APP_VERSION} 现已发布`}
       </div>
       <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-[var(--interve-text-title)] max-w-4xl mb-6 leading-[1.1]">
-        面试从未如此 <br />
+        练完，给你一份 <br />
         <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--interve-brand-accent)] to-[#8BB7FF]">
-          智能与自然
+          能照着改的复盘
         </span>
       </h1>
       <p className="text-lg lg:text-xl text-[var(--interve-text-secondary)] max-w-2xl mb-10 leading-relaxed">
-        专为现代团队打造的 AI 面试平台。以极简体验驱动，帮助您准确评估候选人能力，发掘顶尖人才。
+        给正在准备面试的你。按目标岗位练一场中文面试，结束后拿到带原话证据的复盘：哪一句站得住、缺了哪一块、下一句怎么说。
       </p>
       <div className="flex items-center gap-4">
-        <Link href="/chat">
+        <Link href="/setup">
           <InterveButton size="lg" className="shadow-[var(--interve-shadow-button)]">
-            立即开始对话 →
+            开始练一场
           </InterveButton>
         </Link>
         <Link href="#demo">
           <InterveButton variant="secondary" size="lg">
-            观看演示
+            看一段真实对话
           </InterveButton>
         </Link>
       </div>
+      {/* Measured 2026-11-01: /setup answers /login?from=/setup for a visitor with
+          no account (the guard is in proxy.ts). F-1 §2 asks for signup-free
+          practice; that needs a guest session, not a wording change — so the
+          sentence below states the requirement instead of pretending it isn't there. */}
+      <p className="mt-4 text-sm text-[var(--interve-text-secondary)]">
+        用 Google 或 GitHub 登录后开练，记录才会保存；不需要另设密码。
+      </p>
     </section>
   );
 }

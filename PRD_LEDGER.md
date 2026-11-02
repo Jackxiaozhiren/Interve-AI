@@ -945,3 +945,45 @@ A **custom domain** (any ordinary `.com`) pointed at the project: the block is o
 shared `*.vercel.app` zone, and a custom domain changes the hostname the resolver is
 asked about. That is a purchase-and-CNAME action, which is the owner's to take. Until
 then every link handed to a mainland user is a link they cannot open.
+
+## 27. Merged to `main`, and the door measured on the real deployment (2026-10-31 19:25)
+
+**What was published.** `main` `fe3b6ff → 75b8c1d`, a **fast-forward** of 30 commits
+(`git merge-base --is-ancestor` checked first). The owner's word was "授权，我都听你的"
+in reply to a message that offered exactly two options, the first being "merge to
+`main`". The precondition was checked before pressing: `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` exist in Vercel for **Production and Preview**, which
+`verifySupabaseToken` needs.
+
+No pull request: the GitHub connector's token answers
+`403 Resource not accessible by integration` on `POST /pulls`, so the branch went in by
+push. The trade-off is a review surface that does not exist; the compensating record is
+this section and the commit history.
+
+| reading, on `https://interve-ai.vercel.app` after the deploy | value |
+|---|---|
+| production deployment | **Ready**, source `main @ 75b8c1d` |
+| `POST /api/session` with the browser's **real** Supabase access token (1390 chars) | **200** `{"ok":true}` |
+| `POST /api/session` with no `Authorization` | **401** `UNAUTHORIZED` |
+| `POST /api/session` with `Bearer not-a-real-token` **and a spoofed `id`/`email` in the body** | **401** — the body's identity is not consulted |
+| the owner's pre-existing session (cookie minted by the old build) | still valid: header renders "Jackson Michael" |
+
+The first row is the one that had been missing since §16: until now the acceptance path
+was proven only against a mocked verifier. It is now proven against the live project —
+`auth.getUser` resolves a real token, the identity comes back from the platform, and the
+cookie is signed. **The refusal path is proven at the same time and on the same host**,
+including the spoof attempt that used to succeed.
+
+### Still not done, and now much smaller
+
+A full browser round trip (press Google → consent → fragment → `bridgeSupabaseUser` →
+dashboard) has still not been watched end to end. What is proven is every server step it
+depends on, plus the client's own call shape. The remaining risk is in the glue, not the
+door.
+
+### One thing the deploy made visible
+
+The production landing page speaks to recruiters — "帮助您准确评估候选人能力"、"帮助企业
+高效筛选高匹配度人才" — while the report now speaks to the candidate (§23). Same product,
+two addressees. Not a bug, and not fixed here; it is a copy decision that follows from
+"候选人" and has not been made yet.
