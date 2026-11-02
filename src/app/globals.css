@@ -55,6 +55,32 @@
   --radius-xl: 20px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
+
+  /* ── Type scale (2026-11-02) ──────────────────────────────────────────
+     There was no scale. Measured across every tsx under src: fifteen arbitrary
+     sizes — 15px×61, 13px×55, 11px×55, 14px×45, 10px×34, 12px×25, 9px×11,
+     plus 8, 14.5, 11.5, 16, 17, 18, 22 — and not one use of text-sm/base/lg.
+     Every component picked its own number, which is why two cards of the same
+     rank could differ by 1px for no reason anyone could name.
+
+     These seven names are new on purpose: redefining --text-sm would silently
+     shift every existing text-sm from 14px to something else, across files
+     nobody is looking at. `text-ui-*` is opt-in, and the ratchet in
+     tests/unit/ui-type-scale.test.ts stops the arbitrary ones coming back. */
+  --text-ui-2xs: 11px;
+  --text-ui-2xs--line-height: 1.35;
+  --text-ui-xs: 12px;
+  --text-ui-xs--line-height: 1.4;
+  --text-ui-sm: 13px;
+  --text-ui-sm--line-height: 1.5;
+  --text-ui-base: 14px;
+  --text-ui-base--line-height: 1.6;
+  --text-ui-lg: 15px;
+  --text-ui-lg--line-height: 1.6;
+  --text-ui-xl: 20px;
+  --text-ui-xl--line-height: 1.35;
+  --text-ui-2xl: 28px;
+  --text-ui-2xl--line-height: 1.25;
 }
 
 /* ═══════════════════════════════════════

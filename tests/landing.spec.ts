@@ -8,7 +8,7 @@ test.describe('Landing', () => {
   test('should render hero and primary CTAs', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('link', { name: /免费开始|Sign up/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /免费开始|注册/ }).first()).toBeVisible();
   });
 
   test('login page offers both provider doors and collects no password', async ({ page }) => {
