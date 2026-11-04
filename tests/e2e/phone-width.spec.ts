@@ -113,4 +113,38 @@ test.describe("phone width (390x844)", () => {
   test("/interview keeps its content inside a phone viewport", async ({ page }) => {
     await assertSurfaceFits(page, "/interview", "/interview?id=e2e-phone-width");
   });
+
+  // The claim behind "works on a phone" is not that the room paints, it is that a
+  // candidate can answer. This is the journey the lane could not collect until the
+  // stacking defect was fixed: the stage collapsed to 2px behind three stacked
+  // telemetry cards, its dock floated up over the FlowMap, and the send button
+  // resolved to whatever covered it. Asserting the message reaches the transcript
+  // is the only reading that says the room advanced.
+  test("the room can be advanced at phone width", async ({ page }) => {
+    test.slow();
+    await loginAs(page);
+    await page.goto("/interview?id=e2e-phone-room&testMode=true");
+
+    const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
+    await expect(enter).toBeEnabled({ timeout: 40000 });
+    await enter.click();
+
+    const composer = page.getByPlaceholder("输入文本...");
+    await expect(composer).toBeVisible({ timeout: 20000 });
+    await composer.fill("手机端回答");
+    await page.getByRole("button", { name: /发送消息/ }).click();
+    await expect(page.getByText("手机端回答")).toBeVisible({ timeout: 15000 });
+
+    // And the width this ran at is the width the phone has. When the header's
+    // control row could not wrap it forced a 528px layout viewport, which Chrome
+    // then scaled to fit 390 — every geometry assertion above still passed,
+    // because they compare against `innerWidth`, the widened number. The visual
+    // viewport is the one the finger sees.
+    const widths = await page.evaluate(() => ({
+      inner: window.innerWidth,
+      visual: Math.round(window.visualViewport?.width ?? 0),
+    }));
+    expect(widths.visual, "the lane really is 390 CSS px wide").toBe(390);
+    expect(widths.inner, "nothing widened the layout viewport").toBeLessThanOrEqual(391);
+  });
 });
