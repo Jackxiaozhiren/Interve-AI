@@ -8,8 +8,8 @@
  * transcript panel behind them. One control, rendered by both, so the two
  * exits cannot drift apart in wording, size or destination.
  *
- * The label is load-bearing: tests/e2e/interview-greenroom.spec.ts presses it
- * at each gate, and tests/unit/interview-exit.test.ts holds the wiring.
+ * The label is load-bearing: tests/e2e/interview-exit.spec.ts presses it at each
+ * gate, and tests/unit/interview-exit.test.ts holds the wiring.
  */
 export function LeaveRoomButton({ onExit }: { onExit: () => void }) {
   return (

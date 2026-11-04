@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
  * The Green Room and the standby card each fill the screen (`inset-0`, z-50), so
  * the end-interview control in the transcript panel is behind them; before this,
  * changing your mind meant the browser's back button. The browser proof is in
- * tests/e2e/interview-greenroom.spec.ts — this file is the wiring check that
+ * tests/e2e/interview-exit.spec.ts — this file is the wiring check that
  * survives a refactor of that spec: an exit control that is rendered but not
  * connected is the exact failure a component test would miss without a DOM
  * harness, and this repo has none (unit tests read source, the browser spec
