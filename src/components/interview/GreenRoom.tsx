@@ -6,13 +6,15 @@ import { Microphone, WarningCircle, CheckCircle, ArrowRight, ArrowClockwise } fr
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/interview/LiveWaveform";
 import { micConstraints, getPreferredMicDevice, setPreferredMicDevice } from "@/lib/audio/vad";
+import { LeaveRoomButton } from "@/components/interview/LeaveRoomButton";
 
 interface GreenRoomProps {
   onComplete: () => void;
   onBypass: () => void;
+  onExit: () => void;
 }
 
-export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
+export function GreenRoom({ onComplete, onBypass, onExit }: GreenRoomProps) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0);
@@ -213,6 +215,11 @@ export function GreenRoom({ onComplete, onBypass }: GreenRoomProps) {
           >
             跳过语音测试，以纯文本模式继续
           </button>
+
+          {/* The room is a gate, not a trap: before this, opening an interview and
+              changing your mind meant the browser's back button, which is not an
+              affordance the product should outsource. */}
+          <LeaveRoomButton onExit={onExit} />
         </div>
       </motion.div>
     </div>
