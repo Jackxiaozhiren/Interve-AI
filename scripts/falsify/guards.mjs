@@ -1301,16 +1301,8 @@ const PLANTS = [
     pattern: "marks a sentence an earlier item already cited",
   },
   // ── the interview room's way out ──────────────────────────────────────────
-  {
-    name: "EXIT1",
-    desc: "the Green Room keeps its exit button but stops calling anything, which is the shape a component test cannot see",
-    kind: "vitest",
-    file: "src/app/interview/page.tsx",
-    anchor: `        onBypass={() => setIsGreenRoom(false)} \n        onExit={() => router.push("/dashboard")}`,
-    replacement: `        onBypass={() => setIsGreenRoom(false)} `,
-    test: "tests/unit/interview-exit.test.ts",
-    pattern: "the page connects both gates to the same destination",
-  },
+  // EXIT1 lives in plants.json: its rows are data, and a structurally identical
+  // object literal here is what SonarCloud counted as duplicated new code.
   // ── guards that assert an absence and had no witness of any kind ───────────
   // Each of these suites reads a corpus (src/, a workflow, the Dockerfile) and asserts
   // something is absent from it. With nothing planted, "found none" and "cannot see

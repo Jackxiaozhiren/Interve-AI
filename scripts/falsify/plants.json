@@ -1110,6 +1110,15 @@
       "count": 6,
       "test": "tests/unit/prose-font-floor.test.ts",
       "pattern": "excluded by tag"
+    },
+    {
+      "name": "EXIT1",
+      "desc": "the Green Room keeps its exit button but stops calling anything, which is the shape a component test cannot see",
+      "file": "src/app/interview/page.tsx",
+      "anchor": "        onBypass={() => setIsGreenRoom(false)} \n        onExit={() => router.push(\"/dashboard\")}",
+      "replacement": "        onBypass={() => setIsGreenRoom(false)} ",
+      "test": "tests/unit/interview-exit.test.ts",
+      "pattern": "the page connects both gates to the same destination"
     }
   ]
 }
