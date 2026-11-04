@@ -951,7 +951,9 @@ function InterviewRoomContent() {
         onToggleFocusMode={toggleFocusMode}
       />
 
-      <div className="px-2 shrink-0">
+      {/* The stage progress read-out is a desktop affordance: on a phone it costs
+          106px of a 844px screen and pushed the room's own panels below the fold. */}
+      <div className="px-2 shrink-0 max-md:hidden">
         <FlowMap messageCount={messages.length} />
       </div>
 
@@ -959,7 +961,12 @@ function InterviewRoomContent() {
       <div className="flex flex-col lg:grid lg:grid-cols-12 flex-1 overflow-hidden gap-4 px-2 pb-2">
         
         {/* Left: 70% (Bento Stack) */}
-        <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-4 overflow-hidden">
+        {/* On a phone the two columns stack, and without a floor neither gets a
+            usable height: the transcript's content won and this column collapsed
+            to 18px, which in turn let the dock (absolute bottom-8) float up over
+            the FlowMap row. Sharing the split instead of letting either column
+            win keeps both panels real and the dock inside its stage. */}
+        <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-4 overflow-hidden max-lg:flex-1 max-lg:min-h-0">
            {/* Top: AI Avatar (Main Bento Card) */}
                       <RoomStage
              framework={framework}

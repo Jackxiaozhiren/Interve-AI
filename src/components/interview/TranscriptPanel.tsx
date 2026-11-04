@@ -38,7 +38,7 @@ export function TranscriptPanel({
   isEnding: boolean;
 }) {
   return (
-    <div className="w-full lg:w-[400px] flex flex-col glass rounded-[32px] overflow-hidden shrink-0 h-[50vh] lg:h-auto mb-2 mr-2">
+    <div className="w-full lg:w-[400px] flex flex-col glass rounded-[32px] overflow-hidden shrink-0 h-[42svh] lg:h-auto mb-2 mr-2">
       <div className="px-6 py-5 border-b border-white/40 flex justify-between items-center z-10 relative">
         <h2 className="font-heading font-medium text-slate-800 text-[15px]">实时对话</h2>
         <div className="flex items-center gap-2">
