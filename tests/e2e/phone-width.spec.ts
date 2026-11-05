@@ -7,7 +7,7 @@
 // page looks the same as last time, while these say the content column is wide
 // enough to read and that nothing pushes the document sideways.
 import { test, expect, type Page } from "@playwright/test";
-import { loginAs } from "../helpers";
+import { createPostgrestStub, loginAs, seedSupabaseSession } from "../helpers";
 
 /**
  * The shared body for the two non-dashboard surfaces. Kept as a function rather
@@ -189,5 +189,158 @@ test.describe("phone width (390x844)", () => {
     }));
     expect(widths.visual, "the lane really is 390 CSS px wide").toBe(390);
     expect(widths.inner, "nothing widened the layout viewport").toBeLessThanOrEqual(391);
+  });
+});
+
+// The report is what a candidate screenshots for a mentor, and at 390px it used
+// to open with 576px of dashboard navigation and a 124px-wide title — eight
+// characters at 30px stacked into three lines beside a badge. These are the
+// readings that made that visible, asserted so the next sidebar edit cannot
+// quietly put them back.
+test.describe("report at phone width", () => {
+  test("the title is readable and the first improvements are in reach", async ({ page }) => {
+    test.setTimeout(180000);
+    await page.route("**/rest/v1/*", createPostgrestStub());
+    const uid = await seedSupabaseSession(page);
+    await loginAs(page, "report@example.com", uid);
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+
+    const created = await page.evaluate(async () => {
+      const quote =
+        "那次优化我们主要做了路由懒加载和组件拆分，整体来说页面渲染的速度大概是快了一点点，具体没有做很精确的测量，但是从用户反馈来看体验是有提升的。";
+      const res = await fetch("/rest/v1/interviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "PROBE report",
+          status: "completed",
+          created_at: "2026-11-01T08:00:00.000Z",
+          evaluation_v2: {
+            version: "2.0",
+            rubricId: "general-v1",
+            readiness: "developing",
+            readinessRationale:
+              "这是一段用于测量布局的总评文字，长度接近真实报告的一段分析，用来观察在 390 像素宽度下的换行与卡片高度。",
+            dimensions: [
+              { id: "specificity", score: 2, evidence: [quote], rationale: "没有数字，听众无法判断量级。", confidence: "high", improvement: "重录第 2 题，把结果量化成一个数字。" },
+              { id: "star_completeness", score: 3, evidence: [quote], rationale: "只说了职责，没有说任务与结果。", confidence: "medium", improvement: "补上 Result：项目上线后发生了什么。" },
+              { id: "ownership", score: 4, evidence: [quote], rationale: "有主语，但决策过程没说清。", confidence: "high", improvement: "说清你做的那个决定，以及为什么。" },
+            ],
+            strengths: ["Fixture strength"],
+            weaknesses: ["Fixture gap"],
+            nextDrills: ["Fixture drill"],
+            trainingRoadmap: {
+              technical: ["路由懒加载与代码分割"],
+              behavioral: ["用 STAR 说清结果"],
+              resources: ["React 性能优化指南"],
+            },
+            qaReview: [],
+          },
+          transcript: [
+            { id: "m1", role: "assistant", content: "先做个自我介绍吧。" },
+            { id: "m2", role: "user", content: "我有三年 React 经验。" },
+            { id: "m3", role: "assistant", content: "那次性能优化带来多少提升？" },
+            { id: "m4", role: "user", content: quote },
+          ],
+        }),
+      });
+      return (await res.json()) as { id: number };
+    });
+
+    await page.goto(`/dashboard/report/${created.id}`, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("main");
+    // The block is the measurement target; waiting for it is a condition, not a
+    // clock. `waitForTimeout` here was rejected by the sleep-class guard, and the
+    // retrying assertion is the better wait anyway.
+    await expect(page.getByRole("region", { name: /本次最该改的三件事/ })).toBeVisible({ timeout: 30000 });
+
+    const m = await page.evaluate(() => {
+      const vw = window.innerWidth;
+      const round = (n: number) => Math.round(n);
+      const box = (el: Element | null) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { w: round(r.width), h: round(r.height), top: round(r.top), right: round(r.right) };
+      };
+      const isContent = (el: Element) => {
+        if (el.getAttribute("aria-hidden") === "true") return false;
+        const tag = el.tagName.toLowerCase();
+        if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) return true;
+        return ((el as HTMLElement).innerText ?? "").trim().length > 0;
+      };
+      const past = Array.from(document.querySelectorAll("body *"))
+        .filter(isContent)
+        .map((el) => ({ el, r: el.getBoundingClientRect() }))
+        .filter(({ r }) => r.right > vw + 1 && r.width > 0)
+        .sort((a, b) => b.r.right - a.r.right)
+        .slice(0, 8)
+        .map(
+          ({ el, r }) =>
+            `${el.tagName.toLowerCase()}.${String((el as HTMLElement).className).slice(0, 70)} right=${round(r.right)} w=${round(r.width)}`,
+        );
+      const main = document.querySelector("main");
+      const h1 = document.querySelector("h1");
+      const landmarks = Array.from(document.querySelectorAll("nav, aside, main")).map((el) => ({
+        tag: el.tagName.toLowerCase(),
+        cls: String((el as HTMLElement).className).slice(0, 44),
+        ...box(el),
+      }));
+      const chain: { tag: string; cls: string; w: number; h: number }[] = [];
+      let node: Element | null = h1;
+      while (node && node !== document.body) {
+        const r = node.getBoundingClientRect();
+        chain.push({
+          tag: node.tagName.toLowerCase(),
+          cls: String((node as HTMLElement).className).slice(0, 50),
+          w: round(r.width),
+          h: round(r.height),
+        });
+        node = node.parentElement;
+      }
+      const aside = document.querySelector("aside");
+      const reportMain = document.querySelector("main.max-w-6xl");
+      const h1Box = h1?.getBoundingClientRect();
+      const improvements = document
+        .querySelector("[aria-labelledby='top-improvements-heading']")
+        ?.getBoundingClientRect();
+      return {
+        vw,
+        visual: round(window.visualViewport?.width ?? 0),
+        docScroll: document.documentElement.scrollWidth,
+        asideH: aside ? round(aside.getBoundingClientRect().height) : 0,
+        reportMainTop: reportMain ? round(reportMain.getBoundingClientRect().top) : 0,
+        h1W: h1Box ? round(h1Box.width) : 0,
+        h1H: h1Box ? round(h1Box.height) : 0,
+        improvementsTop: improvements ? round(improvements.top) : 9999,
+        landmarks,
+        chain,
+        main: main ? { ...box(main), padding: getComputedStyle(main).padding } : null,
+        h1: h1 ? { size: getComputedStyle(h1).fontSize, ...box(h1) } : null,
+        topBlock: box(document.querySelector("[aria-labelledby='top-improvements-heading']")),
+        cards: Array.from(document.querySelectorAll("main [class*='rounded-']"))
+          .slice(0, 14)
+          .map((el) => {
+            const cs = getComputedStyle(el);
+            return { cls: String((el as HTMLElement).className).slice(0, 46), ...box(el), p: cs.padding };
+          }),
+        past,
+      };
+    });
+    // 576px of navigation left the report below the fold; a phone-width shell
+    // keeps the same five destinations in one scrollable row.
+    expect(m.asideH, "the dashboard navigation no longer eats the first screen").toBeLessThanOrEqual(280);
+    expect(m.reportMainTop, "the report starts near the top of the document").toBeLessThanOrEqual(400);
+
+    // 124px was the measured width of the heading before the change: a badge and
+    // a non-wrapping row split 302px between them, and eight characters at 30px
+    // stacked into three lines.
+    expect(m.h1W, "the heading uses the content width, not a 124px column").toBeGreaterThanOrEqual(250);
+    expect(m.h1H, "the heading is one line, not three").toBeLessThanOrEqual(48);
+
+    // The whole point of the page: what to change. A heading 1020px down is not a
+    // first screen.
+    const viewportHeight = page.viewportSize()?.height ?? 844;
+    expect(m.improvementsTop, `the first improvements start at ${m.improvementsTop}px`).toBeLessThanOrEqual(viewportHeight);
+    expect(m.docScroll, "nothing pushes the document sideways").toBeLessThanOrEqual(m.vw + 1);
   });
 });
