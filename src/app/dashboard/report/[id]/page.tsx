@@ -209,8 +209,12 @@ export default function InterviewReportPage() {
         <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="space-y-8">
           
           {/* Header */}
-          <motion.div variants={fadeIn} className="flex items-center justify-between mb-5">
-            <div>
+          {/* Below sm the badge moves under the heading instead of competing for
+              the same row: at 390px the row split 302px between them and left
+              the title a 124px column, so eight characters at 30px stacked into
+              three lines. */}
+          <motion.div variants={fadeIn} className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
               <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-2 text-slate-500 hover:text-slate-900 -ml-2">
                 <ArrowLeft className="w-4 h-4 mr-2" /> 返回控制台
               </Button>
