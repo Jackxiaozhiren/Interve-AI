@@ -114,6 +114,49 @@ test.describe("phone width (390x844)", () => {
     await assertSurfaceFits(page, "/interview", "/interview?id=e2e-phone-width");
   });
 
+  // Seven toggles in a single row needed 436px — wider than the phone — and the
+  // menu is what replaced them. This asserts both halves of that trade: the bar
+  // is short again, and every toggle it used to carry is still one press away.
+  test("the room header fits a phone and keeps every toggle reachable", async ({ page }) => {
+    test.slow();
+    await loginAs(page);
+    await page.goto("/interview?id=e2e-phone-header&testMode=true");
+
+    // The standby card covers the bar until the interview starts; the toggles are
+    // what a candidate reaches for mid-answer, so that is the state measured here.
+    const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
+    await expect(enter).toBeEnabled({ timeout: 40000 });
+    await enter.click();
+    await expect(page.locator("header").first()).toBeVisible({ timeout: 20000 });
+
+    const header = page.locator("header").first();
+    const box = await header.boundingBox();
+    expect(Math.round(box?.height ?? 0), "the bar no longer eats a sixth of the screen").toBeLessThanOrEqual(90);
+
+    const more = page.getByRole("button", { name: "更多设置" });
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    await more.click();
+    await expect(more).toHaveAttribute("aria-expanded", "true");
+
+    const panel = page.locator("#room-more-toggles");
+    await expect(panel).toBeVisible();
+    // The seven descriptors render on both sides of the breakpoint; counting them
+    // here is what stops one from going missing in the phone menu.
+    await expect(panel.getByRole("button")).toHaveCount(7);
+
+    const captions = panel.getByRole("button", { name: /开启实时字幕/ });
+    await expect(captions).toHaveAttribute("aria-pressed", "false");
+    await captions.click();
+    await expect(panel.getByRole("button", { name: /关闭字幕/ })).toHaveAttribute("aria-pressed", "true");
+
+    const widths = await page.evaluate(() => ({
+      inner: window.innerWidth,
+      visual: Math.round(window.visualViewport?.width ?? 0),
+    }));
+    expect(widths.visual).toBe(390);
+    expect(widths.inner).toBeLessThanOrEqual(391);
+  });
+
   // The claim behind "works on a phone" is not that the room paints, it is that a
   // candidate can answer. This is the journey the lane could not collect until the
   // stacking defect was fixed: the stage collapsed to 2px behind three stacked

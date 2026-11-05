@@ -32,8 +32,9 @@ const FLOOR = 11;
 
 type Para = { file: string; line: number; px: number; classes: string };
 
-const collect = (files: string[]): { paragraphs: number; underFloor: Para[] } => {
+const collect = (files: string[]): { paragraphs: number; byFile: Map<string, number>; underFloor: Para[] } => {
   const underFloor: Para[] = [];
+  const byFile = new Map<string, number>();
   let paragraphs = 0;
   for (const f of files) {
     const src = readFileSync(path.resolve(process.cwd(), f), "utf8");
@@ -42,6 +43,7 @@ const collect = (files: string[]): { paragraphs: number; underFloor: Para[] } =>
       const el = ts.isJsxElement(n) ? n.openingElement : ts.isJsxSelfClosingElement(n) ? n : null;
       if (el && el.tagName.getText(sf) === "p") {
         paragraphs++;
+        byFile.set(f, (byFile.get(f) ?? 0) + 1);
         const attr = el.attributes.properties.find(
           (p) => ts.isJsxAttribute(p) && p.name.getText() === "className"
         ) as ts.JsxAttribute | undefined;
@@ -64,20 +66,26 @@ const collect = (files: string[]): { paragraphs: number; underFloor: Para[] } =>
     };
     visit(sf);
   }
-  return { paragraphs, underFloor };
+  return { paragraphs, byFile, underFloor };
 };
 
-const CENSUS = collect(walkRepo("src", (rel) => rel.endsWith(".tsx")));
+const TSX_FILES = walkRepo("src", (rel) => rel.endsWith(".tsx"));
+const CENSUS = collect(TSX_FILES);
 
 // An independent read of the same population, deliberately by a different method: a
 // count-only floor cannot fail for a widened matcher, because `span` is more common
 // than `p` and a guard that matched badges instead of prose would still report
-// hundreds of elements and stay green (GFX2 proved exactly that). The two counts
-// agreeing is the check; either one going alone is not.
-const TEXT_PARAGRAPHS = walkRepo("src", (rel) => rel.endsWith(".tsx")).reduce(
-  (n, f) => n + (readFileSync(path.resolve(process.cwd(), f), "utf8").match(/<p[\s>]/g)?.length ?? 0),
-  0
-);
+// hundreds of elements and stay green (GFX2 proved exactly that). The comparison is
+// per file, not just between two totals: totals can agree by accident, and did here.
+// A header rewrite added four `<span>`s, which brought that population to exactly
+// the 259 `<p>` tags, so GFX2's "match spans instead" plant stayed green while the
+// census read the wrong population. Two different populations cannot agree in every
+// file unless the walk really is reading `<p>`.
+const TEXT_BY_FILE = TSX_FILES.map((f) => ({
+  file: f,
+  count: readFileSync(path.resolve(process.cwd(), f), "utf8").match(/<p[\s>]/g)?.length ?? 0,
+}));
+const TEXT_PARAGRAPHS = TEXT_BY_FILE.reduce((n, row) => n + row.count, 0);
 
 describe("paragraph text keeps a readable floor", () => {
   it(`the census counts the paragraphs that are there (${CENSUS.paragraphs} by AST, ${TEXT_PARAGRAPHS} by text)`, () => {
@@ -93,6 +101,12 @@ describe("paragraph text keeps a readable floor", () => {
       CENSUS.paragraphs,
       `the AST walk found ${CENSUS.paragraphs} paragraphs and the text read found ${TEXT_PARAGRAPHS}: the rule is not looking at the population it names`
     ).toBe(TEXT_PARAGRAPHS);
+    for (const row of TEXT_BY_FILE) {
+      expect(
+        CENSUS.byFile.get(row.file) ?? 0,
+        `${row.file}: the AST census found ${CENSUS.byFile.get(row.file) ?? 0} paragraphs, but a text read found ${row.count} <p> tags — totals agreeing is not enough`
+      ).toBe(row.count);
+    }
   });
 
   it(`no paragraph renders below ${FLOOR}px`, () => {

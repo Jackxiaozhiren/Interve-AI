@@ -13,7 +13,7 @@
   2026-10-04, not deferred.** Measured against a production build the report-only
   header emitted 9-12 console violations on every route, including one for
   Next.js's own inline bootstrap script, so its end state was unreachable on both
-  the style axis (57 inline `style={{}}` attributes across 34 files) and the
+  the style axis (58 inline `style={{}}` attributes across 35 files) and the
   script axis (nonces need a custom server this deployment does not have). Its
   reports went to `/api/csp-report`, which logs to stdout and has no reader. A
   permanent error stream that blocks nothing is noise that hides the violations
