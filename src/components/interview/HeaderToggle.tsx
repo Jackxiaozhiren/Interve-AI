@@ -19,6 +19,7 @@ export function HeaderToggle({
   title,
   label,
   extraClassName = "",
+  withLabel = false,
   children,
 }: {
   active: boolean;
@@ -27,19 +28,22 @@ export function HeaderToggle({
   title: string;
   label: string;
   extraClassName?: string;
+  /** In the phone menu a bare icon is a guess; the row carries its name. */
+  withLabel?: boolean;
   children: ReactNode;
 }) {
   return (
     <Button
       variant="ghost"
-      size="icon-sm"
+      size={withLabel ? "default" : "icon-sm"}
       onClick={onClick}
-      className={`rounded-full transition-all duration-300 ${extraClassName} ${active ? activeClass : IDLE}`}
+      className={`transition-all duration-300 ${withLabel ? "h-auto w-full justify-start gap-2 rounded-2xl px-3 py-2 text-sm" : "rounded-full"} ${extraClassName} ${active ? activeClass : IDLE}`}
       title={title}
       aria-label={label}
       aria-pressed={active}
     >
       {children}
+      {withLabel && <span className="truncate text-left">{label}</span>}
     </Button>
   );
 }

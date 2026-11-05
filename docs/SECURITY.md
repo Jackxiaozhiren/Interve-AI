@@ -82,7 +82,7 @@
   `tests/unit/csp-scope.test.ts`, which re-derives the inline-style count and the
   host↔disclosure mapping every run. `style-src 'unsafe-inline'` and
   `connect-src *` remain and are stated here rather than glossed: the first is
-  required by 57 `style={{}}` attributes across 34 files plus Next's own inline
+  required by 58 `style={{}}` attributes across 35 files plus Next's own inline
   bootstrap script (nonces need a custom server this deployment does not have),
   and the second by the runtime model download.
 - Rate limiting: **per instance, in-memory.** There is no Upstash or other
