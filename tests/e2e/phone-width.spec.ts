@@ -344,3 +344,131 @@ test.describe("report at phone width", () => {
     expect(m.docScroll, "nothing pushes the document sideways").toBeLessThanOrEqual(m.vw + 1);
   });
 });
+
+// The console's session rows and the settings controls were the last two
+// dashboard surfaces no phone lane measured. Both kept `scrollWidth <= innerWidth`,
+// which is why the desktop lanes stayed green: the row clipped its own metadata
+// inside `overflow-hidden`, and the settings buttons were simply short. Neither
+// defect is visible to a "no horizontal scrollbar" assertion.
+test.describe("dashboard surfaces at phone width", () => {
+  /**
+   * A link at right=759 inside the sidebar's horizontal strip is reachable by
+   * swiping; a badge at right=476 inside an `overflow-hidden` card is gone for
+   * good. The scroller test keeps those apart, so "nothing past the edge" can be
+   * asserted without forbidding the strip that replaced the 576px column.
+   */
+  const readGeometry = (page: Page) =>
+    page.evaluate(() => {
+      const vw = window.innerWidth;
+      const round = (n: number) => Math.round(n);
+      const isContent = (el: Element) => {
+        if (el.getAttribute("aria-hidden") === "true") return false;
+        const tag = el.tagName.toLowerCase();
+        if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) return true;
+        return ((el as HTMLElement).innerText ?? "").trim().length > 0;
+      };
+      const inScroller = (el: Element) => {
+        let p: Element | null = el.parentElement;
+        while (p && p !== document.body) {
+          const cs = getComputedStyle(p);
+          if ((cs.overflowX === "auto" || cs.overflowX === "scroll") && p.scrollWidth > p.clientWidth + 1) return true;
+          p = p.parentElement;
+        }
+        return false;
+      };
+      const clipped = Array.from(document.querySelectorAll("body *"))
+        .filter(isContent)
+        .filter((el) => !inScroller(el))
+        .map((el) => ({ el, r: el.getBoundingClientRect() }))
+        .filter(({ r }) => r.right > vw + 1 && r.width > 0)
+        .sort((a, b) => b.r.right - a.r.right)
+        .slice(0, 8)
+        .map(({ el, r }) => `${el.tagName.toLowerCase()}.${String((el as HTMLElement).className).slice(0, 60)} right=${round(r.right)}`);
+      const card = document.querySelector("[aria-label^='查看面试详情']");
+      const title = card?.querySelector("h3") ?? null;
+      const date = card
+        ? Array.from(card.querySelectorAll("span")).find((el) =>
+            /^\d{4}-\d{2}-\d{2}/.test((el as HTMLElement).innerText?.trim() ?? ""),
+          ) ?? null
+        : null;
+      const small = Array.from(document.querySelectorAll("main button, main a[href]"))
+        .map((el) => ({ el, r: el.getBoundingClientRect() }))
+        // Layout can leave a 44px control at 43.98px; comparing the rounded
+        // value keeps a sub-pixel rounding from reading as a too-small target.
+        .filter(({ r }) => r.width > 0 && r.height > 0 && round(r.height) < 44)
+        .slice(0, 12)
+        .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el as HTMLElement).innerText?.trim().slice(0, 22) || el.getAttribute("aria-label") || ""}" ${round(r.width)}x${round(r.height)}`);
+      return {
+        vw,
+        visual: round(window.visualViewport?.width ?? 0),
+        docScroll: document.documentElement.scrollWidth,
+        clipped,
+        titleW: title ? round(title.getBoundingClientRect().width) : 0,
+        dateH: date ? round(date.getBoundingClientRect().height) : 0,
+        small,
+      };
+    });
+
+  /** Two scored sessions: the readiness badge only renders with a V2 evaluation. */
+  const seedSessions = async (page: Page) => {
+    await page.route("**/rest/v1/*", createPostgrestStub());
+    const uid = await seedSupabaseSession(page);
+    await loginAs(page);
+    await page.evaluate(async ({ owner }) => {
+      for (let i = 0; i < 2; i++) {
+        await fetch("https://placeholder.supabase.co/rest/v1/interviews", {
+          method: "POST",
+          headers: { "content-type": "application/json", prefer: "return=representation" },
+          body: JSON.stringify({
+            title: `Phone session ${i + 1}`,
+            status: "completed",
+            createdAt: new Date(Date.parse("2026-10-01T00:00:00Z") + i * 86400000).toISOString(),
+            updatedAt: new Date(Date.parse("2026-10-01T00:00:00Z") + i * 86400000).toISOString(),
+            user_id: owner,
+            evaluationV2: {
+              version: "2.0", rubricId: "general-v1", readiness: "developing", readinessRationale: "probe",
+              dimensions: [{ id: "clarity", score: 3 + i, evidence: ["x"], rationale: "r", confidence: "high", improvement: "i" }],
+              strengths: ["s"], weaknesses: ["w"], nextDrills: ["d"], qaReview: [],
+            },
+          }),
+        });
+      }
+    }, { owner: uid });
+  };
+
+  test("session rows keep their metadata inside the viewport", async ({ page }) => {
+    test.setTimeout(180000);
+    await seedSessions(page);
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Average Score", { exact: true })).toBeVisible({ timeout: 30000 });
+
+    const m = await readGeometry(page);
+    expect(m.visual, "the lane really is 390 CSS px wide").toBe(390);
+    // Before the fix both rows clipped their readiness badge at right=476, and
+    // the title column had 87px left after a 96px score circle and 32px gutters.
+    expect(m.clipped, "no content is clipped past the right edge").toEqual([]);
+    expect(m.titleW, "the session title keeps a readable column").toBeGreaterThanOrEqual(170);
+    expect(m.dateH, "the timestamp stays on one line").toBeLessThanOrEqual(28);
+    expect(m.docScroll, "no horizontal scroll").toBeLessThanOrEqual(m.vw + 1);
+  });
+
+  test("settings controls are large enough to press", async ({ page }) => {
+    test.setTimeout(180000);
+    await loginAs(page);
+    await page.goto("/dashboard/settings", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 30000 });
+
+    const m = await readGeometry(page);
+    // `size="sm"` is 32px and the default is 36px; on a touch screen the
+    // language, four preference and sign-out controls were all below 44px.
+    expect(m.small, "every control in the page body is at least 44px tall").toEqual([]);
+    expect(m.clipped, "no content is clipped past the right edge").toEqual([]);
+    expect(m.docScroll, "no horizontal scroll").toBeLessThanOrEqual(m.vw + 1);
+
+    // Enlarging a button must not cost it its behaviour.
+    const language = page.locator("main [role='group'] button");
+    await expect(language).toHaveCount(2);
+    await language.nth(1).click();
+    await expect(language.nth(1)).toHaveAttribute("aria-pressed", "true");
+  });
+});
