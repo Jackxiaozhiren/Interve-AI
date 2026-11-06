@@ -61,7 +61,7 @@ export default function SettingsPage() {
                   size="sm"
                   onClick={() => setLang("en")}
                   aria-pressed={lang === "en"}
-                  className={lang === "en" ? "bg-slate-900 hover:bg-slate-800 text-white" : ""}
+                  className={lang === "en" ? "min-h-11 bg-slate-900 hover:bg-slate-800 text-white" : "min-h-11"}
                 >
                   {t.settings.english}
                 </Button>
@@ -70,7 +70,7 @@ export default function SettingsPage() {
                   size="sm"
                   onClick={() => setLang("zh")}
                   aria-pressed={lang === "zh"}
-                  className={lang === "zh" ? "bg-slate-900 hover:bg-slate-800 text-white" : ""}
+                  className={lang === "zh" ? "min-h-11 bg-slate-900 hover:bg-slate-800 text-white" : "min-h-11"}
                 >
                   {t.settings.chinese}
                 </Button>
@@ -96,7 +96,7 @@ export default function SettingsPage() {
                   onClick={toggle}
                   aria-pressed={on}
                   aria-label={`${t.settings[key]}: ${on ? t.settings.on : t.settings.off}`}
-                  className={on ? "bg-slate-900 hover:bg-slate-800 text-white min-w-16" : "min-w-16"}
+                  className={on ? "min-h-11 min-w-16 bg-slate-900 hover:bg-slate-800 text-white" : "min-h-11 min-w-16"}
                 >
                   {on ? t.settings.on : t.settings.off}
                 </Button>
@@ -197,7 +197,7 @@ export default function SettingsPage() {
               </div>
               <Button
                 variant="outline"
-                className="shrink-0 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                className="min-h-11 shrink-0 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
                 onClick={() => void logout()}
               >
                 <SignOut className="w-4 h-4 mr-2" aria-hidden />

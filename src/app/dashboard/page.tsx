@@ -376,12 +376,14 @@ export default function DashboardPage() {
                     setSelectedSession(session);
                   }
                 }}
-                className="bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/60 hover:border-white rounded-[2.5rem] p-8 shadow-[0_4px_20px_-6px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.1)] transition-all duration-500 ease-out cursor-pointer relative overflow-hidden group hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/60 hover:border-white rounded-[2.5rem] p-5 sm:p-8 shadow-[0_4px_20px_-6px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.1)] transition-all duration-500 ease-out cursor-pointer relative overflow-hidden group hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-sky-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                <div className="flex items-center gap-8 relative z-10">
-                  {/* Score Circle (Phase 4: unified V2/legacy score) */}
-                  <div className="shrink-0 w-20 h-20 rounded-full bg-slate-50 border-2 border-slate-100 flex flex-col items-center justify-center group-hover:border-sky-200 group-hover:bg-sky-50/50 transition-colors duration-500">
+                <div className="flex items-center gap-3 sm:gap-8 relative z-10">
+                  {/* Score Circle (Phase 4: unified V2/legacy score). At 390px
+                      an 80px circle plus 32px gutters left the title 87px wide
+                      and pushed the readiness badge past the clipped edge. */}
+                  <div className="shrink-0 w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-slate-50 border-2 border-slate-100 flex flex-col items-center justify-center group-hover:border-sky-200 group-hover:bg-sky-50/50 transition-colors duration-500">
                     {sessionScore(session) !== null ? (
                       <>
                         <span className="text-2xl font-bold text-[#111111] leading-none">
@@ -399,7 +401,7 @@ export default function DashboardPage() {
                     <h3 className="text-xl font-semibold text-[#111111] truncate group-hover:text-sky-800 transition-colors duration-300">
                       {session.title || "Untitled Session"}
                     </h3>
-                    <div className="flex items-center gap-4 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                       <span className="flex items-center gap-1.5 text-sm text-slate-500">
                         <CalendarBlank weight="regular" className="w-4 h-4" />
                         {format(new Date(session.createdAt), "yyyy-MM-dd HH:mm")}
@@ -423,7 +425,7 @@ export default function DashboardPage() {
 
                   {/* Action */}
                   <div className="shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-sky-700 text-muted-foreground group-hover:text-white flex items-center justify-center transition-all duration-500 shadow-[0_0_0_0px_transparent] group-hover:shadow-[0_8px_20px_rgba(14,165,233,0.3)]">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-50 group-hover:bg-sky-700 text-muted-foreground group-hover:text-white flex items-center justify-center transition-all duration-500 shadow-[0_0_0_0px_transparent] group-hover:shadow-[0_8px_20px_rgba(14,165,233,0.3)]">
                       <Play weight="fill" className="w-5 h-5" />
                     </div>
                   </div>
