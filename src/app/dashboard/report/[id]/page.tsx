@@ -205,7 +205,10 @@ export default function InterviewReportPage() {
         />
       </div>
 
-      <main className="max-w-6xl mx-auto px-6 pt-8 relative z-10">
+      {/* The shell's <main> already carries `p-5` at phone width; a second
+          `px-6` here stacked 44px of gutter on each side and left the whole
+          report in a 302px column. From sm up, keep the original inset. */}
+      <main className="max-w-6xl mx-auto px-0 sm:px-6 pt-8 relative z-10">
         <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="space-y-8">
           
           {/* Header */}
@@ -346,7 +349,13 @@ export default function InterviewReportPage() {
                 <h2 className="text-xl font-bold text-slate-800">能力雷达图</h2>
               </div>
               
-              <div className="w-full h-[280px] -mt-4">
+              {/* `svg:not(:root)` is `overflow: hidden` by UA stylesheet. At
+                  390px a long axis name such as `star_completeness` is drawn
+                  past the viewBox and silently cut, even though the text is
+                  still inside the viewport. Let it paint into the card's own
+                  padding instead; from sm up the chart is wide enough that
+                  nothing reaches the edge. */}
+              <div className="w-full h-[280px] -mt-4 [&_.recharts-surface]:overflow-visible">
                 {radarData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={280}>
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>

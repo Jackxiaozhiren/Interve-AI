@@ -63,6 +63,130 @@ async function assertSurfaceFits(page: Page, route: string, path: string): Promi
   expect(m.widest, `nothing reaches past the viewport on ${route}: ${m.offenders.join(" | ")}`).toBeLessThanOrEqual(m.vw + 1);
 }
 
+/**
+ * Render one real V2 report through the PostgREST stub and leave the page on it.
+ * Every phone-width report assertion uses this same row, so the first-screen and
+ * body readings cannot drift into measuring two different fixtures. Three
+ * dimensions, a roadmap and a four-turn transcript are the minimum that makes
+ * the radar, the dimension cards and the transcript bubbles all render.
+ */
+async function openReportAtPhoneWidth(page: Page): Promise<void> {
+  await page.route("**/rest/v1/*", createPostgrestStub());
+  const uid = await seedSupabaseSession(page);
+  await loginAs(page, "report@example.com", uid);
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+
+  const created = await page.evaluate(async () => {
+    const quote =
+      "那次优化我们主要做了路由懒加载和组件拆分，整体来说页面渲染的速度大概是快了一点点，具体没有做很精确的测量，但是从用户反馈来看体验是有提升的。";
+    const res = await fetch("/rest/v1/interviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Phone layout report",
+        status: "completed",
+        created_at: "2026-11-01T08:00:00.000Z",
+        evaluation_v2: {
+          version: "2.0",
+          rubricId: "general-v1",
+          readiness: "developing",
+          readinessRationale:
+            "这是一段用于测量布局的总评文字，长度接近真实报告的一段分析，用来观察在 390 像素宽度下的换行与卡片高度。",
+          dimensions: [
+            { id: "specificity", score: 2, evidence: [quote], rationale: "没有数字，听众无法判断量级。", confidence: "high", improvement: "重录第 2 题，把结果量化成一个数字。" },
+            { id: "star_completeness", score: 3, evidence: [quote], rationale: "只说了职责，没有说任务与结果。", confidence: "medium", improvement: "补上 Result：项目上线后发生了什么。" },
+            { id: "ownership", score: 4, evidence: [quote], rationale: "有主语，但决策过程没说清。", confidence: "high", improvement: "说清你做的那个决定，以及为什么。" },
+          ],
+          strengths: ["Fixture strength"],
+          weaknesses: ["Fixture gap"],
+          nextDrills: ["Fixture drill"],
+          trainingRoadmap: {
+            technical: ["路由懒加载与代码分割"],
+            behavioral: ["用 STAR 说清结果"],
+            resources: ["React 性能优化指南"],
+          },
+          qaReview: [],
+        },
+        transcript: [
+          { id: "m1", role: "assistant", content: "先做个自我介绍吧。" },
+          { id: "m2", role: "user", content: "我有三年 React 经验。" },
+          { id: "m3", role: "assistant", content: "那次性能优化带来多少提升？" },
+          { id: "m4", role: "user", content: quote },
+        ],
+      }),
+    });
+    return (await res.json()) as { id: number };
+  });
+
+  await page.goto(`/dashboard/report/${created.id}`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("main");
+  // A condition, not a clock: `waitForTimeout` was rejected by the sleep-class
+  // guard, and waiting for the measurement target is the better wait anyway.
+  await expect(page.getByRole("region", { name: /本次最该改的三件事/ })).toBeVisible({ timeout: 30000 });
+}
+
+/**
+ * Shared phone geometry reader. A link at right=759 inside the sidebar's
+ * horizontal strip is reachable by swiping; a badge at right=476 inside an
+ * `overflow-hidden` card is gone for good. The scroller test keeps those apart,
+ * so "nothing past the edge" can be asserted without forbidding the strip.
+ *
+ * `titleW` / `dateH` are the console's session-row readings and are zero on
+ * surfaces without a session card; callers assert only the fields their surface
+ * owns.
+ */
+const readPhoneGeometry = (page: Page) =>
+  page.evaluate(() => {
+    const vw = window.innerWidth;
+    const round = (n: number) => Math.round(n);
+    const isContent = (el: Element) => {
+      if (el.getAttribute("aria-hidden") === "true") return false;
+      const tag = el.tagName.toLowerCase();
+      if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) return true;
+      return ((el as HTMLElement).innerText ?? "").trim().length > 0;
+    };
+    const inScroller = (el: Element) => {
+      let p: Element | null = el.parentElement;
+      while (p && p !== document.body) {
+        const cs = getComputedStyle(p);
+        if ((cs.overflowX === "auto" || cs.overflowX === "scroll") && p.scrollWidth > p.clientWidth + 1) return true;
+        p = p.parentElement;
+      }
+      return false;
+    };
+    const clipped = Array.from(document.querySelectorAll("body *"))
+      .filter(isContent)
+      .filter((el) => !inScroller(el))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.right > vw + 1 && r.width > 0)
+      .sort((a, b) => b.r.right - a.r.right)
+      .slice(0, 8)
+      .map(({ el, r }) => `${el.tagName.toLowerCase()}.${String((el as HTMLElement).className).slice(0, 60)} right=${round(r.right)}`);
+    const card = document.querySelector("[aria-label^='查看面试详情']");
+    const title = card?.querySelector("h3") ?? null;
+    const date = card
+      ? Array.from(card.querySelectorAll("span")).find((el) =>
+          /^\d{4}-\d{2}-\d{2}/.test((el as HTMLElement).innerText?.trim() ?? ""),
+        ) ?? null
+      : null;
+    const small = Array.from(document.querySelectorAll("main button, main a[href]"))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      // Layout can leave a 44px control at 43.98px; comparing the rounded
+      // value keeps a sub-pixel rounding from reading as a too-small target.
+      .filter(({ r }) => r.width > 0 && r.height > 0 && round(r.height) < 44)
+      .slice(0, 12)
+      .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el as HTMLElement).innerText?.trim().slice(0, 22) || el.getAttribute("aria-label") || ""}" ${round(r.width)}x${round(r.height)}`);
+    return {
+      vw,
+      visual: round(window.visualViewport?.width ?? 0),
+      docScroll: document.documentElement.scrollWidth,
+      clipped,
+      titleW: title ? round(title.getBoundingClientRect().width) : 0,
+      dateH: date ? round(date.getBoundingClientRect().height) : 0,
+      small,
+    };
+  });
+
 test.describe("phone width (390x844)", () => {
   test("the dashboard is laid out for a phone, not a shrunken desktop", async ({ page }) => {
     await loginAs(page);
@@ -200,59 +324,7 @@ test.describe("phone width (390x844)", () => {
 test.describe("report at phone width", () => {
   test("the title is readable and the first improvements are in reach", async ({ page }) => {
     test.setTimeout(180000);
-    await page.route("**/rest/v1/*", createPostgrestStub());
-    const uid = await seedSupabaseSession(page);
-    await loginAs(page, "report@example.com", uid);
-    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-
-    const created = await page.evaluate(async () => {
-      const quote =
-        "那次优化我们主要做了路由懒加载和组件拆分，整体来说页面渲染的速度大概是快了一点点，具体没有做很精确的测量，但是从用户反馈来看体验是有提升的。";
-      const res = await fetch("/rest/v1/interviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "PROBE report",
-          status: "completed",
-          created_at: "2026-11-01T08:00:00.000Z",
-          evaluation_v2: {
-            version: "2.0",
-            rubricId: "general-v1",
-            readiness: "developing",
-            readinessRationale:
-              "这是一段用于测量布局的总评文字，长度接近真实报告的一段分析，用来观察在 390 像素宽度下的换行与卡片高度。",
-            dimensions: [
-              { id: "specificity", score: 2, evidence: [quote], rationale: "没有数字，听众无法判断量级。", confidence: "high", improvement: "重录第 2 题，把结果量化成一个数字。" },
-              { id: "star_completeness", score: 3, evidence: [quote], rationale: "只说了职责，没有说任务与结果。", confidence: "medium", improvement: "补上 Result：项目上线后发生了什么。" },
-              { id: "ownership", score: 4, evidence: [quote], rationale: "有主语，但决策过程没说清。", confidence: "high", improvement: "说清你做的那个决定，以及为什么。" },
-            ],
-            strengths: ["Fixture strength"],
-            weaknesses: ["Fixture gap"],
-            nextDrills: ["Fixture drill"],
-            trainingRoadmap: {
-              technical: ["路由懒加载与代码分割"],
-              behavioral: ["用 STAR 说清结果"],
-              resources: ["React 性能优化指南"],
-            },
-            qaReview: [],
-          },
-          transcript: [
-            { id: "m1", role: "assistant", content: "先做个自我介绍吧。" },
-            { id: "m2", role: "user", content: "我有三年 React 经验。" },
-            { id: "m3", role: "assistant", content: "那次性能优化带来多少提升？" },
-            { id: "m4", role: "user", content: quote },
-          ],
-        }),
-      });
-      return (await res.json()) as { id: number };
-    });
-
-    await page.goto(`/dashboard/report/${created.id}`, { waitUntil: "domcontentloaded" });
-    await page.waitForSelector("main");
-    // The block is the measurement target; waiting for it is a condition, not a
-    // clock. `waitForTimeout` here was rejected by the sleep-class guard, and the
-    // retrying assertion is the better wait anyway.
-    await expect(page.getByRole("region", { name: /本次最该改的三件事/ })).toBeVisible({ timeout: 30000 });
+    await openReportAtPhoneWidth(page);
 
     const m = await page.evaluate(() => {
       const vw = window.innerWidth;
@@ -343,6 +415,63 @@ test.describe("report at phone width", () => {
     expect(m.improvementsTop, `the first improvements start at ${m.improvementsTop}px`).toBeLessThanOrEqual(viewportHeight);
     expect(m.docScroll, "nothing pushes the document sideways").toBeLessThanOrEqual(m.vw + 1);
   });
+
+  // Below the first screen, `docScroll` stayed at 390 and no lane was red, yet
+  // the page nested its own `px-6` inside the shell's `p-5`: every card sat in a
+  // 302px column and dimension cards were 236px wide. The radar SVG also clipped
+  // two of three axis labels (`star_completeness` 49px past its right edge),
+  // because `svg:not(:root)` is `overflow: hidden` by the UA stylesheet.
+  test("the report body keeps a usable column and intact radar labels", async ({ page }) => {
+    test.setTimeout(180000);
+    await openReportAtPhoneWidth(page);
+
+    const shared = await readPhoneGeometry(page);
+    expect(shared.visual, "the lane really is 390 CSS px wide").toBe(390);
+    expect(shared.clipped, "no content is clipped past the right edge").toEqual([]);
+    expect(shared.docScroll, "no horizontal scroll").toBeLessThanOrEqual(shared.vw + 1);
+
+    const m = await page.evaluate(() => {
+      const vw = window.innerWidth;
+      const round = (n: number) => Math.round(n);
+      const sectionOf = (text: string) => {
+        const h = Array.from(document.querySelectorAll("h2, h3")).find((el) => el.textContent?.includes(text)) ?? null;
+        let p: Element | null = h;
+        while (p && !String((p as HTMLElement).className).includes("rounded-[2rem]")) p = p.parentElement;
+        return p;
+      };
+      const column = sectionOf("下一步练什么");
+      const dimensions = sectionOf("能力维度评估");
+      const dimCard = dimensions
+        ? Array.from(dimensions.querySelectorAll("[class*='rounded-2xl']"))[0] ?? null
+        : null;
+      const radarSvg = document.querySelector(".recharts-surface");
+      const ticks = Array.from(document.querySelectorAll(".recharts-surface text")).map((el) => {
+        const r = el.getBoundingClientRect();
+        return { t: el.textContent ?? "", left: round(r.left), right: round(r.right) };
+      });
+      return {
+        vw,
+        columnW: column ? round(column.getBoundingClientRect().width) : 0,
+        dimensionW: dimCard ? round(dimCard.getBoundingClientRect().width) : 0,
+        ticksPastViewport: ticks
+          .filter((t) => t.left < -1 || t.right > vw + 1)
+          .map((t) => `"${t.t}" ${t.left}..${t.right}`),
+        // Reading the computed style is the difference between "the text node
+        // exists" and "the candidate can actually read it": an axis tick drawn
+        // past the viewBox is silently cut even when it is inside the viewport.
+        svgOverflow: radarSvg ? getComputedStyle(radarSvg).overflow : "missing",
+        tickCount: ticks.length,
+      };
+    });
+
+    // Soft assertions: a geometry regression usually moves several readings at
+    // once, and stopping at the first one hides the shape of the break.
+    expect.soft(m.tickCount, "the radar actually rendered its axes").toBeGreaterThan(0);
+    expect.soft(m.columnW, "the report column uses the phone width, not 302px").toBeGreaterThanOrEqual(340);
+    expect.soft(m.dimensionW, "dimension cards keep a readable width").toBeGreaterThanOrEqual(270);
+    expect.soft(m.ticksPastViewport, "radar labels stay inside the viewport").toEqual([]);
+    expect.soft(m.svgOverflow, "the radar SVG does not clip its axis labels").toBe("visible");
+  });
 });
 
 // The console's session rows and the settings controls were the last two
@@ -351,64 +480,6 @@ test.describe("report at phone width", () => {
 // inside `overflow-hidden`, and the settings buttons were simply short. Neither
 // defect is visible to a "no horizontal scrollbar" assertion.
 test.describe("dashboard surfaces at phone width", () => {
-  /**
-   * A link at right=759 inside the sidebar's horizontal strip is reachable by
-   * swiping; a badge at right=476 inside an `overflow-hidden` card is gone for
-   * good. The scroller test keeps those apart, so "nothing past the edge" can be
-   * asserted without forbidding the strip that replaced the 576px column.
-   */
-  const readGeometry = (page: Page) =>
-    page.evaluate(() => {
-      const vw = window.innerWidth;
-      const round = (n: number) => Math.round(n);
-      const isContent = (el: Element) => {
-        if (el.getAttribute("aria-hidden") === "true") return false;
-        const tag = el.tagName.toLowerCase();
-        if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) return true;
-        return ((el as HTMLElement).innerText ?? "").trim().length > 0;
-      };
-      const inScroller = (el: Element) => {
-        let p: Element | null = el.parentElement;
-        while (p && p !== document.body) {
-          const cs = getComputedStyle(p);
-          if ((cs.overflowX === "auto" || cs.overflowX === "scroll") && p.scrollWidth > p.clientWidth + 1) return true;
-          p = p.parentElement;
-        }
-        return false;
-      };
-      const clipped = Array.from(document.querySelectorAll("body *"))
-        .filter(isContent)
-        .filter((el) => !inScroller(el))
-        .map((el) => ({ el, r: el.getBoundingClientRect() }))
-        .filter(({ r }) => r.right > vw + 1 && r.width > 0)
-        .sort((a, b) => b.r.right - a.r.right)
-        .slice(0, 8)
-        .map(({ el, r }) => `${el.tagName.toLowerCase()}.${String((el as HTMLElement).className).slice(0, 60)} right=${round(r.right)}`);
-      const card = document.querySelector("[aria-label^='查看面试详情']");
-      const title = card?.querySelector("h3") ?? null;
-      const date = card
-        ? Array.from(card.querySelectorAll("span")).find((el) =>
-            /^\d{4}-\d{2}-\d{2}/.test((el as HTMLElement).innerText?.trim() ?? ""),
-          ) ?? null
-        : null;
-      const small = Array.from(document.querySelectorAll("main button, main a[href]"))
-        .map((el) => ({ el, r: el.getBoundingClientRect() }))
-        // Layout can leave a 44px control at 43.98px; comparing the rounded
-        // value keeps a sub-pixel rounding from reading as a too-small target.
-        .filter(({ r }) => r.width > 0 && r.height > 0 && round(r.height) < 44)
-        .slice(0, 12)
-        .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el as HTMLElement).innerText?.trim().slice(0, 22) || el.getAttribute("aria-label") || ""}" ${round(r.width)}x${round(r.height)}`);
-      return {
-        vw,
-        visual: round(window.visualViewport?.width ?? 0),
-        docScroll: document.documentElement.scrollWidth,
-        clipped,
-        titleW: title ? round(title.getBoundingClientRect().width) : 0,
-        dateH: date ? round(date.getBoundingClientRect().height) : 0,
-        small,
-      };
-    });
-
   /** Two scored sessions: the readiness badge only renders with a V2 evaluation. */
   const seedSessions = async (page: Page) => {
     await page.route("**/rest/v1/*", createPostgrestStub());
@@ -442,7 +513,7 @@ test.describe("dashboard surfaces at phone width", () => {
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Average Score", { exact: true })).toBeVisible({ timeout: 30000 });
 
-    const m = await readGeometry(page);
+    const m = await readPhoneGeometry(page);
     expect(m.visual, "the lane really is 390 CSS px wide").toBe(390);
     // Before the fix both rows clipped their readiness badge at right=476, and
     // the title column had 87px left after a 96px score circle and 32px gutters.
@@ -458,7 +529,7 @@ test.describe("dashboard surfaces at phone width", () => {
     await page.goto("/dashboard/settings", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 30000 });
 
-    const m = await readGeometry(page);
+    const m = await readPhoneGeometry(page);
     // `size="sm"` is 32px and the default is 36px; on a touch screen the
     // language, four preference and sign-out controls were all below 44px.
     expect(m.small, "every control in the page body is at least 44px tall").toEqual([]);
