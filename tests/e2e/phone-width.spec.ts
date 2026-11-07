@@ -741,3 +741,55 @@ test.describe("secondary surfaces at phone width", () => {
     }
   });
 });
+
+// A dropped connection is the ordinary phone failure, and until this existed it
+// was indistinguishable from a slow answer: at 390px with /api/interview-chat
+// aborted the room showed zero role="alert" nodes, cleared the composer, and
+// left one lonely user line in the transcript. The candidate waits for a reply
+// that will never come, having lost the answer they typed.
+test.describe("a dropped send at phone width", () => {
+  test.skip(!process.env.E2E_MOCK, "needs E2E_MOCK=1 (mock AI + stubbed DB)");
+
+  test("a failed send is stated, keeps the answer, and the retry reaches the interviewer", async ({ page }) => {
+    test.setTimeout(180000);
+    await loginAs(page);
+
+    // One seam: the chat route is down until the test opens it again.
+    let chatBlocked = true;
+    await page.route("**/api/interview-chat", (route) => {
+      if (chatBlocked) return route.abort("failed");
+      return route.continue();
+    });
+
+    await page.goto("/interview?id=phone-send-failure&testMode=true");
+    const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
+    await expect(enter).toBeEnabled({ timeout: 40000 });
+    await enter.click();
+
+    const composer = page.getByPlaceholder("输入文本...");
+    await expect(composer).toBeVisible({ timeout: 20000 });
+    await composer.fill("弱网下的一条回答");
+    await page.getByRole("button", { name: /发送消息/ }).click();
+
+    // 1. The failure is stated in words a candidate can act on, rather than
+    //    looking like an answer that is merely slow.
+    const banner = page.getByRole("alert").filter({ hasText: "这条回答没有发送成功" });
+    await expect(banner, "a dropped send is stated on screen").toBeVisible({ timeout: 20000 });
+
+    // 2. The answer is not lost with the request.
+    await expect(composer, "the candidate's answer is back in the composer").toHaveValue("弱网下的一条回答");
+
+    // 3. The way out is a real target at this width, not a 16px text link.
+    const retry = banner.getByRole("button", { name: /重试发送/ });
+    const box = await retry.boundingBox();
+    expect(box, "the retry rendered without a box").not.toBeNull();
+    expect(Math.round(box?.height ?? 0), "the retry is at least 44px tall").toBeGreaterThanOrEqual(44);
+
+    // 4. Once the network is back, the retry reaches the interviewer, and the
+    //    banner does not outlive the recovery.
+    chatBlocked = false;
+    await retry.click();
+    await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
+    await expect(banner, "the banner disappears once the answer is delivered").toHaveCount(0);
+  });
+});

@@ -48,6 +48,7 @@ import { decodeRecordingToMono16k } from "@/lib/audio/decode-recording";
 import { FlowMap } from "@/components/interview/FlowMap";
 import { usePageVisibility } from "@/hooks/usePageVisibility";
 import { useAmbientNoise } from "@/hooks/useAmbientNoise";
+import { useSendFailureRecovery } from "@/hooks/useSendFailureRecovery";
 import { ensureKnowledgeHub } from "@/lib/orama-client";
 import { TextSelectionMenu } from "@/components/interview/TextSelectionMenu";
 import { GreenRoom } from "@/components/interview/GreenRoom";
@@ -55,6 +56,7 @@ import { RoomHeader } from "@/components/interview/RoomHeader";
 import { StandbyOverlay } from "@/components/interview/StandbyOverlay";
 import { PauseOverlay, ThinkTimeOverlay, EndingOverlay } from "@/components/interview/RoomOverlays";
 import { UnsavedSessionBanner } from "@/components/interview/UnsavedSessionBanner";
+import { SendFailureBanner } from "@/components/interview/SendFailureBanner";
 import { TelemetryRow } from "@/components/interview/TelemetryRow";
 import { TranscriptPanel } from "@/components/interview/TranscriptPanel";
 
@@ -240,7 +242,7 @@ function InterviewRoomContent() {
     return () => clearInterval(interval);
   }, [isRecording, setCognitiveLoad]);
 
-  const { messages, setMessages, sendMessage, regenerate, status } = useChat({
+  const { messages, setMessages, sendMessage, regenerate, status, error: sendError } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/interview-chat",
       body: {
@@ -294,8 +296,12 @@ function InterviewRoomContent() {
           voice: 'af_heart'
         });
       }
-    }
+    },
   });
+
+  // Measured at 390px with /api/interview-chat aborted: zero role="alert"
+  // nodes, an empty composer, and no retry. The hook owns that recovery.
+  const sendFailure = useSendFailureRecovery({ error: sendError, setInputText, regenerate });
 
   const isLoading = status === 'streaming' || status === 'submitted';
   const [latencyPhase, setLatencyPhase] = useState(0);
@@ -319,6 +325,9 @@ function InterviewRoomContent() {
   }, [status]);
   const handleUserInput = async (text: string) => {
     stopAiPlayback();
+    // Kept before the request leaves: if the transport fails, this is the only
+    // copy of an answer the candidate already typed.
+    sendFailure.remember(text);
     // Phase 8: send timestamp for round-trip measurement (19.3).
     sendSpanRef.current.start();
     
@@ -1058,6 +1067,13 @@ function InterviewRoomContent() {
           retrying={isRetrying}
           onRetry={retrySave}
           onLeave={leaveWithoutSaving}
+        />
+      )}
+      {sendFailure.visible && (
+        <SendFailureBanner
+          retrying={sendFailure.retrying}
+          onRetry={sendFailure.retry}
+          onDismiss={sendFailure.dismiss}
         />
       )}
       <TextSelectionMenu />
