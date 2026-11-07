@@ -172,6 +172,15 @@ export default function SetupPage() {
   
   const hardware = useHardwareCheck({ enabled: currentStep === 6 });
 
+  // Next/Back sits at the bottom of a long step, and the browser keeps the
+  // previous step's scroll offset across the AnimatePresence swap: measured at
+  // 390px, step 6 opened 254px above its own heading (scrollY 798) and step 3
+  // opened at -14px. Returning to the top is what makes "next step" mean the
+  // next step rather than a point halfway through it.
+  const changeStep = (updater: (prev: number) => number) => {
+    setCurrentStep(updater);
+    window.scrollTo(0, 0);
+  };
 
   // Session start loading state
   const confirmAndStart = async () => {
@@ -947,7 +956,7 @@ export default function SetupPage() {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
+                onClick={() => changeStep(prev => Math.max(1, prev - 1))}
                 disabled={currentStep === 1 || isStarting}
                 className="rounded-2xl font-semibold px-8"
               >
@@ -956,7 +965,7 @@ export default function SetupPage() {
               
               {currentStep < totalSteps ? (
                 <Button 
-                  onClick={() => setCurrentStep(prev => Math.min(totalSteps, prev + 1))}
+                  onClick={() => changeStep(prev => Math.min(totalSteps, prev + 1))}
                   size="lg" 
                   className="rounded-2xl font-bold bg-slate-900 text-white hover:bg-slate-800 px-8 shadow-md"
                 >
