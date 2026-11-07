@@ -691,3 +691,53 @@ test.describe("phone journey at 390px", () => {
     expect(report.small, "report controls are at least 44px tall").toEqual([]);
   });
 });
+
+// The console, the report and the wizard each got a phone pass; these three
+// surfaces did not. A replay is where a candidate re-reads what they said, the
+// practice list is where they act on it, and the privacy page is where they
+// delete data — all three are reached from the same 390px screen.
+test.describe("secondary surfaces at phone width", () => {
+  test("replay, practice and privacy fit, and every control is pressable", async ({ page }) => {
+    test.setTimeout(240000);
+    await openReportAtPhoneWidth(page);
+    const reportId = page.url().match(/report\/(\d+)/)?.[1];
+    expect(reportId, "the fixture report exists").toBeTruthy();
+
+    const surfaces = [
+      ["replay", `/dashboard/replay/${reportId}`, "Transcript"],
+      ["practice", "/practice", "Master the Interview"],
+      ["privacy", "/dashboard/privacy", "Privacy Center"],
+    ] as const;
+
+    for (const [label, path, heading] of surfaces) {
+      await page.goto(path, { waitUntil: "domcontentloaded" });
+      await page.waitForLoadState("networkidle");
+      await expect(page.getByRole("heading", { name: heading, exact: false }).first()).toBeVisible({ timeout: 30000 });
+
+      const m = await readPhoneGeometry(page);
+      expect(m.visual, `${label}: the lane is really 390 CSS px wide`).toBe(390);
+      expect(m.docScroll, `${label}: no horizontal scroll`).toBeLessThanOrEqual(m.vw + 1);
+      expect(m.clipped, `${label}: nothing is clipped past the right edge`).toEqual([]);
+      expect(m.small, `${label}: every control is at least 44px tall`).toEqual([]);
+
+      // A heading whose content is wider than its box is a squeezed title, not
+      // a short one: replay's measured 112px for a 19-character title before the
+      // header was allowed to wrap. Hidden panels carry 0-width h1 clones, so
+      // only rendered ones count.
+      const squeezed = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("h1"))
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            return {
+              text: (el.textContent ?? "").trim().slice(0, 24),
+              scroll: el.scrollWidth,
+              client: el.clientWidth,
+              width: Math.round(r.width),
+            };
+          })
+          .filter((h) => h.width > 0 && h.scroll > h.client + 1),
+      );
+      expect(squeezed, `${label}: no heading is squeezed below its own text`).toEqual([]);
+    }
+  });
+});
