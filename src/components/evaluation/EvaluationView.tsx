@@ -177,9 +177,12 @@ export function DrillPlan({ view }: { view: EvaluationView }) {
         <div key={drill.id} className="p-5 border border-slate-100 rounded-2xl bg-white/60">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <span className="font-bold text-slate-800">{drill.title} <span className="font-medium text-muted-foreground">· {drill.titleZh}</span></span>
+            {/* A bare 16px-tall text link is not a pressable target on a phone.
+                The desktop row keeps its inline height, so the visual baselines
+                and the flex layout above sm are unchanged. */}
             <Link
               href={`/practice?q=${encodeURIComponent(drill.title)}`}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-500 hover:underline"
+              className="inline-flex min-h-11 items-center text-xs font-bold text-indigo-600 hover:text-indigo-500 hover:underline sm:min-h-0"
             >
               Practice now →
             </Link>

@@ -37,6 +37,12 @@ async function assertSurfaceFits(page: Page, route: string, path: string): Promi
     // aria-hidden div past the right edge hides nothing a finger could reach.
     const isContent = (el: Element) => {
       if (el.getAttribute("aria-hidden") === "true") return false;
+      // Sonner's toaster is a transparent, fixed 390px positioning <ol>: at a
+      // 390px viewport it starts at 16 and ends at 406. The visible <li> card
+      // inside is 358px wide with 16px on either side. Counting the container
+      // reports a clipped notification the candidate never sees; the card is
+      // measured on its own instead.
+      if (el.hasAttribute("data-sonner-toaster")) return false;
       const tag = el.tagName.toLowerCase();
       if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) return true;
       return ((el as HTMLElement).innerText ?? "").trim().length > 0;
@@ -141,6 +147,12 @@ const readPhoneGeometry = (page: Page) =>
     const round = (n: number) => Math.round(n);
     const isContent = (el: Element) => {
       if (el.getAttribute("aria-hidden") === "true") return false;
+      // Sonner's toaster is a transparent, fixed 390px positioning <ol>: at a
+      // 390px viewport it starts at 16 and ends at 406. The visible <li> card
+      // inside is 358px wide with 16px on either side. Counting the container
+      // reports a clipped notification the candidate never sees; the card is
+      // measured on its own instead.
+      if (el.hasAttribute("data-sonner-toaster")) return false;
       const tag = el.tagName.toLowerCase();
       if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) return true;
       return ((el as HTMLElement).innerText ?? "").trim().length > 0;
@@ -595,5 +607,87 @@ test.describe("dashboard surfaces at phone width", () => {
     await expect(language).toHaveCount(2);
     await language.nth(1).click();
     await expect(language.nth(1)).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+// The desktop mock journey proves the wiring chain, but the phone project only
+// collects this file. Leaving setup, entering the room, answering and landing on
+// the report were therefore four hand-offs no lane crossed in one pass — and a
+// page-by-page geometry check cannot see a broken hand-off, because each page
+// still measures fine on its own.
+test.describe("phone journey at 390px", () => {
+  // E2E_MOCK boots the dev server with AI_MOCK=1, so finishing an interview
+  // produces a deterministic evaluation without provider keys.
+  test.skip(!process.env.E2E_MOCK, "needs E2E_MOCK=1 (mock AI + stubbed DB)");
+
+  test("setup → interview → answer → report all work at 390px", async ({ page }) => {
+    test.setTimeout(300000);
+    await page.route("**/rest/v1/*", createPostgrestStub());
+    const uid = await seedSupabaseSession(page);
+    await loginAs(page, "journey@example.com", uid);
+
+    // `visual`, not innerWidth, is what catches a widened layout viewport being
+    // scaled down to fit 390 — every innerWidth assertion would still pass.
+    const atPhoneWidth = async (label: string) => {
+      const m = await readPhoneGeometry(page);
+      expect(m.visual, `${label}: the lane is really 390 CSS px wide`).toBe(390);
+      expect(m.docScroll, `${label}: no horizontal scroll`).toBeLessThanOrEqual(m.vw + 1);
+      expect(m.clipped, `${label}: nothing is clipped past the right edge`).toEqual([]);
+      return m;
+    };
+
+    await page.goto("/setup", { waitUntil: "domcontentloaded" });
+    // The heading is server-rendered; waiting for the client to settle is what
+    // makes the first Next click land on a button with its handler attached.
+    await page.waitForLoadState("networkidle");
+    await atPhoneWidth("setup");
+
+    await page.getByText("Frontend Engineer").click();
+    await page.getByText("Mid-Level").click();
+    await page.getByRole("button", { name: /Next Step/i }).click();
+    await page.getByText("General Tech").click();
+    await page.getByRole("button", { name: /Next Step/i }).click();
+    await page.getByText("Supportive Mentor").click();
+    await page.getByRole("button", { name: /Next Step/i }).click();
+    await page.getByText("Google Gemini (1.5 Pro)").click();
+    await page.getByRole("button", { name: /Next Step/i }).click();
+    await expect(page.getByRole("heading", { name: "Resume Integration" })).toBeVisible({ timeout: 20000 });
+
+    await page.locator("#resume-upload").setInputFiles({
+      name: "resume.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4 phone journey resume\n%%EOF"),
+    });
+    await expect(page.getByText(/chars extracted/)).toBeVisible({ timeout: 30000 });
+    await page.getByPlaceholder(/Paste job description/).fill("Senior Frontend Engineer. React and TypeScript.");
+    await page.getByRole("button", { name: /Next Step/i }).click();
+    await expect(page.getByRole("heading", { name: "Hardware Check" })).toBeVisible({ timeout: 20000 });
+    await atPhoneWidth("setup hardware step");
+
+    await page.getByRole("button", { name: /Start Session|Start without Mic/i }).click();
+    await expect(page).toHaveURL(/.*\/interview/, { timeout: 30000 });
+
+    const bypass = page.getByRole("button", { name: /跳过语音测试/i });
+    await expect(bypass).toBeVisible({ timeout: 20000 });
+    await bypass.click();
+    const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
+    await expect(enter).toBeEnabled({ timeout: 35000 });
+    await enter.click();
+    await expect(page.getByRole("button", { name: /结束面试/i })).toBeVisible({ timeout: 20000 });
+    await atPhoneWidth("interview room");
+
+    const composer = page.getByPlaceholder("输入文本...");
+    await expect(composer).toBeVisible({ timeout: 20000 });
+    await composer.fill("手机端完整旅程回答");
+    await page.getByRole("button", { name: /发送消息/ }).click();
+    await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
+
+    await page.getByRole("button", { name: /结束面试/i }).click();
+    await expect(page).toHaveURL(/.*\/dashboard\/report\/\d+/, { timeout: 90000 });
+    // A URL alone is not a report: the improvements section is the payload the
+    // candidate came for, and it must be reachable at this width too.
+    await expect(page.getByRole("region", { name: /本次最该改的三件事/ })).toBeVisible({ timeout: 30000 });
+    const report = await atPhoneWidth("report");
+    expect(report.small, "report controls are at least 44px tall").toEqual([]);
   });
 });
