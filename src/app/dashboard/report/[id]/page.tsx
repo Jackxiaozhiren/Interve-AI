@@ -218,7 +218,10 @@ export default function InterviewReportPage() {
               three lines. */}
           <motion.div variants={fadeIn} className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-2 text-slate-500 hover:text-slate-900 -ml-2">
+              {/* The ghost button is 36px tall; on a phone that is below the
+                  44px touch target every other dashboard control now meets.
+                  sm: restores the desktop height so the visual baselines do not move. */}
+              <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-2 min-h-11 text-slate-500 hover:text-slate-900 -ml-2 sm:min-h-0">
                 <ArrowLeft className="w-4 h-4 mr-2" /> 返回控制台
               </Button>
               <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
