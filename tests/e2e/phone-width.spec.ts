@@ -474,6 +474,60 @@ test.describe("report at phone width", () => {
   });
 });
 
+// The wizard is the only door into an interview, and its Next button sits at the
+// bottom of a long step. At 390px the page kept the previous step's scroll
+// offset: pressing Next on step 1 left the document at scrollY≈410, so step 2
+// opened with its own heading above the viewport. "Six steps all render" never
+// catches that; the reading that does is where the new step's heading lands.
+test.describe("setup at phone width", () => {
+  test("advancing a step opens at the new step, not mid-page", async ({ page }) => {
+    test.setTimeout(240000);
+    await loginAs(page);
+    await page.goto("/setup", { waitUntil: "domcontentloaded" });
+    // `Target Role` is server-rendered, so its presence does not mean the Next
+    // button has a handler yet. In a busy dev server (other projects compiling in
+    // parallel) an early click lands on the inert HTML and the route falls back
+    // to app/loading.tsx, which reads as "step 2 never opened". The desktop
+    // setup spec waits for networkidle for exactly this reason.
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Target Role" })).toBeVisible({ timeout: 30000 });
+
+    const shared = await readPhoneGeometry(page);
+    expect(shared.visual, "the lane really is 390 CSS px wide").toBe(390);
+    expect(shared.clipped, "no content is clipped past the right edge").toEqual([]);
+    expect(shared.docScroll, "no horizontal scroll").toBeLessThanOrEqual(shared.vw + 1);
+
+    const headings = [
+      "Target Role",
+      "Target Company",
+      "Interviewer Persona",
+      "AI Model Engine",
+      "Resume Integration",
+      "Hardware Check",
+    ];
+    for (let step = 1; step < headings.length; step++) {
+      await page.getByRole("button", { name: /Next Step/i }).click();
+      await expect(page.getByRole("heading", { name: headings[step], exact: true }).first()).toBeVisible({ timeout: 20000 });
+      // AnimatePresence keeps the outgoing step mounted through its exit; waiting
+      // for its heading to disappear is the condition that says the swap is done.
+      await expect(page.getByRole("heading", { name: headings[step - 1], exact: true })).toHaveCount(0, {
+        timeout: 20000,
+      });
+
+      const m = await page.evaluate((text) => {
+        const h = Array.from(document.querySelectorAll("h2")).find((el) => (el.textContent ?? "").trim() === text);
+        const r = h?.getBoundingClientRect();
+        return { top: r ? Math.round(r.top) : -9999, scrollY: Math.round(window.scrollY) };
+      }, headings[step]);
+
+      // 0 is the top edge; the second bound says the whole title is inside an
+      // 844px first screen rather than half-scrolled under it.
+      expect.soft(m.top, `step ${step + 1} opens with its heading at ${m.top}px (scrollY ${m.scrollY})`).toBeGreaterThanOrEqual(0);
+      expect.soft(m.top, `step ${step + 1}'s heading is inside the first screen`).toBeLessThan(844);
+    }
+  });
+});
+
 // The console's session rows and the settings controls were the last two
 // dashboard surfaces no phone lane measured. Both kept `scrollWidth <= innerWidth`,
 // which is why the desktop lanes stayed green: the row clipped its own metadata
