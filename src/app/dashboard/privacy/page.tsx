@@ -309,11 +309,13 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-bold text-slate-800 mb-1">导出与彻底删除</h2>
         <p className="text-sm text-slate-500 mb-6">导出为 JSON（面试 + 练习），或清空云端全部数据。导出的文件含完整简历与逐字稿，请妥善保存在个人设备并注意转发风险。</p>
         <div className="flex flex-wrap gap-3 mb-8">
-          <Button onClick={exportAll} disabled={busy !== null} className="rounded-full gap-2">
+          {/* Default buttons are 36px; on a phone every destructive or
+              data-moving control here needs the 44px target. */}
+          <Button onClick={exportAll} disabled={busy !== null} className="rounded-full gap-2 min-h-11 sm:min-h-0">
             <DownloadSimple className="w-4 h-4" />
             {busy === "export" ? "导出中…" : "导出我的全部数据"}
           </Button>
-          <Button onClick={clearLocal} variant="outline" className="rounded-full">
+          <Button onClick={clearLocal} variant="outline" className="rounded-full min-h-11 sm:min-h-0">
             清理本机快照与草稿
           </Button>
         </div>
@@ -333,7 +335,7 @@ export default function PrivacyPage() {
           <Button
             onClick={deleteAll}
             disabled={!confirmAll || busy !== null}
-            className="rounded-full bg-rose-600 hover:bg-rose-500 text-white disabled:opacity-40"
+            className="rounded-full bg-rose-600 hover:bg-rose-500 text-white disabled:opacity-40 min-h-11 sm:min-h-0"
           >
             {busy === "all" ? "删除中…" : "永久删除全部云端数据"}
           </Button>

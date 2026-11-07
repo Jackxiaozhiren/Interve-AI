@@ -165,7 +165,7 @@ function PracticeHubInner() {
                 <MagneticWrapper key={cat.id || "all"} intensity={0.1}>
                   <button
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all duration-300 ${
+                    className={`inline-flex min-h-11 items-center gap-2 px-4 py-2 rounded-full text-sm transition-all duration-300 sm:min-h-0 ${
                       isActive
                         ? "bg-foreground text-background shadow-md"
                         : "bg-white/50 text-muted-foreground hover:bg-white/80 hover:text-foreground border border-black/5"

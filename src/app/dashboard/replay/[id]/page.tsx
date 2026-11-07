@@ -126,27 +126,32 @@ export default function ReplayPage() {
       </div>
 
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 glass shrink-0 z-20 border-b border-white/40">
-        <div className="flex items-center gap-4">
+      {/* At 390px this header kept one row: the title was squeezed to 112px and
+          the export pair reached right=474, 84px past the viewport. Below sm the
+          row wraps instead — title block first, export pair on its own line. */}
+      <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 glass shrink-0 z-20 border-b border-white/40 sm:px-6 sm:py-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => router.push("/dashboard")}
-            className="rounded-full hover:bg-slate-100/50 text-slate-500 transition-colors no-print"
+            className="rounded-full hover:bg-slate-100/50 text-slate-500 transition-colors no-print min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
             aria-label="返回控制台"
           >
             <CaretLeft className="w-5 h-5" />
           </Button>
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-serif text-xl font-medium tracking-tight text-slate-900">{interview.title}</h1>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="font-serif text-lg font-medium tracking-tight text-slate-900 sm:text-xl">{interview.title}</h1>
               <StatusBadge status={interview.status} />
             </div>
             <p className="text-xs font-mono text-slate-500">{new Date(interview.createdAt).toLocaleString()}</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-3 no-print">
+        {/* `flex-1` on the title block keeps shrinking instead of wrapping, so
+            the export pair needs a full-width line of its own below sm. */}
+        <div className="flex w-full shrink-0 items-center gap-2 no-print sm:w-auto sm:gap-3">
           <Button 
             variant="outline" 
             size="sm" 
@@ -154,7 +159,7 @@ export default function ReplayPage() {
               const md = exportInterviewToMarkdown(interview);
               downloadFile(md, `${(interview.title || "Interview").replace(/\s+/g, "_")}_Report.md`);
             }} 
-            className="gap-2 bg-white/50 border-white/60 hover:bg-white/80"
+            className="gap-2 bg-white/50 border-white/60 hover:bg-white/80 min-h-11 sm:min-h-0"
           >
             <DownloadSimple className="w-4 h-4" /> Export MD
           </Button>
@@ -162,7 +167,7 @@ export default function ReplayPage() {
             variant="outline" 
             size="sm" 
             onClick={() => window.print()} 
-            className="gap-2 bg-white/50 border-white/60 hover:bg-white/80"
+            className="gap-2 bg-white/50 border-white/60 hover:bg-white/80 min-h-11 sm:min-h-0"
           >
             <DownloadSimple className="w-4 h-4" /> Export PDF
           </Button>
@@ -257,7 +262,10 @@ export default function ReplayPage() {
         <div className="flex-none lg:flex-[2] min-h-[500px] lg:min-h-0 flex flex-col glass-heavy rounded-3xl overflow-hidden relative shadow-lg border border-white/70">
           
           <div className="px-2 pt-2 border-b border-white/40 bg-white/40 backdrop-blur-md relative z-10">
-            <div className="flex space-x-1" role="tablist">
+            {/* Three tabs measure 421px of label plus padding; at 390px the
+                third sat at right=474. The strip scrolls horizontally instead,
+                the same treatment the dashboard nav got in the phone pass. */}
+            <div className="flex space-x-1 overflow-x-auto" role="tablist">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -266,7 +274,7 @@ export default function ReplayPage() {
                   aria-selected={activeTab === tab.id}
                   aria-controls={`panel-${tab.id}`}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative px-4 py-3 text-xs font-bold uppercase tracking-widest font-mono flex items-center gap-2 rounded-t-xl transition-colors outline-none focus-visible:bg-white/50 ${
+                  className={`relative shrink-0 px-4 py-3 text-xs font-bold uppercase tracking-widest font-mono flex min-h-11 items-center gap-2 rounded-t-xl transition-colors outline-none focus-visible:bg-white/50 sm:min-h-0 ${
                     activeTab === tab.id ? "text-sky-600" : "text-slate-500 hover:text-slate-700 hover:bg-white/20"
                   }`}
                 >
