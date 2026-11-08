@@ -253,3 +253,59 @@ export function createPostgrestStub() {
   };
 }
 
+/**
+ * Put a mock-lane browser in the interview room with a row that exists and a
+ * first settle PATCH that fails like a real 500.
+ *
+ * Two specs need exactly this seam: the desktop P0-1 guard asserts that a lost
+ * save is stated and retryable, and the 390px probe asserts the same recovery
+ * has finger-sized controls. Keeping the setup in one place means a change to
+ * the failure shape cannot leave one lane testing a different failure.
+ *
+ * The returned `patchAttempts` is read after the retry, so both lanes prove the
+ * button re-attempted the write rather than merely navigating away.
+ */
+export async function openSettleFailureRoom(
+  page: Page,
+  options: { email: string; title: string },
+): Promise<{ id: number; patchAttempts: () => number }> {
+  const stub = createPostgrestStub();
+  let attempts = 0;
+  await page.route('**/rest/v1/*', (route) => {
+    const req = route.request();
+    const table = new URL(req.url()).pathname.split('/').pop();
+    if (table === 'interviews' && req.method() === 'PATCH') {
+      attempts += 1;
+      if (attempts === 1) {
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ code: 'XX000', message: 'simulated write failure' }),
+        });
+      }
+    }
+    return stub(route);
+  });
+
+  const uid = await seedSupabaseSession(page);
+  await loginAs(page, options.email, uid);
+  await page.goto('/dashboard');
+  const created = await page.evaluate(async (title) => {
+    const res = await fetch('/rest/v1/interviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, status: 'in_progress' }),
+    });
+    return (await res.json()) as { id: number };
+  }, options.title);
+
+  await page.goto(
+    `/interview?id=${created.id}&role=frontend&level=Mid-Level&persona=supportive&framework=general&aiModel=zhipu`,
+  );
+  await page.getByRole('button', { name: /跳过语音测试/i }).click({ timeout: 60000 });
+  await page.getByRole('button', { name: /开始面试|强制开始/i }).click({ timeout: 60000 });
+  await page.getByRole('button', { name: /结束面试/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+  return { id: created.id, patchAttempts: () => attempts };
+}
+

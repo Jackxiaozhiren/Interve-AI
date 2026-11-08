@@ -18,11 +18,11 @@ export function LocalOnlyBanner({
   reason,
   onRetry,
   onContinue,
-}: {
+}: Readonly<{
   reason: string;
   onRetry: () => void;
   onContinue: () => void;
-}) {
+}>) {
   return (
     <div
       role="alert"

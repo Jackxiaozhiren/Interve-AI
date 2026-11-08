@@ -7,7 +7,7 @@
 // page looks the same as last time, while these say the content column is wide
 // enough to read and that nothing pushes the document sideways.
 import { test, expect, type Page } from "@playwright/test";
-import { createPostgrestStub, loginAs, seedSupabaseSession } from "../helpers";
+import { createPostgrestStub, loginAs, openSettleFailureRoom, seedSupabaseSession } from "../helpers";
 
 /**
  * The shared body for the two non-dashboard surfaces. Kept as a function rather
@@ -129,6 +129,46 @@ async function openReportAtPhoneWidth(page: Page): Promise<void> {
   // A condition, not a clock: `waitForTimeout` was rejected by the sleep-class
   // guard, and waiting for the measurement target is the better wait anyway.
   await expect(page.getByRole("region", { name: /本次最该改的三件事/ })).toBeVisible({ timeout: 30000 });
+}
+
+/**
+ * Walk the six-step wizard up to the Hardware Check gate on the phone lane.
+ * The 390px journey and the weak-network probe both need a real session
+ * configuration; two copies of the same clicks let them drift, and the quality
+ * gate read them as 20 duplicated lines. `onReady` lets the journey measure the
+ * freshly rendered first step before the first click moves the page.
+ */
+async function walkSetupToHardware(
+  page: Page,
+  resumeMarker: string,
+  onReady?: () => Promise<unknown>,
+): Promise<void> {
+  await page.goto("/setup", { waitUntil: "domcontentloaded" });
+  // The heading is server-rendered; waiting for the client to settle is what
+  // makes the first Next click land on a button with its handler attached.
+  await page.waitForLoadState("networkidle");
+  if (onReady) await onReady();
+
+  for (const choices of [
+    ["Frontend Engineer", "Mid-Level"],
+    ["General Tech"],
+    ["Supportive Mentor"],
+    ["Google Gemini (1.5 Pro)"],
+  ]) {
+    for (const choice of choices) await page.getByText(choice).click();
+    await page.getByRole("button", { name: /Next Step/i }).click();
+  }
+
+  await expect(page.getByRole("heading", { name: "Resume Integration" })).toBeVisible({ timeout: 20000 });
+  await page.locator("#resume-upload").setInputFiles({
+    name: "resume.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(`%PDF-1.4 ${resumeMarker}\n%%EOF`),
+  });
+  await expect(page.getByText(/chars extracted/)).toBeVisible({ timeout: 30000 });
+  await page.getByPlaceholder(/Paste job description/).fill("Senior Frontend Engineer. React and TypeScript.");
+  await page.getByRole("button", { name: /Next Step/i }).click();
+  await expect(page.getByRole("heading", { name: "Hardware Check" })).toBeVisible({ timeout: 20000 });
 }
 
 /**
@@ -636,32 +676,7 @@ test.describe("phone journey at 390px", () => {
       return m;
     };
 
-    await page.goto("/setup", { waitUntil: "domcontentloaded" });
-    // The heading is server-rendered; waiting for the client to settle is what
-    // makes the first Next click land on a button with its handler attached.
-    await page.waitForLoadState("networkidle");
-    await atPhoneWidth("setup");
-
-    await page.getByText("Frontend Engineer").click();
-    await page.getByText("Mid-Level").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("General Tech").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("Supportive Mentor").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("Google Gemini (1.5 Pro)").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await expect(page.getByRole("heading", { name: "Resume Integration" })).toBeVisible({ timeout: 20000 });
-
-    await page.locator("#resume-upload").setInputFiles({
-      name: "resume.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.4 phone journey resume\n%%EOF"),
-    });
-    await expect(page.getByText(/chars extracted/)).toBeVisible({ timeout: 30000 });
-    await page.getByPlaceholder(/Paste job description/).fill("Senior Frontend Engineer. React and TypeScript.");
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await expect(page.getByRole("heading", { name: "Hardware Check" })).toBeVisible({ timeout: 20000 });
+    await walkSetupToHardware(page, "phone journey resume", () => atPhoneWidth("setup"));
     await atPhoneWidth("setup hardware step");
 
     await page.getByRole("button", { name: /Start Session|Start without Mic/i }).click();
@@ -809,29 +824,9 @@ test.describe("a dropped send at phone width", () => {
 test.describe("weak-network failures at phone width", () => {
   test.skip(!process.env.E2E_MOCK, "needs E2E_MOCK=1 (mock AI + stubbed DB)");
 
-  const walkSetup = async (page: Page) => {
-    await page.goto("/setup", { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle");
-    await page.getByText("Frontend Engineer").click();
-    await page.getByText("Mid-Level").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("General Tech").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("Supportive Mentor").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("Google Gemini (1.5 Pro)").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await expect(page.getByRole("heading", { name: "Resume Integration" })).toBeVisible({ timeout: 20000 });
-    await page.locator("#resume-upload").setInputFiles({
-      name: "resume.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.4 weak network resume\n%%EOF"),
-    });
-    await expect(page.getByText(/chars extracted/)).toBeVisible({ timeout: 30000 });
-    await page.getByPlaceholder(/Paste job description/).fill("Senior Frontend Engineer. React and TypeScript.");
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await expect(page.getByRole("heading", { name: "Hardware Check" })).toBeVisible({ timeout: 20000 });
-  };
+  // The six wizard steps are the shared `walkSetupToHardware` above. The
+  // failure probe needs the same configuration as the 390px journey, not a
+  // second copy of the clicks.
 
   test("a session that cannot be saved is confirmed before the room opens", async ({ page }) => {
     test.setTimeout(240000);
@@ -850,7 +845,7 @@ test.describe("weak-network failures at phone width", () => {
     });
     const uid = await seedSupabaseSession(page);
     await loginAs(page, "weakstart@example.com", uid);
-    await walkSetup(page);
+    await walkSetupToHardware(page, "weak network resume");
     await page.getByRole("button", { name: /Start Session|Start without Mic/i }).click();
 
     // 1. No silent downgrade: the wizard stays put and states the cost.
@@ -895,40 +890,12 @@ test.describe("weak-network failures at phone width", () => {
 
   test("a failed settle is retryable with phone-sized controls", async ({ page }) => {
     test.setTimeout(240000);
-    const stub = createPostgrestStub();
-    let patches = 0;
-    await page.route("**/rest/v1/*", (route) => {
-      const req = route.request();
-      const table = new URL(req.url()).pathname.split("/").pop();
-      if (table === "interviews" && req.method() === "PATCH") {
-        patches += 1;
-        if (patches === 1) {
-          return route.fulfill({
-            status: 500,
-            contentType: "application/json",
-            body: JSON.stringify({ message: "simulated write failure" }),
-          });
-        }
-      }
-      return stub(route);
+    // Same failure seam as the desktop P0-1 guard, so the phone lane cannot
+    // drift into testing a different write failure.
+    const { id, patchAttempts } = await openSettleFailureRoom(page, {
+      email: "weaksave@example.com",
+      title: "weak save probe",
     });
-    const uid = await seedSupabaseSession(page);
-    await loginAs(page, "weaksave@example.com", uid);
-    await page.goto("/dashboard");
-    const created = await page.evaluate(async () => {
-      const res = await fetch("/rest/v1/interviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "weak save probe", status: "in_progress" }),
-      });
-      return (await res.json()) as { id: number };
-    });
-    await page.goto(
-      `/interview?id=${created.id}&role=frontend&level=Mid-Level&persona=supportive&framework=general&aiModel=zhipu`,
-    );
-    await page.getByRole("button", { name: /跳过语音测试/i }).click({ timeout: 60000 });
-    await page.getByRole("button", { name: /开始面试|强制开始/i }).click({ timeout: 60000 });
-    await expect(page.getByRole("button", { name: /结束面试/i })).toBeVisible({ timeout: 30000 });
     await page.getByPlaceholder("输入文本...").fill("A measurable answer about a migration.");
     await page.getByRole("button", { name: /发送消息/ }).click();
     await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
@@ -937,7 +904,7 @@ test.describe("weak-network failures at phone width", () => {
     const banner = page.getByRole("alert").filter({ hasText: "这次记录没有保存" });
     await expect(banner, "the failed write is stated on screen").toBeVisible({ timeout: 60000 });
     await expect(page, "the room stays put instead of faking a successful exit").toHaveURL(
-      new RegExp(`/interview\\?id=${created.id}`),
+      new RegExp(`/interview\\?id=${id}`),
     );
 
     // The banner is fixed outside `main`, so measure it directly rather than
@@ -952,7 +919,7 @@ test.describe("weak-network failures at phone width", () => {
 
     // The retry is a real recovery at this width, not just a visible button.
     await banner.getByRole("button", { name: /重试保存/ }).click();
-    await expect(page).toHaveURL(new RegExp(`/dashboard/report/${created.id}`), { timeout: 90000 });
-    expect(patches, "the retry attempted the write again").toBeGreaterThan(1);
+    await expect(page).toHaveURL(new RegExp(`/dashboard/report/${id}`), { timeout: 90000 });
+    expect(patchAttempts(), "the retry attempted the write again").toBeGreaterThan(1);
   });
 });
