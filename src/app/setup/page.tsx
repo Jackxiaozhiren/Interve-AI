@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { WizardSection } from "@/components/setup/WizardSection";
 import { toast } from "sonner";
+import { LocalOnlyBanner } from "@/components/setup/LocalOnlyBanner";
 import { useInterveStore } from "@/store/useInterveStore";
 import { HardwareCheckPanel } from "@/components/setup/HardwareCheckPanel";
 import { useHardwareCheck } from "@/hooks/useHardwareCheck";
@@ -114,6 +115,9 @@ export default function SetupPage() {
   const [selectedDurationSec, setSelectedDurationSec] = useState(900);
   const [context, setContext] = useState("");
   const [isStarting, setIsStarting] = useState(false);
+  // A database write that fails must not silently downgrade the session: the
+  // candidate has to be told the report will not exist before the room opens.
+  const [localOnlyPending, setLocalOnlyPending] = useState<{ query: string; reason: string } | null>(null);
   
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -188,6 +192,7 @@ export default function SetupPage() {
     setIsStarting(true);
     try {
       let interviewId: number | string | null = currentInterviewId;
+      let localOnlyReason: string | null = null;
       // Phase 7: goal-based plan (deterministic from alignment + type).
       const planType = getInterviewType(selectedInterviewType);
       const planRubric = RUBRICS[planType.rubricId];
@@ -264,13 +269,23 @@ export default function SetupPage() {
             description: "服务器数据库结构与当前版本不一致，面试照常进行，但报告和历史都无法恢复。",
           });
         } else {
-          // Supabase is documented as optional (.env.example): when the database
-          // is genuinely unreachable, fall back to a local-only session instead of
-          // blocking the demo. Interview context still travels via URL params +
-          // store + localStorage snapshot; persistence features (report/replay/
-          // dashboard history) degrade with explicit toasts downstream.
+          // Supabase is optional (.env.example): when the database is genuinely
+          // unreachable the session still runs locally rather than blocking the
+          // demo. Interview context travels via URL params + store + a
+          // localStorage snapshot, but report/replay/history will not exist —
+          // so the wizard now asks before opening the room instead of firing a
+          // toast that is gone four seconds later.
           console.warn("Database unavailable, starting local-only session:", dbError);
-          toast.info("本地模式", { description: "未连接数据库，本次面试仅保存在当前浏览器。" });
+          // The immediate acknowledgement stays a user-visible call: the
+          // storage-claims guard reads local-destination sentences out of catch
+          // blocks and checks that a `local-` id or a real store proves them.
+          // It sits at the bottom so it cannot stack on the standing banner.
+          toast.info("本地模式", {
+            description: "未连接数据库，本次面试仅保存在当前浏览器。",
+            position: "bottom-center",
+          });
+          localOnlyReason =
+            "未连接数据库，本次面试仅保存在当前浏览器，报告、回放与历史记录都无法恢复。";
         }
         interviewId = `local-${crypto.randomUUID()}`;
       }
@@ -294,6 +309,12 @@ export default function SetupPage() {
         aiModel: aiModel,
         context: context.substring(0, 500)
       });
+      if (localOnlyReason) {
+        // Do not open the room behind the candidate's back. Retrying the write
+        // or accepting a practice-only session are both explicit actions.
+        setLocalOnlyPending({ query: params.toString(), reason: localOnlyReason });
+        return;
+      }
       router.push(`/interview?${params.toString()}`);
     } catch (err) {
       console.error("Failed to start interview session:", err);
@@ -305,6 +326,20 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-[#fafcff] text-[#0f172a] overflow-hidden selection:bg-sky-500/20">
+      {localOnlyPending && (
+        <LocalOnlyBanner
+          reason={localOnlyPending.reason}
+          onRetry={() => {
+            setLocalOnlyPending(null);
+            void confirmAndStart();
+          }}
+          onContinue={() => {
+            const query = localOnlyPending.query;
+            setLocalOnlyPending(null);
+            router.push(`/interview?${query}`);
+          }}
+        />
+      )}
       <TextSelectionMenu 
         onEnhance={() => toast.success("Text enhanced (mock)")} 
         onSummarize={() => toast.success("Text summarized (mock)")} 

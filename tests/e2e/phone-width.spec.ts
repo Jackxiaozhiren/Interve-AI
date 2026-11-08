@@ -7,7 +7,7 @@
 // page looks the same as last time, while these say the content column is wide
 // enough to read and that nothing pushes the document sideways.
 import { test, expect, type Page } from "@playwright/test";
-import { createPostgrestStub, loginAs, seedSupabaseSession } from "../helpers";
+import { createPostgrestStub, loginAs, openSettleFailureRoom, seedSupabaseSession } from "../helpers";
 
 /**
  * The shared body for the two non-dashboard surfaces. Kept as a function rather
@@ -129,6 +129,46 @@ async function openReportAtPhoneWidth(page: Page): Promise<void> {
   // A condition, not a clock: `waitForTimeout` was rejected by the sleep-class
   // guard, and waiting for the measurement target is the better wait anyway.
   await expect(page.getByRole("region", { name: /本次最该改的三件事/ })).toBeVisible({ timeout: 30000 });
+}
+
+/**
+ * Walk the six-step wizard up to the Hardware Check gate on the phone lane.
+ * The 390px journey and the weak-network probe both need a real session
+ * configuration; two copies of the same clicks let them drift, and the quality
+ * gate read them as 20 duplicated lines. `onReady` lets the journey measure the
+ * freshly rendered first step before the first click moves the page.
+ */
+async function walkSetupToHardware(
+  page: Page,
+  resumeMarker: string,
+  onReady?: () => Promise<unknown>,
+): Promise<void> {
+  await page.goto("/setup", { waitUntil: "domcontentloaded" });
+  // The heading is server-rendered; waiting for the client to settle is what
+  // makes the first Next click land on a button with its handler attached.
+  await page.waitForLoadState("networkidle");
+  if (onReady) await onReady();
+
+  for (const choices of [
+    ["Frontend Engineer", "Mid-Level"],
+    ["General Tech"],
+    ["Supportive Mentor"],
+    ["Google Gemini (1.5 Pro)"],
+  ]) {
+    for (const choice of choices) await page.getByText(choice).click();
+    await page.getByRole("button", { name: /Next Step/i }).click();
+  }
+
+  await expect(page.getByRole("heading", { name: "Resume Integration" })).toBeVisible({ timeout: 20000 });
+  await page.locator("#resume-upload").setInputFiles({
+    name: "resume.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(`%PDF-1.4 ${resumeMarker}\n%%EOF`),
+  });
+  await expect(page.getByText(/chars extracted/)).toBeVisible({ timeout: 30000 });
+  await page.getByPlaceholder(/Paste job description/).fill("Senior Frontend Engineer. React and TypeScript.");
+  await page.getByRole("button", { name: /Next Step/i }).click();
+  await expect(page.getByRole("heading", { name: "Hardware Check" })).toBeVisible({ timeout: 20000 });
 }
 
 /**
@@ -636,32 +676,7 @@ test.describe("phone journey at 390px", () => {
       return m;
     };
 
-    await page.goto("/setup", { waitUntil: "domcontentloaded" });
-    // The heading is server-rendered; waiting for the client to settle is what
-    // makes the first Next click land on a button with its handler attached.
-    await page.waitForLoadState("networkidle");
-    await atPhoneWidth("setup");
-
-    await page.getByText("Frontend Engineer").click();
-    await page.getByText("Mid-Level").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("General Tech").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("Supportive Mentor").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await page.getByText("Google Gemini (1.5 Pro)").click();
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await expect(page.getByRole("heading", { name: "Resume Integration" })).toBeVisible({ timeout: 20000 });
-
-    await page.locator("#resume-upload").setInputFiles({
-      name: "resume.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.4 phone journey resume\n%%EOF"),
-    });
-    await expect(page.getByText(/chars extracted/)).toBeVisible({ timeout: 30000 });
-    await page.getByPlaceholder(/Paste job description/).fill("Senior Frontend Engineer. React and TypeScript.");
-    await page.getByRole("button", { name: /Next Step/i }).click();
-    await expect(page.getByRole("heading", { name: "Hardware Check" })).toBeVisible({ timeout: 20000 });
+    await walkSetupToHardware(page, "phone journey resume", () => atPhoneWidth("setup"));
     await atPhoneWidth("setup hardware step");
 
     await page.getByRole("button", { name: /Start Session|Start without Mic/i }).click();
@@ -791,5 +806,120 @@ test.describe("a dropped send at phone width", () => {
     await retry.click();
     await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
     await expect(banner, "the banner disappears once the answer is delivered").toHaveCount(0);
+  });
+});
+
+// A dropped database write at session start used to degrade silently: the
+// wizard pushed into the room and the only explanation was a four-second
+// Sonner toast. Measured at 390px with POST /rest/v1/interviews forced to 500:
+// at +1.5s the toast read "本地模式 / 未连接数据库，本次面试仅保存在当前浏览器";
+// at +7.5s `toasts=[]` and the room's only role="alert" was the microphone
+// warning. A candidate who looked away for four seconds had no way to learn
+// that the report, replay and history would not exist.
+//
+// The same probe found the settlement banner's two buttons at 76x32 and
+// 212x32, and the green-room degradation exits at 260x16 / 260x17. All three
+// sit outside `main`, which is why the shared geometry guard (main button,
+// main a[href]) never measured them.
+test.describe("weak-network failures at phone width", () => {
+  test.skip(!process.env.E2E_MOCK, "needs E2E_MOCK=1 (mock AI + stubbed DB)");
+
+  // The six wizard steps are the shared `walkSetupToHardware` above. The
+  // failure probe needs the same configuration as the 390px journey, not a
+  // second copy of the clicks.
+
+  test("a session that cannot be saved is confirmed before the room opens", async ({ page }) => {
+    test.setTimeout(240000);
+    const stub = createPostgrestStub();
+    await page.route("**/rest/v1/*", (route) => {
+      const req = route.request();
+      const table = new URL(req.url()).pathname.split("/").pop();
+      if (table === "interviews" && req.method() === "POST") {
+        return route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "simulated db down" }),
+        });
+      }
+      return stub(route);
+    });
+    const uid = await seedSupabaseSession(page);
+    await loginAs(page, "weakstart@example.com", uid);
+    await walkSetupToHardware(page, "weak network resume");
+    await page.getByRole("button", { name: /Start Session|Start without Mic/i }).click();
+
+    // 1. No silent downgrade: the wizard stays put and states the cost.
+    const banner = page.getByRole("alert").filter({ hasText: "本次面试无法保存" });
+    await expect(banner, "a session that cannot be saved is stated before the room").toBeVisible({ timeout: 20000 });
+    await expect(page, "the room does not open behind the candidate's back").toHaveURL(/\/setup/);
+
+    // 2. It is a standing alert: the four-second acknowledgement may vanish,
+    //    but the explanation must not vanish with it. Waiting for the toast to
+    //    disappear is a condition, not a clock.
+    await expect(banner).toHaveAttribute("aria-live", "assertive");
+    // Sonner pauses a toast's timer while the pointer rests on it. The Start
+    // Session button sits at the bottom of step 6, exactly where the bottom
+    // acknowledgement appears, so move away before waiting for it to expire.
+    await page.mouse.move(0, 0);
+    await expect(page.locator("[data-sonner-toaster] li").filter({ hasText: "本地模式" })).toHaveCount(0, {
+      timeout: 20000,
+    });
+    await expect(banner, "the explanation outlives the toast").toBeVisible();
+
+    // 3. Both ways out are real 44px targets at this width.
+    const retry = banner.getByRole("button", { name: /重试连接/ });
+    const proceed = banner.getByRole("button", { name: /仍要继续/ });
+    for (const [name, control] of [
+      ["retry", retry],
+      ["proceed", proceed],
+    ] as const) {
+      const box = await control.boundingBox();
+      expect(Math.round(box?.height ?? 0), `${name} is at least 44px tall`).toBeGreaterThanOrEqual(44);
+    }
+
+    // 4. Consent is what opens the room.
+    await proceed.click();
+    await expect(page).toHaveURL(/\/interview/, { timeout: 30000 });
+
+    // 5. The degradation exits on the green-room gate are pressable too.
+    for (const name of [/跳过语音测试/, /先不面试，返回控制台/]) {
+      const box = await page.getByRole("button", { name }).boundingBox();
+      expect(Math.round(box?.height ?? 0), `green-room exit ${String(name)} is at least 44px tall`).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test("a failed settle is retryable with phone-sized controls", async ({ page }) => {
+    test.setTimeout(240000);
+    // Same failure seam as the desktop P0-1 guard, so the phone lane cannot
+    // drift into testing a different write failure.
+    const { id, patchAttempts } = await openSettleFailureRoom(page, {
+      email: "weaksave@example.com",
+      title: "weak save probe",
+    });
+    await page.getByPlaceholder("输入文本...").fill("A measurable answer about a migration.");
+    await page.getByRole("button", { name: /发送消息/ }).click();
+    await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
+    await page.getByRole("button", { name: /结束面试/i }).click();
+
+    const banner = page.getByRole("alert").filter({ hasText: "这次记录没有保存" });
+    await expect(banner, "the failed write is stated on screen").toBeVisible({ timeout: 60000 });
+    await expect(page, "the room stays put instead of faking a successful exit").toHaveURL(
+      new RegExp(`/interview\\?id=${id}`),
+    );
+
+    // The banner is fixed outside `main`, so measure it directly rather than
+    // through the shared guard that only looks inside the main landmark.
+    for (const name of [/重试保存/, /返回控制台/]) {
+      const box = await banner.getByRole("button", { name }).boundingBox();
+      expect(Math.round(box?.height ?? 0), `${String(name)} is at least 44px tall`).toBeGreaterThanOrEqual(44);
+    }
+    const m = await readPhoneGeometry(page);
+    expect(m.visual, "the lane is still 390 CSS px wide").toBe(390);
+    expect(m.docScroll, "the standing banner adds no horizontal scroll").toBeLessThanOrEqual(m.vw + 1);
+
+    // The retry is a real recovery at this width, not just a visible button.
+    await banner.getByRole("button", { name: /重试保存/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/dashboard/report/${id}`), { timeout: 90000 });
+    expect(patchAttempts(), "the retry attempted the write again").toBeGreaterThan(1);
   });
 });

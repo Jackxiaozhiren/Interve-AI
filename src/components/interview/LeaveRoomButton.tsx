@@ -16,7 +16,7 @@ export function LeaveRoomButton({ onExit }: { onExit: () => void }) {
     <button
       type="button"
       onClick={onExit}
-      className="text-ui-xs font-medium text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-all"
+      className="min-h-11 text-ui-xs font-medium text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-all sm:min-h-0"
     >
       先不面试，返回控制台
     </button>

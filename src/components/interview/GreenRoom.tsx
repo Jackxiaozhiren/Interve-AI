@@ -155,7 +155,7 @@ export function GreenRoom({ onComplete, onBypass, onExit }: GreenRoomProps) {
             {/* Phase 8: permission recovery — re-request access. */}
             <button
               onClick={() => setAttempt((a) => a + 1)}
-              className="inline-flex items-center gap-2 self-start text-sm font-bold text-rose-600 hover:text-rose-500 underline underline-offset-4"
+              className="inline-flex min-h-11 items-center gap-2 self-start text-sm font-bold text-rose-600 hover:text-rose-500 underline underline-offset-4 sm:min-h-0"
             >
               <ArrowClockwise className="w-4 h-4" weight="bold" aria-hidden="true" />
               重新请求麦克风权限
@@ -210,7 +210,7 @@ export function GreenRoom({ onComplete, onBypass, onExit }: GreenRoomProps) {
           
           <button 
             onClick={handleBypass}
-            className="text-xs font-medium text-slate-500 hover:text-slate-700 underline-offset-4 hover:underline transition-all mt-2"
+            className="min-h-11 text-xs font-medium text-slate-500 hover:text-slate-700 underline-offset-4 hover:underline transition-all mt-2 sm:min-h-0"
             aria-label="跳过语音测试，以纯文本模式继续"
           >
             跳过语音测试，以纯文本模式继续

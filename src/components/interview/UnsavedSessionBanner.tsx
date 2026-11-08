@@ -40,11 +40,11 @@ export function UnsavedSessionBanner({
               onClick={onRetry}
               disabled={retrying}
               size="sm"
-              className="rounded-full bg-rose-500 text-white shadow-sm hover:bg-rose-600"
+              className="min-h-11 rounded-full bg-rose-500 text-white shadow-sm hover:bg-rose-600 sm:min-h-0"
             >
               {retrying ? "正在重试保存…" : "重试保存"}
             </Button>
-            <Button onClick={onLeave} variant="ghost" size="sm" className="rounded-full text-slate-500">
+            <Button onClick={onLeave} variant="ghost" size="sm" className="min-h-11 rounded-full text-slate-500 sm:min-h-0">
               返回控制台（这场记录不会保存）
             </Button>
           </div>
