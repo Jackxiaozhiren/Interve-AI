@@ -2,6 +2,7 @@
 
 import { WarningCircle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import type { SendFailureNotice } from "@/hooks/useSendFailureRecovery";
 
 /**
  * A send that never reached the route used to look exactly like a slow answer:
@@ -9,6 +10,9 @@ import { Button } from "@/components/ui/button";
  * the transcript. On a phone that is the ordinary shape of a dropped
  * connection, so the failure has to say what happened, keep the text where the
  * candidate can edit it, and offer the retry.
+ *
+ * The same banner carries a reply that arrived only halfway, with different
+ * words and without restoring the answer — see `useSendFailureRecovery`.
  *
  * role="alert" rather than a toast, for the same reason the settlement banner
  * uses one: the state lasts until the retry succeeds, and a message that
@@ -18,10 +22,12 @@ export function SendFailureBanner({
   retrying,
   onRetry,
   onDismiss,
+  notice,
 }: {
   retrying: boolean;
   onRetry: () => void;
   onDismiss: () => void;
+  notice: SendFailureNotice;
 }) {
   return (
     <div
@@ -32,17 +38,15 @@ export function SendFailureBanner({
       <div className="flex items-start gap-3">
         <WarningCircle weight="duotone" className="mt-0.5 h-6 w-6 shrink-0 text-amber-500" />
         <div className="min-w-0 flex-1">
-          <p className="text-base font-semibold text-slate-900">这条回答没有发送成功</p>
-          <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            网络中断了，面试官没有收到。你写的内容已放回输入框，检查网络后可以重试。
-          </p>
+          <p className="text-base font-semibold text-slate-900">{notice.title}</p>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">{notice.description}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
               onClick={onRetry}
               disabled={retrying}
               className="min-h-11 rounded-full bg-amber-500 text-white shadow-sm hover:bg-amber-600 sm:min-h-0"
             >
-              {retrying ? "正在重试…" : "重试发送"}
+              {retrying ? "正在重试…" : notice.retryLabel}
             </Button>
             <Button
               onClick={onDismiss}

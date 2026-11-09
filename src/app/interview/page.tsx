@@ -242,6 +242,11 @@ function InterviewRoomContent() {
     return () => clearInterval(interval);
   }, [isRecording, setCognitiveLoad]);
 
+  // A stream that ends before text-end leaves its text part "streaming" while
+  // the transport reports no error, so the room would show half a question as
+  // if it were whole. onFinish is the only place that sees the final shape.
+  const [streamTruncated, setStreamTruncated] = useState(false);
+
   const { messages, setMessages, sendMessage, regenerate, status, error: sendError } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/interview-chat",
@@ -266,6 +271,9 @@ function InterviewRoomContent() {
       }
     }),
     onFinish: (event) => {
+      setStreamTruncated(
+        !event.isAbort && !event.isError && event.message.parts.some((p) => p.type === "text" && p.state === "streaming"),
+      );
       // Phase 8: send→complete round trip (includes generation time).
       sendSpanRef.current.collectInto(roundTripsRef.current);
       // v7 passes an event envelope, not the message: reading `event` itself
@@ -301,7 +309,7 @@ function InterviewRoomContent() {
 
   // Measured at 390px with /api/interview-chat aborted: zero role="alert"
   // nodes, an empty composer, and no retry. The hook owns that recovery.
-  const sendFailure = useSendFailureRecovery({ error: sendError, setInputText, regenerate });
+  const sendFailure = useSendFailureRecovery({ error: sendError, truncated: streamTruncated, setInputText, regenerate });
 
   const isLoading = status === 'streaming' || status === 'submitted';
   const [latencyPhase, setLatencyPhase] = useState(0);
@@ -1074,6 +1082,7 @@ function InterviewRoomContent() {
           retrying={sendFailure.retrying}
           onRetry={sendFailure.retry}
           onDismiss={sendFailure.dismiss}
+          notice={sendFailure.notice}
         />
       )}
       <TextSelectionMenu />

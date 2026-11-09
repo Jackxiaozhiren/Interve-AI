@@ -218,6 +218,24 @@ async function expectLocalOnlyConsent(
  * surfaces without a session card; callers assert only the fields their surface
  * owns.
  */
+/**
+ * Enter the room through the test-mode gate and send one answer. Both phone
+ * failure probes need exactly this much setup — same gate, same composer, same
+ * send — so it lives here rather than twice in the describe. Callers keep their
+ * own seam (route stub) and their own assertions.
+ */
+async function openRoomAndSend(page: Page, query: string, answer: string) {
+  await page.goto(`/interview?${query}&testMode=true`);
+  const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
+  await expect(enter).toBeEnabled({ timeout: 40000 });
+  await enter.click();
+  const composer = page.getByPlaceholder("输入文本...");
+  await expect(composer).toBeVisible({ timeout: 20000 });
+  await composer.fill(answer);
+  await page.getByRole("button", { name: /发送消息/ }).click();
+  return composer;
+}
+
 const readPhoneGeometry = (page: Page) =>
   page.evaluate(() => {
     const vw = window.innerWidth;
@@ -813,15 +831,7 @@ test.describe("a dropped send at phone width", () => {
       return route.continue();
     });
 
-    await page.goto("/interview?id=phone-send-failure&testMode=true");
-    const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
-    await expect(enter).toBeEnabled({ timeout: 40000 });
-    await enter.click();
-
-    const composer = page.getByPlaceholder("输入文本...");
-    await expect(composer).toBeVisible({ timeout: 20000 });
-    await composer.fill("弱网下的一条回答");
-    await page.getByRole("button", { name: /发送消息/ }).click();
+    const composer = await openRoomAndSend(page, "id=phone-send-failure", "弱网下的一条回答");
 
     // 1. The failure is stated in words a candidate can act on, rather than
     //    looking like an answer that is merely slow.
@@ -843,6 +853,55 @@ test.describe("a dropped send at phone width", () => {
     await retry.click();
     await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
     await expect(banner, "the banner disappears once the answer is delivered").toHaveCount(0);
+  });
+
+  // A turn whose SSE ends after half a sentence — no text-end, no finish, no
+  // [DONE] — used to look like a complete question. The transport reports no
+  // error (`isDisconnect:false`, `isError:false`), so nothing was stated, the
+  // half question stayed in the transcript, and the candidate answered it as
+  // if it were whole. Measured 2026-11-09: zero role="alert" nodes, the text
+  // part still `state:"streaming"` at onFinish.
+  test("a reply cut off mid-stream is stated and can be regenerated", async ({ page }) => {
+    test.setTimeout(180000);
+    await loginAs(page);
+
+    let chatCalls = 0;
+    await page.route("**/api/interview-chat", async (route) => {
+      chatCalls += 1;
+      if (chatCalls > 1) return route.continue();
+      const frames = [
+        { type: "start", messageId: "cut-1" },
+        { type: "text-start", id: "cut-t1" },
+        { type: "text-delta", id: "cut-t1", delta: "让我先问一个关于" },
+      ];
+      return route.fulfill({
+        status: 200,
+        headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+        body: frames.map((f) => `data: ${JSON.stringify(f)}\n\n`).join(""),
+      });
+    });
+
+    const composer = await openRoomAndSend(page, "id=phone-stream-cut", "断开前的一条回答");
+
+    // 1. Half a question is stated as a cut reply, not left as the question.
+    const banner = page.getByRole("alert").filter({ hasText: "面试官的回答被截断了" });
+    await expect(banner, "a stream that ended early is stated on screen").toBeVisible({ timeout: 30000 });
+
+    // 2. The answer already reached the interviewer, so it must not be put back
+    //    in the composer — that is what invites sending it twice.
+    await expect(composer, "a delivered answer is not offered for re-sending").toHaveValue("");
+
+    // 3. Both ways out are real targets at this width.
+    for (const name of [/重新生成/, /先不管/]) {
+      const box = await banner.getByRole("button", { name }).boundingBox();
+      expect(Math.round(box?.height ?? 0), `${String(name)} is at least 44px tall`).toBeGreaterThanOrEqual(44);
+    }
+
+    // 4. Regenerating reaches the interviewer and clears the statement.
+    await banner.getByRole("button", { name: /重新生成/ }).click();
+    await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
+    await expect(banner, "the statement does not outlive the recovery").toHaveCount(0);
+    expect(chatCalls, "the retry asked the route again").toBeGreaterThan(1);
   });
 });
 
