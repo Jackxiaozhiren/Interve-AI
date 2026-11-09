@@ -36,8 +36,13 @@ test.describe('Interview Setup and Room', () => {
     const startBtn = page.getByRole('button', { name: /Start Session|Start without Mic/i });
     await expect(startBtn).toBeEnabled({ timeout: 30000 });
     await startBtn.click();
-    
-    test.setTimeout(60000);
+
+    // A demo cookie owns no Supabase account, so the row write is refused and
+    // the wizard asks before opening a session whose report cannot be saved.
+    await expect(page.getByRole('alert').filter({ hasText: '本次面试无法保存' })).toBeVisible({ timeout: 20000 });
+    await page.getByRole('button', { name: /仍要继续/ }).click();
+
+    test.setTimeout(90000);
     // 3. We should be on the interview page (GreenRoom gate first)
     await expect(page).toHaveURL(/.*\/interview/);
     const bypassBtn = page.getByRole('button', { name: /跳过语音测试/i });

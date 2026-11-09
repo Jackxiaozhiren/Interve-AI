@@ -172,6 +172,43 @@ async function walkSetupToHardware(
 }
 
 /**
+ * The standing local-only confirmation is one contract. A database that is
+ * down and a demo login with no owning account differ only in which toast
+ * acknowledges the failure and which reason the alert must state; everything
+ * after that — no silent room, assertive live region, 44px exits, consent
+ * before navigation — is the same assertion, so it lives here once.
+ */
+async function expectLocalOnlyConsent(
+  page: Page,
+  options: Readonly<{ toast: string; reason: RegExp }>,
+): Promise<void> {
+  const banner = page.getByRole("alert").filter({ hasText: "本次面试无法保存" });
+  await expect(banner, "a session that cannot be saved is stated before the room").toBeVisible({ timeout: 20000 });
+  await expect(page, "the room does not open behind the candidate's back").toHaveURL(/\/setup/);
+  await expect(banner).toHaveAttribute("aria-live", "assertive");
+  await expect(banner.getByText(options.reason)).toBeVisible();
+  // Sonner pauses a toast's timer while the pointer rests on it. The Start
+  // Session button sits at the bottom of step 6, exactly where the bottom
+  // acknowledgement appears, so move away before waiting for it to expire.
+  await page.mouse.move(0, 0);
+  await expect(page.locator("[data-sonner-toaster] li").filter({ hasText: options.toast })).toHaveCount(0, {
+    timeout: 20000,
+  });
+  await expect(banner, "the explanation outlives the toast").toBeVisible();
+  const retry = banner.getByRole("button", { name: /重试连接/ });
+  const proceed = banner.getByRole("button", { name: /仍要继续/ });
+  for (const [name, control] of [
+    ["retry", retry],
+    ["proceed", proceed],
+  ] as const) {
+    const box = await control.boundingBox();
+    expect(Math.round(box?.height ?? 0), `${name} is at least 44px tall`).toBeGreaterThanOrEqual(44);
+  }
+  await proceed.click();
+  await expect(page).toHaveURL(/\/interview/, { timeout: 30000 });
+}
+
+/**
  * Shared phone geometry reader. A link at right=759 inside the sidebar's
  * horizontal strip is reachable by swiping; a badge at right=476 inside an
  * `overflow-hidden` card is gone for good. The scroller test keeps those apart,
@@ -848,44 +885,47 @@ test.describe("weak-network failures at phone width", () => {
     await walkSetupToHardware(page, "weak network resume");
     await page.getByRole("button", { name: /Start Session|Start without Mic/i }).click();
 
-    // 1. No silent downgrade: the wizard stays put and states the cost.
-    const banner = page.getByRole("alert").filter({ hasText: "本次面试无法保存" });
-    await expect(banner, "a session that cannot be saved is stated before the room").toBeVisible({ timeout: 20000 });
-    await expect(page, "the room does not open behind the candidate's back").toHaveURL(/\/setup/);
+    await expectLocalOnlyConsent(page, { toast: "本地模式", reason: /未连接数据库/ });
 
-    // 2. It is a standing alert: the four-second acknowledgement may vanish,
-    //    but the explanation must not vanish with it. Waiting for the toast to
-    //    disappear is a condition, not a clock.
-    await expect(banner).toHaveAttribute("aria-live", "assertive");
-    // Sonner pauses a toast's timer while the pointer rests on it. The Start
-    // Session button sits at the bottom of step 6, exactly where the bottom
-    // acknowledgement appears, so move away before waiting for it to expire.
-    await page.mouse.move(0, 0);
-    await expect(page.locator("[data-sonner-toaster] li").filter({ hasText: "本地模式" })).toHaveCount(0, {
-      timeout: 20000,
-    });
-    await expect(banner, "the explanation outlives the toast").toBeVisible();
-
-    // 3. Both ways out are real 44px targets at this width.
-    const retry = banner.getByRole("button", { name: /重试连接/ });
-    const proceed = banner.getByRole("button", { name: /仍要继续/ });
-    for (const [name, control] of [
-      ["retry", retry],
-      ["proceed", proceed],
-    ] as const) {
-      const box = await control.boundingBox();
-      expect(Math.round(box?.height ?? 0), `${name} is at least 44px tall`).toBeGreaterThanOrEqual(44);
-    }
-
-    // 4. Consent is what opens the room.
-    await proceed.click();
-    await expect(page).toHaveURL(/\/interview/, { timeout: 30000 });
-
-    // 5. The degradation exits on the green-room gate are pressable too.
+    // The degradation exits on the green-room gate are pressable too.
     for (const name of [/跳过语音测试/, /先不面试，返回控制台/]) {
       const box = await page.getByRole("button", { name }).boundingBox();
       expect(Math.round(box?.height ?? 0), `green-room exit ${String(name)} is at least 44px tall`).toBeGreaterThanOrEqual(44);
     }
+  });
+
+  test("a demo login with no owning account is confirmed too, not just a down database", async ({ page }) => {
+    test.setTimeout(240000);
+    // No seedSupabaseSession(): stampOwner refuses the write with NO_OWNER before
+    // any REST call goes out. The 390px browser check on 2026-11-09 found this
+    // identity class still entering the room on a four-second toast, because the
+    // standing confirmation was wired only to the "unreachable" branch.
+    const stub = createPostgrestStub();
+    await page.route("**/rest/v1/*", (route) => stub(route));
+    await loginAs(page, "demo-consent@example.com");
+    await walkSetupToHardware(page, "demo consent resume");
+    await page.getByRole("button", { name: /Start Session|Start without Mic/i }).click();
+
+    await expectLocalOnlyConsent(page, { toast: "本次面试不会保存", reason: /演示登录/ });
+  });
+
+  test("a report that cannot load still offers a phone-sized way out", async ({ page }) => {
+    test.setTimeout(120000);
+    // 390px browser check, 2026-11-09: /dashboard/report/<missing> renders the
+    // shared ErrorState, whose "返回控制台" measured 36px at both phone and
+    // desktop widths, and whose role=alert carried no explicit live region.
+    const stub = createPostgrestStub();
+    await page.route("**/rest/v1/*", (route) => stub(route));
+    await loginAs(page);
+    await page.goto("/dashboard/report/999999");
+    const alert = page.getByRole("alert").filter({ hasText: "报告加载失败" });
+    await expect(alert).toBeVisible({ timeout: 30000 });
+    await expect(alert).toHaveAttribute("aria-live", "assertive");
+    const back = alert.getByRole("button", { name: /返回控制台/ });
+    const box = await back.boundingBox();
+    expect(Math.round(box?.height ?? 0), "the way back is at least 44px tall").toBeGreaterThanOrEqual(44);
+    const m = await readPhoneGeometry(page);
+    expect(m.small, "the error state leaves no sub-44px control in main").toEqual([]);
   });
 
   test("a failed settle is retryable with phone-sized controls", async ({ page }) => {

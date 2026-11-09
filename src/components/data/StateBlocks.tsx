@@ -94,6 +94,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
+      aria-live="assertive"
       className={cn("flex flex-col items-center justify-center px-4 py-20 text-center", className)}
     >
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
@@ -117,14 +118,17 @@ export function ErrorState({
       <h3 className="mt-6 text-[18px] font-medium text-[#1D2129]">{title}</h3>
       <p className="mt-3 max-w-sm text-center text-[14px] text-[#86909C]">{message}</p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        {/* Measured at 390px on 2026-11-09: the report's "返回控制台" was 36px
+            inside an inline <a>, so a min-height on the button alone left the
+            link itself below the 44px touch target. sm: restores desktop. */}
         {onRetry && (
-          <Button onClick={onRetry} className="rounded-full">
+          <Button onClick={onRetry} className="min-h-11 rounded-full sm:min-h-0">
             重试
           </Button>
         )}
         {backHref && (
-          <Link href={backHref}>
-            <Button variant="outline" className="rounded-full">
+          <Link href={backHref} className="inline-flex min-h-11 items-center sm:min-h-0">
+            <Button variant="outline" className="min-h-11 rounded-full sm:min-h-0">
               {backLabel}
             </Button>
           </Link>
