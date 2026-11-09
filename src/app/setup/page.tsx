@@ -258,6 +258,12 @@ export default function SetupPage() {
           toast.warning("本次面试不会保存", {
             description: "当前是演示登录，没有可归属的账户。用 Google / GitHub 登录后即可保存报告与历史。",
           });
+          // Every failure loses the report, not just an unreachable database:
+          // the standing confirmation must not depend on which bucket the
+          // error falls into. The reason still names the cause so retrying a
+          // write that cannot succeed is not presented as the only fix.
+          localOnlyReason =
+            "当前是演示登录，没有可归属的账户，本次面试仅保存在当前浏览器。用 Google / GitHub 登录后即可保存报告与历史。";
         } else if (kind === "schema_drift") {
           // Server-side contract problem, not the user's connection. Needs the
           // console text to be greppable: a column this build writes is absent.
@@ -268,6 +274,8 @@ export default function SetupPage() {
           toast.warning("本次面试不会保存", {
             description: "服务器数据库结构与当前版本不一致，面试照常进行，但报告和历史都无法恢复。",
           });
+          localOnlyReason =
+            "服务器数据库结构与当前版本不一致，本次面试仅保存在当前浏览器。这是服务端契约问题，重试连接无法修复。";
         } else {
           // Supabase is optional (.env.example): when the database is genuinely
           // unreachable the session still runs locally rather than blocking the
