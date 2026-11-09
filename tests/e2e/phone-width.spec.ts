@@ -218,6 +218,24 @@ async function expectLocalOnlyConsent(
  * surfaces without a session card; callers assert only the fields their surface
  * owns.
  */
+/**
+ * Enter the room through the test-mode gate and send one answer. Both phone
+ * failure probes need exactly this much setup — same gate, same composer, same
+ * send — so it lives here rather than twice in the describe. Callers keep their
+ * own seam (route stub) and their own assertions.
+ */
+async function openRoomAndSend(page: Page, query: string, answer: string) {
+  await page.goto(`/interview?${query}&testMode=true`);
+  const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
+  await expect(enter).toBeEnabled({ timeout: 40000 });
+  await enter.click();
+  const composer = page.getByPlaceholder("输入文本...");
+  await expect(composer).toBeVisible({ timeout: 20000 });
+  await composer.fill(answer);
+  await page.getByRole("button", { name: /发送消息/ }).click();
+  return composer;
+}
+
 const readPhoneGeometry = (page: Page) =>
   page.evaluate(() => {
     const vw = window.innerWidth;
@@ -813,15 +831,7 @@ test.describe("a dropped send at phone width", () => {
       return route.continue();
     });
 
-    await page.goto("/interview?id=phone-send-failure&testMode=true");
-    const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
-    await expect(enter).toBeEnabled({ timeout: 40000 });
-    await enter.click();
-
-    const composer = page.getByPlaceholder("输入文本...");
-    await expect(composer).toBeVisible({ timeout: 20000 });
-    await composer.fill("弱网下的一条回答");
-    await page.getByRole("button", { name: /发送消息/ }).click();
+    const composer = await openRoomAndSend(page, "id=phone-send-failure", "弱网下的一条回答");
 
     // 1. The failure is stated in words a candidate can act on, rather than
     //    looking like an answer that is merely slow.
@@ -871,15 +881,7 @@ test.describe("a dropped send at phone width", () => {
       });
     });
 
-    await page.goto("/interview?id=phone-stream-cut&testMode=true");
-    const enter = page.getByRole("button", { name: /开始面试|强制开始/i });
-    await expect(enter).toBeEnabled({ timeout: 40000 });
-    await enter.click();
-
-    const composer = page.getByPlaceholder("输入文本...");
-    await expect(composer).toBeVisible({ timeout: 20000 });
-    await composer.fill("断开前的一条回答");
-    await page.getByRole("button", { name: /发送消息/ }).click();
+    const composer = await openRoomAndSend(page, "id=phone-stream-cut", "断开前的一条回答");
 
     // 1. Half a question is stated as a cut reply, not left as the question.
     const banner = page.getByRole("alert").filter({ hasText: "面试官的回答被截断了" });
