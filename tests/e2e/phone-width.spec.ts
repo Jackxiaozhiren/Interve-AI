@@ -6,7 +6,7 @@
 // These are geometry assertions, not screenshots: a baseline image only says the
 // page looks the same as last time, while these say the content column is wide
 // enough to read and that nothing pushes the document sideways.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { createPostgrestStub, loginAs, openSettleFailureRoom, seedSupabaseSession } from "../helpers";
 
 /**
@@ -234,6 +234,23 @@ async function openRoomAndSend(page: Page, query: string, answer: string) {
   await composer.fill(answer);
   await page.getByRole("button", { name: /发送消息/ }).click();
   return composer;
+}
+
+/**
+ * What a cut reply owes the candidate, shared by the two ways a stream can end
+ * early: a graceful EOF without `finish` and an error after the first delta.
+ * The wording, the empty composer and the 44px exits must be identical, or the
+ * pair drifts into testing two different products.
+ */
+async function expectCutReplyState(page: Page, composer: Locator): Promise<Locator> {
+  const cut = page.getByRole("alert").filter({ hasText: "面试官的回答被截断了" });
+  await expect(cut, "a reply that started is named as cut").toBeVisible({ timeout: 30000 });
+  await expect(composer, "a delivered answer is not offered for re-sending").toHaveValue("");
+  for (const name of [/重新生成/, /先不管/]) {
+    const box = await cut.getByRole("button", { name }).boundingBox();
+    expect(Math.round(box?.height ?? 0), `${String(name)} is at least 44px tall`).toBeGreaterThanOrEqual(44);
+  }
+  return cut;
 }
 
 const readPhoneGeometry = (page: Page) =>
@@ -883,25 +900,72 @@ test.describe("a dropped send at phone width", () => {
 
     const composer = await openRoomAndSend(page, "id=phone-stream-cut", "断开前的一条回答");
 
-    // 1. Half a question is stated as a cut reply, not left as the question.
-    const banner = page.getByRole("alert").filter({ hasText: "面试官的回答被截断了" });
-    await expect(banner, "a stream that ended early is stated on screen").toBeVisible({ timeout: 30000 });
-
-    // 2. The answer already reached the interviewer, so it must not be put back
-    //    in the composer — that is what invites sending it twice.
-    await expect(composer, "a delivered answer is not offered for re-sending").toHaveValue("");
-
-    // 3. Both ways out are real targets at this width.
-    for (const name of [/重新生成/, /先不管/]) {
-      const box = await banner.getByRole("button", { name }).boundingBox();
-      expect(Math.round(box?.height ?? 0), `${String(name)} is at least 44px tall`).toBeGreaterThanOrEqual(44);
-    }
+    // 1-3. Named as cut, the delivered answer is not restored, exits are 44px.
+    const banner = await expectCutReplyState(page, composer);
 
     // 4. Regenerating reaches the interviewer and clears the statement.
     await banner.getByRole("button", { name: /重新生成/ }).click();
     await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
     await expect(banner, "the statement does not outlive the recovery").toHaveCount(0);
     expect(chatCalls, "the retry asked the route again").toBeGreaterThan(1);
+  });
+
+  // The ordinary shape of a dropped mobile connection: the answer reaches the
+  // interviewer, half a question comes back, and then the stream errors. The
+  // transport sets `error`, so the room used to say "your answer was not
+  // delivered" and put the text back in the composer — both untrue, and the
+  // second invites sending the same answer twice. Measured 2026-11-09.
+  test("a reply that arrives before the drop is not called a lost send", async ({ page }) => {
+    test.setTimeout(180000);
+
+    // `route.fulfill` cannot fail in the middle of a body, so the seam is an
+    // in-page stream that errors after two frames. `off` lets the retry reach
+    // the real mock route.
+    await page.addInitScript(() => {
+      const original = window.fetch;
+      const state = { hits: 0, off: false };
+      (window as unknown as { __partial: typeof state }).__partial = state;
+      window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
+        const url = typeof input === "string" ? input : (input as Request).url || String(input);
+        if (!state.off && url.indexOf("/api/interview-chat") !== -1) {
+          state.hits += 1;
+          const enc = new TextEncoder();
+          const frames = [
+            { type: "start", messageId: "partial-1" },
+            { type: "text-start", id: "partial-t1" },
+            { type: "text-delta", id: "partial-t1", delta: "让我先问一个关于" },
+          ];
+          const stream = new ReadableStream<Uint8Array>({
+            start(controller) {
+              for (const f of frames) controller.enqueue(enc.encode(`data: ${JSON.stringify(f)}\n\n`));
+              setTimeout(() => controller.error(new Error("simulated network cut")), 400);
+            },
+          });
+          return Promise.resolve(
+            new Response(stream, { status: 200, headers: { "content-type": "text/event-stream" } }),
+          );
+        }
+        return original(input, init);
+      } as typeof fetch;
+    });
+
+    await loginAs(page);
+    const composer = await openRoomAndSend(page, "id=phone-partial-cut", "面试官已经读到的回答");
+
+    // 1-3. Named as cut, the delivered answer is not restored, exits are 44px.
+    const cut = await expectCutReplyState(page, composer);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "这条回答没有发送成功" }),
+      "the lost-send wording is reserved for sends that never arrived",
+    ).toHaveCount(0);
+
+    // 4. The retry reaches the real route and clears the statement.
+    await page.evaluate(() => {
+      (window as unknown as { __partial: { off: boolean } }).__partial.off = true;
+    });
+    await cut.getByRole("button", { name: /重新生成/ }).click();
+    await expect(page.getByRole("log").getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
+    await expect(cut, "the statement does not outlive the recovery").toHaveCount(0);
   });
 });
 
