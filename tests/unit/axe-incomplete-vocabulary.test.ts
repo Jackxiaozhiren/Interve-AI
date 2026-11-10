@@ -34,7 +34,13 @@ const UNDETERMINABLE_KEYS = (() => {
   let m: RegExpExecArray | null;
   while ((m = entry.exec(BUNDLE)) !== null) {
     const value = m[2].replace(/\\'/g, "'");
-    if (/could not be determined|too short to determine/.test(value)) out.set(m[1], value);
+    // axe 4.14 added `emptyValue` ("Element has no value; test color contrast
+    // with a value entered"). It is the same class as `shortTextContent` — axe
+    // declines to treat the node as text — but its wording contains neither
+    // "could not be determined" nor "too short", so a prose-derived vocabulary
+    // that stops at those two phrases would call the new bucket dead while the
+    // browser lane files it as an undeclared reason.
+    if (/could not be determined|too short to determine|test color contrast with a value entered/.test(value)) out.set(m[1], value);
   }
   return out;
 })();

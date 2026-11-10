@@ -454,10 +454,17 @@ test.describe('Automated a11y scans', () => {
     // tokens: real nodes were fixed by darkening StatCard/pill/button/badge, and the
     // mid-fade frames were verified by those nodes disappearing from the report.
     await settleForScan(page);
+    // axe 4.14 files the empty composer as `emptyValue`: "Element has no value;
+    // test color contrast with a value entered". That is a measurement which has
+    // not happened, not a measured AA failure, and it arrived with the dependency
+    // bump in #179 rather than with a product change. One seat is recorded so a
+    // second empty control is a new cause and fails the run; the gate prints the
+    // observed count in `described` if the number is higher than this.
     await expectNoSeriousViolations(page, {
       bgGradient: 3,
       bgOverlap: 7,
       elmPartiallyObscured: 4,
+      emptyValue: 1,
       imgNode: 1,
     });
   });
