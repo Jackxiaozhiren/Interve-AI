@@ -1,6 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
-import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
+import { guardRequest, okResponse, errorResponse, applyQuotaHeaders } from "@/lib/api/guard";
 import { logApi, usageOf } from "@/lib/api/logging";
 import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { google, MODEL_IDS, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
@@ -33,20 +33,20 @@ export async function POST(req: Request) {
     rateLimit: { limit: 30, windowMs: 60_000 },
   });
   if (!gate.ok) return gate.response;
-  const { requestId, data, signal } = gate.ctx;
+  const { requestId, data, signal, quota } = gate.ctx;
   const { code, language, problemStatement } = data;
-  if (isMockEnabled()) return mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId);
+  if (isMockEnabled()) return applyQuotaHeaders(mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId), quota);
   const startTime = performance.now();
 
   try {
     if (!code || code.trim().length === 0) {
-      return okResponse({
+      return applyQuotaHeaders(okResponse({
         timeComplexity: "O(1)",
         spaceComplexity: "O(1)",
         issues: [],
         hints: ["Start writing code to get real-time feedback."],
         isOptimal: false
-      }, requestId);
+      }, requestId), quota);
     }
 
     const { object, usage } = await generateObject({
@@ -59,11 +59,11 @@ export async function POST(req: Request) {
     });
 
     logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.geminiFlash, ...usageOf(usage) });
-    return okResponse(object, requestId, {
+    return applyQuotaHeaders(okResponse(object, requestId, {
       headers: {
         "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
       },
-    });
+    }), quota);
   } catch (e) {
     logApi(ROUTE, { requestId, status: 500, latencyMs: Math.round(performance.now() - startTime), reason: classifyUpstreamError(e) });
     return errorResponse("UPSTREAM_ERROR", "Failed to analyze code.", 500, requestId);
