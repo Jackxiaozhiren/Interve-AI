@@ -5,7 +5,7 @@
 ## Start here: implementation and evidence
 
 - [Developer setup](docs/DEVELOPMENT.md) · [Architecture](docs/ARCHITECTURE.md) · [Testing](docs/TESTING.md)
-- [AI evaluation](docs/AI_EVALUATION.md) · [Model limitations](docs/ai-governance/LIMITATIONS.md) · [Privacy](docs/PRIVACY.md)
+- [AI evaluation](docs/AI_EVALUATION.md) · [Model limitations](docs/ai-governance/LIMITATIONS.md) · [Privacy](docs/PRIVACY.md) · [Security reporting](SECURITY.md)
 - **Use boundary:** This project is for interview practice and feedback, **not** candidate screening, hiring decisions, or automated personality inference.
 - **Reuse boundary:** No repository-level open-source license is currently included. Public source access alone does not grant permission to redistribute or relicense the code; seek the maintainers' permission before reuse.
 
