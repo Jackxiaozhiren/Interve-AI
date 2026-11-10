@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { UIMessage } from "ai";
 
 export interface SendFailureNotice {
   title: string;
@@ -15,6 +16,10 @@ export interface SendFailureNotice {
  * only way to let the candidate say it again. The second one means the answer
  * did arrive — restoring it would invite sending the same turn twice — while
  * the question on screen is only half of what the interviewer said.
+ *
+ * The same split applies to a transport `error`: an error raised after the
+ * assistant has already spoken is a cut reply, not a lost send, even though
+ * both arrive through the identical `error` state.
  */
 const SEND_FAILED_NOTICE: SendFailureNotice = {
   title: "这条回答没有发送成功",
@@ -28,15 +33,23 @@ const TRUNCATED_NOTICE: SendFailureNotice = {
   retryLabel: "重新生成",
 };
 
+/** True when the assistant message already carries text the candidate can read. */
+function hasSpokenText(message: UIMessage | undefined): boolean {
+  if (!message || message.role !== "assistant") return false;
+  return (message.parts ?? []).some((p) => p.type === "text" && p.text.trim().length > 0);
+}
+
 export function useSendFailureRecovery({
   error,
   truncated,
+  messages,
   setInputText,
   regenerate,
 }: {
   error: Error | undefined;
   /** True when the last turn's stream ended before text-end (no finish chunk). */
   truncated: boolean;
+  messages: UIMessage[];
   setInputText: (value: string) => void;
   regenerate: () => Promise<void>;
 }) {
@@ -45,7 +58,10 @@ export function useSendFailureRecovery({
   const [retrying, setRetrying] = useState(false);
 
   const failed = Boolean(error);
+  // An error after the first text delta describes the reply, not the send.
+  const partialReply = failed && hasSpokenText(messages[messages.length - 1]);
   const active = failed || truncated;
+  const interrupted = truncated || partialReply;
 
   // Restoring the answer is what makes the retry their answer rather than a
   // blank turn. Keyed on the failure state so it runs once per failure, and
@@ -54,8 +70,8 @@ export function useSendFailureRecovery({
     if (!active) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDismissed(false);
-    if (failed && lastSentTextRef.current) setInputText(lastSentTextRef.current);
-  }, [active, failed, setInputText]);
+    if (failed && !partialReply && lastSentTextRef.current) setInputText(lastSentTextRef.current);
+  }, [active, failed, partialReply, setInputText]);
 
   const remember = useCallback((text: string) => {
     lastSentTextRef.current = text;
@@ -79,6 +95,6 @@ export function useSendFailureRecovery({
     retry,
     dismiss: () => setDismissed(true),
     remember,
-    notice: failed ? SEND_FAILED_NOTICE : TRUNCATED_NOTICE,
+    notice: interrupted ? TRUNCATED_NOTICE : SEND_FAILED_NOTICE,
   };
 }

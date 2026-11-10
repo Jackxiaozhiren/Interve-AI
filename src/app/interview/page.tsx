@@ -309,7 +309,7 @@ function InterviewRoomContent() {
 
   // Measured at 390px with /api/interview-chat aborted: zero role="alert"
   // nodes, an empty composer, and no retry. The hook owns that recovery.
-  const sendFailure = useSendFailureRecovery({ error: sendError, truncated: streamTruncated, setInputText, regenerate });
+  const sendFailure = useSendFailureRecovery({ error: sendError, truncated: streamTruncated, messages, setInputText, regenerate });
 
   const isLoading = status === 'streaming' || status === 'submitted';
   const [latencyPhase, setLatencyPhase] = useState(0);
