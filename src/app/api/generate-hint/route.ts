@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   if (!gate.ok) return gate.response;
   const { requestId, data, signal, quota } = gate.ctx;
   const { problemTitle, problemDescription, currentCode, chatHistory } = data;
-  if (isMockEnabled()) return mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId);
+  if (isMockEnabled()) return applyQuotaHeaders(mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId), quota);
   const startTime = performance.now();
 
   try {

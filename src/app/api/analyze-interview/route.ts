@@ -1,6 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
-import { guardRequest, okResponse, errorResponse } from "@/lib/api/guard";
+import { guardRequest, okResponse, errorResponse, applyQuotaHeaders } from "@/lib/api/guard";
 import { logApi } from "@/lib/api/logging";
 import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { resolveInterviewModel, FALLBACK_MAX_RETRIES, repairZhipuJson } from "@/ai/providers/registry";
@@ -51,9 +51,9 @@ export async function POST(req: Request) {
     timeoutMs: 170000,
   });
   if (!gate.ok) return gate.response;
-  const { requestId, data, signal } = gate.ctx;
+  const { requestId, data, signal, quota } = gate.ctx;
   const { messages, framework, interviewType } = data as { messages: unknown[]; framework?: string; interviewType?: string };
-  if (isMockEnabled()) return mockJson(ROUTE, mockV2Evaluation(), requestId);
+  if (isMockEnabled()) return applyQuotaHeaders(mockJson(ROUTE, mockV2Evaluation(), requestId), quota);
   const startTime = performance.now();
 
   // Phase 4+7: fixed rubric per interview format. Explicit non-general
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
         return normalizeEvaluation(result.object, rubric.id);
       },
     });
-    return okResponse(outcome.value, requestId, outcome.fallback ? { headers: { "x-fallback": outcome.modelId } } : undefined);
+    return applyQuotaHeaders(okResponse(outcome.value, requestId, outcome.fallback ? { headers: { "x-fallback": outcome.modelId } } : undefined), quota);
   } catch (e) {
     // Thin transcripts (model found nothing quotable in ANY dimension) get a
     // distinct 422 so clients can say "add specifics and retry" instead of a

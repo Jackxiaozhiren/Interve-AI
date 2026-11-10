@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     interviewType?: string;
     interviewLoop?: { startedAt?: number; timeBudgetSec?: number; difficulty?: string };
   };
-  if (isMockEnabled()) return mockTextStream(MOCK_STREAMS[ROUTE], requestId);
+  if (isMockEnabled()) return applyQuotaHeaders(mockTextStream(MOCK_STREAMS[ROUTE], requestId), quota);
   const startTime = performance.now();
 
   try {

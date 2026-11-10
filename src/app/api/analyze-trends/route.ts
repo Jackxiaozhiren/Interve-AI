@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { z } from "zod";
-import { guardRequest, okResponse } from "@/lib/api/guard";
+import { guardRequest, okResponse, applyQuotaHeaders } from "@/lib/api/guard";
 import { logApi, usageOf } from "@/lib/api/logging";
 import { classifyUpstreamError } from "@/lib/api/classify-error";
 import { zhipu, MODEL_IDS, DEFAULT_MAX_RETRIES } from "@/ai/providers/registry";
@@ -41,9 +41,9 @@ export async function POST(req: Request) {
     timeoutMs: 55000,
   });
   if (!gate.ok) return gate.response;
-  const { requestId, data, signal } = gate.ctx;
+  const { requestId, data, signal, quota } = gate.ctx;
   const { sessions } = data;
-  if (isMockEnabled()) return mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId);
+  if (isMockEnabled()) return applyQuotaHeaders(mockJson(ROUTE, MOCK_PAYLOADS[ROUTE], requestId), quota);
 
   try {
     // Phase 4: prefer V2 evaluation fields, fall back to legacy rows.
@@ -99,22 +99,22 @@ export async function POST(req: Request) {
       const latency = (performance.now() - startTime).toFixed(2);
       logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash, ...usageOf(result.usage) });
 
-      return okResponse(body, requestId, {
+      return applyQuotaHeaders(okResponse(body, requestId, {
         headers: { "X-Response-Time": `${latency}ms` },
-      });
+      }), quota);
       
     } catch (e) {
       logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), model: MODEL_IDS.zhipuFlash, reason: "fallback", cause: classifyUpstreamError(e) });
-      return okResponse(fallbackData, requestId, {
+      return applyQuotaHeaders(okResponse(fallbackData, requestId, {
         headers: { "X-Response-Time": `${(performance.now() - startTime).toFixed(2)}ms` },
-      });
+      }), quota);
     }
 
   } catch (e) {
     // Behavior preserved: request-level failures also degrade to fallbackData.
     logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - startTime), reason: "fallback", cause: classifyUpstreamError(e) });
-    return okResponse(fallbackData, requestId, {
+    return applyQuotaHeaders(okResponse(fallbackData, requestId, {
       headers: { "X-Response-Time": `${(performance.now() - startTime).toFixed(2)}ms` },
-    });
+    }), quota);
   }
 }
