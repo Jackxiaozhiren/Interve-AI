@@ -35,31 +35,7 @@ jobs:
           CI: true
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      # Fonts are load-bearing here, not decoration: the two visual baselines
-      # were captured on an image carrying fonts-freefont, fonts-unifont and
-      # fonts-wqy-zenhei, and without them Chromium's fallback shifts ~13.6k
-      # pixels (2%) on the English landing/login pages — above the 400-pixel
-      # tolerance. The apt mirror that provides them intermittently fails DNS
-      # ("Temporary failure resolving azure.archive.ubuntu.com"), and each
-      # attempt used to burn ~2 minutes on that timeout, which is how a job
-      # with every test already green got cancelled at 30 minutes.
-      #
-      # So: download the browser first (no apt), then fetch only the fonts,
-      # forcing IPv4 and bounding each attempt to 150s. Two attempts cost at
-      # most five minutes. If both fail the step fails with a message naming
-      # the mirror, instead of letting the visual lane fail for an unrelated
-      # reason and sending the next reader hunting through pixel diffs.
-      # The app ships no webfont, so every glyph comes from whatever the
-      # rendering host resolves, and the committed ubuntu baseline pair is a
-      # snapshot of that host. This step therefore mirrors
-      # .github/workflows/visual-baselines.yml exactly (`npm run
-      # e2e:install-browser`) rather than installing distro packages: the
-      # hosted runner cannot resolve ANY Ubuntu apt mirror today
-      # ("Could not resolve archive.ubuntu.com"), and the baseline pair has
-      # been re-captured on the same no-font image, so fetching fonts would
-      # move the target instead of hitting it.
-      - name: Install Playwright chromium
-        run: npm run e2e:install-browser
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e:smoke
         env:
           CI: true
