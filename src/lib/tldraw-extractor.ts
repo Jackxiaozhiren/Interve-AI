@@ -1,4 +1,4 @@
-import { TLShape, TLArrowShape, TLGeoShape, TLTextShape } from "tldraw";
+import { TLShape, TLArrowShape, TLGeoShape, TLTextShape } from "@tldraw/tldraw";
 
 export function extractSystemDesignText(shapes: TLShape[]): string {
   if (!shapes || shapes.length === 0) return "";
