@@ -35,18 +35,35 @@ jobs:
           CI: true
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      # The apt mirrors behind `--with-deps` intermittently fail DNS on the
-      # hosted runner ("Temporary failure resolving azure.archive.ubuntu.com").
-      # That failed this job twice on 2026-11-11 after facts, lint, typecheck,
-      # tests, build and eval had already passed; a retry loop then pushed the
-      # job past its 30-minute limit because each apt attempt burns ~2 minutes
-      # on the DNS timeout. The apt step only ever installed FONTS on this
-      # image — the shared libraries chromium needs are already present — and
-      # neither the assertions nor the landing/login visual baselines depend on
-      # CJK font metrics. So download the browser only; if a library were ever
-      # missing, the E2E lanes below fail loudly instead of this step guessing.
-      - name: Install Playwright chromium
-        run: npx --no-install playwright install chromium
+      # Fonts are load-bearing here, not decoration: the two visual baselines
+      # were captured on an image carrying fonts-freefont, fonts-unifont and
+      # fonts-wqy-zenhei, and without them Chromium's fallback shifts ~13.6k
+      # pixels (2%) on the English landing/login pages — above the 400-pixel
+      # tolerance. The apt mirror that provides them intermittently fails DNS
+      # ("Temporary failure resolving azure.archive.ubuntu.com"), and each
+      # attempt used to burn ~2 minutes on that timeout, which is how a job
+      # with every test already green got cancelled at 30 minutes.
+      #
+      # So: download the browser first (no apt), then fetch only the fonts,
+      # forcing IPv4 and bounding each attempt to 150s. Two attempts cost at
+      # most five minutes. If both fail the step fails with a message naming
+      # the mirror, instead of letting the visual lane fail for an unrelated
+      # reason and sending the next reader hunting through pixel diffs.
+      - name: Install Playwright chromium and font set
+        run: |
+          npx --no-install playwright install chromium
+          for attempt in 1 2; do
+            if timeout 150 sudo apt-get -o Acquire::ForceIPv4=true \
+                 -o Acquire::http::Timeout=8 -o Acquire::Retries=0 \
+                 install -y --no-install-recommends \
+                 fonts-freefont-ttf fonts-unifont fonts-wqy-zenhei; then
+              echo "font set installed on attempt ${attempt}"
+              exit 0
+            fi
+            echo "font install attempt ${attempt} failed (apt mirror unreachable)"
+          done
+          echo "::error::the visual baselines require fonts-freefont-ttf, fonts-unifont and fonts-wqy-zenhei, and the apt mirror could not be reached"
+          exit 1
       - run: npm run test:e2e:smoke
         env:
           CI: true
