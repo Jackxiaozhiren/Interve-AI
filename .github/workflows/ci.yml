@@ -36,24 +36,17 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       # The apt mirrors behind `--with-deps` intermittently fail DNS on the
-      # hosted runner ("Temporary failure resolving azure.archive.ubuntu.com"),
-      # which failed this job twice on 2026-11-11 after facts, lint, typecheck,
-      # tests, build and eval had already passed. The browser download does not
-      # use apt, so install it first, then ask for the system libraries with
-      # retries; ubuntu-latest already carries the ones chromium needs, so a
-      # transient mirror outage must not fail an otherwise green gate.
+      # hosted runner ("Temporary failure resolving azure.archive.ubuntu.com").
+      # That failed this job twice on 2026-11-11 after facts, lint, typecheck,
+      # tests, build and eval had already passed; a retry loop then pushed the
+      # job past its 30-minute limit because each apt attempt burns ~2 minutes
+      # on the DNS timeout. The apt step only ever installed FONTS on this
+      # image — the shared libraries chromium needs are already present — and
+      # neither the assertions nor the landing/login visual baselines depend on
+      # CJK font metrics. So download the browser only; if a library were ever
+      # missing, the E2E lanes below fail loudly instead of this step guessing.
       - name: Install Playwright chromium
-        run: |
-          npx --no-install playwright install chromium
-          installed=0
-          for attempt in 1 2 3; do
-            if npx --no-install playwright install-deps chromium; then installed=1; break; fi
-            echo "playwright install-deps attempt ${attempt} failed; retrying in 15s"
-            sleep 15
-          done
-          if [ "$installed" -ne 1 ]; then
-            echo "::warning::system dependencies were not installed (apt mirror unreachable); continuing because the runner image ships them"
-          fi
+        run: npx --no-install playwright install chromium
       - run: npm run test:e2e:smoke
         env:
           CI: true
