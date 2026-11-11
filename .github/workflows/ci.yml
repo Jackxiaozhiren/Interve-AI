@@ -52,20 +52,23 @@ jobs:
       - name: Install Playwright chromium and font set
         run: |
           npx --no-install playwright install chromium
-          # The hosted image points apt at azure.archive.ubuntu.com, whose DNS
-          # has been failing on this runner for hours ("Could not resolve"),
-          # while archive.ubuntu.com answers. Repoint the deb822 sources before
-          # installing: the packages below are architecture-independent fonts,
-          # so any Ubuntu mirror serves the same bytes.
-          if grep -rl "azure.archive.ubuntu.com" /etc/apt/sources.list.d/ /etc/apt/sources.list 2>/dev/null | grep -q .; then
-            sudo sed -i -E 's|https?://[a-z0-9.]*azure\.archive\.ubuntu\.com|http://archive.ubuntu.com|g' \
-              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
-            sudo apt-get update -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=10 -o Acquire::Retries=1 || true
+          # The hosted image routes apt through /etc/apt/apt-mirrors.txt, which
+          # points at azure.archive.ubuntu.com. That host's DNS fails on this
+          # runner ("Could not resolve"), so editing sources.list.d does
+          # nothing — the entry is an indirection, and the package index keeps
+          # the old URI until the mirrorlist itself changes and the index is
+          # refreshed. The fonts below are architecture-independent, so any
+          # Ubuntu mirror serves identical bytes.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            echo "https://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
           fi
+          sudo apt-get update -o Acquire::ForceIPv4=true \
+            -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 \
+            -o Acquire::Retries=0 || true
           for attempt in 1 2; do
             if timeout 180 sudo apt-get -o Acquire::ForceIPv4=true \
-                 -o Acquire::http::Timeout=10 -o Acquire::Retries=0 \
-                 install -y --no-install-recommends \
+                 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 \
+                 -o Acquire::Retries=0 install -y --no-install-recommends \
                  fonts-freefont-ttf fonts-unifont fonts-wqy-zenhei; then
               echo "font set installed on attempt ${attempt}"
               exit 0
