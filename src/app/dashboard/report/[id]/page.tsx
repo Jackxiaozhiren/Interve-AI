@@ -20,6 +20,8 @@ import { WPM_REFERENCE_BAND } from "@/lib/interview/delivery-metrics";
 import { retryPracticeHref } from "@/lib/retry-link";
 import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills, DrillPlan } from "@/components/evaluation/EvaluationView";
 import { TopImprovements } from "@/components/evaluation/TopImprovements";
+import { FairnessCard } from "@/components/evaluation/FairnessCard";
+import fairnessAudit from "@/data/fairness-audit.json";
 import { topImprovements } from "@/lib/report-improvements";
 
 const renderFlawsWithSTAR = (flawsText: string) => {
@@ -302,6 +304,12 @@ export default function InterviewReportPage() {
               </div>
             </motion.div>
           )}
+
+          {/* Fairness: the measured flip rate, or a plain statement that the
+              audit has not run. A zero produced by absence is not evidence. */}
+          <motion.div variants={fadeIn}>
+            <FairnessCard audit={fairnessAudit} />
+          </motion.div>
 
           {/* Replay Timeline */}
           {timelineEvents && timelineEvents.length > 0 && (
