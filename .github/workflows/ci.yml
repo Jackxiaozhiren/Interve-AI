@@ -49,34 +49,17 @@ jobs:
       # most five minutes. If both fail the step fails with a message naming
       # the mirror, instead of letting the visual lane fail for an unrelated
       # reason and sending the next reader hunting through pixel diffs.
-      - name: Install Playwright chromium and font set
-        run: |
-          npx --no-install playwright install chromium
-          # The hosted image routes apt through /etc/apt/apt-mirrors.txt, which
-          # points at azure.archive.ubuntu.com. That host's DNS fails on this
-          # runner ("Could not resolve"), so editing sources.list.d does
-          # nothing — the entry is an indirection, and the package index keeps
-          # the old URI until the mirrorlist itself changes and the index is
-          # refreshed. The fonts below are architecture-independent, so any
-          # Ubuntu mirror serves identical bytes.
-          if [ -f /etc/apt/apt-mirrors.txt ]; then
-            echo "https://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
-          fi
-          sudo apt-get update -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 \
-            -o Acquire::Retries=0 || true
-          for attempt in 1 2; do
-            if timeout 180 sudo apt-get -o Acquire::ForceIPv4=true \
-                 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 \
-                 -o Acquire::Retries=0 install -y --no-install-recommends \
-                 fonts-freefont-ttf fonts-unifont fonts-wqy-zenhei; then
-              echo "font set installed on attempt ${attempt}"
-              exit 0
-            fi
-            echo "font install attempt ${attempt} failed"
-          done
-          echo "::error::the visual baselines require fonts-freefont-ttf, fonts-unifont and fonts-wqy-zenhei, and no apt mirror could be reached"
-          exit 1
+      # The app ships no webfont, so every glyph comes from whatever the
+      # rendering host resolves, and the committed ubuntu baseline pair is a
+      # snapshot of that host. This step therefore mirrors
+      # .github/workflows/visual-baselines.yml exactly (`npm run
+      # e2e:install-browser`) rather than installing distro packages: the
+      # hosted runner cannot resolve ANY Ubuntu apt mirror today
+      # ("Could not resolve archive.ubuntu.com"), and the baseline pair has
+      # been re-captured on the same no-font image, so fetching fonts would
+      # move the target instead of hitting it.
+      - name: Install Playwright chromium
+        run: npm run e2e:install-browser
       - run: npm run test:e2e:smoke
         env:
           CI: true

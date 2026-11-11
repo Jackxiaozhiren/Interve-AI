@@ -16,7 +16,7 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
-    "e2e:install-browser": "playwright install --with-deps chromium",
+    "e2e:install-browser": "playwright install chromium",
     "test:e2e:mock": "E2E_MOCK=1 playwright test --project=chrome-1280x720 --project=phone-390x844 tests/mock-journey.spec.ts tests/chat.spec.ts tests/settlement-unsaved.spec.ts tests/report-first-screen.spec.ts tests/report-first-screen.spec.ts tests/e2e/phone-width.spec.ts",
     "test:eval": "vitest run --config vitest.eval.config.ts",
     "test:eval:free": "vitest run --config vitest.eval.config.ts evals/free.eval.test.ts",
