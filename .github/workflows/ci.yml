@@ -35,7 +35,25 @@ jobs:
           CI: true
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      - run: npx playwright install --with-deps chromium
+      # The apt mirrors behind `--with-deps` intermittently fail DNS on the
+      # hosted runner ("Temporary failure resolving azure.archive.ubuntu.com"),
+      # which failed this job twice on 2026-11-11 after facts, lint, typecheck,
+      # tests, build and eval had already passed. The browser download does not
+      # use apt, so install it first, then ask for the system libraries with
+      # retries; ubuntu-latest already carries the ones chromium needs, so a
+      # transient mirror outage must not fail an otherwise green gate.
+      - name: Install Playwright chromium
+        run: |
+          npx playwright install chromium
+          installed=0
+          for attempt in 1 2 3; do
+            if npx playwright install-deps chromium; then installed=1; break; fi
+            echo "playwright install-deps attempt ${attempt} failed; retrying in 15s"
+            sleep 15
+          done
+          if [ "$installed" -ne 1 ]; then
+            echo "::warning::system dependencies were not installed (apt mirror unreachable); continuing because the runner image ships them"
+          fi
       - run: npm run test:e2e:smoke
         env:
           CI: true
