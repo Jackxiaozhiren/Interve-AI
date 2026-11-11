@@ -16,6 +16,24 @@ export function exportInterviewToMarkdown(interview: Interview): string {
   lines.push(`**Overall Readiness Score:** ${view.average !== null ? view.average + "/100" : "N/A"}`);
   lines.push("");
 
+  // Phase 4: the candidate's first question is "what do I do next", so the
+  // roadmap is the first section after the header — above the rubric, the
+  // scores and the transcript. Legacy rows keep it at the top level, V2 rows
+  // inside evaluationV2; the fallback matches the report page.
+  const roadmap = interview.trainingRoadmap ?? interview.evaluationV2?.trainingRoadmap;
+  if (roadmap) {
+    lines.push("## 下一步练什么");
+    const roadmapSection = (title: string, items: string[]) => {
+      if (items.length === 0) return;
+      lines.push(`### ${title}`);
+      items.forEach((item) => lines.push(`- ${item}`));
+      lines.push("");
+    };
+    roadmapSection("技术重点", roadmap.technical);
+    roadmapSection("行为与表达", roadmap.behavioral);
+    roadmapSection("推荐资源", roadmap.resources);
+  }
+
   // Readiness
   lines.push(`## Interview Readiness${view.legacy ? " (Legacy Assessment)" : ""}`);
   lines.push(`**Level:** ${view.readinessLabel ?? "Pending"}`);
