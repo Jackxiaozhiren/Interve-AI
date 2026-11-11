@@ -262,8 +262,8 @@ export default function InterviewReportPage() {
                     技术重点
                   </h4>
                   <div className="space-y-3">
-                    {trainingRoadmap.technical.map((item, i) => (
-                      <p key={i} className="text-sm text-slate-600 leading-relaxed">
+                    {trainingRoadmap.technical.map((item) => (
+                      <p key={item} className="text-sm text-slate-600 leading-relaxed">
                         {item}
                       </p>
                     ))}
@@ -277,8 +277,8 @@ export default function InterviewReportPage() {
                     行为与表达
                   </h4>
                   <div className="space-y-3">
-                    {trainingRoadmap.behavioral.map((item, i) => (
-                      <p key={i} className="text-sm text-slate-600 leading-relaxed">
+                    {trainingRoadmap.behavioral.map((item) => (
+                      <p key={item} className="text-sm text-slate-600 leading-relaxed">
                         {item}
                       </p>
                     ))}
@@ -292,8 +292,8 @@ export default function InterviewReportPage() {
                     推荐资源
                   </h4>
                   <div className="space-y-3">
-                    {trainingRoadmap.resources.map((item, i) => (
-                      <p key={i} className="text-sm text-slate-600 leading-relaxed">
+                    {trainingRoadmap.resources.map((item) => (
+                      <p key={item} className="text-sm text-slate-600 leading-relaxed">
                         {item}
                       </p>
                     ))}

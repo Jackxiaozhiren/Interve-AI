@@ -44,10 +44,10 @@ jobs:
       # transient mirror outage must not fail an otherwise green gate.
       - name: Install Playwright chromium
         run: |
-          npx playwright install chromium
+          npx --no-install playwright install chromium
           installed=0
           for attempt in 1 2 3; do
-            if npx playwright install-deps chromium; then installed=1; break; fi
+            if npx --no-install playwright install-deps chromium; then installed=1; break; fi
             echo "playwright install-deps attempt ${attempt} failed; retrying in 15s"
             sleep 15
           done
