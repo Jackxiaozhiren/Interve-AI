@@ -52,17 +52,27 @@ jobs:
       - name: Install Playwright chromium and font set
         run: |
           npx --no-install playwright install chromium
+          # The hosted image points apt at azure.archive.ubuntu.com, whose DNS
+          # has been failing on this runner for hours ("Could not resolve"),
+          # while archive.ubuntu.com answers. Repoint the deb822 sources before
+          # installing: the packages below are architecture-independent fonts,
+          # so any Ubuntu mirror serves the same bytes.
+          if grep -rl "azure.archive.ubuntu.com" /etc/apt/sources.list.d/ /etc/apt/sources.list 2>/dev/null | grep -q .; then
+            sudo sed -i -E 's|https?://[a-z0-9.]*azure\.archive\.ubuntu\.com|http://archive.ubuntu.com|g' \
+              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
+            sudo apt-get update -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=10 -o Acquire::Retries=1 || true
+          fi
           for attempt in 1 2; do
-            if timeout 150 sudo apt-get -o Acquire::ForceIPv4=true \
-                 -o Acquire::http::Timeout=8 -o Acquire::Retries=0 \
+            if timeout 180 sudo apt-get -o Acquire::ForceIPv4=true \
+                 -o Acquire::http::Timeout=10 -o Acquire::Retries=0 \
                  install -y --no-install-recommends \
                  fonts-freefont-ttf fonts-unifont fonts-wqy-zenhei; then
               echo "font set installed on attempt ${attempt}"
               exit 0
             fi
-            echo "font install attempt ${attempt} failed (apt mirror unreachable)"
+            echo "font install attempt ${attempt} failed"
           done
-          echo "::error::the visual baselines require fonts-freefont-ttf, fonts-unifont and fonts-wqy-zenhei, and the apt mirror could not be reached"
+          echo "::error::the visual baselines require fonts-freefont-ttf, fonts-unifont and fonts-wqy-zenhei, and no apt mirror could be reached"
           exit 1
       - run: npm run test:e2e:smoke
         env:
