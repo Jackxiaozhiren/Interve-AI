@@ -22,6 +22,7 @@ import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, S
 import { TopImprovements } from "@/components/evaluation/TopImprovements";
 import { FairnessCard } from "@/components/evaluation/FairnessCard";
 import fairnessAudit from "@/data/fairness-audit.json";
+import { DisputePanel } from "@/components/evaluation/DisputePanel";
 import { topImprovements } from "@/lib/report-improvements";
 
 const renderFlawsWithSTAR = (flawsText: string) => {
@@ -400,6 +401,19 @@ export default function InterviewReportPage() {
               <p className="text-muted-foreground">暂无维度数据。</p>
             )}
           </motion.div>
+
+          {/* The report states a level about a person, so the person gets a
+              recorded way to disagree. A local-only row has no id to write
+              against, and the panel says so instead of offering a dead button. */}
+          {view.dimensions.length > 0 && (
+            <motion.div variants={fadeIn}>
+              <DisputePanel
+                interviewId={typeof interview.id === "number" ? interview.id : null}
+                dimensions={view.dimensions.map((dim) => ({ id: dim.id, name: dim.name }))}
+                existing={interview.reportDisputes}
+              />
+            </motion.div>
+          )}
 
           {/* Strengths / gaps / drills (V2 only) */}
           {(view.strengths.length > 0 || view.weaknesses.length > 0 || view.nextDrills.length > 0) && (
