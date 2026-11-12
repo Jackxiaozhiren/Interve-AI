@@ -102,6 +102,13 @@ export interface Interview {
     behavioral: string[];
     resources: string[];
   };
+  /**
+   * Candidate objections to scored dimensions (migration 007). Append-only from
+   * the client: the report states a level, and the person it describes is
+   * allowed to say "I disagree, and here is why" without that objection being
+   * silently dropped. Reading it never changes a score.
+   */
+  reportDisputes?: ReportDispute[];
   transcript?: {
     id: string;
     role: string;
@@ -110,6 +117,29 @@ export interface Interview {
   }[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * One recorded objection. `reason` is a closed vocabulary on purpose: a free
+ * text field would make the calibration queue unreadable, and the four values
+ * map to the four things a candidate can actually dispute about an
+ * evidence-grounded score.
+ *
+ *   evidence   — the quotes are not what I said, or are out of context
+ *   rubric     — the anchor level applied does not match the rubric's wording
+ *   transcript — part of my answer is missing from the record
+ *   other      — anything else; `note` carries it
+ */
+export type ReportDisputeReason = "evidence" | "rubric" | "transcript" | "other";
+
+export interface ReportDispute {
+  /** Dimension id from the evaluation (`depth`, `communication`, …). */
+  dimensionId: string;
+  reason: ReportDisputeReason;
+  /** Optional detail, capped at 500 chars by the writer. */
+  note?: string;
+  /** ISO timestamp; set by the writer, never by the reader. */
+  createdAt: string;
 }
 
 export interface OramaIndexData {

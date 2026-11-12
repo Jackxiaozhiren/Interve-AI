@@ -40,6 +40,11 @@
    cutover 起就拒绝无 owner 的写入（`src/lib/api-client.ts` 的 `OWNER_REQUIRED_TABLES`
    抛 `NO_OWNER`，调用方降级为 local-only）。也就是说演示账号从来没有过可读的历史，关闭
    桥不会让任何现存活人失去读写。
+7. `007_report_disputes.sql` —— interviews 的 `report_disputes` JSONB 列
+   （候选人异议：`{dimensionId, reason, note, createdAt}`，append-only，读取不改变任何分数）。
+   **状态：未应用**——必须在 Supabase SQL Editor 执行之后，写该列的前端代码才能合并。
+   顺序理由与 005 相同：`toSnakeCase` 会转发对象的每个 key，列不存在时整条 UPDATE 会以
+   42703 失败，连带把保存面试记录的结算写入一起打掉，而症状指向网络而不是 schema。
 
 ## 冻结文件（只读，永不执行、永不编辑）
 
