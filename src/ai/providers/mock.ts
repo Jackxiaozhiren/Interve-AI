@@ -164,9 +164,15 @@ export function mockV2Evaluation() {
     // section never rendered in the mock lane — which is why the fold assertion below
     // could not be written until now. Same shape the schema requires.
     trainingRoadmap: {
-      technical: ["Mock technical focus: explain the trade-off before the code."],
-      behavioral: ["Mock behavioural focus: quantify the outcome."],
-      resources: ["Mock resource: re-read the rubric anchor for depth."],
+      technical: [
+        "建议先用一句话说清方案的取舍再动手写代码，因为本次回答的技术细节完整，但缺少对「为什么这样选」的解释。",
+      ],
+      behavioral: [
+        "建议每次讲结果时补上可量化的影响，因为你在描述项目时只说了做了什么，没有说带来了什么变化。",
+      ],
+      resources: [
+        "建议重读评分标准里「深度」一档的描述，因为你在追问环节停留在概念层面，没有下探到实现细节。",
+      ],
     },
   };
 }

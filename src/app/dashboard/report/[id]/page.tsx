@@ -20,6 +20,8 @@ import { WPM_REFERENCE_BAND } from "@/lib/interview/delivery-metrics";
 import { retryPracticeHref } from "@/lib/retry-link";
 import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills, DrillPlan } from "@/components/evaluation/EvaluationView";
 import { TopImprovements } from "@/components/evaluation/TopImprovements";
+import { FairnessCard } from "@/components/evaluation/FairnessCard";
+import fairnessAudit from "@/data/fairness-audit.json";
 import { topImprovements } from "@/lib/report-improvements";
 
 const renderFlawsWithSTAR = (flawsText: string) => {
@@ -251,60 +253,63 @@ export default function InterviewReportPage() {
             <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] col-span-1 lg:col-span-2">
               <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
                 <Compass className="w-6 h-6 text-indigo-500" />
-                下一步练什么 (Next Steps)
+                下一步练什么
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Technical Focus */}
+                {/* 技术重点 */}
                 <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
                   <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
                     <Code className="w-5 h-5 text-blue-500" />
-                    Technical Focus
+                    技术重点
                   </h4>
-                  <ul className="space-y-3">
-                    {trainingRoadmap.technical.map((item, i) => (
-                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
-                        <span>{item}</span>
-                      </li>
+                  <div className="space-y-3">
+                    {trainingRoadmap.technical.map((item) => (
+                      <p key={item} className="text-sm text-slate-600 leading-relaxed">
+                        {item}
+                      </p>
                     ))}
-                  </ul>
+                  </div>
                 </div>
 
-                {/* Behavioral Focus */}
+                {/* 行为与表达 */}
                 <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
                   <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
                     <Users className="w-5 h-5 text-emerald-500" />
-                    Behavioral Focus
+                    行为与表达
                   </h4>
-                  <ul className="space-y-3">
-                    {trainingRoadmap.behavioral.map((item, i) => (
-                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
-                        <span>{item}</span>
-                      </li>
+                  <div className="space-y-3">
+                    {trainingRoadmap.behavioral.map((item) => (
+                      <p key={item} className="text-sm text-slate-600 leading-relaxed">
+                        {item}
+                      </p>
                     ))}
-                  </ul>
+                  </div>
                 </div>
 
-                {/* Recommended Resources */}
+                {/* 推荐资源 */}
                 <div className="bg-white/50 rounded-2xl p-6 border border-white/60">
                   <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
                     <BookOpen className="w-5 h-5 text-purple-500" />
-                    Recommended Resources
+                    推荐资源
                   </h4>
-                  <ul className="space-y-3">
-                    {trainingRoadmap.resources.map((item, i) => (
-                      <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />
-                        <span>{item}</span>
-                      </li>
+                  <div className="space-y-3">
+                    {trainingRoadmap.resources.map((item) => (
+                      <p key={item} className="text-sm text-slate-600 leading-relaxed">
+                        {item}
+                      </p>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               </div>
             </motion.div>
           )}
+
+          {/* Fairness: the measured flip rate, or a plain statement that the
+              audit has not run. A zero produced by absence is not evidence. */}
+          <motion.div variants={fadeIn}>
+            <FairnessCard audit={fairnessAudit} />
+          </motion.div>
 
           {/* Replay Timeline */}
           {timelineEvents && timelineEvents.length > 0 && (
