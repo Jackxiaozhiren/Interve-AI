@@ -102,7 +102,7 @@ function SharedReport({ payload, expiresAt }: { payload: SharePayload; expiresAt
                     <span className="text-sm font-medium text-slate-800">{dim.name}</span>
                     <span className="text-sm tabular-nums text-slate-700">
                       {dim.score100}
-                      <span className="text-[10px] text-slate-500">/100</span>
+                      <span className="text-xs text-slate-500">/100</span>
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-slate-600 leading-relaxed">{dim.rationale}</p>

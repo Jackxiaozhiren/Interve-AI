@@ -76,6 +76,10 @@ const VERIFIED: Record<string, Entry> = {
     digits: ["003", "006", "24", "30", "4", "4.7"],
     why: "migration filenames that exist under supabase/migrations; 24h = SESSION_TTL_MS; 30 days = the retention both this page and session-persistence enforce; glm-4-flash / glm-4.7-flash = registry.ts model ids",
   },
+  "src/app/s/[token]/page.tsx": {
+    digits: ["100"],
+    why: "/100 scale suffix on a shared dimension score; the numerator is the evaluation's own score100, interpolated, and no other figure is written into the copy",
+  },
   "src/app/setup/page.tsx": {
     digits: ["500"],
     why: "the 500-char truncation this page applies before storing jobDescription/context",
