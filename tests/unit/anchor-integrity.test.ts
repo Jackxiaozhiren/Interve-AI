@@ -353,6 +353,10 @@ const UNLINKED: Record<string, string> = {
     "kept as the labelled recruiter demo (docs/audit decision 2026-10-08, PR #15): it is a " +
     "showcase surface, so the candidate product deliberately has no link into it. Its own page " +
     "links to /recruiter/assessments, which this rule confirms is reached.",
+  "/s/[token]":
+    "opened from a link the candidate sends outside the product: no in-app navigation can point at " +
+    "a token that does not exist until it is generated, and the page is deliberately chrome-free so " +
+    "a recipient never sees dashboard navigation.",
 };
 
 const deadRoutes = [...ROUTE_OWN_FILE.keys()].filter((r) => r !== "/" && reachedFrom(r).length === 0);

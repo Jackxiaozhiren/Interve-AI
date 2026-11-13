@@ -84,7 +84,12 @@ describe("the expected policy set is derived, not quoted", () => {
     // These 20 content-table names are what step 1 of 006 carries; the arm at the
     // bottom of this file holds the deployed grant count, which is a different
     // number and the one the migration's SCOPE line has to state.
-    expect(state.policies.size).toBe(36);
+    //
+    // +2 since 2026-11-13: migration 008 adds a SELECT and an INSERT policy for
+    // `report_shares` (owner-only, with check on the interview's owner). They are
+    // deliberately NOT 003-shaped — a share needs exactly those two verbs, and an
+    // UPDATE policy would let a client edit an open counter it must not control.
+    expect(state.policies.size).toBe(38);
     expect(bridge.closed.filter((b) => b.present)).toEqual([]);
     expect(bridge.closed.length).toBe(20);
     expect(bridge.open.filter((b) => b.present).length).toBe(8);

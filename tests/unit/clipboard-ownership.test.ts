@@ -1,12 +1,12 @@
 /**
  * Nothing may claim a copy succeeded before the browser has agreed.
  *
- * Five affordances copy text (the transcript, both selection menus, the
- * scratchpad, the chat code block). Four of them used to announce success — a
- * toast or a "Copied" state — without ever reading the result of
- * `navigator.clipboard.writeText()`, a promise nobody awaited and a call that
- * throws outright when `navigator.clipboard` is undefined (insecure context).
- * The UI was asserting something it could not have known.
+ * Six affordances copy text (the transcript, both selection menus, the
+ * scratchpad, the chat code block, the share link). Five of them used to
+ * announce success — a toast or a "Copied" state — without ever reading the
+ * result of `navigator.clipboard.writeText()`, a promise nobody awaited and a
+ * call that throws outright when `navigator.clipboard` is undefined (insecure
+ * context). The UI was asserting something it could not have known.
  *
  * Predicates over `src/**`:
  *   1. only the file exporting `copyTextToClipboard` may touch
@@ -282,12 +282,12 @@ describe("src/ clipboard discipline", () => {
     expect(owners.map((r) => r.label)).toEqual(["src/lib/clipboard.ts"]);
   });
 
-  it("still ships the five copy claims the rule is written about", () => {
+  it("still ships the six copy claims the rule is written about", () => {
     const claims = reports.reduce((sum, r) => sum + r.claims, 0);
     const consumerCalls = reports
       .filter((r) => !r.owner)
       .reduce((sum, r) => sum + r.copyCalls, 0);
-    expect({ claims, consumerCalls }).toEqual({ claims: 5, consumerCalls: 5 });
+    expect({ claims, consumerCalls }).toEqual({ claims: 6, consumerCalls: 6 });
   });
 
   it("finds no unowned clipboard access, unawaited call, or unconfirmed success claim", () => {
