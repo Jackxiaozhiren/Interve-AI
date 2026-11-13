@@ -48,6 +48,13 @@
    draft，未先合并再补列。
    顺序理由与 005 相同：`toSnakeCase` 会转发对象的每个 key，列不存在时整条 UPDATE 会以
    42703 失败，连带把保存面试记录的结算写入一起打掉，而症状指向网络而不是 schema。
+8. `008_report_shares.sql` —— 报告分享链接的快照表 + `consume_report_share()` 消费函数。
+   **状态：已应用（2026-11-13）**——在 project `bfgglzjltfvfpobzscet` 的 SQL Editor 整段执行
+   （建表 + RLS + REVOKE + 两条策略 + 函数 + GRANT），返回 `Success. No rows returned`。
+   执行前写入方（PR #195）保持 draft，未先合并再补表。
+   匿名读取**只**经过该函数（`SECURITY DEFINER` + 固定 `search_path`，一次 `UPDATE … RETURNING`
+   原子递增 `views` 并校验过期），表本身 `REVOKE ALL … FROM anon`，因此持有 publishable key
+   的人无法枚举分享。库里只存 `sha256(token)`，不存可用链接。
 
 ## 冻结文件（只读，永不执行、永不编辑）
 

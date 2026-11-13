@@ -23,6 +23,7 @@ import { TopImprovements } from "@/components/evaluation/TopImprovements";
 import { FairnessCard } from "@/components/evaluation/FairnessCard";
 import fairnessAudit from "@/data/fairness-audit.json";
 import { DisputePanel } from "@/components/evaluation/DisputePanel";
+import { ShareReportButton } from "@/components/evaluation/ShareReportButton";
 import { topImprovements } from "@/lib/report-improvements";
 
 const renderFlawsWithSTAR = (flawsText: string) => {
@@ -310,6 +311,17 @@ export default function InterviewReportPage() {
               audit has not run. A zero produced by absence is not evidence. */}
           <motion.div variants={fadeIn}>
             <FairnessCard audit={fairnessAudit} />
+          </motion.div>
+
+          {/* The link a candidate would actually send someone, placed after the
+              read rather than before it: it carries the report without the
+              verbatim evidence or the per-question review. */}
+          <motion.div variants={fadeIn}>
+            <ShareReportButton
+              interviewId={typeof interview.id === "number" ? interview.id : null}
+              view={view}
+              roadmap={trainingRoadmap}
+            />
           </motion.div>
 
           {/* Replay Timeline */}
