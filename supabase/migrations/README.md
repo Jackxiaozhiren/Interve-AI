@@ -55,6 +55,11 @@
    匿名读取**只**经过该函数（`SECURITY DEFINER` + 固定 `search_path`，一次 `UPDATE … RETURNING`
    原子递增 `views` 并校验过期），表本身 `REVOKE ALL … FROM anon`，因此持有 publishable key
    的人无法枚举分享。库里只存 `sha256(token)`，不存可用链接。
+9. `009_cohort_benchmarks.sql` —— 同类面试基准聚合函数 `cohort_benchmarks()`（issue #194 选项 A）。
+   **状态：未应用**——需在 Supabase SQL Editor 执行后才能合并读该函数的代码。
+   cohort = 同 `interview_type` + 同 `rubric_id` + 近 180 天；**门限 10 与窗口都硬编码在函数里**，
+   不接受参数——参数化的 `min_cell` 会被传 1 绕过，"分布"退化成某个人的一行。只
+   `GRANT EXECUTE … TO authenticated`，匿名调用者拿不到任何聚合。
 
 ## 冻结文件（只读，永不执行、永不编辑）
 
