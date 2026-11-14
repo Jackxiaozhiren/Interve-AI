@@ -60,6 +60,13 @@ describe("the instrument change moved no real debt (R-19)", () => {
     // and simultaneously the blind spot it exposes: indirection lowers this
     // number without removing a network call. Read a fall as "fewer unmanaged
     // call sites", never as "less fetching".
-    expect(facts.capabilities.networkLayer.rawFetchCalls).toBe(15);
+    //
+    // Re-adjudicated to 16 with the quota-aware transport: chat-transport.ts
+    // wraps fetch() once so the stream's RateLimit-Remaining reaches the badge.
+    // That is one genuinely new call site, not a parser disagreement — and it
+    // is the opposite of an unmanaged one, since it is the single injected
+    // fetch for the room and is pinned by quota-aware-fetch.test.ts. The
+    // ceiling stays at 17; adding a call site must not raise it.
+    expect(facts.capabilities.networkLayer.rawFetchCalls).toBe(16);
   });
 });

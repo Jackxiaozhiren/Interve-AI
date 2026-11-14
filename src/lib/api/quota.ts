@@ -68,3 +68,24 @@ export function resetQuota(): void {
   current = null;
   listeners.clear();
 }
+
+/**
+ * A fetch that records the allowance header and leaves the body untouched.
+ *
+ * `readApiJson` records it for JSON lanes, but a streaming lane hands the
+ * response straight to the transport and never passes through that function.
+ * `interview-chat` does carry `RateLimit-Remaining` on the response that opens
+ * the stream; without this wrapper that reading never reaches the badge, so the
+ * number in the room is whatever an earlier JSON call left there — stale in
+ * exactly the place it should be freshest, since that is where the allowance is
+ * spent.
+ *
+ * It must NOT clone or read the body: cloning a live stream buffers it, and the
+ * transport would then receive a body that has already been drained. `recordQuota`
+ * only touches headers, which is why this is safe.
+ */
+export const quotaAwareFetch: typeof fetch = async (input, init) => {
+  const res = await fetch(input, init);
+  recordQuota(res);
+  return res;
+};

@@ -3,12 +3,12 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import { useAccessibilityStore } from "@/store/useAccessibilityStore";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
+import { createQuotaAwareTransport } from "@/lib/api/chat-transport";
 import dynamic from "next/dynamic";
 // Phase 13: drawer-gated heavies load on demand, not on first paint.
 // tldraw (~1MB+) and the scratchpad wrapper only mount when opened.
@@ -248,27 +248,24 @@ function InterviewRoomContent() {
   const [streamTruncated, setStreamTruncated] = useState(false);
 
   const { messages, setMessages, sendMessage, regenerate, status, error: sendError } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/interview-chat",
-      body: {
-        context: activeContext,
-        codeContext: activeCodeContext,
-        systemDesignContext: activeSystemDesignContext,
-        role,
-        level,
-        persona,
-        stressTest,
-        setupContext,
-        framework,
-        // Phase 7: interview type selects the evaluation rubric server-side
-        // (framework keeps precedence for explicit non-general formats).
-        interviewType: searchParams?.get('interviewType') || undefined,
-        resumeText,
-        model: aiModel,
-        cognitiveLoad: useInterveStore.getState().cognitiveLoad,
-        starProgress: useInterveStore.getState().starProgress,
-        behavioralTraits: useInterveStore.getState().behavioralTraits
-      }
+    transport: createQuotaAwareTransport({
+      context: activeContext,
+      codeContext: activeCodeContext,
+      systemDesignContext: activeSystemDesignContext,
+      role,
+      level,
+      persona,
+      stressTest,
+      setupContext,
+      framework,
+      // Phase 7: interview type selects the evaluation rubric server-side
+      // (framework keeps precedence for explicit non-general formats).
+      interviewType: searchParams?.get('interviewType') || undefined,
+      resumeText,
+      model: aiModel,
+      cognitiveLoad: useInterveStore.getState().cognitiveLoad,
+      starProgress: useInterveStore.getState().starProgress,
+      behavioralTraits: useInterveStore.getState().behavioralTraits
     }),
     onFinish: (event) => {
       setStreamTruncated(
