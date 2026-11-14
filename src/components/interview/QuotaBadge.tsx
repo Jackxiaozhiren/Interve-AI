@@ -8,8 +8,9 @@ import { getQuota, subscribeQuota } from "@/lib/api/quota";
  *
  * Renders nothing until a response has actually carried the number. That is the
  * point: an empty slot is honest, a placeholder "200" is a guess and a "0" would
- * read as an outage. The reading arrives from `interview-chat`'s response headers
- * (wrapped in the transport's fetch) and from every `readApiJson` call site.
+ * read as an outage. The reading arrives from `interview-chat`'s opening response
+ * (via `quotaAwareFetch`, the transport's fetch) and from every `readApiJson`
+ * call site.
  */
 export function QuotaBadge() {
   const quota = useSyncExternalStore(subscribeQuota, getQuota, () => null);

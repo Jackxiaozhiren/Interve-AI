@@ -133,10 +133,30 @@ test.describe('Mock full journey (no keys, no DB)', () => {
     // NOTE: scoped to the transcript log — the pinned-question header shows
     // the same canned mock line, so an unscoped getByText is ambiguous
     // (strict-mode violation), not a missing reply.
+    //
+    // Give this stream an allowance reading no other response carries. The
+    // earlier JSON lanes report 199; if the badge still reads 199 after the
+    // reply, the transport never recorded the header on the response that
+    // opened the stream. The real mock body is passed through untouched, so
+    // the reply assertion below still exercises the product's streaming path.
+    await page.route('**/api/interview-chat', async (route) => {
+      const response = await route.fetch();
+      const headers = { ...response.headers(), 'ratelimit-remaining': '7' };
+      await route.fulfill({ response, headers });
+    });
     const input = page.getByLabel(/输入您的回答/);
     await input.fill('I led a state-management migration with measured results.');
     await page.getByRole('button', { name: /发送消息/ }).click();
     await expect(page.getByRole('log').getByText(/Mock interviewer/)).toBeVisible({ timeout: 60000 });
+
+    // 7b. The badge reports the stream's own reading (7), not the 199 left by
+    // earlier JSON lanes. Scoped to `role=status` with the badge's wording,
+    // because the health indicator is also a status region. Removing `fetch:
+    // quotaAwareFetch` from the transport makes this assertion fail, which is
+    // what separates this from an "a badge exists" smoke check.
+    await expect(
+      page.getByRole('status').filter({ hasText: '今日剩余 7 次' })
+    ).toBeVisible({ timeout: 15000 });
 
     // 8. Finish → analysis report renders the V2 mock evaluation.
     await page.getByRole('button', { name: /结束面试/i }).click();
