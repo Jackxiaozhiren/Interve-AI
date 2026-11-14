@@ -24,6 +24,7 @@ import { FairnessCard } from "@/components/evaluation/FairnessCard";
 import fairnessAudit from "@/data/fairness-audit.json";
 import { DisputePanel } from "@/components/evaluation/DisputePanel";
 import { ShareReportButton } from "@/components/evaluation/ShareReportButton";
+import { CohortCard } from "@/components/evaluation/CohortCard";
 import { topImprovements } from "@/lib/report-improvements";
 
 const renderFlawsWithSTAR = (flawsText: string) => {
@@ -413,6 +414,20 @@ export default function InterviewReportPage() {
               <p className="text-muted-foreground">暂无维度数据。</p>
             )}
           </motion.div>
+
+          {/* Same-track distribution. It only ever renders aggregates: the SQL
+              hard-codes the 10-report floor and the 180-day window, and the
+              component re-checks the floor before showing anything. */}
+          {view.dimensions.length > 0 && (
+            <motion.div variants={fadeIn}>
+              <CohortCard
+                interviewType={interview.interviewType ?? null}
+                rubricId={view.rubricId}
+                dimensions={view.dimensions}
+                enabled={typeof interview.id === "number"}
+              />
+            </motion.div>
+          )}
 
           {/* The report states a level about a person, so the person gets a
               recorded way to disagree. A local-only row has no id to write
