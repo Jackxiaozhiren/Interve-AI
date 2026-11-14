@@ -165,4 +165,104 @@ test.describe('P0-2 report first screen', () => {
     await expect(cited).toHaveAttribute('data-cited', 'true');
     await expect(cited).toBeInViewport();
   });
+
+  /**
+   * The four blocks Phase 4 added had unit guards but no browser coverage, so
+   * "it renders" was an assumption. This asserts what a reader actually sees,
+   * and it pins the one statement that must never drift: an unmeasured fairness
+   * audit says so in words — it does not render as 0%.
+   *
+   * The RPC for same-track benchmarks is not in the stub's table list, so it
+   * answers `200 []`; that is exactly the thin-cohort path, which must state the
+   * floor rather than draw an empty chart.
+   */
+  test('renders the Phase 4 blocks, and says "not measured" instead of zero', async ({ page }) => {
+    await page.route('**/rest/v1/*', createPostgrestStub());
+    // The glob above matches a single path segment, so `/rest/v1/rpc/<fn>` slips
+    // past it and would reach the placeholder host — which renders the failure
+    // branch ("暂时读不到") instead of the thin-cohort branch this test is about.
+    // Answer RPCs explicitly; an empty result is what an empty database returns.
+    await page.route('**/rest/v1/rpc/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    );
+    const uid = await seedSupabaseSession(page);
+    await loginAs(page, 'phase4@example.com', uid);
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+
+    const created = await page.evaluate(async () => {
+      const res = await fetch('/rest/v1/interviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Phase 4 fixture',
+          status: 'completed',
+          interview_type: 'frontend',
+          created_at: '2026-11-01T08:00:00.000Z',
+          evaluation_v2: {
+            version: '2.0',
+            rubricId: 'general-v1',
+            readiness: 'developing',
+            readinessRationale: 'Fixture rationale.',
+            dimensions: [
+              {
+                id: 'specificity',
+                score: 2,
+                evidence: ['一句证据'],
+                rationale: '缺少数字，听众无法判断量级。',
+                confidence: 'high',
+                improvement: '把结果量化成一个数字。',
+              },
+              {
+                id: 'star_completeness',
+                score: 3,
+                evidence: ['另一句证据'],
+                rationale: '只说了职责，没有说结果。',
+                confidence: 'medium',
+                improvement: '补上 Result。',
+              },
+            ],
+            strengths: ['表达清晰'],
+            weaknesses: ['缺量化'],
+            nextDrills: ['重录第 2 题'],
+            trainingRoadmap: {
+              technical: ['建议先把结果量化，因为这段回答里没有数字。'],
+              behavioral: ['建议先讲取舍再讲实现，因为目前只有实现细节。'],
+              resources: ['建议重读「深度」一档，因为追问停留在概念层。'],
+            },
+            qaReview: [],
+          },
+          transcript: [
+            { id: 'm1', role: 'assistant', content: '先做个自我介绍吧。' },
+            { id: 'm2', role: 'user', content: '我有三年前端经验。' },
+          ],
+        }),
+      });
+      return (await res.json()) as { id: number };
+    });
+
+    await page.goto(`/dashboard/report/${created.id}`, { waitUntil: 'domcontentloaded' });
+
+    // 1. Roadmap: advice a reader can act on, in Chinese, above the rubric.
+    await expect(page.getByRole('heading', { name: /下一步练什么/ })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/建议先把结果量化/)).toBeVisible();
+
+    // 2. Fairness: absence is stated in words, and no rate is invented.
+    await expect(
+      page.getByText('这项对照测量还没有完成，所以这里不显示任何数字。')
+    ).toBeVisible();
+    await expect(page.getByText(/翻转率/)).toHaveCount(0);
+
+    // 3. Cohort: with an empty RPC response the card names the floor.
+    await expect(page.getByRole('heading', { name: '同类面试基准' })).toBeVisible();
+    await expect(page.getByText(/同类样本还不够/)).toBeVisible();
+
+    // 4. Dispute: the recorded way to disagree is reachable.
+    await expect(page.getByRole('heading', { name: '对评分有异议？' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '我有异议' }).first()).toBeVisible();
+
+    // 5. Share: the control exists. It is not clicked here — creating a link
+    //    writes a row, and this lane's stub has no report_shares table.
+    await expect(page.getByText('把这份报告发给朋友或导师')).toBeVisible();
+    await expect(page.getByRole('button', { name: '生成分享链接' })).toBeVisible();
+  });
 });
