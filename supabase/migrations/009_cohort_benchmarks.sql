@@ -55,7 +55,7 @@ AS $$
   WITH scored AS (
     SELECT
       d->>'id'                 AS dimension_id,
-      (d->>'score')::numeric   AS score
+      CAST(d->>'score' AS numeric) AS score
     FROM public.interviews i
     CROSS JOIN LATERAL jsonb_array_elements(i.evaluation_v2->'dimensions') AS d
     WHERE i.status = 'completed'
