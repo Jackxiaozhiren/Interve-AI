@@ -15,9 +15,11 @@ export const config = {
 };
 
 // Phase 2: every page that consumes metered AI APIs requires a signed
-// session. Anonymous browsing (/, /landing, /login) stays open; /signup is
-// closed by the private-pilot gate below unless ALLOW_PUBLIC_SIGNUP=1.
-// /api/* enforcement lives in each Route Handler (guardRequest), not here.
+// session. /signup is closed by the private-pilot gate below unless
+// ALLOW_PUBLIC_SIGNUP=1; the two marketing pages (/, /landing) are closed by
+// the home gate below unless ALLOW_PUBLIC_HOME=1. /login stays anonymous —
+// it is the only door an existing account has left. /api/* enforcement lives
+// in each Route Handler (guardRequest), not here.
 const PROTECTED_PAGE_PREFIXES = [
   '/dashboard',
   '/setup',
@@ -27,8 +29,22 @@ const PROTECTED_PAGE_PREFIXES = [
   '/practice',
 ];
 
+// 2026-11-16 (EE1/FF1): the last anonymous surface was the marketing pair.
+// Kept separate from PROTECTED_PAGE_PREFIXES on purpose: that list means
+// "consumes metered AI APIs" and two unrelated tests pin its exact contents
+// to that semantic. A homepage is neither, and folding it in would make those
+// assertions read a different contract than the one they were written for.
+// Both switches default closed in production; the e2e webServer sets them to
+// '1' so the journey, a11y and visual lanes can still reach the pages whose
+// rendering they actually test.
+const PILOT_HOME_PAGES = ['/', '/landing'];
+
 function isProtectedPage(pathname: string): boolean {
   return PROTECTED_PAGE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+function isPilotHomePage(pathname: string): boolean {
+  return PILOT_HOME_PAGES.includes(pathname);
 }
 
 function loginRedirect(request: NextRequest): NextResponse {
@@ -36,6 +52,13 @@ function loginRedirect(request: NextRequest): NextResponse {
   loginUrl.searchParams.set('from', request.nextUrl.pathname);
   const response = NextResponse.redirect(loginUrl);
   response.cookies.delete(SESSION_COOKIE);
+  // 2026-11-16 (EE1/FF1): a gated homepage now reaches this early return, so
+  // the noindex tag has to travel with the redirect or the pilot's last public
+  // page would go from "200 + noindex" to "307 + no header" — a regression on
+  // the very criterion the home gate is meant to close. This covers every
+  // page-level loginRedirect (home, landing and the six AI pages); the /signup
+  // gate and the API 401 path use their own responses and are out of scope here.
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   return response;
 }
 
@@ -57,9 +80,18 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  // 0b. 首页门（2026-11-16，EE1/FF1，`U9-a`）：`/` 与 `/landing` 是私域试点
+  // 最后一个匿名可渲染面。开关 `ALLOW_PUBLIC_HOME=1` 供 e2e 的
+  // landing/a11y/visual/keyboard 泳道放行（它们测的是页面渲染本身，不是试点
+  // 门），生产不设即关闭。关闭态不在这里直接 redirect，而是并入下面的 session
+  // 保护：匿名走 loginRedirect()，已有会话者照常看到页面 —— 这是「保留现有
+  // 账号」的组成部分，直接 redirect 会把登录用户也挡在首页外（实测 /dashboard
+  // 同一 cookie 200 而首页 307，即此缺陷）。
+  const homeIsGated = isPilotHomePage(pathname) && process.env.ALLOW_PUBLIC_HOME !== '1';
+
   // 1. Session protection (HMAC-signed cookie; legacy unsigned cookies fail
   //    verification and force one re-login).
-  if (isProtectedPage(pathname) || pathname.startsWith('/api/dashboard')) {
+  if (homeIsGated || isProtectedPage(pathname) || pathname.startsWith('/api/dashboard')) {
     const raw = request.cookies.get(SESSION_COOKIE)?.value;
     const secret = getSessionSecret();
     // Fail closed when the server cannot verify sessions at all.

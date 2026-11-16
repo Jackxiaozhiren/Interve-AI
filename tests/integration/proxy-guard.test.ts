@@ -64,11 +64,80 @@ describe("proxy gateway", () => {
     expect(((await res.json()) as { error: string }).error).toBe("Unauthorized");
   });
 
-  it("leaves public pages alone", async () => {
-    for (const p of ["/login", "/", "/landing"]) {
-      const res = await proxy(req(p));
-      expect(res.status, p).toBe(200);
+  it("leaves /login alone — the one door an existing account has left", async () => {
+    const res = await proxy(req("/login"));
+    expect(res.status).toBe(200);
+  });
+
+  // 2026-11-16 (EE1/FF1, U9-a): the homepage and /landing used to be asserted
+  // public here. That exact assertion was the gap — they were the last
+  // anonymous surface of the pilot. Both directions are pinned: closed by
+  // default in production, open only where the rendering lanes opt in.
+  it("closes / and /landing by default, carrying noindex on the redirect", async () => {
+    const saved = process.env.ALLOW_PUBLIC_HOME;
+    delete process.env.ALLOW_PUBLIC_HOME;
+    try {
+      for (const p of ["/", "/landing"]) {
+        const res = await proxy(req(p));
+        expect([307, 308], p).toContain(res.status);
+        expect(res.headers.get("location"), p).toContain("/login");
+        expect(res.headers.get("location"), p).toContain(`from=${encodeURIComponent(p)}`);
+        // ADJ-16: the homepage used to be "200 + noindex". After gating it
+        // must stay tagged, not become an untagged 307.
+        expect(res.headers.get("x-robots-tag"), p).toBe("noindex, nofollow");
+      }
+    } finally {
+      if (saved === undefined) delete process.env.ALLOW_PUBLIC_HOME;
+      else process.env.ALLOW_PUBLIC_HOME = saved;
     }
+  });
+
+  it("lets a signed-in session see / and /landing (existing accounts are kept)", async () => {
+    // The first cut of the home gate returned loginRedirect() before the
+    // session check, so even a valid cookie was bounced — measured on the
+    // build output: the same cookie gave /dashboard 200 but / 307. The gate
+    // must feed into the session path, not short-circuit it.
+    const saved = process.env.ALLOW_PUBLIC_HOME;
+    delete process.env.ALLOW_PUBLIC_HOME;
+    try {
+      const cookie = await signedCookie();
+      for (const p of ["/", "/landing"]) {
+        const res = await proxy(req(p, cookie));
+        expect(res.status, p).toBe(200);
+        expect(res.headers.get("x-robots-tag"), p).toContain("noindex");
+      }
+    } finally {
+      if (saved === undefined) delete process.env.ALLOW_PUBLIC_HOME;
+      else process.env.ALLOW_PUBLIC_HOME = saved;
+    }
+  });
+
+  it("re-opens / and /landing only with ALLOW_PUBLIC_HOME=1", async () => {
+    const saved = process.env.ALLOW_PUBLIC_HOME;
+    process.env.ALLOW_PUBLIC_HOME = "1";
+    try {
+      for (const p of ["/", "/landing"]) {
+        const res = await proxy(req(p));
+        expect(res.status, p).toBe(200);
+        expect(res.headers.get("x-robots-tag"), p).toContain("noindex");
+      }
+    } finally {
+      if (saved === undefined) delete process.env.ALLOW_PUBLIC_HOME;
+      else process.env.ALLOW_PUBLIC_HOME = saved;
+    }
+  });
+
+  it("keeps the metered-AI guard list distinct from the marketing pair", async () => {
+    // A future refactor that folds '/' into PROTECTED_PAGE_PREFIXES would pass
+    // every behaviour assertion above but change what oauth-redirect-target
+    // and recruiter-demo-contract read out of that array. Pin the separation
+    // so the two contracts cannot be silently merged.
+    const src = await import("node:fs").then((fs) =>
+      fs.readFileSync(new URL("../../src/proxy.ts", import.meta.url), "utf8")
+    );
+    const list = src.slice(src.indexOf("PROTECTED_PAGE_PREFIXES"), src.indexOf("];", src.indexOf("PROTECTED_PAGE_PREFIXES")));
+    expect(list).not.toMatch(/'\/'|'\/landing'/);
+    expect(src).toContain("const PILOT_HOME_PAGES = ['/', '/landing']");
   });
 
   // 2026-11-15 (W1): /signup is closed by default for the private pilot. The

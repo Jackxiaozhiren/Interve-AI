@@ -98,8 +98,14 @@ export default defineConfig({
     // 2026-11-15 (W1): the pilot gate redirects /signup by default, and the
     // journey + visual lanes still need the form, so the lane opts in here
     // instead of the app defaulting to open.
+    // 2026-11-16 (EE1/FF1): same pattern for / and /landing. The landing,
+    // a11y/visual and keyboard lanes navigate to the anonymous homepage to
+    // assert what a signed-out visitor is shown; gating it in the webServer
+    // would turn every one of those into a /login redirect. The app default
+    // stays closed — only this local/CI lane opts in.
     env: {
       ALLOW_PUBLIC_SIGNUP: '1',
+      ALLOW_PUBLIC_HOME: '1',
       ...(process.env.E2E_MOCK ? { AI_MOCK: '1' } : {}),
     },
   },
