@@ -18,13 +18,13 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import robots from "../../src/app/robots";
 
 const read = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
 
 const DEMO = "src/app/recruiter/page.tsx";
 const REAL = "src/app/recruiter/assessments/page.tsx";
 const PROXY = "src/proxy.ts";
-const ROBOTS = "src/app/robots.ts";
 
 describe("/recruiter stays a labelled demo", () => {
   it("shows the demo notice inline, not only as a transient toast", () => {
@@ -48,7 +48,15 @@ describe("/recruiter stays a labelled demo", () => {
   });
 
   it("is kept out of the index", () => {
-    expect(read(ROBOTS)).toMatch(/"\/recruiter"/);
+    // 2026-11-15 (W1): robots disallows the whole site during the private
+    // pilot, which subsumes /recruiter. Assert the rule, not the literal path —
+    // a text match would still pass if the rule were replaced by a narrower
+    // allow-list that happened to mention /recruiter.
+    const rules = robots().rules;
+    const flat = Array.isArray(rules) ? rules : [rules];
+    const disallowed = (r: (typeof flat)[number]) =>
+      Array.isArray(r.disallow) ? r.disallow : r.disallow ? [r.disallow] : [];
+    expect(flat.some((r) => disallowed(r).includes("/"))).toBe(true);
   });
 });
 

@@ -95,6 +95,12 @@ export default defineConfig({
     timeout: 180 * 1000,
     // Phase 14: mock-journey lane. E2E_MOCK=1 boots the SAME dev server
     // with deterministic AI (AI_MOCK=1); all other suites are unaffected.
-    env: process.env.E2E_MOCK ? { AI_MOCK: '1' } : {},
+    // 2026-11-15 (W1): the pilot gate redirects /signup by default, and the
+    // journey + visual lanes still need the form, so the lane opts in here
+    // instead of the app defaulting to open.
+    env: {
+      ALLOW_PUBLIC_SIGNUP: '1',
+      ...(process.env.E2E_MOCK ? { AI_MOCK: '1' } : {}),
+    },
   },
 });
