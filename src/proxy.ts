@@ -15,7 +15,8 @@ export const config = {
 };
 
 // Phase 2: every page that consumes metered AI APIs requires a signed
-// session. Anonymous demo browsing (/, /landing, /login, /signup) stays open.
+// session. Anonymous browsing (/, /landing, /login) stays open; /signup is
+// closed by the private-pilot gate below unless ALLOW_PUBLIC_SIGNUP=1.
 // /api/* enforcement lives in each Route Handler (guardRequest), not here.
 const PROTECTED_PAGE_PREFIXES = [
   '/dashboard',
@@ -40,6 +41,21 @@ function loginRedirect(request: NextRequest): NextResponse {
 
 export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  // 0. 私域试点门（2026-11-15，W1 / ADJ-13）：/signup 关停，默认跳登录页。
+  //
+  // 放在这里而不是页面里，有两个具体理由：
+  // 1) 页面内判断只能在客户端跑，表单仍然会发到浏览器；门控必须在服务端。
+  // 2) 这个仓库真正「建号」的不是 /signup —— signInWithOAuth 挂在 /login 上，
+  //    Supabase 首次 OAuth 登录会自动建用户。所以本跳转是纵深防御，不是主控制；
+  //    主控制是 Supabase Auth 的「允许新用户注册」开关（执行清单见报告 §10.6）。
+  //    只关 /signup 而留 Supabase 开关，任何人从 /login 仍能注册。
+  //
+  // 开关而不是删路由：ALLOW_PUBLIC_SIGNUP=1 恢复该页，供本地开发与 e2e 使用
+  // （playwright.config.ts 显式设置），生产环境不设置即处于关闭态。
+  if (pathname === '/signup' && process.env.ALLOW_PUBLIC_SIGNUP !== '1') {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
   // 1. Session protection (HMAC-signed cookie; legacy unsigned cookies fail
   //    verification and force one re-login).
@@ -142,6 +158,13 @@ function afterAuth(request: NextRequest, pathname: string, searchParams: URLSear
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   response.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
   response.headers.set('X-DNS-Prefetch-Control', 'on');
+
+  // 去索引的第二个动作（2026-11-15，W1）：robots.ts 只阻止抓取，不删除既有
+  // 索引条目；真正让条目退出的是这个头。robots.txt 自身不打该标签 —— 对一个
+  // 声明本站策略的文件标 noindex 既不生效，也会让抓取方读出歧义。
+  if (pathname !== '/robots.txt') {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
 
   return response;
 }

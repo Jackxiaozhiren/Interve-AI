@@ -1,11 +1,13 @@
 // G1 deploy-consistency pins (static, $0).
 //
 // V5 G1: vercel.json vs output:standalone consistency belongs in CI;
-// Dockerfile base must track engines.node; robots must keep the
-// practice-only crawl surface (public marketing + auth only).
+// Dockerfile base must track engines.node; robots must match the current
+// launch surface. That surface changed on 2026-11-15 (W1): the private pilot
+// closes the crawl surface instead of publishing marketing + auth pages.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import robots from "../../src/app/robots";
 
 const root = (p: string) => readFileSync(fileURLToPath(new URL(`../../${p}`, import.meta.url)), "utf8");
 
@@ -70,16 +72,28 @@ describe("deploy consistency (G1)", () => {
     );
   });
 
-  it("robots keeps the practice-only crawl surface", () => {
-    const robots = root("src/app/robots.ts");
-    for (const pub of ["/landing", "/login", "/signup"]) {
-      expect(robots, `allow ${pub}`).toContain(pub);
-    }
-    for (const priv of ["/api/", "/dashboard", "/interview", "/practice", "/chat", "/recruiter", "/setup"]) {
-      expect(robots, `disallow ${priv}`).toContain(priv);
-    }
-    // Sitemap stays ungenerated until a prod domain exists (comments may
-    // explain why; the returned object must carry no sitemap field).
-    expect(robots, "no sitemap field").not.toMatch(/^\s*sitemap\s*:/m);
+  // 2026-11-15 (W1): the private pilot closes the crawl surface. Assert on the
+  // returned object, not on the source text — the file's comments legitimately
+  // mention /signup and /landing while the rule allows nothing, so a text match
+  // would pass for the wrong reason in both directions.
+  it("robots closes the whole crawl surface during the private pilot", () => {
+    const rules = robots().rules;
+    const flat = Array.isArray(rules) ? rules : [rules];
+    expect(flat, "one rule set").toHaveLength(1);
+    const rule = flat[0];
+    expect(rule).toBeDefined();
+    if (!rule) throw new Error("robots() returned no rule");
+    expect(String(rule.userAgent)).toBe("*");
+    expect(rule.disallow, "disallow everything").toEqual(["/"]);
+    expect(rule.allow, "no allow-list while the pilot is private").toBeUndefined();
+
+    // robots.txt stops fetches; it cannot remove an entry that is already
+    // indexed. The header is the other half of the policy, so pin it where it
+    // is actually emitted.
+    expect(root("src/proxy.ts"), "X-Robots-Tag").toContain("X-Robots-Tag");
+
+    // No sitemap: a sitemap advertises URLs, which is the opposite of this
+    // policy. It stays ungenerated until the pilot ends.
+    expect(robots(), "no sitemap field").not.toHaveProperty("sitemap");
   });
 });

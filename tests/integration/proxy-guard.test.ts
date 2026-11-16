@@ -65,10 +65,47 @@ describe("proxy gateway", () => {
   });
 
   it("leaves public pages alone", async () => {
-    for (const p of ["/login", "/signup", "/", "/landing"]) {
+    for (const p of ["/login", "/", "/landing"]) {
       const res = await proxy(req(p));
       expect(res.status, p).toBe(200);
     }
+  });
+
+  // 2026-11-15 (W1): /signup is closed by default for the private pilot. The
+  // default is what ships to production, so the default case is the one pinned
+  // first; the escape hatch is pinned second so a refactor cannot silently turn
+  // it into a no-op in either direction.
+  it("closes /signup by default", async () => {
+    const saved = process.env.ALLOW_PUBLIC_SIGNUP;
+    delete process.env.ALLOW_PUBLIC_SIGNUP;
+    try {
+      const res = await proxy(req("/signup"));
+      expect([307, 308]).toContain(res.status);
+      expect(res.headers.get("location")).toContain("/login");
+    } finally {
+      if (saved === undefined) delete process.env.ALLOW_PUBLIC_SIGNUP;
+      else process.env.ALLOW_PUBLIC_SIGNUP = saved;
+    }
+  });
+
+  it("re-opens /signup only with ALLOW_PUBLIC_SIGNUP=1", async () => {
+    const saved = process.env.ALLOW_PUBLIC_SIGNUP;
+    process.env.ALLOW_PUBLIC_SIGNUP = "1";
+    try {
+      const res = await proxy(req("/signup"));
+      expect(res.status).toBe(200);
+      expect(res.headers.get("x-robots-tag")).toContain("noindex");
+    } finally {
+      if (saved === undefined) delete process.env.ALLOW_PUBLIC_SIGNUP;
+      else process.env.ALLOW_PUBLIC_SIGNUP = saved;
+    }
+  });
+
+  it("sends X-Robots-Tag everywhere except robots.txt", async () => {
+    const page = await proxy(req("/login"));
+    expect(page.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    const robotsTxt = await proxy(req("/robots.txt"));
+    expect(robotsTxt.headers.get("x-robots-tag")).toBeNull();
   });
 
   it("guards all AI-consuming pages, not just dashboard", async () => {
