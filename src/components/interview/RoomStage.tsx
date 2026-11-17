@@ -59,7 +59,7 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
   const { isCalmMode, isLiveCaptionsEnabled } = useAccessibilityStore();
 
   return (
-<div data-framework={framework} className={`flex-1 flex flex-col items-center justify-center relative glass rounded-[32px] overflow-hidden transition-colors duration-1000 ${stressTest ? 'border-2 border-rose-300/50 shadow-[inset_0_0_40px_rgba(244,63,94,0.1)]' : ''}`}>
+<div data-framework={framework} className={`flex-1 min-h-[200px] flex flex-col items-center justify-center relative glass rounded-[32px] overflow-hidden transition-colors duration-1000 ${stressTest ? 'border-2 border-rose-300/50 shadow-[inset_0_0_40px_rgba(244,63,94,0.1)]' : ''}`}>
                {/* STAR Tracker lives in the left column above this stage (see
                    interview/page.tsx), not as an absolute layer here. Keeping it
                    out of this `relative` box is what stops the panel from covering

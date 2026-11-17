@@ -1015,7 +1015,7 @@ function InterviewRoomContent() {
            />
 
             <TelemetryRow
-              isFocusMode={isFocusMode}
+              isFocusMode={isFocusMode} collapsed={framework === 'star'}
               wpm={wpm}
               fillerWordsCount={fillerWordsCount}
               showLiveInsights={showLiveInsights}

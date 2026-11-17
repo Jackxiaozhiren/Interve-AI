@@ -13,9 +13,17 @@ import { CameraSelfView } from "@/components/interview/CameraSelfView";
  * At phone width the three cards stacked to 254 of the split's 642 px and the
  * stage — where the mic and the composer live — collapsed to 2 px, so the strip
  * is hidden below md. A phone-first version of it is its own unit.
+ *
+ * W56: in `framework=star` the inline STAR strip (a `shrink-0` sibling, ~225 px)
+ * already occupies the room's fixed-height left column. Keeping this row as a
+ * second `shrink-0` sibling squeezed the only `flex-1` stage to 2 px and hid the
+ * agent spheres. STAR mode collapses this row (same path as focus mode) so the
+ * stage keeps a usable height; `collapsed` is explicit so general mode is
+ * untouched and the decision is assertable from the call site.
  */
 export function TelemetryRow({
   isFocusMode,
+  collapsed = false,
   wpm,
   fillerWordsCount,
   showLiveInsights,
@@ -23,6 +31,7 @@ export function TelemetryRow({
   isAiSpeaking,
 }: {
   isFocusMode: boolean;
+  collapsed?: boolean;
   wpm: number;
   fillerWordsCount: number;
   showLiveInsights: boolean;
@@ -31,7 +40,7 @@ export function TelemetryRow({
 }) {
   return (
     <AnimatePresence>
-      {!isFocusMode && (
+      {!isFocusMode && !collapsed && (
         <motion.div
           initial={{ opacity: 0, y: 20, height: 0 }}
           animate={{ opacity: 1, y: 0, height: 'auto' }}
