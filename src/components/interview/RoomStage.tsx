@@ -8,7 +8,6 @@ import { LiveCaptions } from "@/components/interview/LiveCaptions";
 import { MultiAgentVisualizer } from "@/components/interview/MultiAgentVisualizer";
 import type { AIExpert } from "@/lib/interview/experts";
 import { PinnedQuestion } from "@/components/interview/PinnedQuestion";
-import { StarTracker } from "@/components/interview/StarTracker";
 import { LiveWaveform } from "@/components/interview/LiveWaveform";
 import { useAccessibilityStore } from "@/store/useAccessibilityStore";
 
@@ -60,20 +59,11 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
   const { isCalmMode, isLiveCaptionsEnabled } = useAccessibilityStore();
 
   return (
-<div className={`flex-1 flex flex-col items-center justify-center relative glass rounded-[32px] overflow-hidden transition-colors duration-1000 ${stressTest ? 'border-2 border-rose-300/50 shadow-[inset_0_0_40px_rgba(244,63,94,0.1)]' : ''}`}>
-               {/* StarTracker (Absolute) */}
-               <AnimatePresence>
-                 {!isFocusMode && framework === 'star' && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
-                      className="absolute inset-0 pointer-events-none [&>*]:pointer-events-auto z-10"
-                    >
-                      <StarTracker />
-                    </motion.div>
-                 )}
-               </AnimatePresence>
+<div data-framework={framework} className={`flex-1 flex flex-col items-center justify-center relative glass rounded-[32px] overflow-hidden transition-colors duration-1000 ${stressTest ? 'border-2 border-rose-300/50 shadow-[inset_0_0_40px_rgba(244,63,94,0.1)]' : ''}`}>
+               {/* STAR Tracker lives in the left column above this stage (see
+                   interview/page.tsx), not as an absolute layer here. Keeping it
+                   out of this `relative` box is what stops the panel from covering
+                   the agent spheres and dock when vertical space runs short. */}
 
                {/* Tab Abandonment / Focus Lost Overlay */}
                <AnimatePresence>

@@ -21,6 +21,7 @@ const SystemDesignBoard = dynamic(
   { ssr: false }
 );
 import { RoomStage } from "@/components/interview/RoomStage";
+import { StarTracker } from "@/components/interview/StarTracker";
 import { CopilotHints } from "@/components/interview/CopilotHints";
 import { useKeyboardShortcuts, createCtrlCmdShortcut } from "@/hooks/useKeyboardShortcuts";
 import { type AIExpert, expertFromMessage } from "@/lib/interview/experts";
@@ -981,6 +982,8 @@ function InterviewRoomContent() {
             the FlowMap row. Sharing the split instead of letting either column
             win keeps both panels real and the dock inside its stage. */}
         <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-4 overflow-hidden max-lg:flex-1 max-lg:min-h-0">
+           {/* W53: normal-flow strip above the stage, never an absolute layer in it. */}
+           {!isFocusMode && framework === 'star' && <div className="shrink-0"><StarTracker variant="inline" /></div>}
            {/* Top: AI Avatar (Main Bento Card) */}
                       <RoomStage
              framework={framework}
