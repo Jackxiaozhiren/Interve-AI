@@ -9,7 +9,18 @@ export function starGroundingTitle(evidence: string[], confidence: string): stri
   return `Basis in your answer: “${evidence[0]}”${evidence.length > 1 ? ` (+${evidence.length - 1} more)` : ""} · Evaluator confidence: ${confidence} (evidence sufficiency)`;
 }
 
-export function StarTracker() {
+/**
+ * `floating` (default) keeps the original absolute position for callers that
+ * place the tracker inside their own relative box (e.g. CopilotPanel).
+ *
+ * `inline` is for the interview room: it drops the absolute positioning so the
+ * tracker occupies a real slot in normal flow. The room used to stack this
+ * floating panel on top of the three agent spheres and the controls dock in
+ * one `relative` stage; at short viewport heights the layers overlapped and
+ * the panel covered the spheres. In normal flow the browser reserves its own
+ * row, so the two can never collide regardless of viewport height.
+ */
+export function StarTracker({ variant = "floating" }: { variant?: "floating" | "inline" } = {}) {
   const { starProgress } = useInterveStore();
   // §9 grounding: LiveStats tile is the visual grounding surface (progress-ring
   // widget has no fit for quotes). The tracker only carries the grounding for
@@ -58,7 +69,7 @@ export function StarTracker() {
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="absolute top-6 left-6 z-20 bg-white/70 backdrop-blur-xl border border-white/80 p-4 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col gap-4 min-w-[280px]"
+      className={`${variant === "inline" ? "relative w-full p-3 gap-2" : "absolute top-6 left-6 z-20 min-w-[280px] p-4 gap-4"} bg-white/70 backdrop-blur-xl border border-white/80 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col`}
       {...(groundingTitle ? { title: groundingTitle } : {})}
     >
       <div className="flex items-center justify-between">
