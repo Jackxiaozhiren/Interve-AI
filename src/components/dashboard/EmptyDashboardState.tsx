@@ -32,7 +32,7 @@ export function EmptyDashboardState({ onStartMock }: { onStartMock: () => void }
       <h2 className="text-[2.5rem] md:text-[3rem] font-serif tracking-tight text-[#1D2129] leading-tight mb-4 max-w-2xl">
         Your Interview Journey Begins Here.
       </h2>
-      <p className="text-[#86909C] text-lg font-medium max-w-xl mb-10 leading-relaxed">
+      <p className="text-[var(--interve-text-secondary)] text-lg font-medium max-w-xl mb-10 leading-relaxed">
         Complete your first mock interview to unlock personalized telemetry, qualitative feedback, and AI-driven growth insights.
       </p>
 

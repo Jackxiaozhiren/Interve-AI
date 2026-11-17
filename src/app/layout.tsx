@@ -2,6 +2,7 @@ import { Providers } from "@/components/providers";
 import { SkipLink } from "@/components/layout/SkipLink";
 import { Toaster } from "sonner";
 import type { Metadata } from "next";
+import { inter } from "./fonts";
 import "./globals.css";
 
 // Phase 13: document title + description (Lighthouse document-title and
@@ -38,7 +39,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    // inter.variable defines --font-inter, which globals.css has referenced
+    // since v1.0 without a definition (S0, report §12.3.3).
+    <html lang="zh-CN" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-[100dvh] flex flex-col bg-background text-foreground font-sans tracking-tight">
         <SkipLink />
         <Providers>

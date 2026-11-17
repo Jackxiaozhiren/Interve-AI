@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
    Syntax highlighting colors:
    - Keywords:  #165DFF (blue)
    - Strings:   #00B42A (green)
-   - Comments:  #86909C (gray)
+   - Comments:  var(--interve-text-secondary) (gray)
    - Functions: #FF7D00 (orange)
    - Numbers:   #F53F3F (red)
    ═══════════════════════════════════════ */
@@ -37,7 +37,7 @@ const KEYWORDS = new Set([
 const TOKEN_COLORS: Record<Token["type"], string> = {
   keyword:  "#165DFF",
   string:   "#00B42A",
-  comment:  "#86909C",
+  comment:  "var(--interve-text-secondary)",
   function: "#FF7D00",
   number:   "#F53F3F",
   plain:    "inherit",
@@ -144,7 +144,7 @@ export function InterveCodeBlock({
     >
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[rgba(0,0,0,0.04)] bg-[rgba(250,250,252,0.5)]">
-        <span className="text-[12px] font-medium text-[#86909C] uppercase tracking-wider">
+        <span className="text-[12px] font-medium text-[var(--interve-text-secondary)] uppercase tracking-wider">
           {language}
         </span>
         <button
@@ -156,7 +156,7 @@ export function InterveCodeBlock({
             "transition-all duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
             copied
               ? "bg-[var(--interve-success-surface)] text-[var(--interve-success-text)]"
-              : "text-[#86909C] hover:bg-white hover:text-[var(--interve-text-body)]"
+              : "text-[var(--interve-text-secondary)] hover:bg-white hover:text-[var(--interve-text-body)]"
           )}
         >
           {copied ? (

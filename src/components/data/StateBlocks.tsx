@@ -27,7 +27,8 @@ function DefaultIcon({ label }: { label: string }) {
       height="28"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#86909C"
+      stroke="currentColor"
+      className="text-[var(--interve-text-secondary)]"
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -57,7 +58,7 @@ export function EmptyState({
       </div>
       <h3 className="mt-6 text-[18px] font-medium text-[#1D2129]">{title}</h3>
       {description && (
-        <p className="mt-3 max-w-xs text-center text-[14px] text-[#86909C]">{description}</p>
+        <p className="mt-3 max-w-xs text-center text-[14px] text-[var(--interve-text-secondary)]">{description}</p>
       )}
       {actionLabel && actionHref && (
         <Link href={actionHref} className="mt-8">
@@ -116,7 +117,7 @@ export function ErrorState({
         </svg>
       </div>
       <h3 className="mt-6 text-[18px] font-medium text-[#1D2129]">{title}</h3>
-      <p className="mt-3 max-w-sm text-center text-[14px] text-[#86909C]">{message}</p>
+      <p className="mt-3 max-w-sm text-center text-[14px] text-[var(--interve-text-secondary)]">{message}</p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         {/* Measured at 390px on 2026-11-09: the report's "返回控制台" was 36px
             inside an inline <a>, so a min-height on the button alone left the

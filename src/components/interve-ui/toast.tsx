@@ -126,7 +126,7 @@ function InterveToastItem({
       <button
         type="button"
         onClick={() => onRemove(toast.id)}
-        className="shrink-0 w-5 h-5 flex items-center justify-center text-[#C9CDD4] hover:text-[#86909C] transition-colors"
+        className="shrink-0 w-5 h-5 flex items-center justify-center text-[#C9CDD4] hover:text-[var(--interve-text-secondary)] transition-colors"
         aria-label="Dismiss"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
