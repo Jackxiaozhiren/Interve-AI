@@ -560,7 +560,10 @@ test.describe("report at phone width", () => {
       const sectionOf = (text: string) => {
         const h = Array.from(document.querySelectorAll("h2, h3")).find((el) => el.textContent?.includes(text)) ?? null;
         let p: Element | null = h;
-        while (p && !String((p as HTMLElement).className).includes("rounded-[2rem]")) p = p.parentElement;
+        // S1 (2026-11-20) mapped rounded-[2rem] onto the Tailwind scale's
+        // rounded-3xl (same 32px). Accept both so this geometry probe keeps
+        // finding the report section after the token migration.
+        while (p && !/\b(?:rounded-\[2rem\]|rounded-3xl)\b/.test(String((p as HTMLElement).className))) p = p.parentElement;
         return p;
       };
       const column = sectionOf("下一步练什么");
