@@ -732,11 +732,11 @@ const PLANTS = [
     desc: "the sidebar stops linking to the knowledge base (a page goes dark)",
     kind: "vitest",
     file: SHELL,
-    anchor: '{ name: "Knowledge Base", href: "/dashboard/knowledge", icon: CloudArrowUp },',
+    anchor: '{ name: "知识库", href: "/dashboard/knowledge", icon: CloudArrowUp },',
     // Repointed at a route that exists, so the outbound rule stays green and only
     // the inbound rule can fire — a plant that trips two guards proves nothing
     // about either one.
-    replacement: '{ name: "Knowledge Base", href: "/dashboard", icon: CloudArrowUp },',
+    replacement: '{ name: "知识库", href: "/dashboard", icon: CloudArrowUp },',
     test: ANCHOR_UNIT,
     pattern: "no route is orphaned beyond the declared list",
   },
