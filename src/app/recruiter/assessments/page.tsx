@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { FileText, MagicWand, FloppyDisk, CheckCircle, WarningCircle, Sparkle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
@@ -80,6 +81,10 @@ export default function CreateAssessmentPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 md:px-8 relative overflow-hidden">
+      {/* S3: the assessment editor had no route back to the recruiter surface. */}
+      <Link href="/recruiter" className="relative z-10 inline-flex items-center gap-1 text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] mb-4">
+        ← 返回招聘方演示
+      </Link>
       {/* Background blobs */}
       <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-violet-100/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
       <div className="absolute bottom-0 left-0 w-[40%] h-[60%] bg-sky-100/30 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />

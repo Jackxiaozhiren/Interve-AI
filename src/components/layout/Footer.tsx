@@ -26,6 +26,9 @@ export function Footer() {
             {/* 面试题库 appeared in both columns; it stays under 资源. */}
             <Link href="/setup" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">开始面试</Link>
             <Link href="/dashboard" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">控制台</Link>
+            {/* S3: 招聘方界面此前无任何主入口。该路由是带虚构候选人的界面演示，
+                不是可售卖的企业版，因此入口如实标注为「演示」。 */}
+            <Link href="/recruiter" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">招聘方演示</Link>
             {/* 企业版 used to link /recruiter. That route is an interface demo
                 with fabricated candidates and KPIs, so labelling it "Enterprise"
                 sold a product tier that does not exist. */}
