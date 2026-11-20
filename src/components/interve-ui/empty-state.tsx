@@ -11,7 +11,7 @@ import { InterveButton } from "./button";
    Standardized spacing:
    - Icon: 64x64, bg #E6F0FF
    - Title: 18px, #1D2129, mt-24px
-   - Desc: 14px, #86909C, mt-12px, max 2 lines
+   - Desc: 14px, var(--interve-text-secondary), mt-12px, max 2 lines
    - Button: mt-32px
    - Container: py-120px
    ═══════════════════════════════════════ */
@@ -19,7 +19,7 @@ import { InterveButton } from "./button";
 /* ─── Default icons ─── */
 function DefaultEmptyIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#86909C" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[var(--interve-text-secondary)]" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
@@ -29,7 +29,7 @@ function DefaultEmptyIcon() {
 
 function ChatEmptyIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#86909C" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[var(--interve-text-secondary)]" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
     </svg>
   );
@@ -37,7 +37,7 @@ function ChatEmptyIcon() {
 
 function DocEmptyIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#86909C" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[var(--interve-text-secondary)]" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
       <polyline points="14 2 14 8 20 8" />
       <line x1="16" y1="13" x2="8" y2="13" />
@@ -76,9 +76,9 @@ export function InterveEmptyState({
     return (
       <div className={cn("flex flex-col items-center justify-center py-6", className)}>
         {icon && (
-          <span className="text-[#86909C] mb-2">{icon}</span>
+          <span className="text-[var(--interve-text-secondary)] mb-2">{icon}</span>
         )}
-        <p className="text-[13px] text-[#86909C]">{title}</p>
+        <p className="text-[13px] text-[var(--interve-text-secondary)]">{title}</p>
       </div>
     );
   }
@@ -95,9 +95,9 @@ export function InterveEmptyState({
         {title}
       </h3>
 
-      {/* Description — 14px, #86909C, mt-12px, max 2 lines */}
+      {/* Description — 14px, var(--interve-text-secondary), mt-12px, max 2 lines */}
       {description && (
-        <p className="text-[14px] text-[#86909C] mt-3 max-w-xs text-center line-clamp-2">
+        <p className="text-[14px] text-[var(--interve-text-secondary)] mt-3 max-w-xs text-center line-clamp-2">
           {description}
         </p>
       )}

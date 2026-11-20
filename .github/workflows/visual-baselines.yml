@@ -25,16 +25,20 @@ jobs:
           node-version: 24
           cache: npm
       # Mirrors the steps `gate` runs before its visual lane, on purpose: the same
-      # install (no `--ignore-scripts`) and a production build. The app ships no
-      # webfont — `--font-inter` has no `next/font` behind it, and /privacy says so
-      # out loud — so every glyph comes from whatever the rendering host resolves,
-      # and a baseline captured under different preparation does not match the lane
-      # that compares against it. Measured: a re-capture without the build produced
-      # a snapshot differing from the gate's own render in 6187 pixels, all of them
-      # in the nav and heading bands and none in the copy change being blessed.
-      # With these two steps the capture and the gate's own render agree exactly:
-      # measured 0 differing pixels over the 1280x3476 landing snapshot, against
-      # 6187 before.
+      # install (no `--ignore-scripts`) and a production build. A baseline
+      # captured under different preparation does not match the lane that compares
+      # against it. Measured: a re-capture without the build produced a snapshot
+      # differing from the gate's own render in 6187 pixels, all of them in the nav
+      # and heading bands and none in the copy change being blessed. With these two
+      # steps the capture and the gate's own render agree exactly: measured 0
+      # differing pixels over the 1280x3476 landing snapshot, against 6187 before.
+      #
+      # S0 (2026-11-17) removed one of the two reasons this had to be exact. The
+      # app used to ship no webfont, so every glyph came from whatever the host
+      # resolved and the build step was the only thing keeping capture and gate
+      # aligned. It now bundles Inter and serves it same-origin, so glyphs are
+      # pinned by the repo rather than by the runner — the build step stays because
+      # the first half of that reasoning was never about fonts.
       - run: npm ci
       - run: npm run build
       # The local playwright binary, not `npx playwright`: nothing is fetched by

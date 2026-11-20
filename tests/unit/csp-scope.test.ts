@@ -5,10 +5,15 @@
  *
  * 1. The privacy page told candidates their browser loads fonts from
  *    fonts.googleapis.com and fonts.gstatic.com "so those parties see your IP".
- *    It never does: there is no `next/font` import, no `<link>` in any layout,
+ *    It never did: there was no `next/font` import, no `<link>` in any layout,
  *    no `@import url(...)` in globals.css and no bundled font file. A privacy
  *    policy that names a third party the app never contacts is a false
  *    disclosure about processing, not a harmless over-listing.
+ *    S0 (2026-11-17) changed two of those four facts on purpose — there is now a
+ *    `next/font/local` import and a bundled woff2 — but not the claim this test
+ *    pins: the file is served from this origin, `font-src` stays 'self', and the
+ *    privacy sentence was rewritten to say "随应用一起分发、与页面同域加载".
+ *    tests/unit/font-self-hosted.test.ts owns that new shape.
  * 2. Removing `cdn.jsdelivr.net` from `script-src` because the hostname appears
  *    nowhere in `src/`. It is live: `@monaco-editor/loader` defaults its `vs`
  *    path to `https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs` and the

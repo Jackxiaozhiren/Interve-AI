@@ -73,8 +73,8 @@ const VERIFIED: Record<string, Entry> = {
   "src/app/not-found.tsx": { digits: ["404"], why: "the HTTP status of the page it renders" },
   "src/app/practice/[id]/client.tsx": { digits: ["100"], why: "/100 scale suffix" },
   "src/app/privacy/page.tsx": {
-    digits: ["003", "006", "24", "30", "4", "4.7"],
-    why: "migration filenames that exist under supabase/migrations; 24h = SESSION_TTL_MS; 30 days = the retention both this page and session-persistence enforce; glm-4-flash / glm-4.7-flash = registry.ts model ids",
+    digits: ["003", "006", "1.1", "24", "30", "4", "4.7"],
+    why: "migration filenames that exist under supabase/migrations; 24h = SESSION_TTL_MS; 30 days = the retention both this page and session-persistence enforce; glm-4-flash / glm-4.7-flash = registry.ts model ids; 1.1 = the SIL OFL version bundled with the self-hosted Inter file, named so the font's licence is not a claim the page makes without a citable version",
   },
   "src/app/s/[token]/page.tsx": {
     digits: ["100"],

@@ -98,8 +98,13 @@ const browser = await chromium.launch();
 // 1150 budget — headroom absorbs font/CDN/headless variance, the budget
 // catches real bloat (e.g. an ungated heavy import). Tighten only from fresh
 // baselines, never blind. Enforced with --assert (CI); plain runs print only.
+//
+// 2026-11-18 (S0): /setup re-baselined from 407KB to 456KB once the app began
+// shipping its own 48KB Inter woff2. 500 restores ~9% headroom over that
+// measured baseline. The font is a deliberate product cost, not an ungated
+// heavy import — do not tighten this back to 450 while it ships.
 const TRANSFER_BUDGETS = {
-  "/setup": 450,
+  "/setup": 500,
   "/dashboard": 800,
   "/interview?id=perf-probe&testMode=true": 1150,
   "/practice": 550,
