@@ -218,7 +218,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
           dragConstraints={{ left: -1000, right: 0, top: 0, bottom: 1000 }}
           dragElastic={0.1}
           dragMomentum={false}
-          className="fixed top-6 right-6 bottom-6 w-[600px] md:w-[800px] max-w-[90vw] bg-white/60 backdrop-blur-3xl border border-white/60 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.9)] rounded-[2rem] flex flex-col z-50 overflow-hidden resize-x min-w-[400px]"
+          className="fixed top-6 right-6 bottom-6 w-[600px] md:w-[800px] max-w-[90vw] bg-white/60 backdrop-blur-3xl border border-white/60 interve-shadow-modal rounded-3xl flex flex-col z-50 overflow-hidden resize-x min-w-[400px]"
         >
           <style>{`
             .custom-scrollbar::-webkit-scrollbar {
@@ -258,19 +258,19 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
           <div className="p-5 bg-gradient-to-b from-white/30 to-transparent flex flex-col gap-4">
             {problemStatement && (
               <div className="p-4 bg-sky-50/50 border border-sky-100 rounded-2xl text-sm text-slate-700 leading-relaxed shadow-sm">
-                <span className="font-bold text-sky-700 mr-2 uppercase tracking-wider text-[11px]">Problem:</span>
+                <span className="font-bold text-sky-700 mr-2 uppercase tracking-wider text-ui-2xs">Problem:</span>
                 {problemStatement}
               </div>
             )}
             <div className="flex gap-4">
-              <div className="flex flex-1 p-1.5 bg-slate-100/50 backdrop-blur-md rounded-[14px] border border-white/80 shadow-sm">
+              <div className="flex flex-1 p-1.5 bg-slate-100/50 backdrop-blur-md rounded-lg border border-white/80 shadow-sm">
                 <Button
                   variant="ghost"
                   onClick={() => setMode("code")}
                   aria-pressed={mode === "code"}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 h-auto text-[13px] font-bold tracking-wide rounded-[10px] focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 h-auto text-ui-sm font-bold tracking-wide rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${
                     mode === "code"
-                      ? "bg-white text-sky-600 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:bg-white hover:text-sky-600"
+                      ? "bg-white text-sky-600 interve-shadow-xs hover:bg-white hover:text-sky-600"
                       : "text-slate-500 hover:text-slate-700 hover:bg-white/40"
                   }`}
                 >
@@ -281,9 +281,9 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                   variant="ghost"
                   onClick={() => setMode("notes")}
                   aria-pressed={mode === "notes"}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 h-auto text-[13px] font-bold tracking-wide rounded-[10px] focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 h-auto text-ui-sm font-bold tracking-wide rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${
                     mode === "notes"
-                      ? "bg-white text-sky-600 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:bg-white hover:text-sky-600"
+                      ? "bg-white text-sky-600 interve-shadow-xs hover:bg-white hover:text-sky-600"
                       : "text-slate-500 hover:text-slate-700 hover:bg-white/40"
                   }`}
                 >
@@ -299,7 +299,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                     size="icon"
                     onClick={() => setEditorTheme(prev => prev === "light" ? "vs-dark" : "light")}
                     aria-label={editorTheme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-                    className="rounded-[14px] text-slate-500 hover:text-sky-500 hover:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="rounded-lg text-slate-500 hover:text-sky-500 hover:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                     title="Toggle Theme"
                   >
                     {editorTheme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
@@ -308,7 +308,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                     aria-label="Select programming language"
-                    className="bg-slate-100/50 backdrop-blur-md border border-white/80 text-slate-600 text-sm rounded-[14px] px-4 h-10 font-medium outline-none focus:ring-2 focus:ring-sky-500 transition-all shadow-sm"
+                    className="bg-slate-100/50 backdrop-blur-md border border-white/80 text-slate-600 text-sm rounded-lg px-4 h-10 font-medium outline-none focus:ring-2 focus:ring-sky-500 transition-all shadow-sm"
                   >
                     <option value="javascript">JavaScript</option>
                     <option value="typescript">TypeScript</option>
@@ -320,7 +320,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                   {isRunning ? (
                     <Button
                       onClick={stopExecution}
-                      className="bg-rose-500 hover:bg-rose-600 text-white rounded-[14px] h-10 px-4 font-bold tracking-wide shadow-sm flex items-center gap-2"
+                      className="bg-rose-500 hover:bg-rose-600 text-white rounded-lg h-10 px-4 font-bold tracking-wide shadow-sm flex items-center gap-2"
                     >
                       <Stop className="w-4 h-4 weight-fill" /> Stop
                     </Button>
@@ -331,7 +331,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                         setIsTerminalOpen(true);
                         executeCode(content, language);
                       }}
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-[14px] h-10 px-4 font-bold tracking-wide shadow-sm flex items-center gap-2"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg h-10 px-4 font-bold tracking-wide shadow-sm flex items-center gap-2"
                     >
                       <Play className="w-4 h-4 weight-fill" /> Run Code
                     </Button>
@@ -344,7 +344,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
           {/* Editor Area */}
           <div className="flex-1 p-6 relative group pt-2 overflow-hidden flex flex-col">
             {mode === "code" ? (
-              <div className={`w-full flex-1 flex flex-col rounded-[16px] overflow-hidden border border-slate-200/60 shadow-inner ${editorTheme === 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-[#fffffe]'}`}>
+              <div className={`w-full flex-1 flex flex-col rounded-lg overflow-hidden border border-slate-200/60 shadow-inner ${editorTheme === 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-[#fffffe]'}`}>
                 <div className="flex-1 min-h-[50%]">
                   <Editor
                     height="100%"
@@ -386,7 +386,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "30%", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="border-t border-slate-200 bg-[#0d1117] text-slate-300 font-mono text-[13px] flex flex-col overflow-hidden"
+                      className="border-t border-slate-200 bg-[#0d1117] text-slate-300 font-mono text-ui-sm flex flex-col overflow-hidden"
                     >
                       <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#161b22]">
                         <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-widest font-bold">
@@ -412,7 +412,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                                 log.type === 'system' ? 'text-sky-400 italic' :
                                 'text-emerald-400'
                               )}>
-                                <span className="opacity-40 mr-3 text-[11px]">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                                <span className="opacity-40 mr-3 text-ui-2xs">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
                                 {log.message}
                               </div>
                             ))}
@@ -434,7 +434,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Jot down your thoughts or architecture notes..."
                 aria-label="Scratchpad notes"
-                className="custom-scrollbar w-full flex-1 resize-none bg-transparent border-none focus:ring-0 text-[15px] leading-relaxed text-slate-700 placeholder:text-slate-300 outline-none font-sans pr-2"
+                className="custom-scrollbar w-full flex-1 resize-none bg-transparent border-none focus:ring-0 text-ui-lg leading-relaxed text-slate-700 placeholder:text-slate-300 outline-none font-sans pr-2"
                 spellCheck={false}
               />
             )}
@@ -451,7 +451,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
                 onClick={handleCopy}
                 disabled={content.length === 0}
                 aria-label="Copy contents"
-                className="bg-white shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-100 text-slate-500 hover:text-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-colors disabled:opacity-0"
+                className="bg-white interve-shadow-xs border border-slate-100 text-slate-500 hover:text-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-colors disabled:opacity-0"
               >
                 {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
               </Button>
@@ -459,7 +459,7 @@ export const TechnicalScratchpad = React.memo(function TechnicalScratchpad({ isO
           </div>
 
           {/* Footer Info & Complexity Analysis */}
-          <div className="px-6 py-4 border-t border-white/60 bg-white/40 text-[11px] text-muted-foreground font-bold uppercase tracking-widest flex justify-between items-center relative overflow-hidden">
+          <div className="px-6 py-4 border-t border-white/60 bg-white/40 text-ui-2xs text-muted-foreground font-bold uppercase tracking-widest flex justify-between items-center relative overflow-hidden">
             {mode === "code" && analysis && (
               <div className="flex items-center gap-4 text-xs normal-case tracking-normal">
                 <span className="flex items-center gap-1.5 text-slate-600 font-medium">

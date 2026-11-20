@@ -69,7 +69,7 @@ export function StarTracker({ variant = "floating" }: { variant?: "floating" | "
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`${variant === "inline" ? "relative w-full p-3 gap-2" : "absolute top-6 left-6 z-20 min-w-[280px] p-4 gap-4"} bg-white/70 backdrop-blur-xl border border-white/80 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col`}
+      className={`${variant === "inline" ? "relative w-full p-3 gap-2" : "absolute top-6 left-6 z-20 min-w-[280px] p-4 gap-4"} bg-white/70 backdrop-blur-xl border border-white/80 rounded-2xl interve-shadow-card flex flex-col`}
       {...(groundingTitle ? { title: groundingTitle } : {})}
     >
       <div className="flex items-center justify-between">
@@ -77,7 +77,7 @@ export function StarTracker({ variant = "floating" }: { variant?: "floating" | "
           <span>STAR Tracker</span>
         </h3>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground font-medium">Real-time Analysis</span>
+          <span className="text-ui-2xs text-muted-foreground font-medium">Real-time Analysis</span>
           <div className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
         </div>
       </div>
@@ -109,7 +109,7 @@ export function StarTracker({ variant = "floating" }: { variant?: "floating" | "
                     scale: isActive ? 1.05 : 1
                   }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-[13px] shadow-sm relative transition-colors duration-300"
+                  className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-ui-sm shadow-sm relative transition-colors duration-300"
                 >
                   {isComplete ? (
                     <CheckCircle className="w-5 h-5 text-white" weight="bold" />
@@ -145,10 +145,10 @@ export function StarTracker({ variant = "floating" }: { variant?: "floating" | "
               </div>
 
               <div className="flex flex-col items-center">
-                <span className={`text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300 ${isComplete ? 'text-sky-600' : isActive ? 'text-slate-600' : 'text-muted-foreground'}`}>
+                <span className={`text-ui-2xs font-semibold uppercase tracking-wider transition-colors duration-300 ${isComplete ? 'text-sky-600' : isActive ? 'text-slate-600' : 'text-muted-foreground'}`}>
                   {step.label}
                 </span>
-                <span className="text-[9px] text-muted-foreground mt-0.5 tabular-nums">
+                <span className="text-ui-2xs text-muted-foreground mt-0.5 tabular-nums">
                   {step.data.progress}%
                 </span>
               </div>
@@ -175,7 +175,7 @@ export function StarTracker({ variant = "floating" }: { variant?: "floating" | "
         >
           <div className="flex items-start gap-2 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
              <Lightbulb className="w-4 h-4 text-sky-500 mt-0.5 shrink-0" weight="duotone" />
-             <p className="text-[11.5px] leading-snug text-slate-600 font-medium">
+             <p className="text-ui-2xs leading-snug text-slate-600 font-medium">
                {getFeedbackMessage()}
              </p>
           </div>

@@ -229,7 +229,7 @@ export default function InterviewReportPage() {
               <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-2 min-h-11 text-slate-500 hover:text-slate-900 -ml-2 sm:min-h-0">
                 <ArrowLeft className="w-4 h-4 mr-2" /> 返回控制台
               </Button>
-              <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="mb-2 font-mono text-ui-2xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Step 3 · Review
               </p>
               <h1 className="text-3xl font-serif font-bold text-slate-900 tracking-tight">面试综合评估报告</h1>
@@ -253,7 +253,7 @@ export default function InterviewReportPage() {
 
           {/* Training Roadmap */}
           {trainingRoadmap && (
-            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] col-span-1 lg:col-span-2">
+            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card col-span-1 lg:col-span-2">
               <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
                 <Compass className="w-6 h-6 text-indigo-500" />
                 下一步练什么
@@ -327,7 +327,7 @@ export default function InterviewReportPage() {
 
           {/* Replay Timeline */}
           {timelineEvents && timelineEvents.length > 0 && (
-            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card mb-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2.5 bg-sky-50 text-sky-600 rounded-xl">
                   <Clock className="w-5 h-5" weight="fill" />
@@ -348,7 +348,7 @@ export default function InterviewReportPage() {
           {/* Rationale & Radar */}
           <motion.div variants={staggerContainer} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <motion.div variants={fadeIn} className="lg:col-span-2 bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <motion.div variants={fadeIn} className="lg:col-span-2 bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
                   <FileText className="w-5 h-5" weight="fill" />
@@ -363,7 +363,7 @@ export default function InterviewReportPage() {
               <DeliveryCoach stats={interview.deliveryStats} />
             </motion.div>
 
-            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center">
+            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card flex flex-col items-center">
               <div className="w-full flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-violet-50 text-violet-600 rounded-xl">
                   <ChartLineUp className="w-5 h-5" weight="fill" />
@@ -398,7 +398,7 @@ export default function InterviewReportPage() {
           </motion.div>
 
           {/* Dimensions (evidence-grounded for V2; transparency notes for legacy) */}
-          <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2.5 bg-violet-50 text-violet-600 rounded-xl">
                 <ChartLineUp className="w-5 h-5" weight="fill" />
@@ -444,7 +444,7 @@ export default function InterviewReportPage() {
 
           {/* Strengths / gaps / drills (V2 only) */}
           {(view.strengths.length > 0 || view.weaknesses.length > 0 || view.nextDrills.length > 0) && (
-            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card">
               <StrengthsDrills view={view} />
             </motion.div>
           )}
@@ -462,7 +462,7 @@ export default function InterviewReportPage() {
 
           {/* Cultural Traits */}
           {culturalTraits && culturalTraits.length > 0 && (
-            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2.5 bg-orange-50 text-orange-600 rounded-xl">
                   <ShieldCheck className="w-5 h-5" weight="fill" />
@@ -497,7 +497,7 @@ export default function InterviewReportPage() {
               </div>
 
               {qaReview.map((qa, index) => (
-                <div key={index} className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-[2rem] p-8 shadow-sm">
+                <div key={index} className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-3xl p-8 shadow-sm">
                   <div className="mb-6">
                     <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg mb-3">Question {index + 1}</span>
                     <h3 className="text-lg font-semibold text-slate-900">{qa.question}</h3>
@@ -537,7 +537,7 @@ export default function InterviewReportPage() {
 
           {/* Transcript View */}
           {transcript && transcript.length > 0 && (
-            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+            <motion.div variants={fadeIn} className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card mb-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2.5 bg-slate-100 text-slate-600 rounded-xl">
                   <ChatTeardropText className="w-5 h-5" weight="fill" />
@@ -562,7 +562,7 @@ export default function InterviewReportPage() {
                           : ''
                       }`}
                     >
-                      <span className="text-[11px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                      <span className="text-ui-2xs font-bold text-muted-foreground mb-1 uppercase tracking-wider">
                         {isUser ? 'You' : 'Interviewer'}
                       </span>
                       <div className={`px-5 py-3.5 rounded-2xl max-w-[85%] ${isUser ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}>

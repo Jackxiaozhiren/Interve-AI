@@ -28,7 +28,7 @@ export function PricingSection() {
         </p>
       </div>
 
-      <div className="interve-glass p-8 rounded-[var(--radius-xl)] flex flex-col gap-5 w-full max-w-md">
+      <div className="interve-glass p-8 rounded-xl flex flex-col gap-5 w-full max-w-md">
         <div>
           <h3 className="text-lg font-semibold text-[var(--interve-text-title)] mb-1">免费</h3>
           <p className="text-sm text-[var(--interve-text-secondary)]">全部功能，无需信用卡</p>
@@ -47,7 +47,7 @@ export function PricingSection() {
           限制不止一处：默认每个账号（与同一网络出口共享当天额度）每类接口每天 {DEFAULT_USER_BUDGET_RPD} 次请求，另有按接口的每分钟 {RATE_LIMIT_ENVELOPE.minPerMinute}–{RATE_LIMIT_ENVELOPE.maxPerMinute} 次频率上限。服务端可调，这些只用于守住共享的免费额度。
         </p>
         <Link href="/signup">
-          <InterveButton size="lg" className="w-full justify-center shadow-[var(--interve-shadow-button)]">免费注册</InterveButton>
+          <InterveButton size="lg" className="w-full justify-center interve-shadow-button">免费注册</InterveButton>
         </Link>
       </div>
     </section>

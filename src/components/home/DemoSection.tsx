@@ -4,7 +4,7 @@ import { InterveMessageCard } from "@/components/interve-ui/chat";
 export function DemoSection() {
   return (
     <section id="demo" className="w-full flex flex-col items-center gap-12">
-      <div className="w-full max-w-4xl interve-glass rounded-2xl border border-white/50 shadow-[var(--interve-shadow-card)] overflow-hidden">
+      <div className="w-full max-w-4xl interve-glass rounded-2xl border border-white/50 interve-shadow-card overflow-hidden">
         <div className="bg-white/40 border-b border-white/30 px-4 py-3 flex items-center gap-2">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-[#FF5F56]"></div>

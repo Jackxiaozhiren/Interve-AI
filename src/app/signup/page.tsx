@@ -59,13 +59,13 @@ export default function SignupPage() {
           <Link href="/" className="inline-flex items-center gap-2 text-2xl font-serif font-semibold tracking-tight text-slate-900 group">
             <div className="relative w-4 h-4">
                <div className="absolute inset-0 rounded-full bg-sky-400 animate-ping opacity-60" />
-               <div className="absolute inset-[2px] rounded-full bg-sky-500 shadow-[0_0_12px_rgba(14,165,233,0.8)]" />
+               <div className="absolute inset-[2px] rounded-full bg-sky-500 interve-shadow-focus" />
             </div>
             Interve AI
           </Link>
         </div>
 
-        <Card className="bg-white/70 border border-white/90 shadow-[0_12px_40px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,1)] backdrop-blur-2xl rounded-[32px] overflow-hidden">
+        <Card className="bg-white/70 border border-white/90 interve-shadow-hover backdrop-blur-2xl rounded-3xl overflow-hidden">
           <CardHeader className="pb-6 text-center">
             <CardTitle className="text-ui-2xl font-serif text-slate-900">创建账号</CardTitle>
             <CardDescription className="text-slate-500 text-ui-lg">

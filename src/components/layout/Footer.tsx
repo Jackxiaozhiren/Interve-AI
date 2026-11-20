@@ -14,7 +14,7 @@ export function Footer() {
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
               </div>
-              <span className="font-semibold text-[15px] text-[var(--interve-text-title)]">Interve AI</span>
+              <span className="font-semibold text-ui-lg text-[var(--interve-text-title)]">Interve AI</span>
             </div>
             <p className="text-sm text-[var(--interve-text-secondary)]">
               智能、自然、专业的下一代 AI 面试平台。
@@ -22,7 +22,7 @@ export function Footer() {
           </div>
           
           <div className="flex flex-col gap-3">
-            <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">产品</h3>
+            <h3 className="font-semibold text-ui-base text-[var(--interve-text-title)] mb-1">产品</h3>
             {/* 面试题库 appeared in both columns; it stays under 资源. */}
             <Link href="/setup" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">开始面试</Link>
             <Link href="/dashboard" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">控制台</Link>
@@ -32,7 +32,7 @@ export function Footer() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">资源</h3>
+            <h3 className="font-semibold text-ui-base text-[var(--interve-text-title)] mb-1">资源</h3>
             <Link href="/landing" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">产品介绍</Link>
             {/* "API 状态" linked /api/session, a machine endpoint that answers 401
                 to a signed-out visitor — not a resource page. */}
@@ -41,7 +41,7 @@ export function Footer() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">法律</h3>
+            <h3 className="font-semibold text-ui-base text-[var(--interve-text-title)] mb-1">法律</h3>
             <Link href="/privacy" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">隐私政策</Link>
             <Link href="/terms" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">服务条款</Link>
             <Link href="/dashboard/settings" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">设置</Link>

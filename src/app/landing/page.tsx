@@ -15,12 +15,12 @@ export default function LandingPage() {
         transparent
         logo={
           <Link href="/landing" className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-[var(--interve-brand-accent)] to-[#6AA1FF] flex items-center justify-center shadow-[var(--interve-shadow-sm)]">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-[var(--interve-brand-accent)] to-[#6AA1FF] flex items-center justify-center interve-shadow-sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
               </svg>
             </div>
-            <span className="font-semibold text-[16px] tracking-tight text-[var(--interve-text-title)]">Interve AI</span>
+            <span className="font-semibold text-ui-base tracking-tight text-[var(--interve-text-title)]">Interve AI</span>
           </Link>
         }
         actions={
@@ -29,7 +29,7 @@ export default function LandingPage() {
               <InterveButton variant="text" size="sm">登录</InterveButton>
             </Link>
             <Link href="/">
-              <InterveButton variant="primary" size="sm" className="shadow-[var(--interve-shadow-sm)]">免费开始</InterveButton>
+              <InterveButton variant="primary" size="sm" className="interve-shadow-sm">免费开始</InterveButton>
             </Link>
           </>
         }
@@ -65,7 +65,7 @@ export default function LandingPage() {
           </p>
           <div className="flex items-center gap-4">
             <Link href="/setup">
-              <InterveButton size="lg" className="shadow-[var(--interve-shadow-button)]">
+              <InterveButton size="lg" className="interve-shadow-button">
                 开始练一场
               </InterveButton>
             </Link>
@@ -89,40 +89,40 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
             {/* Feature 1 */}
-            <div className="interve-glass p-8 rounded-[var(--radius-xl)] flex flex-col gap-4 transition-transform hover:-translate-y-1 hover:shadow-[var(--interve-shadow-md)] duration-[var(--motion-moderate)]">
-              <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] flex items-center justify-center mb-2">
+            <div className="interve-glass p-8 rounded-xl flex flex-col gap-4 transition-transform hover:-translate-y-1 hover:interve-shadow-md duration-[var(--motion-moderate)]">
+              <div className="w-12 h-12 rounded-lg bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] flex items-center justify-center mb-2">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">追问跟着你的回答走</h3>
-              <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
+              <p className="text-ui-base text-[var(--interve-text-secondary)] leading-relaxed">
                 从自我介绍到项目深挖，你提到一个数字，它就问这个数字怎么来的；你说「参与了」，它就问哪一部分是你做的。
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="interve-glass p-8 rounded-[var(--radius-xl)] flex flex-col gap-4 transition-transform hover:-translate-y-1 hover:shadow-[var(--interve-shadow-md)] duration-[var(--motion-moderate)]">
-              <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--interve-success-surface)] text-[var(--interve-success-text)] flex items-center justify-center mb-2">
+            <div className="interve-glass p-8 rounded-xl flex flex-col gap-4 transition-transform hover:-translate-y-1 hover:interve-shadow-md duration-[var(--motion-moderate)]">
+              <div className="w-12 h-12 rounded-lg bg-[var(--interve-success-surface)] text-[var(--interve-success-text)] flex items-center justify-center mb-2">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">每个结论都有出处</h3>
-              <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
+              <p className="text-ui-base text-[var(--interve-text-secondary)] leading-relaxed">
                 报告里的每条判断都指回你的原话，标出是第几轮说的，点一下就能跳回那句话。没有证据就不下结论。
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="interve-glass p-8 rounded-[var(--radius-xl)] flex flex-col gap-4 transition-transform hover:-translate-y-1 hover:shadow-[var(--interve-shadow-md)] duration-[var(--motion-moderate)]">
-              <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--interve-warning-surface)] text-[var(--interve-warning-text)] flex items-center justify-center mb-2">
+            <div className="interve-glass p-8 rounded-xl flex flex-col gap-4 transition-transform hover:-translate-y-1 hover:interve-shadow-md duration-[var(--motion-moderate)]">
+              <div className="w-12 h-12 rounded-lg bg-[var(--interve-warning-surface)] text-[var(--interve-warning-text)] flex items-center justify-center mb-2">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">练完知道下一步</h3>
-              <p className="text-[14px] text-[var(--interve-text-secondary)] leading-relaxed">
+              <p className="text-ui-base text-[var(--interve-text-secondary)] leading-relaxed">
                 最弱的维度排在最前面，配一条能当天做完的动作——不是「多练习」，是「重录第 2 题，把结果量化成一个数字」。
               </p>
             </div>
@@ -131,7 +131,7 @@ export default function LandingPage() {
 
         {/* Demo Section */}
         <section id="demo" className="w-full flex flex-col items-center gap-12">
-          <div className="w-full max-w-4xl interve-glass rounded-2xl border border-white/50 shadow-[var(--interve-shadow-card)] overflow-hidden">
+          <div className="w-full max-w-4xl interve-glass rounded-2xl border border-white/50 interve-shadow-card overflow-hidden">
             <div className="bg-white/40 border-b border-white/30 px-4 py-3 flex items-center gap-2">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
@@ -162,7 +162,7 @@ export default function LandingPage() {
 
         {/* CTA Section */}
         <section className="w-full">
-          <div className="relative overflow-hidden rounded-[24px] bg-white border border-[var(--interve-border-light)] p-12 text-center shadow-[var(--interve-shadow-lg)]">
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-[var(--interve-border-light)] p-12 text-center interve-shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--interve-brand-surface)] to-white opacity-50"></div>
             <div className="relative z-10 flex flex-col items-center gap-6">
               <h2 className="text-3xl lg:text-4xl font-bold text-[var(--interve-text-title)]">准备好改变面试方式了吗？</h2>
@@ -171,7 +171,7 @@ export default function LandingPage() {
               </p>
               <div className="mt-4">
                 <Link href="/">
-                  <InterveButton size="lg" className="shadow-[var(--interve-shadow-button)]">
+                  <InterveButton size="lg" className="interve-shadow-button">
                     免费创建账户
                   </InterveButton>
                 </Link>
@@ -192,7 +192,7 @@ export default function LandingPage() {
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                   </svg>
                 </div>
-                <span className="font-semibold text-[15px] text-[var(--interve-text-title)]">Interve AI</span>
+                <span className="font-semibold text-ui-lg text-[var(--interve-text-title)]">Interve AI</span>
               </div>
               <p className="text-sm text-[var(--interve-text-secondary)]">
                 智能、自然、专业的下一代 AI 面试平台。
@@ -209,20 +209,20 @@ export default function LandingPage() {
                 start. tests/unit/anchor-integrity.test.ts keeps this column
                 honest. */}
             <div className="flex flex-col gap-3">
-                <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">产品</h3>
+                <h3 className="font-semibold text-ui-base text-[var(--interve-text-title)] mb-1">产品</h3>
               <a href="#features" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">核心功能</a>
               <a href="#demo" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">界面演示</a>
               <Link href="/signup" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">免费开始</Link>
             </div>
 
             <div className="flex flex-col gap-3">
-                <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">资源</h3>
+                <h3 className="font-semibold text-ui-base text-[var(--interve-text-title)] mb-1">资源</h3>
               <a href={EXTERNAL_LINKS.repository} className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">源码仓库</a>
               <a href={EXTERNAL_LINKS.issues} className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">问题反馈</a>
             </div>
 
             <div className="flex flex-col gap-3">
-                <h3 className="font-semibold text-[14px] text-[var(--interve-text-title)] mb-1">法律</h3>
+                <h3 className="font-semibold text-ui-base text-[var(--interve-text-title)] mb-1">法律</h3>
               <Link href="/privacy" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">隐私政策</Link>
               <Link href="/terms" className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">服务条款</Link>
               <a href={EXTERNAL_LINKS.issues} className="text-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors">联系我们</a>

@@ -58,17 +58,17 @@ export function ProgressInsights({ sessions }: { sessions: Interview[] }) {
       className="grid grid-cols-2 md:grid-cols-5 gap-4"
     >
       {cards.map((c) => (
-        <div key={c.label} className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[20px] p-5 shadow-sm">
+        <div key={c.label} className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">{c.icon}
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{c.label}</span>
+            <span className="text-ui-2xs font-bold text-slate-500 uppercase tracking-widest">{c.label}</span>
           </div>
           <div className="text-2xl font-light text-[#111111]">{c.display}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">{c.sub}</div>
+          <div className="text-ui-2xs text-muted-foreground mt-1">{c.sub}</div>
         </div>
       ))}
       {insights.typePerformance.length > 0 && (
-        <div className="col-span-2 md:col-span-5 bg-white/60 backdrop-blur-xl border border-white/60 rounded-[20px] p-5 shadow-sm">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Performance by interview type</div>
+        <div className="col-span-2 md:col-span-5 bg-white/60 backdrop-blur-xl border border-white/60 rounded-xl p-5 shadow-sm">
+          <div className="text-ui-2xs font-bold text-slate-500 uppercase tracking-widest mb-3">Performance by interview type</div>
           <div className="flex flex-wrap gap-2">
             {insights.typePerformance.map((t) => (
               <span key={t.type} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">

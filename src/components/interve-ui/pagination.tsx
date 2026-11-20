@@ -27,9 +27,9 @@ export function IntervePagination({
   const handleNext = () => { if (current < totalPages) onChange?.(current + 1); };
 
   const btnBase = cn(
-    "inline-flex items-center justify-center rounded-[var(--radius-sm)]",
+    "inline-flex items-center justify-center rounded-sm",
     "transition-all duration-[var(--motion-micro)] ease-[var(--ease-primary)]",
-    "text-[13px] font-medium select-none"
+    "text-ui-sm font-medium select-none"
   );
   const btnSize = mode === "mini" ? "w-7 h-7" : "w-8 h-8";
 
@@ -78,7 +78,7 @@ export function IntervePagination({
     return (
       <div className={cn("flex items-center gap-3", className)}>
         <button type="button" onClick={handlePrev} disabled={current <= 1} className={cn(btnBase, btnSize, "text-[var(--interve-text-body)] hover:bg-[var(--interve-bg-accent)] disabled:opacity-30 disabled:cursor-not-allowed")}>{chevronLeft}</button>
-        <span className="text-[13px] text-[var(--interve-text-body)] tabular-nums">{current} / {totalPages}</span>
+        <span className="text-ui-sm text-[var(--interve-text-body)] tabular-nums">{current} / {totalPages}</span>
         <button type="button" onClick={handleNext} disabled={current >= totalPages} className={cn(btnBase, btnSize, "text-[var(--interve-text-body)] hover:bg-[var(--interve-bg-accent)] disabled:opacity-30 disabled:cursor-not-allowed")}>{chevronRight}</button>
       </div>
     );

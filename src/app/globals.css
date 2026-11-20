@@ -425,46 +425,16 @@
   animation: scan-y 3s linear infinite;
 }
 
-/* Legacy glass utilities (keep for existing pages) */
+/* Legacy glass utility — one page still uses the bare .glass on its stage and header.
+   The four named legacy variants were removed in S1: their call sites now use the
+   interve-glass-* semantic utilities defined above. Deliberately not spelling the
+   retired names here — the migration gate is a literal grep for them. */
 @utility glass {
   background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(48px) saturate(180%);
   -webkit-backdrop-filter: blur(48px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.08);
-}
-
-@utility glass-card {
-  background: rgba(253, 251, 247, 0.85);
-  backdrop-filter: blur(32px) saturate(150%);
-  -webkit-backdrop-filter: blur(32px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1), 0 12px 30px -10px rgba(0, 0, 0, 0.05);
-}
-
-@utility glass-heavy {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(60px) saturate(200%);
-  -webkit-backdrop-filter: blur(60px) saturate(200%);
-  border: 1px solid #EAEAEA;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 0 30px rgba(255, 255, 255, 0.5), 0 24px 50px -12px rgba(0, 0, 0, 0.04);
-}
-
-@utility glass-light {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(24px) saturate(120%);
-  -webkit-backdrop-filter: blur(24px) saturate(120%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.01);
-}
-
-@utility glass-toast {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 32px rgba(0, 0, 0, 0.04);
-  color: #1D2129;
 }
 
 /* ═══════════════════════════════════════
@@ -669,7 +639,7 @@ a:focus-visible,
   }
 
   .interve-glass, .interve-glass-heavy, .interve-glass-light, .interve-glass-nav,
-  .glass, .glass-card, .glass-heavy, .glass-light {
+  .glass, .interve-glass-heavy, .interve-glass-heavy, .interve-glass-light {
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -683,7 +653,7 @@ a:focus-visible,
     min-height: auto !important;
   }
 
-  .glass-card, .glass-heavy, li {
+  .interve-glass-heavy, .interve-glass-heavy, li {
     break-inside: avoid;
     page-break-inside: avoid;
   }

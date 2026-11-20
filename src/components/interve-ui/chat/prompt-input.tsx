@@ -77,10 +77,10 @@ export function IntervePromptInput({
     <div
       className={cn(
         "relative flex items-end gap-2 w-full",
-        "interve-glass-light rounded-[var(--radius-lg)] px-4 py-2.5",
-        "shadow-[var(--interve-shadow-card)]",
+        "interve-glass-light rounded-lg px-4 py-2.5",
+        "interve-shadow-card",
         "transition-shadow duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
-        "focus-within:shadow-[var(--interve-shadow-hover)]",
+        "focus-within:interve-shadow-hover",
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
@@ -91,7 +91,7 @@ export function IntervePromptInput({
           type="button"
           onClick={onAttach}
           disabled={disabled}
-          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-[var(--radius-sm)] text-[var(--interve-text-secondary)] hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)] transition-colors duration-[var(--motion-micro)] mb-0.5"
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-sm text-[var(--interve-text-secondary)] hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)] transition-colors duration-[var(--motion-micro)] mb-0.5"
           aria-label="Attach file"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -111,7 +111,7 @@ export function IntervePromptInput({
         maxLength={maxLength}
         rows={1}
         className={cn(
-          "flex-1 resize-none bg-transparent text-[14px] text-[var(--interve-text-title)]",
+          "flex-1 resize-none bg-transparent text-ui-base text-[var(--interve-text-title)]",
           "placeholder:text-[var(--interve-text-placeholder)]",
           "outline-none leading-relaxed py-1.5",
           "disabled:cursor-not-allowed"
@@ -121,7 +121,7 @@ export function IntervePromptInput({
 
       {/* Character count */}
       {maxLength && (
-        <span className="shrink-0 text-[11px] text-[var(--interve-text-placeholder)] tabular-nums mb-1.5">
+        <span className="shrink-0 text-ui-2xs text-[var(--interve-text-placeholder)] tabular-nums mb-1.5">
           {currentValue.length}/{maxLength}
         </span>
       )}
@@ -135,7 +135,7 @@ export function IntervePromptInput({
           "shrink-0 w-8 h-8 flex items-center justify-center rounded-full mb-0.5",
           "transition-all duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
           canSend
-            ? "bg-[var(--interve-brand-accent)] text-white shadow-[var(--interve-shadow-button)] hover:scale-105 active:scale-95"
+            ? "bg-[var(--interve-brand-accent)] text-white interve-shadow-button hover:scale-105 active:scale-95"
             : "bg-[var(--interve-bg-secondary)] text-[var(--interve-text-placeholder)]"
         )}
         aria-label="Send message"

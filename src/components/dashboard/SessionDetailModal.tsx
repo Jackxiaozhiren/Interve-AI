@@ -56,7 +56,7 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
         animate={{ y: 0, scale: 1 }}
         exit={{ y: "100%", scale: 0.95 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-full max-w-5xl bg-white shadow-2xl overflow-hidden rounded-t-[32px] md:rounded-[32px] h-[90vh] md:h-auto md:max-h-full flex flex-col relative"
+        className="w-full max-w-5xl bg-white shadow-2xl overflow-hidden rounded-t-[32px] md:rounded-3xl h-[90vh] md:h-auto md:max-h-full flex flex-col relative"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -96,7 +96,7 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
           <div id={`dossier-${session.id}`} className="space-y-16">
             {/* Readiness Banner (Phase 4: V2 readiness; legacy verdicts badged) */}
             {view.kind !== "none" && (
-              <div className="p-8 rounded-[32px] border border-slate-100 bg-slate-50/60 shadow-sm relative overflow-hidden">
+              <div className="p-8 rounded-3xl border border-slate-100 bg-slate-50/60 shadow-sm relative overflow-hidden">
                 <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start md:items-center">
                   <div className="flex-1">
                     <ReadinessBadge view={view} />
@@ -115,17 +115,17 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
                   {/* Delivery Stats Mini-Cards */}
                   {session.deliveryStats && (
                     <div className="flex gap-4 shrink-0">
-                      <div className="bg-white/60 backdrop-blur-sm px-6 py-4 rounded-[20px] border border-white/80 shadow-sm text-center">
+                      <div className="bg-white/60 backdrop-blur-sm px-6 py-4 rounded-xl border border-white/80 shadow-sm text-center">
                         <div className="flex items-center justify-center gap-2 mb-1">
                           <Timer className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest font-mono">WPM</span>
+                          <span className="text-ui-2xs font-bold text-slate-500 uppercase tracking-widest font-mono">WPM</span>
                         </div>
                         <div className="text-2xl font-light text-[#111111]"><AnimatedCounter value={session.deliveryStats.wpm} /></div>
                       </div>
-                      <div className="bg-white/60 backdrop-blur-sm px-6 py-4 rounded-[20px] border border-white/80 shadow-sm text-center">
+                      <div className="bg-white/60 backdrop-blur-sm px-6 py-4 rounded-xl border border-white/80 shadow-sm text-center">
                         <div className="flex items-center justify-center gap-2 mb-1">
                           <ChatCircleDots className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest font-mono">Fillers</span>
+                          <span className="text-ui-2xs font-bold text-slate-500 uppercase tracking-widest font-mono">Fillers</span>
                         </div>
                         <div className="text-2xl font-light text-[#111111]"><AnimatedCounter value={session.deliveryStats.fillerWords} /></div>
                       </div>
@@ -166,14 +166,14 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {session.culturalTraits.map((trait, idx: number) => (
-                    <div key={idx} className="bg-white border border-slate-100 rounded-[24px] p-8 shadow-sm relative overflow-hidden group/trait">
+                    <div key={idx} className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm relative overflow-hidden group/trait">
                       <div className="absolute inset-0 bg-gradient-to-br from-sky-50/50 to-transparent opacity-0 group-hover/trait:opacity-100 transition-opacity duration-500" />
                       <div className="relative z-10">
                         <div className="flex items-center justify-between mb-4">
                           <div className="text-sm font-bold text-[#111111] uppercase tracking-wide">{trait.trait}</div>
                           <div className="text-sm font-mono font-bold text-sky-500 bg-sky-50 px-3 py-1 rounded-full"><AnimatedCounter value={trait.score} /> / 100</div>
                         </div>
-                        <p className="text-slate-600 text-[14px] leading-relaxed font-medium italic">&quot;{trait.evidence}&quot;</p>
+                        <p className="text-slate-600 text-ui-base leading-relaxed font-medium italic">&quot;{trait.evidence}&quot;</p>
                       </div>
                     </div>
                   ))}
@@ -195,30 +195,30 @@ export function SessionDetailModal({ session, onClose }: { session: Interview, o
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Your Answer Panel */}
-                  <div className="bg-white border border-slate-100 rounded-[32px] p-10 shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex flex-col relative overflow-hidden group/answer">
+                  <div className="bg-white border border-slate-100 rounded-3xl p-10 interve-shadow-card flex flex-col relative overflow-hidden group/answer">
                     <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-50/50 opacity-0 group-hover/answer:opacity-100 transition-opacity duration-500" />
                     <div className="relative z-10">
-                      <div className="font-bold text-[11px] text-muted-foreground tracking-widest uppercase mb-8 flex items-center gap-3">
+                      <div className="font-bold text-ui-2xs text-muted-foreground tracking-widest uppercase mb-8 flex items-center gap-3">
                         <span className="w-2 h-2 rounded-full bg-slate-300"></span> 
                         Original Delivery
                       </div>
                       <p className="text-slate-600 mb-10 font-medium leading-relaxed text-[1.1rem]">&quot;{qa.userAnswer}&quot;</p>
                       
-                      <div className="bg-rose-50/80 backdrop-blur-md rounded-[24px] p-8 border border-rose-100 mt-auto shadow-inner">
-                        <div className="text-rose-600 text-[11px] font-bold font-mono tracking-widest uppercase mb-4 flex items-center gap-2">
+                      <div className="bg-rose-50/80 backdrop-blur-md rounded-2xl p-8 border border-rose-100 mt-auto shadow-inner">
+                        <div className="text-rose-600 text-ui-2xs font-bold font-mono tracking-widest uppercase mb-4 flex items-center gap-2">
                           Diagnostic
                         </div>
-                        <TextReveal text={qa.flaws} className="text-rose-900 text-[15px] font-medium leading-relaxed" />
+                        <TextReveal text={qa.flaws} className="text-rose-900 text-ui-lg font-medium leading-relaxed" />
                       </div>
                     </div>
                   </div>
 
                   {/* Recommended STAR Panel */}
-                  <div className="bg-[#111111] border border-slate-800 rounded-[32px] p-10 shadow-[0_20px_40px_rgba(0,0,0,0.1)] relative overflow-hidden group/target">
+                  <div className="bg-[#111111] border border-slate-800 rounded-3xl p-10 interve-shadow-hover relative overflow-hidden group/target">
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover/target:opacity-100 transition-opacity duration-700" />
                     <div className="relative z-10">
-                      <div className="font-bold text-[11px] text-slate-400 tracking-widest uppercase mb-8 flex items-center gap-3">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)] animate-pulse"></span> 
+                      <div className="font-bold text-ui-2xs text-slate-400 tracking-widest uppercase mb-8 flex items-center gap-3">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 interve-shadow-focus animate-pulse"></span> 
                         Target Response
                       </div>
                       <TextReveal text={qa.perfectRewrite} className="text-slate-300 leading-relaxed font-light text-[1.1rem]" delay={0.2} />

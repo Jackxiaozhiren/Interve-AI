@@ -135,7 +135,7 @@ export const AIVisualizer = React.memo(({ isSpeaking, isLoading, statusText, str
             rotate: isSpeaking && !isCalmMode ? [-5, 5, -5] : [-2, 2, -2]
           }}
           transition={{ duration: isSpeaking ? 1.5 * animMultiplier : 4 * animMultiplier, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-20 h-20 bg-white/30 backdrop-blur-md rounded-full border border-white/60 shadow-[0_8px_32px_rgba(255,255,255,0.2),inset_0_2px_4px_rgba(255,255,255,0.8)] flex items-center justify-center overflow-hidden"
+          className="absolute w-20 h-20 bg-white/30 backdrop-blur-md rounded-full border border-white/60 interve-shadow-card flex items-center justify-center overflow-hidden"
         >
           {/* Inner reflection */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-transparent rounded-full opacity-80" />
@@ -174,7 +174,7 @@ export const AIVisualizer = React.memo(({ isSpeaking, isLoading, statusText, str
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className={`text-[13px] font-medium tracking-wide bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full border shadow-sm
+            className={`text-ui-sm font-medium tracking-wide bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full border shadow-sm
               ${stressTest ? 'text-rose-700 border-rose-100/80' : 'text-slate-600 border-white/80'}`
             }
           >

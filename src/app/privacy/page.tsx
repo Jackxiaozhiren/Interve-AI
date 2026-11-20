@@ -38,7 +38,7 @@ const REPO_ISSUES = EXTERNAL_LINKS.issues;
 
 function Evidence({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mt-3 border-l-2 border-emerald-500/40 pl-3 text-[13px] leading-relaxed text-slate-500">
+    <p className="mt-3 border-l-2 border-emerald-500/40 pl-3 text-ui-sm leading-relaxed text-slate-500">
       <span className="font-semibold text-slate-600">技术依据：</span>
       {children}
     </p>
@@ -70,11 +70,11 @@ export default function PrivacyPage() {
     <main className="min-h-screen bg-[#f8fafd]">
       <div className="mx-auto grid max-w-5xl gap-x-10 gap-y-12 px-6 py-16 lg:grid-cols-[176px_minmax(0,68ch)] lg:py-20">
         <nav aria-label="目录" className="hidden lg:sticky lg:top-16 lg:block lg:self-start">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">目录</p>
+          <p className="text-ui-2xs font-semibold uppercase tracking-wider text-muted-foreground">目录</p>
           <ol className="mt-3 space-y-2">
             {SECTIONS.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className="text-[13px] leading-snug text-slate-500 hover:text-sky-600">
+                <a href={`#${s.id}`} className="text-ui-sm leading-snug text-slate-500 hover:text-sky-600">
                   {s.title}
                 </a>
               </li>
@@ -84,15 +84,15 @@ export default function PrivacyPage() {
 
         <div>
           <header>
-            <Link href="/" className="text-[13px] font-semibold text-sky-600 hover:underline">
+            <Link href="/" className="text-ui-sm font-semibold text-sky-600 hover:underline">
               ← 返回 Interve AI
             </Link>
             <h1 className="mt-4 font-serif text-[2.5rem] leading-none tracking-tight text-[#111111]">隐私政策</h1>
-            <p className="mt-3 text-[15px] leading-relaxed text-slate-500">最近更新：{UPDATED}</p>
-            <p className="mt-6 text-[17px] leading-relaxed text-slate-700">
+            <p className="mt-3 text-ui-lg leading-relaxed text-slate-500">最近更新：{UPDATED}</p>
+            <p className="mt-6 text-ui-lg leading-relaxed text-slate-700">
               这是一款练习工具，不是招聘方的评估系统。你粘贴的简历、你说的每一句话、你画的每张架构图，都只服务于生成你自己的报告。本页最重要的两句是：<strong className="font-semibold text-slate-900">你的原始音频不出这台浏览器；你的数据默认只有你能读到。</strong>
             </p>
-            <p className="mt-4 text-[15px] leading-relaxed text-slate-500">
+            <p className="mt-4 text-ui-lg leading-relaxed text-slate-500">
               每一节末尾的「技术依据」指出这条承诺在系统里由什么强制。如果哪天代码与本页不一致，以代码为准，并请告诉我们。
             </p>
           </header>
@@ -100,13 +100,13 @@ export default function PrivacyPage() {
           <div className="mt-14 space-y-14">
             <section>
               <H2 id="collect">我们收集什么</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 只有你主动输入的东西。没有埋点、没有第三方广告 SDK、不读取通讯录或相册。
               </p>
               <div className="mt-6 overflow-x-auto">
-                <table className="w-full min-w-[520px] border-collapse text-left text-[14px]">
+                <table className="w-full min-w-[520px] border-collapse text-left text-ui-base">
                   <thead>
-                    <tr className="border-b border-slate-200 text-[12px] uppercase tracking-wider text-muted-foreground">
+                    <tr className="border-b border-slate-200 text-ui-xs uppercase tracking-wider text-muted-foreground">
                       <th className="py-2 pr-4 font-semibold">数据</th>
                       <th className="py-2 pr-4 font-semibold">存在哪</th>
                       <th className="py-2 font-semibold">为什么</th>
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-4 text-[14px] leading-relaxed text-slate-500">
+              <p className="mt-4 text-ui-base leading-relaxed text-slate-500">
                 保留期：以上云端数据保留到你删除该场面试为止；删除即从应用层移除。
               </p>
               <Evidence>
@@ -133,13 +133,13 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="audio">音频与摄像头</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 面试时你的语音确实在被转写，但转写发生在这一页里：录音在浏览器内解码成 PCM，交给一个本地 Web Worker，由跑在你设备上的 Whisper 模型出文字。原始音频不上传、不保存，转写完成后即丢弃。
               </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 摄像头只用于自我预览。它不做人脸检测、不做表情识别、不做任何分析——报告里没有一个字来自你的画面。
               </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 一处必要的坦白：模型权重第一次使用时需要从 Hugging Face 的 CDN 下载，这次下载会把你的 IP 暴露给该 CDN。之后的转写全程不经过我们的服务器。
               </p>
               <Evidence>
@@ -149,13 +149,13 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="models">哪些内容会发给模型</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 评估必须由语言模型完成，因此文本会离开我们的服务器、到达模型提供方。具体是：你的对话轮次、简历与职位描述中被截取用于出题和对齐的片段、你在代码白板上的代码，以及你主动点击「分析」时导出的那张架构图（PNG）。
               </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 默认提供方是智谱 AI（glm-4-flash / glm-4.7-flash，接口域名 open.bigmodel.cn）。仅当链接显式带上 <code>?aiModel=</code> 参数时（由 <code>src/app/interview/page.tsx</code> 读取）才会走 OpenAI、Google Gemini 或 OpenRouter；服务端 <code>resolveChatModel</code> 对未识别的取值一律回落到默认提供方。
               </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 我们不会用你的内容训练模型，也不会把它提供给你面试的公司——这个产品本身不出录用结论，见「我们不做的事」。
               </p>
               <Evidence>
@@ -165,10 +165,10 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="access">谁能看到你的数据</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 行级安全（RLS）在数据库层强制：每一行都带 <code>user_id</code>，读写策略要求 <code>auth.uid() = user_id</code>。也就是说，即使有人拿到你的接口地址，也读不到不属于他账户的面试记录。
               </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 如果你走的是邮箱「演示」通道，系统里没有可归属的账户身份，此时我们<strong className="font-semibold text-slate-900">拒绝</strong>把内容写进数据库——宁可让它不保存，也不保存成谁都能读的行。这就是页面会提示「本次面试不会保存」的原因。
               </p>
               <Evidence>
@@ -178,10 +178,10 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="never">我们不做的事</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 下面不是「目前没有」，而是被测试锁住、写进代码就会让 CI 变红的产品红线：
               </p>
-              <ul className="mt-4 space-y-2 text-[15px] leading-relaxed text-slate-600">
+              <ul className="mt-4 space-y-2 text-ui-lg leading-relaxed text-slate-600">
                 <li>· 不做人脸特征提取、表情识别或任何外貌评分</li>
                 <li>· 不做口音、方言或语音音色上的评判</li>
                 <li>· 不推断性别、年龄、民族、宗教、政治立场、性取向、残障等受保护属性</li>
@@ -195,10 +195,10 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="local">存在你浏览器里的东西</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 为了刷新页面后不丢工作，本地会存：面试会话快照（<code>interve_session_*</code>，30 天自动过期）、代码白板内容与运行日志、系统设计画板内容、界面语言、引导是否看过。登录状态由一个 HttpOnly Cookie 承载，有效期 24 小时。
               </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 这些都在你的设备上，清除浏览器数据即可移除；隐私中心里也有一键清理本地数据的按钮。
               </p>
               <Evidence>
@@ -208,10 +208,10 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="logs">日志与遥测</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 服务端日志是结构化、不含正文的：接口名、请求 ID、状态码、耗时、模型名、是否走了兜底、以及 token 用量。你的简历内容、对话文本、代码不会出现在日志里。
               </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 另有一处自监控：你的浏览器会记录本应用自己接口的耗时与成功/失败状态，用于在控制台展示性能面板。它不记录请求内容，也不发送到任何第三方分析平台。
               </p>
               <Evidence>
@@ -221,16 +221,16 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="control">你的控制权</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 登录后的隐私中心可以直接做四件事，不需要联系我们：
               </p>
-              <ul className="mt-4 space-y-2 text-[15px] leading-relaxed text-slate-600">
+              <ul className="mt-4 space-y-2 text-ui-lg leading-relaxed text-slate-600">
                 <li>· 导出：把面试与练习数据下载成一份 JSON</li>
                 <li>· 删除单场：连同其云端记录一并移除</li>
                 <li>· 删除全部：逐条删除，失败项会明确告诉你哪几条没删掉</li>
                 <li>· 清理本地数据：移除浏览器内的草稿与快照（保留登录与语言偏好）</li>
               </ul>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 删除后数据从我们的数据库移除。托管平台自身可能保留短周期的备份副本，那部分遵循 Supabase 与 Vercel 的备份策略，我们无法单独延长或缩短。
               </p>
               <Evidence>逐条删除的失败项被收集在 <code>src/app/dashboard/privacy/page.tsx</code> 的删除流程里：有任何失败就报「部分删除失败」并给出条数，而不是弹一句「已删除」了事。</Evidence>
@@ -238,7 +238,7 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="third">第三方与托管</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 应用托管在 Vercel，数据库与身份认证使用 Supabase，模型推理见上文。此外浏览器会从这些地址加载静态资源，因此对方会看到常规的访问日志（含 IP）：Hugging Face CDN（语音与语音合成模型权重）与 jsDelivr（代码编辑器）。字体不来自第三方：界面字体 Inter（SIL OFL 1.1）随应用一起分发、与页面同域加载，中文字形使用你设备本地已安装的系统字体；本项目不引用任何字体 CDN，字体请求不会外发。
               </p>
               <Evidence>
@@ -248,10 +248,10 @@ export default function PrivacyPage() {
 
             <section>
               <H2 id="changes">变更与联系</H2>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 本页改动会更新顶部的日期。使用条款见 <Link href="/terms" className="font-semibold text-sky-600 hover:underline">服务条款</Link>。
               </p>
-              <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
+              <p className="mt-4 text-ui-lg leading-relaxed text-slate-600">
                 发现本页与产品实际行为不符，或者你希望我们补一段说明，请在仓库提 issue：
                 <a href={REPO_ISSUES} className="ml-1 font-semibold text-sky-600 hover:underline">
                   github.com/Jackxiaozhiren/Interve-AI

@@ -58,36 +58,36 @@ export function InterveModelSelector({
               type="button"
               onClick={() => onChange?.(model.id)}
               className={cn(
-                "flex flex-col items-start gap-2 p-4 rounded-[var(--radius-lg)]",
+                "flex flex-col items-start gap-2 p-4 rounded-lg",
                 "border transition-all duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
                 isSelected
-                  ? "bg-[var(--interve-brand-surface)] border-[var(--interve-brand-accent)]/20 shadow-[var(--interve-shadow-button)]"
-                  : "bg-white border-[var(--interve-border)] hover:border-[var(--interve-border-hover)] hover:shadow-[var(--interve-shadow-xs)]"
+                  ? "bg-[var(--interve-brand-surface)] border-[var(--interve-brand-accent)]/20 interve-shadow-button"
+                  : "bg-white border-[var(--interve-border)] hover:border-[var(--interve-border-hover)] hover:interve-shadow-xs"
               )}
               aria-pressed={isSelected}
             >
               <div className="flex items-center gap-2 w-full">
                 {model.icon && (
-                  <span className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--interve-bg-accent)] flex items-center justify-center">
+                  <span className="w-8 h-8 rounded-sm bg-[var(--interve-bg-accent)] flex items-center justify-center">
                     {model.icon}
                   </span>
                 )}
                 <span
                   className={cn(
-                    "text-[14px] font-medium",
+                    "text-ui-base font-medium",
                     isSelected ? "text-[var(--interve-brand-accent)]" : "text-[var(--interve-text-title)]"
                   )}
                 >
                   {model.name}
                 </span>
                 {model.badge && (
-                  <span className="ml-auto px-1.5 py-0.5 text-[10px] font-medium bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] rounded-[4px]">
+                  <span className="ml-auto px-1.5 py-0.5 text-ui-2xs font-medium bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] rounded-xs">
                     {model.badge}
                   </span>
                 )}
               </div>
               {model.description && (
-                <p className="text-[12px] text-[var(--interve-text-secondary)] text-left leading-relaxed">
+                <p className="text-ui-xs text-[var(--interve-text-secondary)] text-left leading-relaxed">
                   {model.description}
                 </p>
               )}
@@ -105,12 +105,12 @@ export function InterveModelSelector({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-2 h-8 px-3 rounded-[var(--radius-sm)]",
-          "text-[13px] font-medium text-[var(--interve-text-body)]",
+          "flex items-center gap-2 h-8 px-3 rounded-sm",
+          "text-ui-sm font-medium text-[var(--interve-text-body)]",
           "border border-[var(--interve-border)] bg-white/90",
           "transition-all duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
           "hover:bg-white hover:border-[var(--interve-border-hover)]",
-          isOpen && "border-[var(--interve-border-focus)] shadow-[var(--interve-shadow-focus)]",
+          isOpen && "border-[var(--interve-border-focus)] interve-shadow-focus",
           className
         )}
       >
@@ -122,7 +122,7 @@ export function InterveModelSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 min-w-[200px] z-50 interve-glass-heavy rounded-[var(--radius-md)] shadow-[var(--interve-shadow-hover)] p-1 animate-[interve-fade-slide-up_var(--motion-fast)_var(--ease-primary)]">
+        <div className="absolute top-full left-0 mt-1 min-w-[200px] z-50 interve-glass-heavy rounded-md interve-shadow-hover p-1 animate-[interve-fade-slide-up_var(--motion-fast)_var(--ease-primary)]">
           {models.map((model) => {
             const isSelected = model.id === value;
             return (
@@ -131,7 +131,7 @@ export function InterveModelSelector({
                 type="button"
                 onClick={() => { onChange?.(model.id); setIsOpen(false); }}
                 className={cn(
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius-sm)] text-left",
+                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-left",
                   "transition-colors duration-[var(--motion-micro)]",
                   isSelected
                     ? "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)]"
@@ -142,15 +142,15 @@ export function InterveModelSelector({
                 {model.icon && <span className="w-5 h-5 shrink-0">{model.icon}</span>}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[13px] font-medium truncate">{model.name}</span>
+                    <span className="text-ui-sm font-medium truncate">{model.name}</span>
                     {model.badge && (
-                      <span className="px-1 py-0.5 text-[9px] font-medium bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] rounded-[3px]">
+                      <span className="px-1 py-0.5 text-ui-2xs font-medium bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] rounded-xs">
                         {model.badge}
                       </span>
                     )}
                   </div>
                   {model.description && (
-                    <p className="text-[11px] text-[var(--interve-text-secondary)] truncate">{model.description}</p>
+                    <p className="text-ui-2xs text-[var(--interve-text-secondary)] truncate">{model.description}</p>
                   )}
                 </div>
                 {isSelected && (

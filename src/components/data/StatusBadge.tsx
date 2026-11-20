@@ -53,7 +53,7 @@ export function StatusBadge({ status, tone, label, dot = true, className }: Stat
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider",
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-ui-2xs font-bold uppercase tracking-wider",
         TONE_STYLES[resolvedTone],
         className
       )}

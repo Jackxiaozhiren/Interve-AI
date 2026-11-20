@@ -142,7 +142,7 @@ export function RoomHeader({
       onClick: () => toggleLiveInsights(),
       title: showLiveInsights ? t.interview.hideAiEstimatesTitle : t.interview.showAiEstimatesTitle,
       label: showLiveInsights ? t.interview.hideAiEstimates : t.interview.showAiEstimates,
-      icon: <span className="text-[10px] font-bold leading-none">AI</span>,
+      icon: <span className="text-ui-2xs font-bold leading-none">AI</span>,
     },
     {
       key: "captions",
@@ -151,7 +151,7 @@ export function RoomHeader({
       onClick: () => toggleLiveCaptions(),
       title: isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕",
       label: isLiveCaptionsEnabled ? "关闭字幕" : "开启实时字幕",
-      icon: <span className="text-[10px] font-bold leading-none">CC</span>,
+      icon: <span className="text-ui-2xs font-bold leading-none">CC</span>,
     },
     {
       key: "dyslexia",
@@ -160,16 +160,16 @@ export function RoomHeader({
       onClick: () => toggleDyslexiaMode(),
       title: isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助",
       label: isDyslexiaMode ? "关闭阅读障碍辅助" : "开启阅读障碍辅助",
-      icon: <span className="text-[12px] font-bold leading-none">A</span>,
+      icon: <span className="text-ui-xs font-bold leading-none">A</span>,
     },
   ];
 
   return (
-    <header className="relative flex items-center justify-between gap-2 px-3 sm:px-6 py-2.5 sm:py-4 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] sm:rounded-full z-10 shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.02)] mx-2 mt-2">
+    <header className="relative flex items-center justify-between gap-2 px-3 sm:px-6 py-2.5 sm:py-4 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl sm:rounded-full z-10 shrink-0 interve-shadow-card mx-2 mt-2">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <SystemHealthIndicator stressTest={stressTest} />
         <QuotaBadge />
-        <h1 className="truncate text-[15px] font-heading font-semibold tracking-tight text-slate-700">
+        <h1 className="truncate text-ui-lg font-heading font-semibold tracking-tight text-slate-700">
           {stressTest ? "AI 面试间 (压力测试模式)" : "AI 面试间"}
         </h1>
       </div>
@@ -207,7 +207,7 @@ export function RoomHeader({
             ref={menuRef}
             id="room-more-toggles"
             style={{ top: menuPosition.top, right: menuPosition.right }}
-            className="md:hidden fixed z-[60] flex w-60 flex-col gap-1 rounded-[24px] border border-white/60 bg-white/95 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.18)] backdrop-blur-xl"
+            className="md:hidden fixed z-[60] flex w-60 flex-col gap-1 rounded-2xl border border-white/60 bg-white/95 p-2 interve-shadow-hover backdrop-blur-xl"
           >
             {toggles.map(({ key, icon, ...toggle }) => (
               <HeaderToggle key={key} {...toggle} withLabel>

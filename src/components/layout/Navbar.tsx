@@ -68,10 +68,10 @@ export function Navbar() {
   return (
     <nav
       aria-label="主导航"
-      className="sticky top-0 h-[64px] bg-white/90 backdrop-blur-md border-b border-[#e5e7eb] px-[16px] sm:px-[24px] shadow-[0_1px_3px_0_rgba(0,0,0,0.1)] flex items-center justify-between z-50 relative shrink-0"
+      className="sticky top-0 h-[64px] bg-white/90 backdrop-blur-md border-b border-[#e5e7eb] px-[16px] sm:px-[24px] interve-shadow-xs flex items-center justify-between z-50 relative shrink-0"
     >
       <div className="flex items-center gap-8">
-        <Link href="/" className="flex items-center text-[18px] sm:text-xl font-bold text-gray-900 hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center text-ui-xl sm:text-xl font-bold text-gray-900 hover:opacity-80 transition-opacity">
           Interve AI
         </Link>
         {/* Desktop links */}
@@ -113,7 +113,7 @@ export function Navbar() {
               whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.1 }}
               onClick={handleLogout}
-              className="bg-transparent text-[#ef4444] hover:bg-[#fef2f2] border border-[#fecaca] rounded-[6px] px-[16px] py-[8px] text-[14px] transition-colors"
+              className="bg-transparent text-[#ef4444] hover:bg-[#fef2f2] border border-[#fecaca] rounded-xs px-[16px] py-[8px] text-ui-base transition-colors"
             >
               登出
             </motion.button>
@@ -179,7 +179,7 @@ export function Navbar() {
                     onClick={() => setIsMenuOpen(false)}
                     aria-current={pathname === link.href ? 'page' : undefined}
                     className={cn(
-                      'rounded-xl px-4 py-3 text-[15px] font-medium transition-colors',
+                      'rounded-xl px-4 py-3 text-ui-lg font-medium transition-colors',
                       pathname === link.href
                         ? 'bg-slate-100 text-slate-900'
                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -209,7 +209,7 @@ export function Navbar() {
                         setIsMenuOpen(false);
                         handleLogout();
                       }}
-                      className="w-full bg-transparent text-[#ef4444] hover:bg-[#fef2f2] border border-[#fecaca] rounded-[6px] px-[16px] py-[12px] text-[15px] font-medium transition-colors"
+                      className="w-full bg-transparent text-[#ef4444] hover:bg-[#fef2f2] border border-[#fecaca] rounded-xs px-[16px] py-[12px] text-ui-lg font-medium transition-colors"
                     >
                       登出
                     </motion.button>

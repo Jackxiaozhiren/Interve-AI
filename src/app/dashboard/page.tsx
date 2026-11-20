@@ -143,7 +143,7 @@ export default function DashboardPage() {
             actions={
               <Link
                 href="/setup"
-                className={buttonVariants({ variant: "default", className: "rounded-full px-8 h-14 gap-3 font-semibold text-base shadow-[0_8px_24px_rgba(22,93,255,0.2)] bg-[#165DFF] hover:bg-[#4080FF] text-white transition-all active:scale-[0.98] border border-[#165DFF]/20 group" })}
+                className={buttonVariants({ variant: "default", className: "rounded-full px-8 h-14 gap-3 font-semibold text-base interve-shadow-button bg-[#165DFF] hover:bg-[#4080FF] text-white transition-all active:scale-[0.98] border border-[#165DFF]/20 group" })}
               >
                 <Plus weight="bold" className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
                 New Mock Interview
@@ -163,12 +163,12 @@ export default function DashboardPage() {
           <motion.div variants={bentoCardVariant} className="md:col-span-4">
             <SpotlightCard className="p-8 h-full bg-gradient-to-br from-white/70 to-sky-50/30 group">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-[18px] bg-sky-500 text-white flex items-center justify-center shadow-[0_8px_20px_rgba(14,165,233,0.25)] group-hover:scale-110 transition-transform duration-500">
+                <div className="w-14 h-14 rounded-xl bg-sky-500 text-white flex items-center justify-center interve-shadow-card group-hover:scale-110 transition-transform duration-500">
                   <ChartLine weight="duotone" className="w-7 h-7" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Sessions</h3>
-                  <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">All Time</p>
+                  <p className="text-ui-2xs text-muted-foreground font-mono uppercase tracking-widest mt-0.5">All Time</p>
                 </div>
               </div>
               <div className="text-[3.5rem] font-light text-[#111111] leading-none mb-2">
@@ -185,12 +185,12 @@ export default function DashboardPage() {
           <motion.div variants={bentoCardVariant} className="md:col-span-4">
             <SpotlightCard className="p-8 h-full bg-gradient-to-br from-white/70 to-emerald-50/30 group">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-[18px] bg-emerald-500 text-white flex items-center justify-center shadow-[0_8px_20px_rgba(16,185,129,0.25)] group-hover:scale-110 transition-transform duration-500">
+                <div className="w-14 h-14 rounded-xl bg-emerald-500 text-white flex items-center justify-center interve-shadow-card group-hover:scale-110 transition-transform duration-500">
                   <Target weight="duotone" className="w-7 h-7" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Average Score</h3>
-                  <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">
+                  <p className="text-ui-2xs text-muted-foreground font-mono uppercase tracking-widest mt-0.5">
                     {readiness.scoredCount}/{readiness.totalCount} evaluated
                   </p>
                 </div>
@@ -218,12 +218,12 @@ export default function DashboardPage() {
           <motion.div variants={bentoCardVariant} className="md:col-span-4">
             <SpotlightCard className="p-8 h-full bg-gradient-to-br from-white/70 to-violet-50/30 group">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-[18px] bg-violet-500 text-white flex items-center justify-center shadow-[0_8px_20px_rgba(139,92,246,0.25)] group-hover:scale-110 transition-transform duration-500">
+                <div className="w-14 h-14 rounded-xl bg-violet-500 text-white flex items-center justify-center interve-shadow-card group-hover:scale-110 transition-transform duration-500">
                   <ClockCountdown weight="duotone" className="w-7 h-7" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Latest Session</h3>
-                  <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">
+                  <p className="text-ui-2xs text-muted-foreground font-mono uppercase tracking-widest mt-0.5">
                     {sessions[0]?.createdAt ? format(new Date(sessions[0].createdAt), "yyyy-MM-dd") : "N/A"}
                   </p>
                 </div>
@@ -264,7 +264,7 @@ export default function DashboardPage() {
             <motion.div variants={bentoCardVariant}>
               <SpotlightCard className="p-8 bg-gradient-to-br from-white/70 to-sky-50/20">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-[14px] bg-sky-50 border border-sky-100 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center">
                     <TrendUp weight="duotone" className="w-5 h-5 text-sky-500" />
                   </div>
                   <div>
@@ -292,7 +292,7 @@ export default function DashboardPage() {
             <motion.div variants={bentoCardVariant}>
               <SpotlightCard className="p-8 bg-gradient-to-br from-white/70 to-violet-50/20">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-[14px] bg-violet-50 border border-violet-100 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center">
                     <Target weight="duotone" className="w-5 h-5 text-violet-500" />
                   </div>
                   <div>
@@ -376,7 +376,7 @@ export default function DashboardPage() {
                     setSelectedSession(session);
                   }
                 }}
-                className="bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/60 hover:border-white rounded-[2.5rem] p-5 sm:p-8 shadow-[0_4px_20px_-6px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.1)] transition-all duration-500 ease-out cursor-pointer relative overflow-hidden group hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/60 hover:border-white rounded-4xl p-5 sm:p-8 interve-shadow-card hover:interve-shadow-modal transition-all duration-500 ease-out cursor-pointer relative overflow-hidden group hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-sky-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 <div className="flex items-center gap-3 sm:gap-8 relative z-10">
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                         <span className="text-2xl font-bold text-[#111111] leading-none">
                           {sessionScore(session)}
                         </span>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Score</span>
+                        <span className="text-ui-2xs font-bold text-muted-foreground uppercase tracking-widest">Score</span>
                       </>
                     ) : (
                       <UserCircle weight="duotone" className="w-10 h-10 text-slate-300" />
@@ -414,7 +414,7 @@ export default function DashboardPage() {
                           ? v.readinessLabel
                           : READINESS_META[v.readinessLabel as ReadinessLevel]?.label ?? v.readinessLabel;
                         return (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-50 text-slate-600 border border-slate-200">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-ui-2xs font-bold uppercase tracking-wider bg-slate-50 text-slate-600 border border-slate-200">
                             <Trophy weight="fill" className="w-3 h-3" />
                             {label}
                           </span>
@@ -425,7 +425,7 @@ export default function DashboardPage() {
 
                   {/* Action */}
                   <div className="shrink-0">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-50 group-hover:bg-sky-700 text-muted-foreground group-hover:text-white flex items-center justify-center transition-all duration-500 shadow-[0_0_0_0px_transparent] group-hover:shadow-[0_8px_20px_rgba(14,165,233,0.3)]">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-50 group-hover:bg-sky-700 text-muted-foreground group-hover:text-white flex items-center justify-center transition-all duration-500 interve-shadow-focus group-hover:interve-shadow-card">
                       <Play weight="fill" className="w-5 h-5" />
                     </div>
                   </div>

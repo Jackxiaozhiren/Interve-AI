@@ -59,7 +59,7 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
   const { isCalmMode, isLiveCaptionsEnabled } = useAccessibilityStore();
 
   return (
-<div data-framework={framework} className={`flex-1 min-h-[200px] flex flex-col items-center justify-center relative glass rounded-[32px] overflow-hidden transition-colors duration-1000 ${stressTest ? 'border-2 border-rose-300/50 shadow-[inset_0_0_40px_rgba(244,63,94,0.1)]' : ''}`}>
+<div data-framework={framework} className={`flex-1 min-h-[200px] flex flex-col items-center justify-center relative glass rounded-3xl overflow-hidden transition-colors duration-1000 ${stressTest ? 'border-2 border-rose-300/50 shadow-[inset_0_0_40px_rgba(244,63,94,0.1)]' : ''}`}>
                {/* STAR Tracker lives in the left column above this stage (see
                    interview/page.tsx), not as an absolute layer here. Keeping it
                    out of this `relative` box is what stops the panel from covering
@@ -130,7 +130,7 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
                )}
                
                {isCalmMode && (
-                 <div className={`absolute inset-0 rounded-[32px] ${stressTest ? 'bg-rose-50/50' : 'bg-sky-50/50'} backdrop-blur-3xl`} />
+                 <div className={`absolute inset-0 rounded-3xl ${stressTest ? 'bg-rose-50/50' : 'bg-sky-50/50'} backdrop-blur-3xl`} />
                )}
                
                {!modelsReady && (
@@ -161,7 +161,7 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
 
                {/* Liquid Glass Controls Dock */}
                <div className="absolute bottom-8 z-20 flex items-center justify-center w-full px-6">
-                  <div className="bg-white/30 backdrop-blur-[24px] rounded-[32px] p-2.5 flex items-center gap-3 shadow-[0_8px_32px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)] border border-white/40">
+                  <div className="bg-white/30 backdrop-blur-[24px] rounded-3xl p-2.5 flex items-center gap-3 interve-shadow-card border border-white/40">
                     <motion.button 
                       onMouseDown={startRecording}
                       onMouseUp={stopRecording}
@@ -178,19 +178,19 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
                       transition={{ type: "spring", stiffness: 400, damping: 15 }}
                       className={`group relative w-12 h-12 rounded-full flex items-center justify-center outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                         isRecording 
-                          ? 'bg-rose-400 text-white shadow-[0_0_20px_rgba(251,113,133,0.3)] border border-rose-300' 
-                          : 'bg-white text-slate-600 hover:text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.05),inset_0_1px_1px_rgba(255,255,255,0.8)] border border-white/80'
+                          ? 'bg-rose-400 text-white interve-shadow-focus border border-rose-300' 
+                          : 'bg-white text-slate-600 hover:text-slate-800 interve-shadow-xs border border-white/80'
                       }`}
                       aria-label={isRecording ? "停止录音" : "开始录音"}
                       aria-pressed={isRecording}
                     >
                       <Microphone className="w-5 h-5" />
                       {isRecording ? (
-                         <span className="absolute -top-10 text-[11px] font-medium text-rose-500 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full whitespace-nowrap shadow-sm border border-rose-100">
+                         <span className="absolute -top-10 text-ui-2xs font-medium text-rose-500 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full whitespace-nowrap shadow-sm border border-rose-100">
                            正在录音...
                          </span>
                       ) : (
-                         <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-medium text-slate-500 bg-white/90 backdrop-blur-md px-2 py-1 rounded-md whitespace-nowrap shadow-sm border border-slate-200/50 flex items-center gap-1 pointer-events-none">
+                         <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity text-ui-2xs font-medium text-slate-500 bg-white/90 backdrop-blur-md px-2 py-1 rounded-md whitespace-nowrap shadow-sm border border-slate-200/50 flex items-center gap-1 pointer-events-none">
                            按 <kbd className="font-sans px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-600 shadow-sm leading-none">空格</kbd> 说话
                          </div>
                       )}
@@ -251,7 +251,7 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
                         disabled={!modelsReady || isLoading}
                         placeholder="输入文本..."
                         aria-label="输入您的回答或向AI提问"
-                        className="w-full bg-transparent border-none focus:ring-0 h-10 pl-3 pr-12 text-[14px] text-slate-700 font-medium placeholder:text-slate-500 outline-none transition-all focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full"
+                        className="w-full bg-transparent border-none focus:ring-0 h-10 pl-3 pr-12 text-ui-base text-slate-700 font-medium placeholder:text-slate-500 outline-none transition-all focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full"
                       />
                       <Button 
                         size="icon"
@@ -261,7 +261,7 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
                         aria-label="发送消息"
                       >
                         <PaperPlaneRight className="w-3.5 h-3.5 ml-0.5" />
-                        <div className="absolute -top-10 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-medium text-slate-500 bg-white/90 backdrop-blur-md px-2 py-1 rounded-md whitespace-nowrap shadow-sm border border-slate-200/50 flex items-center gap-1 pointer-events-none">
+                        <div className="absolute -top-10 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-ui-2xs font-medium text-slate-500 bg-white/90 backdrop-blur-md px-2 py-1 rounded-md whitespace-nowrap shadow-sm border border-slate-200/50 flex items-center gap-1 pointer-events-none">
                            <kbd className="font-sans px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-600 shadow-sm leading-none">⌘</kbd>
                            <kbd className="font-sans px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-600 shadow-sm leading-none">↵</kbd>
                          </div>

@@ -29,8 +29,8 @@ export default function InterviewDashboard() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="interve-glass p-6 rounded-[var(--radius-xl)] flex flex-col gap-4 border border-[var(--interve-border-light)] shadow-sm">
-          <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] flex items-center justify-center">
+        <div className="interve-glass p-6 rounded-xl flex flex-col gap-4 border border-[var(--interve-border-light)] shadow-sm">
+          <div className="w-12 h-12 rounded-lg bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
           </div>
           <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">新建模拟面试</h3>
@@ -40,8 +40,8 @@ export default function InterviewDashboard() {
           </Link>
         </div>
 
-        <div className="interve-glass p-6 rounded-[var(--radius-xl)] flex flex-col gap-4 border border-[var(--interve-border-light)] shadow-sm">
-          <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--interve-success-surface)] text-[var(--interve-success-text)] flex items-center justify-center">
+        <div className="interve-glass p-6 rounded-xl flex flex-col gap-4 border border-[var(--interve-border-light)] shadow-sm">
+          <div className="w-12 h-12 rounded-lg bg-[var(--interve-success-surface)] text-[var(--interve-success-text)] flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
           </div>
           <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">历史记录与报告</h3>
@@ -51,8 +51,8 @@ export default function InterviewDashboard() {
           </Link>
         </div>
 
-        <div className="interve-glass p-6 rounded-[var(--radius-xl)] flex flex-col gap-4 border border-[var(--interve-border-light)] shadow-sm">
-          <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--interve-warning-surface)] text-[var(--interve-warning-text)] flex items-center justify-center">
+        <div className="interve-glass p-6 rounded-xl flex flex-col gap-4 border border-[var(--interve-border-light)] shadow-sm">
+          <div className="w-12 h-12 rounded-lg bg-[var(--interve-warning-surface)] text-[var(--interve-warning-text)] flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
           </div>
           <h3 className="text-lg font-semibold text-[var(--interve-text-title)]">简历分析</h3>

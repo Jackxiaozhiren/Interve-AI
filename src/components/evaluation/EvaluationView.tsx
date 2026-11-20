@@ -70,7 +70,7 @@ export function LegacyBanner({ text }: { text?: string | null }) {
 
 function ConfidenceChip({ level }: { level: DimensionView["confidence"] }) {
   return (
-    <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md ${CONFIDENCE_STYLES[level]}`}>
+    <span className={`text-ui-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md ${CONFIDENCE_STYLES[level]}`}>
       {level} confidence
     </span>
   );
@@ -92,14 +92,14 @@ export function DimensionsSection({ view }: { view: EvaluationView }) {
             <div className="flex items-center gap-2">
               <span className="font-bold text-slate-800">{dim.name}</span>
               {dim.anchorLevel !== null && (
-                <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                <span className="text-ui-2xs font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                   L{dim.anchorLevel}/5
                 </span>
               )}
             </div>
             <div className="flex items-center gap-2">
               <ConfidenceChip level={dim.confidence} />
-              <span className="text-sm font-black text-indigo-600">{dim.score100}<span className="text-[10px] text-muted-foreground font-bold">/100</span></span>
+              <span className="text-sm font-black text-indigo-600">{dim.score100}<span className="text-ui-2xs text-muted-foreground font-bold">/100</span></span>
             </div>
           </div>
           <div className="w-full h-1.5 bg-slate-100 rounded-full mb-3 overflow-hidden">
@@ -109,14 +109,14 @@ export function DimensionsSection({ view }: { view: EvaluationView }) {
           {dim.evidence.length > 0 && (
             <div className="space-y-2 mb-3">
               {dim.evidence.map((q, i) => (
-                <p key={i} className="text-[13px] text-slate-600 italic border-l-2 border-indigo-200 pl-3 flex gap-1.5">
+                <p key={i} className="text-ui-sm text-slate-600 italic border-l-2 border-indigo-200 pl-3 flex gap-1.5">
                   <Quotes className="w-3.5 h-3.5 mt-0.5 shrink-0 text-indigo-300" aria-hidden="true" />
                   {q}
                 </p>
               ))}
             </div>
           )}
-          <p className="text-[13px] text-emerald-800 bg-emerald-50/70 rounded-xl px-3 py-2">
+          <p className="text-ui-sm text-emerald-800 bg-emerald-50/70 rounded-xl px-3 py-2">
             <span className="font-bold">Next drill: </span>{dim.improvement}
           </p>
         </motion.div>
@@ -167,7 +167,7 @@ export function DrillPlan({ view }: { view: EvaluationView }) {
   );
   if (drills.length === 0) return null;
   return (
-    <div className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+    <div className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card">
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Target className="w-5 h-5 text-indigo-500" weight="fill" />
@@ -188,7 +188,7 @@ export function DrillPlan({ view }: { view: EvaluationView }) {
             </Link>
           </div>
           <p className="text-sm text-slate-700 leading-relaxed mb-2">{drill.task}</p>
-          <p className="text-[13px] text-slate-500 italic">Tip: {drill.tip}</p>
+          <p className="text-ui-sm text-slate-500 italic">Tip: {drill.tip}</p>
         </div>
       ))}
     </div>

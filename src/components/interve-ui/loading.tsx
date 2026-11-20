@@ -85,7 +85,7 @@ export function InterveSkeleton({
       className={cn(
         "bg-gradient-to-r from-[var(--interve-bg-secondary)] via-[#EEEEF0] to-[var(--interve-bg-secondary)]",
         "bg-[length:200%_100%] animate-[shimmer_1.5s_ease-in-out_infinite]",
-        rounded ? "rounded-full" : "rounded-[var(--radius-sm)]",
+        rounded ? "rounded-full" : "rounded-sm",
         className
       )}
     />

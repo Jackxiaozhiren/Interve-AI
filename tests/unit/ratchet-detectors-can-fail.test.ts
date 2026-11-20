@@ -20,6 +20,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   countAnyEscapes,
+  countArbitraryFontSizes,
   countDocsProseLines,
   countMouseOnlyInteractions,
   countNeverAssertions,
@@ -64,6 +65,8 @@ const ARM_FIXTURES: [key: string, measure: (text: string) => number, bad: string
     "const C = () => <button onClick={() => navigator.share({ title: \"x\" })}>Share</button>;"],
   ["networkLayer.rawFetchCalls", (t) => countRawFetchCallSites(t, "a.ts"),
     'const r = await fetch("/api/copilot", { method: "POST" });', 'const r = await postJson("/api/copilot", body);'],
+  ["arbitraryFontSizes", (t) => countArbitraryFontSizes(t),
+    '<p className="text-[13px] leading-relaxed">body</p>', '<p className="text-ui-sm">body</p>'],
 ];
 
 const ARMS: Arm[] = ARM_FIXTURES.map(([key, measure, bad, good]) => ({ key, measure, bad, good }));

@@ -16,14 +16,14 @@ export function HardwareCheckPanel({ hardware }: { hardware: HardwareCheckState 
   const { micStatus, camStatus, networkStatus, speakerTestPlaying, setSpeakerTestPlaying, analyser, errorMessage, videoRef } = hardware;
 
   return (
-                <div className="bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-[32px] p-8 shadow-sm">
+                <div className="bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-3xl p-8 shadow-sm">
                   <div className="text-center mb-8">
                     <p className="text-slate-500">Let&apos;s make sure your microphone is working before we enter the interview room.</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[300px]">
                     {/* Camera Preview */}
-                    <div className="col-span-1 md:col-span-2 bg-slate-50/50 border border-slate-200/50 rounded-[24px] overflow-hidden flex flex-col items-center justify-center relative min-h-[240px]">
+                    <div className="col-span-1 md:col-span-2 bg-slate-50/50 border border-slate-200/50 rounded-2xl overflow-hidden flex flex-col items-center justify-center relative min-h-[240px]">
                       {camStatus === "testing" && (
                         <div className="flex flex-col items-center animate-pulse text-sky-500">
                           <VideoCamera className="w-12 h-12 mb-4" weight="duotone" />
@@ -52,7 +52,7 @@ export function HardwareCheckPanel({ hardware }: { hardware: HardwareCheckState 
                     </div>
 
                     {/* Microphone Check */}
-                    <div className="bg-slate-50/50 border border-slate-200/50 rounded-[24px] p-6 flex flex-col items-center justify-center text-center">
+                    <div className="bg-slate-50/50 border border-slate-200/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
                       <div className="relative mb-4">
                         {micStatus === "success" && <div className="absolute inset-0 bg-emerald-400/20 rounded-full animate-ping" />}
                         <div className={`relative p-3 rounded-full border ${micStatus === "success" ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-slate-100 border-slate-200 text-muted-foreground"}`}>
@@ -79,7 +79,7 @@ export function HardwareCheckPanel({ hardware }: { hardware: HardwareCheckState 
                     {/* Network & Speaker */}
                     <div className="space-y-6">
                       {/* Speaker Check */}
-                      <div className="bg-slate-50/50 border border-slate-200/50 rounded-[24px] p-5 flex items-center justify-between">
+                      <div className="bg-slate-50/50 border border-slate-200/50 rounded-2xl p-5 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="bg-sky-100 p-3 rounded-full border border-sky-200 text-sky-600">
                             <SpeakerHigh className="w-6 h-6" weight="duotone" />
@@ -106,7 +106,7 @@ export function HardwareCheckPanel({ hardware }: { hardware: HardwareCheckState 
                       </div>
 
                       {/* Network Status */}
-                      <div className="bg-slate-50/50 border border-slate-200/50 rounded-[24px] p-5 flex items-center gap-4">
+                      <div className="bg-slate-50/50 border border-slate-200/50 rounded-2xl p-5 flex items-center gap-4">
                         <div className={`p-3 rounded-full border ${
                           networkStatus === "good" ? "bg-emerald-100 border-emerald-200 text-emerald-600" :
                           networkStatus === "poor" ? "bg-amber-100 border-amber-200 text-amber-600" :

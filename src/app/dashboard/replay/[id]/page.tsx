@@ -178,7 +178,7 @@ export default function ReplayPage() {
       <div className="flex flex-1 overflow-y-auto lg:overflow-hidden p-4 gap-4 z-10 relative flex-col lg:flex-row">
         
         {/* Left Panel: Transcript */}
-        <div className="flex-none lg:flex-[3] min-h-[500px] lg:min-h-0 flex flex-col glass-card rounded-3xl overflow-hidden relative border border-white/60 shadow-sm">
+        <div className="flex-none lg:flex-[3] min-h-[500px] lg:min-h-0 flex flex-col interve-glass-heavy rounded-3xl overflow-hidden relative border border-white/60 shadow-sm">
           <div className="px-6 py-4 border-b border-white/40 bg-white/30 backdrop-blur-md flex justify-between items-center z-10">
             <h2 className="text-sm font-bold text-slate-600 uppercase tracking-widest font-mono flex items-center gap-2">
               <ChatCircleDots className="w-4 h-4" /> Transcript
@@ -204,13 +204,13 @@ export default function ReplayPage() {
                     <div className="flex items-center gap-2 mb-1.5 px-1">
                       {isUser ? (
                         <>
-                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Candidate</span>
+                          <span className="text-ui-2xs uppercase tracking-widest text-muted-foreground font-semibold">Candidate</span>
                           <User className="w-3.5 h-3.5 text-muted-foreground" />
                         </>
                       ) : (
                         <>
                           <Robot className="w-3.5 h-3.5 text-sky-400" />
-                          <span className="text-[10px] uppercase tracking-widest text-sky-400 font-semibold">Interve AI</span>
+                          <span className="text-ui-2xs uppercase tracking-widest text-sky-400 font-semibold">Interve AI</span>
                         </>
                       )}
                     </div>
@@ -227,14 +227,14 @@ export default function ReplayPage() {
                       tabIndex={0}
                       aria-pressed={isActive}
                       aria-label={`${isUser ? '候选人' : 'AI'} 消息: ${msg.content.substring(0, 30)}... 点击查看诊断分析`}
-                      className={`relative px-5 py-3.5 max-w-[85%] text-[14.5px] leading-relaxed transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                      className={`relative px-5 py-3.5 max-w-[85%] text-ui-base leading-relaxed transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
                         isUser 
                           ? isActive 
-                            ? 'bg-zinc-900 text-white rounded-[20px] rounded-br-sm shadow-md border border-zinc-700'
+                            ? 'bg-zinc-900 text-white rounded-xl rounded-br-sm shadow-md border border-zinc-700'
                             : hasMatch
-                              ? 'bg-zinc-800 text-white rounded-[20px] rounded-br-sm border border-white/10 hover:bg-zinc-700 hover:shadow-md'
-                              : 'bg-zinc-700 text-slate-100 rounded-[20px] rounded-br-sm border border-white/5 opacity-80'
-                          : 'glass border border-white/50 text-slate-800 rounded-[20px] rounded-bl-sm font-medium shadow-sm'
+                              ? 'bg-zinc-800 text-white rounded-xl rounded-br-sm border border-white/10 hover:bg-zinc-700 hover:shadow-md'
+                              : 'bg-zinc-700 text-slate-100 rounded-xl rounded-br-sm border border-white/5 opacity-80'
+                          : 'glass border border-white/50 text-slate-800 rounded-xl rounded-bl-sm font-medium shadow-sm'
                       }`}
                     >
                       {msg.content}
@@ -259,7 +259,7 @@ export default function ReplayPage() {
         </div>
 
         {/* Right Panel: Tabs for Annotations, Council, Culture */}
-        <div className="flex-none lg:flex-[2] min-h-[500px] lg:min-h-0 flex flex-col glass-heavy rounded-3xl overflow-hidden relative shadow-lg border border-white/70">
+        <div className="flex-none lg:flex-[2] min-h-[500px] lg:min-h-0 flex flex-col interve-glass-heavy rounded-3xl overflow-hidden relative shadow-lg border border-white/70">
           
           <div className="px-2 pt-2 border-b border-white/40 bg-white/40 backdrop-blur-md relative z-10">
             {/* Three tabs measure 421px of label plus padding; at 390px the
@@ -310,38 +310,38 @@ export default function ReplayPage() {
                 >
                   {selectedQAIndex !== null && interview.qaReview ? (
                     <div className="space-y-6">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/60 backdrop-blur-sm text-sky-600 rounded-full text-[10px] font-bold font-mono tracking-widest border border-sky-100 shadow-sm">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/60 backdrop-blur-sm text-sky-600 rounded-full text-ui-2xs font-bold font-mono tracking-widest border border-sky-100 shadow-sm">
                         QA Pair {selectedQAIndex + 1} of {interview.qaReview.length}
                       </div>
 
                       {/* Diagnostic / Flaws */}
                       <SpotlightCard className="bg-white/50 border border-rose-100/50 p-5 rounded-2xl shadow-sm group">
-                        <h3 className="text-[11px] font-bold text-rose-500 uppercase tracking-widest font-mono flex items-center gap-2 mb-3">
+                        <h3 className="text-ui-2xs font-bold text-rose-500 uppercase tracking-widest font-mono flex items-center gap-2 mb-3">
                           <WarningCircle className="w-4 h-4" weight="fill" /> Delivery Flaws
                         </h3>
-                        <div className="text-rose-900 leading-relaxed font-medium text-[14px]">
+                        <div className="text-rose-900 leading-relaxed font-medium text-ui-base">
                           {interview.qaReview[selectedQAIndex].flaws}
                         </div>
                       </SpotlightCard>
 
                       {/* Perfect Rewrite */}
                       <SpotlightCard className="bg-white/50 border border-emerald-100/50 p-5 rounded-2xl shadow-sm group">
-                        <h3 className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest font-mono flex items-center gap-2 mb-3">
+                        <h3 className="text-ui-2xs font-bold text-emerald-600 uppercase tracking-widest font-mono flex items-center gap-2 mb-3">
                           <CheckCircle className="w-4 h-4" weight="fill" /> Target Response
                         </h3>
-                        <div className="text-emerald-900/80 leading-relaxed font-medium text-[14px]">
+                        <div className="text-emerald-900/80 leading-relaxed font-medium text-ui-base">
                           {interview.qaReview[selectedQAIndex].perfectRewrite}
                         </div>
                       </SpotlightCard>
                       
                       {/* Context Question Reference */}
                       <div className="pt-4 border-t border-white/40">
-                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono mb-2">Original Question Context</h3>
-                        <p className="text-[13px] text-slate-600 italic mb-3">&quot;{interview.qaReview[selectedQAIndex].question}&quot;</p>
+                        <h3 className="text-ui-2xs font-bold text-muted-foreground uppercase tracking-widest font-mono mb-2">Original Question Context</h3>
+                        <p className="text-ui-sm text-slate-600 italic mb-3">&quot;{interview.qaReview[selectedQAIndex].question}&quot;</p>
                         {/* Phase 7: Replay → Retry */}
                         <a
                           href={retryPracticeHref(interview.qaReview[selectedQAIndex].question)}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-sky-600 hover:text-sky-500 hover:underline"
+                          className="inline-flex items-center gap-1.5 text-ui-2xs font-bold text-sky-600 hover:text-sky-500 hover:underline"
                         >
                           Retry this question →
                         </a>
@@ -416,7 +416,7 @@ export default function ReplayPage() {
       </div>
 
       {/* Bottom Timeline */}
-      <div className="z-20 bg-white/30 backdrop-blur-lg border-t border-white/40 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] no-print">
+      <div className="z-20 bg-white/30 backdrop-blur-lg border-t border-white/40 interve-shadow-xs no-print">
         <ReplayTimeline 
           events={interview.timelineEvents} 
           currentTime={currentTime}

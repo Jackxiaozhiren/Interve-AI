@@ -15,12 +15,12 @@ export function HomeNav() {
       transparent
       logo={
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-[var(--interve-brand-accent)] to-[#6AA1FF] flex items-center justify-center shadow-[var(--interve-shadow-sm)]">
+          <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-[var(--interve-brand-accent)] to-[#6AA1FF] flex items-center justify-center interve-shadow-sm">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
           </div>
-          <span className="font-semibold text-[16px] tracking-tight text-[var(--interve-text-title)]">Interve AI</span>
+          <span className="font-semibold text-ui-base tracking-tight text-[var(--interve-text-title)]">Interve AI</span>
         </Link>
       }
       actions={
@@ -29,7 +29,7 @@ export function HomeNav() {
             <InterveButton variant="text" size="sm">登录</InterveButton>
           </Link>
           <Link href="/signup">
-            <InterveButton variant="primary" size="sm" className="shadow-[var(--interve-shadow-sm)]">免费开始</InterveButton>
+            <InterveButton variant="primary" size="sm" className="interve-shadow-sm">免费开始</InterveButton>
           </Link>
         </>
       }

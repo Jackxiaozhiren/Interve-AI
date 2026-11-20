@@ -277,7 +277,7 @@ export default function PracticeSessionClient({ question }: { question: Intervie
                               {drill.title}
                             </Link>
                             <span className="text-slate-500"> · {drill.titleZh}</span>
-                            <p className="text-[13px] text-slate-600 mt-0.5">{drill.task}</p>
+                            <p className="text-ui-sm text-slate-600 mt-0.5">{drill.task}</p>
                           </li>
                         );
                       })}

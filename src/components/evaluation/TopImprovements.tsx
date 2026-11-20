@@ -29,7 +29,7 @@ export function TopImprovements({
   return (
     <section
       aria-labelledby="top-improvements-heading"
-      className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+      className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-5 interve-shadow-card"
     >
       <div className="flex items-baseline justify-between gap-4 mb-3">
         <h2 id="top-improvements-heading" className="text-lg font-bold text-slate-800">
@@ -45,7 +45,7 @@ export function TopImprovements({
               {index + 1}
             </span>
             <div className="min-w-0">
-              <p className="text-[15px] font-semibold leading-relaxed text-slate-800">{item.sentence}</p>
+              <p className="text-ui-lg font-semibold leading-relaxed text-slate-800">{item.sentence}</p>
               <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
                 {item.round !== null && item.messageId !== null ? (
                   <button
@@ -66,7 +66,7 @@ export function TopImprovements({
                     同第 {item.repeatOf} 条原话
                   </span>
                 ) : (
-                  <q className="line-clamp-1 min-w-0 flex-1 text-[13px] italic leading-relaxed text-slate-600">
+                  <q className="line-clamp-1 min-w-0 flex-1 text-ui-sm italic leading-relaxed text-slate-600">
                     {item.fragment}
                   </q>
                 )}

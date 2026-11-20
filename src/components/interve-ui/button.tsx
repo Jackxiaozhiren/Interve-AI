@@ -21,14 +21,14 @@ export interface InterveButtonProps
 const variantStyles: Record<string, string> = {
   primary: [
     "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)]",
-    "hover:bg-[#D6E4FF] hover:shadow-[var(--interve-shadow-button)]",
+    "hover:bg-[#D6E4FF] hover:interve-shadow-button",
     "active:bg-[#BFDBFF] active:scale-[0.97]",
     "disabled:bg-[#F2F3F5] disabled:text-[var(--interve-text-disabled)] disabled:shadow-none disabled:cursor-not-allowed",
   ].join(" "),
 
   secondary: [
     "interve-glass-light text-[var(--interve-text-body)]",
-    "hover:bg-white/95 hover:border-[var(--interve-border-hover)] hover:shadow-[var(--interve-shadow-xs)]",
+    "hover:bg-white/95 hover:border-[var(--interve-border-hover)] hover:interve-shadow-xs",
     "active:bg-[var(--interve-bg-secondary)] active:scale-[0.97]",
     "disabled:bg-[#F7F8FA] disabled:text-[var(--interve-text-disabled)] disabled:shadow-none disabled:cursor-not-allowed",
   ].join(" "),
@@ -42,16 +42,16 @@ const variantStyles: Record<string, string> = {
 
   danger: [
     "bg-[var(--interve-danger-surface)] text-[var(--interve-danger-text)]",
-    "hover:bg-[#FFD6D6] hover:shadow-[0_4px_16px_rgba(245,63,63,0.1)]",
+    "hover:bg-[#FFD6D6] hover:interve-shadow-xs",
     "active:bg-[#FFC2C2] active:scale-[0.97]",
     "disabled:bg-[#F2F3F5] disabled:text-[var(--interve-text-disabled)] disabled:shadow-none disabled:cursor-not-allowed",
   ].join(" "),
 };
 
 const sizeStyles: Record<string, string> = {
-  lg: "h-11 px-6 text-[15px] gap-2.5 rounded-[var(--radius-md)]",
-  md: "h-9 px-4 text-[14px] gap-2 rounded-[var(--radius-md)]",
-  sm: "h-7 px-3 text-[12px] gap-1.5 rounded-[var(--radius-sm)]",
+  lg: "h-11 px-6 text-ui-lg gap-2.5 rounded-md",
+  md: "h-9 px-4 text-ui-base gap-2 rounded-md",
+  sm: "h-7 px-3 text-ui-xs gap-1.5 rounded-sm",
 };
 
 export const InterveButton = React.forwardRef<

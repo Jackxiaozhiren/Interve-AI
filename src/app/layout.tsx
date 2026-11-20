@@ -63,7 +63,6 @@ export default function RootLayout({
               fontSize: '14px',
               fontWeight: 500,
             },
-            className: 'glass-toast',
           }}
         />
       </body>

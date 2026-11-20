@@ -27,7 +27,7 @@ export function HeroSection() {
       </p>
       <div className="flex items-center gap-4">
         <Link href="/setup">
-          <InterveButton size="lg" className="shadow-[var(--interve-shadow-button)]">
+          <InterveButton size="lg" className="interve-shadow-button">
             开始练一场
           </InterveButton>
         </Link>

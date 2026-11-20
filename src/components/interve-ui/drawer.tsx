@@ -107,7 +107,7 @@ export function InterveDrawer({
             className={cn(
               "absolute z-10",
               "interve-glass-heavy",
-              "shadow-[var(--interve-shadow-modal)]",
+              "interve-shadow-modal",
               "flex flex-col",
               positionStyles[position],
               className
@@ -117,7 +117,7 @@ export function InterveDrawer({
             {(title || showCloseButton) && (
               <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--interve-divider)]">
                 {title && (
-                  <h2 className="text-[16px] font-semibold text-[var(--interve-text-title)]">
+                  <h2 className="text-ui-base font-semibold text-[var(--interve-text-title)]">
                     {title}
                   </h2>
                 )}
@@ -125,7 +125,7 @@ export function InterveDrawer({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-[var(--radius-sm)] text-[var(--interve-text-secondary)] hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)] transition-colors duration-[var(--motion-micro)]"
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-sm text-[var(--interve-text-secondary)] hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)] transition-colors duration-[var(--motion-micro)]"
                     aria-label="Close"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

@@ -42,7 +42,7 @@ export function InterveHistoryItem({
       onMouseEnter={() => setShowMenu(true)}
       onMouseLeave={() => setShowMenu(false)}
       className={cn(
-        "relative flex flex-col gap-0.5 px-3 py-2.5 rounded-[var(--radius-sm)] cursor-pointer",
+        "relative flex flex-col gap-0.5 px-3 py-2.5 rounded-sm cursor-pointer",
         "transition-colors duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
         active
           ? "bg-[var(--interve-brand-surface)]"
@@ -59,7 +59,7 @@ export function InterveHistoryItem({
         )}
         <span
           className={cn(
-            "text-[14px] font-medium truncate flex-1",
+            "text-ui-base font-medium truncate flex-1",
             active
               ? "text-[var(--interve-brand-accent)]"
               : "text-[var(--interve-text-title)]"
@@ -68,7 +68,7 @@ export function InterveHistoryItem({
           {title}
         </span>
         {timestamp && !showMenu && (
-          <span className="shrink-0 text-[11px] text-[var(--interve-text-placeholder)] tabular-nums">
+          <span className="shrink-0 text-ui-2xs text-[var(--interve-text-placeholder)] tabular-nums">
             {timestamp}
           </span>
         )}
@@ -76,7 +76,7 @@ export function InterveHistoryItem({
 
       {/* Preview */}
       {preview && (
-        <p className="text-[12px] text-[var(--interve-text-secondary)] truncate">
+        <p className="text-ui-xs text-[var(--interve-text-secondary)] truncate">
           {preview}
         </p>
       )}
@@ -89,7 +89,7 @@ export function InterveHistoryItem({
               type="button"
               onClick={(e) => { e.stopPropagation(); onPin(); }}
               title={pinned ? "Unpin" : "Pin"}
-              className="w-6 h-6 flex items-center justify-center rounded-[4px] text-[var(--interve-text-secondary)] hover:bg-white/80 hover:text-[var(--interve-text-body)] transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded-xs text-[var(--interve-text-secondary)] hover:bg-white/80 hover:text-[var(--interve-text-body)] transition-colors"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2l2.09 6.26L20 9.27l-5 4.17L16.18 20 12 16.77 7.82 20 9 13.44 4 9.27l5.91-1.01L12 2z" stroke="currentColor" strokeWidth="1.5" fill={pinned ? "currentColor" : "none"} />
@@ -101,7 +101,7 @@ export function InterveHistoryItem({
               type="button"
               onClick={(e) => { e.stopPropagation(); onRename(); }}
               title="Rename"
-              className="w-6 h-6 flex items-center justify-center rounded-[4px] text-[var(--interve-text-secondary)] hover:bg-white/80 hover:text-[var(--interve-text-body)] transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded-xs text-[var(--interve-text-secondary)] hover:bg-white/80 hover:text-[var(--interve-text-body)] transition-colors"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -114,7 +114,7 @@ export function InterveHistoryItem({
               type="button"
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               title="Delete"
-              className="w-6 h-6 flex items-center justify-center rounded-[4px] text-[var(--interve-text-secondary)] hover:bg-[var(--interve-danger-surface)] hover:text-[var(--interve-danger-text)] transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded-xs text-[var(--interve-text-secondary)] hover:bg-[var(--interve-danger-surface)] hover:text-[var(--interve-danger-text)] transition-colors"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                 <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

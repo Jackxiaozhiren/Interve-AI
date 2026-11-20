@@ -77,7 +77,7 @@ export function InterveSwitch({
         />
       </button>
       {label && (
-        <span className="text-[14px] text-[var(--interve-text-body)]">
+        <span className="text-ui-base text-[var(--interve-text-body)]">
           {label}
         </span>
       )}

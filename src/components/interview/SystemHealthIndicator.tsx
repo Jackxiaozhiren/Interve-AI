@@ -45,13 +45,13 @@ export function SystemHealthIndicator({
       color: 'bg-emerald-400',
       icon: <Checks className="w-3.5 h-3.5 text-emerald-500" />,
       text: '系统运行良好',
-      shadow: 'shadow-[0_0_8px_rgba(52,211,153,0.4)]'
+      shadow: 'interve-shadow-focus'
     },
     stress: {
       color: 'bg-rose-500',
       icon: <Warning className="w-3.5 h-3.5 text-rose-500" />,
       text: '压力测试模式开启',
-      shadow: 'shadow-[0_0_8px_rgba(244,63,94,0.6)]'
+      shadow: 'interve-shadow-focus'
     },
     offline: {
       color: 'bg-slate-400',
@@ -84,7 +84,7 @@ export function SystemHealthIndicator({
               <span className="text-xs font-medium text-slate-700">{config.text}</span>
             </div>
             {online && status !== 'stress' && (
-              <div className="text-[10px] text-muted-foreground font-mono ml-5">
+              <div className="text-ui-2xs text-muted-foreground font-mono ml-5">
                 Browser online · API latency in Dashboard
               </div>
             )}

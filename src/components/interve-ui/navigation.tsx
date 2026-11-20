@@ -88,7 +88,7 @@ export function InterveNavLink({
       href={href}
       onClick={handleClick}
       className={cn(
-        "px-3 py-1.5 text-[14px] font-medium rounded-[var(--radius-sm)]",
+        "px-3 py-1.5 text-ui-base font-medium rounded-sm",
         "transition-colors duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
         active
           ? "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)]"
@@ -126,7 +126,7 @@ export function InterveSidebar({
         "transition-[transform,box-shadow] duration-[350ms] ease-[cubic-bezier(0.2,0,0,1)]",
         collapsed
           ? "transform -translate-x-[216px] shadow-none"
-          : "transform translate-x-0 shadow-[var(--interve-shadow-md)]",
+          : "transform translate-x-0 interve-shadow-md",
         className
       )}
     >
@@ -149,7 +149,7 @@ export function InterveSidebar({
         onClick={onToggle}
         className={cn(
           "mt-2 mb-1 flex items-center justify-center w-8 h-8",
-          "rounded-[var(--radius-sm)] text-[var(--interve-text-secondary)]",
+          "rounded-sm text-[var(--interve-text-secondary)]",
           "hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)]",
           "transition-colors duration-[var(--motion-micro)]",
           collapsed ? "ml-auto mr-3" : "mx-3"
@@ -226,7 +226,7 @@ export function InterveSidebarItem({
       onClick={onClick}
       title={collapsed ? label : undefined}
       className={cn(
-        "w-full flex items-center gap-3 h-9 rounded-[var(--radius-sm)]",
+        "w-full flex items-center gap-3 h-9 rounded-sm",
         "transition-colors duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
         active
           ? "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)]"
@@ -237,7 +237,7 @@ export function InterveSidebarItem({
     >
       {icon && <span className="shrink-0 w-4 h-4">{icon}</span>}
       {!collapsed && (
-        <span className="text-[14px] truncate">{label}</span>
+        <span className="text-ui-base truncate">{label}</span>
       )}
     </button>
   );
@@ -267,14 +267,14 @@ export function InterveBreadcrumb({
             {item.href && !isLast ? (
               <a
                 href={item.href}
-                className="text-[13px] text-[var(--interve-text-secondary)] hover:text-[var(--interve-text-body)] transition-colors"
+                className="text-ui-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-text-body)] transition-colors"
               >
                 {item.label}
               </a>
             ) : (
               <span
                 className={cn(
-                  "text-[13px]",
+                  "text-ui-sm",
                   isLast
                     ? "text-[var(--interve-text-title)] font-medium"
                     : "text-[var(--interve-text-secondary)]"
@@ -284,7 +284,7 @@ export function InterveBreadcrumb({
               </span>
             )}
             {!isLast && (
-              <span className="text-[var(--interve-text-placeholder)] text-[12px]">/</span>
+              <span className="text-[var(--interve-text-placeholder)] text-ui-xs">/</span>
             )}
           </React.Fragment>
         );

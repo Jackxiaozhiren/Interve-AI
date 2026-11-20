@@ -20,7 +20,7 @@ export default function Loading() {
           />
           {/* Core Orb */}
           <motion.div
-            className="w-12 h-12 bg-gradient-to-tr from-sky-500 to-emerald-400 rounded-full shadow-[0_0_30px_rgba(14,165,233,0.4)]"
+            className="w-12 h-12 bg-gradient-to-tr from-sky-500 to-emerald-400 rounded-full interve-shadow-focus"
             animate={{ scale: [1, 0.9, 1] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           />

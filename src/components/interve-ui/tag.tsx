@@ -47,9 +47,9 @@ const colorMap: Record<TagColor, { bg: string; text: string; border: string }> =
 };
 
 const sizeMap = {
-  lg: "h-7 px-3 text-[13px] gap-1.5 rounded-[var(--radius-sm)]",
-  md: "h-6 px-2.5 text-[12px] gap-1 rounded-[6px]",
-  sm: "h-5 px-2 text-[11px] gap-1 rounded-[4px]",
+  lg: "h-7 px-3 text-ui-sm gap-1.5 rounded-sm",
+  md: "h-6 px-2.5 text-ui-xs gap-1 rounded-xs",
+  sm: "h-5 px-2 text-ui-2xs gap-1 rounded-xs",
 };
 
 export function InterveTag({
@@ -147,7 +147,7 @@ export function InterveBadge({
             colors.text,
             dot
               ? "w-2 h-2 rounded-full"
-              : "min-w-[18px] h-[18px] px-1 text-[10px] rounded-full"
+              : "min-w-[18px] h-[18px] px-1 text-ui-2xs rounded-full"
           )}
         >
           {!dot && displayCount}

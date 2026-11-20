@@ -391,14 +391,14 @@ export default function SetupPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.8 }}
-            className="hidden lg:block mt-12 p-8 rounded-[32px] bg-white/70 border border-white/90 shadow-[0_12px_40px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,1)] backdrop-blur-xl relative overflow-hidden group hover:shadow-[0_16px_50px_rgba(0,0,0,0.08)] transition-all duration-500"
+            className="hidden lg:block mt-12 p-8 rounded-3xl bg-white/70 border border-white/90 interve-shadow-hover backdrop-blur-xl relative overflow-hidden group hover:interve-shadow-modal transition-all duration-500"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-white/20 to-transparent pointer-events-none group-hover:from-white/80 transition-all duration-500" />
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-4">
                 <div className="relative w-3 h-3">
                   <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />
-                  <div className="absolute inset-[2px] rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]" />
+                  <div className="absolute inset-[2px] rounded-full bg-emerald-500 interve-shadow-focus" />
                 </div>
                 <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">System Ready</span>
               </div>
@@ -411,7 +411,7 @@ export default function SetupPage() {
         <div className="lg:w-[55%] p-8 lg:p-16 lg:py-24 overflow-y-auto z-10 flex flex-col">
           <div className="max-w-2xl mx-auto w-full flex-grow flex flex-col">
             {/* Step 眉题：维持 Setup → Interview → Review 叙事 */}
-            <p aria-live="polite" className="mb-6 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">
+            <p aria-live="polite" className="mb-6 font-mono text-ui-2xs font-bold uppercase tracking-[0.18em] text-slate-600">
               Step {currentStep} of {totalSteps} · Setup → Interview → Review
             </p>
             {/* Stepper Progress */}
@@ -472,22 +472,22 @@ export default function SetupPage() {
                     <button
                       key={role.id}
                       onClick={() => setSelectedRole(role.id)}
-                      className={`group relative p-6 rounded-[24px] text-left transition-all duration-400 outline-none flex flex-col gap-4 border ${
+                      className={`group relative p-6 rounded-2xl text-left transition-all duration-400 outline-none flex flex-col gap-4 border ${
                         isSelected 
-                          ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]" 
-                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
+                          ? "border-sky-200/60 bg-white interve-shadow-hover" 
+                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:interve-shadow-xs"
                       }`}
               aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
                           layoutId="role-active-bg"
-                          className="absolute inset-0 bg-white rounded-[24px] shadow-[inset_0_0_0_1px_rgba(14,165,233,0.1)]"
+                          className="absolute inset-0 bg-white rounded-2xl shadow-[inset_0_0_0_1px_rgba(14,165,233,0.1)]"
                           transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                         />
                       )}
                       <div className="relative z-10 flex justify-between items-start">
-                        <div className={`p-3 rounded-[16px] transition-colors duration-300 ${
+                        <div className={`p-3 rounded-lg transition-colors duration-300 ${
                           isSelected ? 'bg-sky-50/80 text-sky-600 shadow-sm border border-sky-100/50' : 'bg-slate-50 text-muted-foreground group-hover:text-slate-500'
                         }`}>
                            <Icon className="w-6 h-6" weight={isSelected ? "duotone" : "regular"} />
@@ -500,7 +500,7 @@ export default function SetupPage() {
                           )}
                         </AnimatePresence>
                       </div>
-                      <span className={`relative z-10 font-semibold tracking-wide text-[15px] transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
+                      <span className={`relative z-10 font-semibold tracking-wide text-ui-lg transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
                         {role.name}
                       </span>
                     </button>
@@ -516,9 +516,9 @@ export default function SetupPage() {
                     <button
                       key={level}
                       onClick={() => setSelectedLevel(level)}
-                      className={`relative px-6 py-2.5 rounded-full text-[14px] font-semibold tracking-wide transition-all duration-300 outline-none border ${
+                      className={`relative px-6 py-2.5 rounded-full text-ui-base font-semibold tracking-wide transition-all duration-300 outline-none border ${
                         isSelected 
-                          ? "text-white border-slate-900 shadow-[0_4px_12px_rgba(15,23,42,0.2)]" 
+                          ? "text-white border-slate-900 interve-shadow-xs" 
                           : "text-slate-500 bg-white/50 border-slate-200/60 hover:bg-white hover:text-slate-800 hover:border-slate-300 hover:shadow-sm"
                       }`}
               aria-pressed={isSelected}
@@ -549,24 +549,24 @@ export default function SetupPage() {
                     <button
                       key={company.id}
                       onClick={() => setSelectedCompany(company.id)}
-                      className={`group relative p-6 rounded-[24px] text-left transition-all duration-400 outline-none flex flex-col gap-2 border ${
+                      className={`group relative p-6 rounded-2xl text-left transition-all duration-400 outline-none flex flex-col gap-2 border ${
                         isSelected 
-                          ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]" 
-                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
+                          ? "border-sky-200/60 bg-white interve-shadow-hover" 
+                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:interve-shadow-xs"
                       }`}
               aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
                           layoutId="company-active-bg"
-                          className="absolute inset-0 bg-white rounded-[24px] shadow-[inset_0_0_0_1px_rgba(14,165,233,0.1)]"
+                          className="absolute inset-0 bg-white rounded-2xl shadow-[inset_0_0_0_1px_rgba(14,165,233,0.1)]"
                           transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                         />
                       )}
-                      <span className={`relative z-10 font-semibold tracking-wide text-[15px] transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
+                      <span className={`relative z-10 font-semibold tracking-wide text-ui-lg transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
                         {company.name}
                       </span>
-                      <p className={`relative z-10 text-[13px] leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
+                      <p className={`relative z-10 text-ui-sm leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
                         {company.desc}
                       </p>
                     </button>
@@ -588,21 +588,21 @@ export default function SetupPage() {
                     <button
                       key={persona.id}
                       onClick={() => setSelectedPersona(persona.id)}
-                      className={`group relative p-6 rounded-[28px] text-left transition-all duration-400 outline-none flex items-center gap-6 border ${
+                      className={`group relative p-6 rounded-3xl text-left transition-all duration-400 outline-none flex items-center gap-6 border ${
                         isSelected 
-                          ? `${persona.border} shadow-[0_12px_40px_rgba(0,0,0,0.06)]`
-                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
+                          ? `${persona.border} interve-shadow-hover`
+                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:interve-shadow-xs"
                       }`}
               aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
                           layoutId="persona-active-bg"
-                          className={`absolute inset-0 bg-gradient-to-r ${persona.bg} rounded-[28px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)]`}
+                          className={`absolute inset-0 bg-gradient-to-r ${persona.bg} rounded-3xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)]`}
                           transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                         />
                       )}
-                      <div className={`relative z-10 p-4 rounded-[20px] shrink-0 transition-colors duration-300 ${
+                      <div className={`relative z-10 p-4 rounded-xl shrink-0 transition-colors duration-300 ${
                         isSelected ? 'bg-white shadow-sm border border-white' : 'bg-slate-50/80 group-hover:bg-slate-100 text-muted-foreground'
                       }`}>
                         <Icon className={`w-7 h-7 ${isSelected ? persona.color : ''}`} weight={isSelected ? "duotone" : "regular"} />
@@ -611,7 +611,7 @@ export default function SetupPage() {
                         <h3 className={`text-lg font-serif font-medium mb-1 transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-700'}`}>
                           {persona.name}
                         </h3>
-                        <p className={`text-[14px] leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-700 font-medium' : 'text-slate-500'}`}>
+                        <p className={`text-ui-base leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-700 font-medium' : 'text-slate-500'}`}>
                           {persona.desc}
                         </p>
                       </div>
@@ -647,24 +647,24 @@ export default function SetupPage() {
                     <button
                       key={fw.id}
                       onClick={() => setFramework(fw.id)}
-                      className={`group relative p-6 rounded-[24px] text-left transition-all duration-400 outline-none flex flex-col gap-2 border ${
+                      className={`group relative p-6 rounded-2xl text-left transition-all duration-400 outline-none flex flex-col gap-2 border ${
                         isSelected 
-                          ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]" 
-                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
+                          ? "border-sky-200/60 bg-white interve-shadow-hover" 
+                          : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:interve-shadow-xs"
                       }`}
               aria-pressed={isSelected}
                     >
                       {isSelected && (
                         <motion.div
                           layoutId="framework-active-bg"
-                          className="absolute inset-0 bg-white rounded-[24px] shadow-[inset_0_0_0_1px_rgba(14,165,233,0.1)]"
+                          className="absolute inset-0 bg-white rounded-2xl shadow-[inset_0_0_0_1px_rgba(14,165,233,0.1)]"
                           transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                         />
                       )}
-                      <span className={`relative z-10 font-semibold tracking-wide text-[15px] transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
+                      <span className={`relative z-10 font-semibold tracking-wide text-ui-lg transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
                         {fw.name}
                       </span>
-                      <p className={`relative z-10 text-[13px] leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
+                      <p className={`relative z-10 text-ui-sm leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
                         {fw.desc}
                       </p>
                     </button>
@@ -686,17 +686,17 @@ export default function SetupPage() {
                         setSelectedInterviewType(t.id);
                         if (t.needsCoding) setIncludeCoding(true);
                       }}
-                      className={`group relative p-4 rounded-[20px] text-left transition-all duration-300 outline-none flex flex-col gap-1 border ${
+                      className={`group relative p-4 rounded-xl text-left transition-all duration-300 outline-none flex flex-col gap-1 border ${
                         isSelected
-                          ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]"
+                          ? "border-sky-200/60 bg-white interve-shadow-hover"
                           : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60"
                       }`}
                       aria-pressed={isSelected}
                     >
-                      <span className={`font-semibold tracking-wide text-[14px] ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
+                      <span className={`font-semibold tracking-wide text-ui-base ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
                         {t.name}
                       </span>
-                      <span className={`text-[12px] leading-snug ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
+                      <span className={`text-ui-xs leading-snug ${isSelected ? 'text-slate-600' : 'text-muted-foreground'}`}>
                         {t.nameZh}
                       </span>
                     </button>
@@ -711,10 +711,10 @@ export default function SetupPage() {
                   maxLength={500}
                   placeholder="Describe your custom focus…"
                   aria-label="Custom interview focus"
-                  className="w-full p-4 rounded-[20px] border border-slate-200/60 bg-white/70 text-[14px] text-slate-700 focus:outline-none focus:border-sky-300"
+                  className="w-full p-4 rounded-xl border border-slate-200/60 bg-white/70 text-ui-base text-slate-700 focus:outline-none focus:border-sky-300"
                 />
               )}
-              <p className="text-[13px] text-muted-foreground leading-relaxed">
+              <p className="text-ui-sm text-muted-foreground leading-relaxed">
                 Rubric: {RUBRICS[getInterviewType(selectedInterviewType).rubricId]?.track ?? "General"}
                 {getInterviewType(selectedInterviewType).needsCoding ? " · enables the coding scratchpad" : ""}
                 {getInterviewType(selectedInterviewType).needsWhiteboard ? " · uses the system-design whiteboard" : ""}
@@ -725,7 +725,7 @@ export default function SetupPage() {
             <WizardSection title="Difficulty & Duration" index="03d">
 
               <div>
-                <p className="text-[13px] font-semibold text-slate-500 mb-3 uppercase tracking-wider">Starting difficulty (adapts live)</p>
+                <p className="text-ui-sm font-semibold text-slate-500 mb-3 uppercase tracking-wider">Starting difficulty (adapts live)</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {DIFFICULTY_OPTIONS.map((d) => {
                     const isSelected = selectedDifficulty === d.id;
@@ -734,14 +734,14 @@ export default function SetupPage() {
                         key={d.id}
                         onClick={() => setSelectedDifficulty(d.id)}
                         aria-pressed={isSelected}
-                        className={`p-4 rounded-[20px] text-left border transition-all duration-300 outline-none ${
+                        className={`p-4 rounded-xl text-left border transition-all duration-300 outline-none ${
                           isSelected
-                            ? "border-sky-200/60 bg-white shadow-[0_12px_40px_rgba(14,165,233,0.08)]"
+                            ? "border-sky-200/60 bg-white interve-shadow-hover"
                             : "border-slate-200/40 bg-white/40 hover:bg-white/80"
                         }`}
                       >
-                        <span className={`block font-semibold text-[14px] ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>{d.name}</span>
-                        <span className="block text-[12px] text-muted-foreground mt-1 leading-snug">{d.desc}</span>
+                        <span className={`block font-semibold text-ui-base ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>{d.name}</span>
+                        <span className="block text-ui-xs text-muted-foreground mt-1 leading-snug">{d.desc}</span>
                       </button>
                     );
                   })}
@@ -749,7 +749,7 @@ export default function SetupPage() {
               </div>
 
               <div>
-                <p className="text-[13px] font-semibold text-slate-500 mb-3 uppercase tracking-wider">Time budget</p>
+                <p className="text-ui-sm font-semibold text-slate-500 mb-3 uppercase tracking-wider">Time budget</p>
                 <div className="flex flex-wrap gap-3">
                   {DURATION_OPTIONS.map((o) => {
                     const isSelected = selectedDurationSec === o.sec;
@@ -758,7 +758,7 @@ export default function SetupPage() {
                         key={o.sec}
                         onClick={() => setSelectedDurationSec(o.sec)}
                         aria-pressed={isSelected}
-                        className={`px-5 py-2.5 rounded-full text-[14px] font-semibold border transition-all duration-300 outline-none ${
+                        className={`px-5 py-2.5 rounded-full text-ui-base font-semibold border transition-all duration-300 outline-none ${
                           isSelected
                             ? "bg-slate-900 text-white border-slate-900"
                             : "bg-white/40 text-slate-600 border-slate-200/60 hover:bg-white/80"
@@ -777,24 +777,24 @@ export default function SetupPage() {
               
               <button
                 onClick={() => setStressTest(!stressTest)}
-                className={`w-full group relative p-6 rounded-[28px] text-left transition-all duration-500 outline-none flex items-center justify-between border ${
+                className={`w-full group relative p-6 rounded-3xl text-left transition-all duration-500 outline-none flex items-center justify-between border ${
                   stressTest 
-                    ? "border-rose-300/60 shadow-[0_12px_40px_rgba(244,63,94,0.15)] bg-rose-50/40" 
-                    : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
+                    ? "border-rose-300/60 interve-shadow-hover bg-rose-50/40" 
+                    : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:interve-shadow-xs"
                 }`}
               aria-pressed={stressTest}
               >
                 {stressTest && (
                   <motion.div
                     layoutId="stress-active-bg"
-                    className="absolute inset-0 bg-gradient-to-r from-rose-50/50 to-rose-100/30 rounded-[28px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)]"
+                    className="absolute inset-0 bg-gradient-to-r from-rose-50/50 to-rose-100/30 rounded-3xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)]"
                     transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                   />
                 )}
                 <div className="relative z-10 flex items-center gap-6">
-                  <div className={`p-4 rounded-[20px] transition-all duration-500 ${
+                  <div className={`p-4 rounded-xl transition-all duration-500 ${
                     stressTest 
-                      ? "bg-rose-500 shadow-[0_4px_20px_rgba(244,63,94,0.4)] text-white scale-110" 
+                      ? "bg-rose-500 interve-shadow-card text-white scale-110" 
                       : "bg-slate-50/80 text-muted-foreground group-hover:bg-slate-100 group-hover:text-muted-foreground"
                   }`}>
                     <Lightning className="w-7 h-7" weight={stressTest ? "fill" : "regular"} />
@@ -803,7 +803,7 @@ export default function SetupPage() {
                     <h3 className={`text-lg font-serif font-medium mb-1 transition-colors duration-300 ${stressTest ? 'text-rose-900' : 'text-slate-700'}`}>
                       FAANG Intensity
                     </h3>
-                    <p className={`text-[14px] leading-relaxed transition-colors duration-300 ${stressTest ? 'text-rose-700' : 'text-slate-500'}`}>
+                    <p className={`text-ui-base leading-relaxed transition-colors duration-300 ${stressTest ? 'text-rose-700' : 'text-slate-500'}`}>
                       Enable dynamic interruptions, tight constraints, and sharp follow-ups.
                     </p>
                   </div>
@@ -839,9 +839,9 @@ export default function SetupPage() {
                     <button
                       key={model.id}
                       onClick={() => setAiModel(model.id)}
-                      className={`group relative p-6 rounded-[24px] text-left transition-all duration-400 outline-none flex items-center gap-6 border ${
+                      className={`group relative p-6 rounded-2xl text-left transition-all duration-400 outline-none flex items-center gap-6 border ${
                         isSelected 
-                          ? "border-sky-300 shadow-[0_12px_40px_rgba(14,165,233,0.1)] bg-white"
+                          ? "border-sky-300 interve-shadow-hover bg-white"
                           : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60"
                       }`}
               aria-pressed={isSelected}
@@ -849,11 +849,11 @@ export default function SetupPage() {
                       {isSelected && (
                         <motion.div
                           layoutId="model-active-bg"
-                          className="absolute inset-0 rounded-[24px] shadow-[inset_0_0_0_1px_rgba(14,165,233,0.1)]"
+                          className="absolute inset-0 rounded-2xl shadow-[inset_0_0_0_1px_rgba(14,165,233,0.1)]"
                           transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                         />
                       )}
-                      <div className={`relative z-10 p-4 rounded-[20px] shrink-0 transition-colors duration-300 ${
+                      <div className={`relative z-10 p-4 rounded-xl shrink-0 transition-colors duration-300 ${
                         isSelected ? 'bg-sky-50 border border-sky-100' : 'bg-slate-50 text-muted-foreground group-hover:bg-slate-100'
                       }`}>
                         <Icon className={`w-7 h-7 ${isSelected ? model.color : ''}`} weight={isSelected ? "duotone" : "regular"} />
@@ -862,7 +862,7 @@ export default function SetupPage() {
                         <h3 className={`text-lg font-serif font-medium mb-1 transition-colors duration-300 ${isSelected ? 'text-slate-900' : 'text-slate-700'}`}>
                           {model.name}
                         </h3>
-                        <p className={`text-[14px] leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600 font-medium' : 'text-slate-500'}`}>
+                        <p className={`text-ui-base leading-relaxed transition-colors duration-300 ${isSelected ? 'text-slate-600 font-medium' : 'text-slate-500'}`}>
                           {model.desc}
                         </p>
                       </div>
@@ -887,7 +887,7 @@ export default function SetupPage() {
             <WizardSection title="Additional Context" index="05b">
               
               <div className="relative group">
-                <div className="absolute inset-0 bg-white/70 rounded-[28px] backdrop-blur-xl border border-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.03),inset_0_2px_4px_rgba(0,0,0,0.02)] pointer-events-none transition-all duration-300 group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.05),inset_0_2px_4px_rgba(0,0,0,0.02)]" />
+                <div className="absolute inset-0 bg-white/70 rounded-3xl backdrop-blur-xl border border-white/90 interve-shadow-card pointer-events-none transition-all duration-300 group-hover:interve-shadow-hover" />
                 <div className="absolute top-6 left-6 text-slate-300 pointer-events-none">
                   <FileText className="w-6 h-6" />
                 </div>
@@ -895,7 +895,7 @@ export default function SetupPage() {
                   value={context}
                   onChange={(e) => setContext(e.target.value)}
                   placeholder="Paste job description, specific skills to test, or your resume background here..."
-                  className="relative w-full bg-transparent border-0 focus:ring-0 resize-none h-44 p-6 pl-16 text-[15px] text-slate-700 placeholder:text-slate-500 font-medium outline-none rounded-[28px] focus:bg-white/50 transition-colors"
+                  className="relative w-full bg-transparent border-0 focus:ring-0 resize-none h-44 p-6 pl-16 text-ui-lg text-slate-700 placeholder:text-slate-500 font-medium outline-none rounded-3xl focus:bg-white/50 transition-colors"
                 />
                 <div className="absolute bottom-5 right-6 text-xs text-muted-foreground font-mono font-bold bg-white/80 px-2 py-1 rounded-md border border-slate-100 shadow-sm backdrop-blur-md">
                   {context.length}/500
@@ -919,24 +919,24 @@ export default function SetupPage() {
               
               <button
                 onClick={() => setIncludeCoding(!includeCoding)}
-                className={`w-full group relative p-6 rounded-[28px] text-left transition-all duration-500 outline-none flex items-center justify-between border ${
+                className={`w-full group relative p-6 rounded-3xl text-left transition-all duration-500 outline-none flex items-center justify-between border ${
                   includeCoding 
-                    ? "border-sky-300/60 shadow-[0_12px_40px_rgba(14,165,233,0.15)] bg-sky-50/40" 
-                    : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
+                    ? "border-sky-300/60 interve-shadow-hover bg-sky-50/40" 
+                    : "border-slate-200/40 bg-white/40 hover:bg-white/80 hover:border-slate-300/60 hover:interve-shadow-xs"
                 }`}
               aria-pressed={includeCoding}
               >
                 {includeCoding && (
                   <motion.div
                     layoutId="coding-active-bg"
-                    className="absolute inset-0 bg-gradient-to-r from-sky-50/50 to-sky-100/30 rounded-[28px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)]"
+                    className="absolute inset-0 bg-gradient-to-r from-sky-50/50 to-sky-100/30 rounded-3xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)]"
                     transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                   />
                 )}
                 <div className="relative z-10 flex items-center gap-6">
-                  <div className={`p-4 rounded-[20px] transition-all duration-500 ${
+                  <div className={`p-4 rounded-xl transition-all duration-500 ${
                     includeCoding 
-                      ? "bg-sky-500 shadow-[0_4px_20px_rgba(14,165,233,0.4)] text-white scale-110" 
+                      ? "bg-sky-500 interve-shadow-card text-white scale-110" 
                       : "bg-slate-50/80 text-muted-foreground group-hover:bg-slate-100 group-hover:text-muted-foreground"
                   }`}>
                     <TerminalWindow className="w-7 h-7" weight={includeCoding ? "fill" : "regular"} />
@@ -945,7 +945,7 @@ export default function SetupPage() {
                     <h3 className={`text-lg font-serif font-medium mb-1 transition-colors duration-300 ${includeCoding ? 'text-sky-900' : 'text-slate-700'}`}>
                       Coding Sandbox
                     </h3>
-                    <p className={`text-[14px] leading-relaxed transition-colors duration-300 ${includeCoding ? 'text-sky-700' : 'text-slate-500'}`}>
+                    <p className={`text-ui-base leading-relaxed transition-colors duration-300 ${includeCoding ? 'text-sky-700' : 'text-slate-500'}`}>
                       Enable the built-in code editor and technical problem statement during the interview.
                     </p>
                   </div>
@@ -969,9 +969,9 @@ export default function SetupPage() {
                     initial={{ opacity: 0, height: 0, marginTop: 0 }}
                     animate={{ opacity: 1, height: "auto", marginTop: 24 }}
                     exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                    className="relative group overflow-hidden rounded-[28px]"
+                    className="relative group overflow-hidden rounded-3xl"
                   >
-                    <div className="absolute inset-0 bg-white/70 backdrop-blur-xl border border-sky-100/80 shadow-[0_8px_32px_rgba(14,165,233,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] pointer-events-none transition-all duration-300 group-hover:shadow-[0_12px_40px_rgba(14,165,233,0.08)]" />
+                    <div className="absolute inset-0 bg-white/70 backdrop-blur-xl border border-sky-100/80 interve-shadow-card pointer-events-none transition-all duration-300 group-hover:interve-shadow-hover" />
                     <div className="absolute top-6 left-6 text-sky-400 pointer-events-none">
                       <Code className="w-6 h-6" />
                     </div>
@@ -979,7 +979,7 @@ export default function SetupPage() {
                       value={problemStatement}
                       onChange={(e) => setProblemStatement(e.target.value)}
                       placeholder="Paste the technical problem statement here (e.g. LeetCode problem, React component requirements)..."
-                      className="relative w-full bg-transparent border-0 focus:ring-0 resize-none h-44 p-6 pl-16 text-[15px] text-slate-700 placeholder:text-slate-500 font-medium outline-none focus:bg-sky-50/30 transition-colors"
+                      className="relative w-full bg-transparent border-0 focus:ring-0 resize-none h-44 p-6 pl-16 text-ui-lg text-slate-700 placeholder:text-slate-500 font-medium outline-none focus:bg-sky-50/30 transition-colors"
                     />
                   </motion.div>
                 )}
@@ -1023,7 +1023,7 @@ export default function SetupPage() {
                   // while a start is already in flight.
                   disabled={isStarting}
                   size="lg" 
-                  className="relative rounded-[24px] h-12 px-8 font-bold tracking-wide shadow-[0_8px_24px_rgba(14,165,233,0.25)] group overflow-hidden bg-slate-900 text-white hover:bg-slate-800 border border-slate-800 transition-all duration-300"
+                  className="relative rounded-2xl h-12 px-8 font-bold tracking-wide interve-shadow-card group overflow-hidden bg-slate-900 text-white hover:bg-slate-800 border border-slate-800 transition-all duration-300"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-sky-500 via-emerald-400 to-sky-500 opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
                   <span className="relative z-10 flex items-center justify-center">

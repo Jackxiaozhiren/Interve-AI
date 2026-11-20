@@ -994,6 +994,26 @@ export function findDeadControls(sourceText, fileName) {
   return hits;
 }
 
+/**
+ * Arbitrary pixel font sizes (`text-[15px]` etc.) bypass the seven-step
+ * `text-ui-*` scale in globals.css. S1 (2026-11-20) introduced this ratchet so
+ * the migration from the seeded 295 sites down to the scale cannot be undone
+ * by a later "just one more" px value. Counted on source files only — the same
+ * corpus as every other debt probe — and as a scalar because the ceiling binds
+ * how many sites exist, not which files they live in.
+ */
+export function countArbitraryFontSizes(sourceText) {
+  return (sourceText.match(/text-\[\d+(?:\.\d+)?px\]/g) ?? []).length;
+}
+
+function countArbitraryFontSizesInSrc() {
+  let hits = 0;
+  for (const f of sourceFiles()) {
+    hits += countArbitraryFontSizes(fs.readFileSync(f, "utf8"));
+  }
+  return hits;
+}
+
 function collectDeadControlsInSrc() {
   const perFile = [];
   for (const f of sourceFiles()) {
@@ -1021,6 +1041,7 @@ function collectDebt() {
     selectStarHits: countDebtAcrossTree("selectStarHits"),
     tsIgnoreHits: countDebtAcrossTree("tsIgnoreHits"),
     todoMarkers: countDebtAcrossTree("todoMarkers"),
+    arbitraryFontSizes: countArbitraryFontSizesInSrc(),
     hardInternalNavigations: countHardInternalNavigationsInSrc(),
     mouseOnlyInteractions: countMouseOnlyInteractionsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
@@ -1287,6 +1308,10 @@ export const RATCHET_KEYS = {
     + "2026-10-11 when the /interview room gave its overlay stack, its telemetry strip and its transcript "
     + "column to components; the slack above the measurement belongs to the recording loop still in that "
     + "file, not to lines already recovered.",
+  "debt.arbitraryFontSizes":
+    "arbitrary pixel font sizes (`text-[Npx]`) that bypass the seven-step text-ui-* scale in globals.css. "
+    + "Seeded 2026-11-20 (S1) at the measured 295; S1 migrated all 295 sites to scale tokens in the same commit "
+    + "and lowered the ceiling straight to 0 — no unscaled px value survives, and the ratchet cannot be reopened.",
   "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
   "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",
 };

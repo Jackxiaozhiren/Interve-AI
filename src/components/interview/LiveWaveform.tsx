@@ -92,7 +92,7 @@ export function LiveWaveform({ stream, isRecording }: LiveWaveformProps) {
   }, [isRecording, stream]);
 
   return (
-    <div className="relative w-full h-12 bg-white/40 backdrop-blur-md rounded-[16px] overflow-hidden flex items-end border border-white/60 shadow-[inset_0_1px_3px_rgba(255,255,255,0.6),0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-300">
+    <div className="relative w-full h-12 bg-white/40 backdrop-blur-md rounded-lg overflow-hidden flex items-end border border-white/60 shadow-[inset_0_1px_3px_rgba(255,255,255,0.6),0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-300">
       <canvas
         ref={canvasRef}
         width={300}
