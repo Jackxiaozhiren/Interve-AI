@@ -186,7 +186,7 @@ export function RoomStage({ framework, stressTest, isFocusMode, isPageVisible, i
                     >
                       <Microphone className="w-5 h-5" />
                       {isRecording ? (
-                         <span className="absolute -top-10 text-ui-2xs font-medium text-rose-500 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full whitespace-nowrap shadow-sm border border-rose-100">
+                         <span className="absolute -top-10 text-ui-2xs font-medium text-rose-600 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full whitespace-nowrap shadow-sm border border-rose-100">
                            正在录音...
                          </span>
                       ) : (
