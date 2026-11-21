@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Flag } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
 import { db, type ReportDispute, type ReportDisputeReason } from "@/lib/db";
 import {
   appendDispute,
@@ -117,13 +118,17 @@ export function DisputePanel({ interviewId, dimensions, existing, onSaved }: Dis
                     已记录异议
                   </span>
                 ) : (
-                  <button
+                  // S2: standard toggle moved onto the shared Button. The slate
+                  // surface becomes the component's outline variant — one
+                  // visual system for standard actions across the app.
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => (isOpen ? setOpenId(null) : start(dim.id))}
-                    className="inline-flex items-center min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
+                    className="min-h-11 sm:min-h-0 px-3 py-1.5 text-slate-700"
                   >
                     我有异议
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -170,21 +175,22 @@ export function DisputePanel({ interviewId, dimensions, existing, onSaved }: Dis
                   )}
 
                   <div className="flex flex-wrap gap-2">
-                    <button
+                    <Button
                       type="button"
                       onClick={() => submit(dim.id)}
                       disabled={saving}
-                      className="inline-flex items-center min-h-11 sm:min-h-0 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium disabled:opacity-60"
+                      className="min-h-11 sm:min-h-0 px-4 py-2"
                     >
                       {saving ? "提交中…" : "提交异议"}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => setOpenId(null)}
-                      className="inline-flex items-center min-h-11 sm:min-h-0 px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700"
+                      className="min-h-11 sm:min-h-0 px-4 py-2 text-slate-700"
                     >
                       取消
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}

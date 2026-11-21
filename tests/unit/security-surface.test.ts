@@ -134,7 +134,7 @@ describe("LLM07 Misinformation (2026): verdicts ride verbatim evidence + disclai
     );
     expect(c, "single disclaimer source").toContain("export const READINESS_DISCLAIMER");
     for (const f of [
-      "src/components/evaluation/EvaluationView.tsx",
+      "src/components/patterns/EvaluationView.tsx",
       "src/components/interview/PrintLayout.tsx",
       "src/components/dashboard/PrintableDossier.tsx",
       "src/lib/utils/export.ts",

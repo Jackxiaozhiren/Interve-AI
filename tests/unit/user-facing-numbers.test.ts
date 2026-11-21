@@ -94,7 +94,7 @@ const VERIFIED: Record<string, Entry> = {
   },
   "src/components/dashboard/PrintableDossier.tsx": { digits: ["100"], why: "/100 scale suffix" },
   "src/components/dashboard/SessionDetailModal.tsx": { digits: ["100"], why: "/ 100 scale suffix" },
-  "src/components/evaluation/EvaluationView.tsx": {
+  "src/components/patterns/EvaluationView.tsx": {
     digits: ["100", "5"],
     why: "/100 scale suffix and the rubric's 1-5 anchors (DimensionSchema: int().min(1).max(5))",
   },

@@ -1,14 +1,20 @@
 "use client";
 
-import * as React from "react";
+import React from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/* ═══════════════════════════════════════
-   Interve AI — Button Component
-   4 variants × 3 sizes × 5 states
-   Luminous Light Design System v1.0
-   ═══════════════════════════════════════ */
-
+/**
+ * Compatibility facade (S2, 2026-11-21).
+ *
+ * §12.10's merge rule: `ui/button` is the single button implementation, and
+ * InterveButton's visual differences live there as variants (primary / text;
+ * danger maps onto destructive). This file used to carry a second 130-line
+ * native-<button> implementation with its own hover/focus/disabled styling —
+ * two buttons claiming one name. It is now a thin adapter over the one
+ * implementation, so the 11 call sites keep their props (loading / icon /
+ * iconPosition / legacy size names) without forking the styling.
+ */
 export interface InterveButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "text" | "danger";
@@ -18,41 +24,18 @@ export interface InterveButtonProps
   iconPosition?: "left" | "right";
 }
 
-const variantStyles: Record<string, string> = {
-  primary: [
-    "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)]",
-    "hover:bg-[#D6E4FF] hover:interve-shadow-button",
-    "active:bg-[#BFDBFF] active:scale-[0.97]",
-    "disabled:bg-[#F2F3F5] disabled:text-[var(--interve-text-disabled)] disabled:shadow-none disabled:cursor-not-allowed",
-  ].join(" "),
+const VARIANT_MAP = {
+  primary: "primary",
+  secondary: "secondary",
+  text: "text",
+  danger: "destructive",
+} as const;
 
-  secondary: [
-    "interve-glass-light text-[var(--interve-text-body)]",
-    "hover:bg-white/95 hover:border-[var(--interve-border-hover)] hover:interve-shadow-xs",
-    "active:bg-[var(--interve-bg-secondary)] active:scale-[0.97]",
-    "disabled:bg-[#F7F8FA] disabled:text-[var(--interve-text-disabled)] disabled:shadow-none disabled:cursor-not-allowed",
-  ].join(" "),
-
-  text: [
-    "bg-transparent text-[var(--interve-brand-accent)]",
-    "hover:bg-[var(--interve-brand-surface)]",
-    "active:bg-[#D6E4FF] active:scale-[0.97]",
-    "disabled:text-[var(--interve-text-disabled)] disabled:bg-transparent disabled:cursor-not-allowed",
-  ].join(" "),
-
-  danger: [
-    "bg-[var(--interve-danger-surface)] text-[var(--interve-danger-text)]",
-    "hover:bg-[#FFD6D6] hover:interve-shadow-xs",
-    "active:bg-[#FFC2C2] active:scale-[0.97]",
-    "disabled:bg-[#F2F3F5] disabled:text-[var(--interve-text-disabled)] disabled:shadow-none disabled:cursor-not-allowed",
-  ].join(" "),
-};
-
-const sizeStyles: Record<string, string> = {
-  lg: "h-11 px-6 text-ui-lg gap-2.5 rounded-md",
-  md: "h-9 px-4 text-ui-base gap-2 rounded-md",
-  sm: "h-7 px-3 text-ui-xs gap-1.5 rounded-sm",
-};
+const SIZE_MAP = {
+  lg: "lg",
+  md: "default",
+  sm: "sm",
+} as const;
 
 export const InterveButton = React.forwardRef<
   HTMLButtonElement,
@@ -73,19 +56,18 @@ export const InterveButton = React.forwardRef<
     ref
   ) => {
     const isDisabled = disabled || loading;
+    const spinnerSize = size === "sm" ? 12 : 14;
 
     return (
-      <button
+      <Button
         ref={ref}
         disabled={isDisabled}
+        variant={VARIANT_MAP[variant]}
+        size={SIZE_MAP[size]}
         className={cn(
           "inline-flex items-center justify-center font-medium select-none",
+          "interve-focus-glow will-change-transform",
           variant === "primary" ? "interve-hoverable-primary" : "interve-hoverable",
-          "interve-focus-glow",
-          "will-change-transform",
-          "focus-visible:ring-2 focus-visible:ring-[var(--interve-brand-accent)]/20 focus-visible:outline-none",
-          variantStyles[variant],
-          sizeStyles[size],
           className
         )}
         {...props}
@@ -93,8 +75,8 @@ export const InterveButton = React.forwardRef<
         {loading && (
           <svg
             className="animate-spin shrink-0"
-            width={size === "sm" ? 12 : 14}
-            height={size === "sm" ? 12 : 14}
+            width={spinnerSize}
+            height={spinnerSize}
             viewBox="0 0 24 24"
             fill="none"
           >
@@ -122,7 +104,7 @@ export const InterveButton = React.forwardRef<
         {!loading && icon && iconPosition === "right" && (
           <span className="shrink-0">{icon}</span>
         )}
-      </button>
+      </Button>
     );
   }
 );

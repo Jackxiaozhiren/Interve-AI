@@ -14,7 +14,7 @@ import { exportInterviewToMarkdown, downloadFile } from "@/lib/utils/export";
 import { PrintLayout } from "@/components/interview/PrintLayout";
 import { retryPracticeHref } from "@/lib/retry-link";
 import { toEvaluationView } from "@/lib/eval-compat";
-import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills } from "@/components/evaluation/EvaluationView";
+import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills } from "@/components/patterns/EvaluationView";
 
 type TabId = 'diagnostic' | 'dimensions' | 'readiness';
 

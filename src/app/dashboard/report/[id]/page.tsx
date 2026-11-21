@@ -18,7 +18,7 @@ import { BookOpen, ChatTeardropText, Compass, Users } from "@phosphor-icons/reac
 import { toEvaluationView } from "@/lib/eval-compat";
 import { WPM_REFERENCE_BAND } from "@/lib/interview/delivery-metrics";
 import { retryPracticeHref } from "@/lib/retry-link";
-import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills, DrillPlan } from "@/components/evaluation/EvaluationView";
+import { ReadinessBadge, ReadinessDisclaimer, LegacyBanner, DimensionsSection, StrengthsDrills, DrillPlan } from "@/components/patterns/EvaluationView";
 import { TopImprovements } from "@/components/evaluation/TopImprovements";
 import { FairnessCard } from "@/components/evaluation/FairnessCard";
 import fairnessAudit from "@/data/fairness-audit.json";

@@ -8,10 +8,6 @@
 export { InterveButton } from "./button";
 export type { InterveButtonProps } from "./button";
 
-// ── Input ──
-export { InterveInput, InterveTextarea } from "./input";
-export type { InterveInputProps, InterveTextareaProps } from "./input";
-
 // ── Select ──
 export { InterveSelect } from "./select";
 export type { InterveSelectProps, SelectOption } from "./select";
@@ -28,10 +24,6 @@ export type { InterveSliderProps } from "./slider";
 export { InterveTag, InterveBadge } from "./tag";
 export type { InterveTagProps, InterveBadgeProps, TagColor } from "./tag";
 
-// ── Modal ──
-export { InterveModal, InterveConfirm } from "./modal";
-export type { InterveModalProps, InterveConfirmProps } from "./modal";
-
 // ── Drawer ──
 export { InterveDrawer } from "./drawer";
 export type { InterveDrawerProps } from "./drawer";
@@ -42,15 +34,12 @@ export {
   InterveNavLink,
   InterveSidebar,
   InterveSidebarItem,
-  InterveBreadcrumb,
 } from "./navigation";
 export type {
   InterveTopNavProps,
   InterveNavLinkProps,
   InterveSidebarProps,
   InterveSidebarItemProps,
-  InterveBreadcrumbProps,
-  BreadcrumbItem,
 } from "./navigation";
 
 // ── Pagination ──

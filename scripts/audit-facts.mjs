@@ -1006,10 +1006,36 @@ export function countArbitraryFontSizes(sourceText) {
   return (sourceText.match(/text-\[\d+(?:\.\d+)?px\]/g) ?? []).length;
 }
 
+/**
+ * Business-side native `<button>` elements (S2, 2026-11-21). Library internals
+ * (components/ui, components/interve-ui, components/primitives) are excluded:
+ * a button primitive is itself a native <button>, and pagination/select keep
+ * their own for good reason. Seeded at the measured 39. §12.13 wants business
+ * pages on the shared Button; the ratchet only bounds how far the count can
+ * regress while the migration proceeds. Raising a library file's count is
+ * invisible here by design — the contract test owns the library boundary.
+ */
+export function countNativeButtons(sourceText) {
+  return (sourceText.match(/<button\b/g) ?? []).length;
+}
+
+const NATIVE_BUTTON_EXCLUDED = /components[\\/](ui|interve-ui|primitives|patterns)[\\/]/;
+
 function countArbitraryFontSizesInSrc() {
   let hits = 0;
   for (const f of sourceFiles()) {
     hits += countArbitraryFontSizes(fs.readFileSync(f, "utf8"));
+  }
+  return hits;
+}
+
+function countNativeButtonsInSrc() {
+  let hits = 0;
+  for (const f of sourceFiles()) {
+    const rel = path.relative(ROOT, f);
+    if (NATIVE_BUTTON_EXCLUDED.test(rel)) continue;
+    if (!rel.endsWith(".tsx")) continue;
+    hits += countNativeButtons(fs.readFileSync(f, "utf8"));
   }
   return hits;
 }
@@ -1042,6 +1068,7 @@ function collectDebt() {
     tsIgnoreHits: countDebtAcrossTree("tsIgnoreHits"),
     todoMarkers: countDebtAcrossTree("todoMarkers"),
     arbitraryFontSizes: countArbitraryFontSizesInSrc(),
+    nativeButtons: countNativeButtonsInSrc(),
     hardInternalNavigations: countHardInternalNavigationsInSrc(),
     mouseOnlyInteractions: countMouseOnlyInteractionsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
@@ -1312,6 +1339,12 @@ export const RATCHET_KEYS = {
     "arbitrary pixel font sizes (`text-[Npx]`) that bypass the seven-step text-ui-* scale in globals.css. "
     + "Seeded 2026-11-20 (S1) at the measured 295; S1 migrated all 295 sites to scale tokens in the same commit "
     + "and lowered the ceiling straight to 0 — no unscaled px value survives, and the ratchet cannot be reopened.",
+  "debt.nativeButtons":
+    "native `<button>` elements in business code (library directories excluded — a button primitive is "
+    + "itself a native button). Seeded 2026-11-21 (S2) at the measured 39; §12.13 wants business pages on "
+    + "the shared Button component, and the count only ever goes down. Replaces need the visual system of "
+    + "the call site to already speak the design tokens — a swap that changes what a control looks like is "
+    + "a design decision, not a migration step.",
   "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
   "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",
 };

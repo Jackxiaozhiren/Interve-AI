@@ -21,6 +21,7 @@ import { describe, expect, it } from "vitest";
 import {
   countAnyEscapes,
   countArbitraryFontSizes,
+  countNativeButtons,
   countDocsProseLines,
   countMouseOnlyInteractions,
   countNeverAssertions,
@@ -67,6 +68,9 @@ const ARM_FIXTURES: [key: string, measure: (text: string) => number, bad: string
     'const r = await fetch("/api/copilot", { method: "POST" });', 'const r = await postJson("/api/copilot", body);'],
   ["arbitraryFontSizes", (t) => countArbitraryFontSizes(t),
     '<p className="text-[13px] leading-relaxed">body</p>', '<p className="text-ui-sm">body</p>'],
+  ["nativeButtons", (t) => countNativeButtons(t),
+    'const C = () => <button onClick={go} className="px-4">go</button>;',
+    'const C = () => <Button onClick={go}>go</Button>;'],
 ];
 
 const ARMS: Arm[] = ARM_FIXTURES.map(([key, measure, bad, good]) => ({ key, measure, bad, good }));
