@@ -66,7 +66,6 @@ const PENDING: string[] = [
   "src/components/interview/TelemetryWidget.tsx",
   "src/components/dashboard/EmptyDashboardState.tsx",
   "src/components/interview/CopilotPanel.tsx",
-  "src/app/dashboard/dashboard-shell.tsx",
   "src/app/terms/page.tsx",
   "src/components/dashboard/KnowledgeMatchLoader.tsx",
   "src/components/interve-ui/chat/code-block.tsx",

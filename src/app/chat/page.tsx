@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { InterveSidebar, InterveSidebarItem, InterveButton } from "@/components/interve-ui";
 import { 
   InterveMessageCard, 
@@ -81,19 +82,29 @@ export default function ChatPage() {
         onToggle={() => setCollapsed(!collapsed)}
         className="shrink-0 z-10 shadow-[var(--interve-shadow-md)]"
         header={
-          <InterveButton 
-            variant="secondary"
-            onClick={() => setMessages(openingMessages())}
-            className="w-full justify-start border-dashed bg-transparent shadow-none"
-            icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            }
-          >
-            {!collapsed && "新建对话"}
-          </InterveButton>
+          <div className="flex flex-col gap-2 w-full">
+            {/* S3: /chat was reachable only from the footer. Give it a real
+                way back to the product surface. */}
+            <Link
+              href="/dashboard"
+              className="text-ui-sm text-[var(--interve-text-secondary)] hover:text-[var(--interve-brand-accent)] transition-colors px-1"
+            >
+              {collapsed ? "⌂" : "← 返回控制台"}
+            </Link>
+            <InterveButton
+              variant="secondary"
+              onClick={() => setMessages(openingMessages())}
+              className="w-full justify-start border-dashed bg-transparent shadow-none"
+              icon={
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              }
+            >
+              {!collapsed && "新建对话"}
+            </InterveButton>
+          </div>
         }
         footer={
           <div className="flex items-center gap-3 w-full">

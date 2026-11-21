@@ -5,7 +5,7 @@
 "use client";
 
 import { ReactNode, useState, createContext, useContext, useRef, useEffect } from "react";
-import { Sparkle, SquaresFour, FileText, Gear, SignOut, CloudArrowUp, ShieldCheck } from "@phosphor-icons/react";
+import { Sparkle, SquaresFour, FileText, Gear, SignOut, CloudArrowUp, ShieldCheck, ChatCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -35,12 +35,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
+  // 五组中文主导航（S3）。原英文五项一一对应，不改动路由本身；
+  // /chat 从「仅 Footer 可达」提升为主导航项，避免 AI 对话埋在页脚。
   const navItems = [
-    { name: "Dashboard", href: "/dashboard", icon: SquaresFour },
-    { name: "My Interviews", href: "/dashboard/interview", icon: FileText },
-    { name: "Knowledge Base", href: "/dashboard/knowledge", icon: CloudArrowUp },
-    { name: "Privacy", href: "/dashboard/privacy", icon: ShieldCheck },
-    { name: "Settings", href: "/dashboard/settings", icon: Gear },
+    { name: "总览", href: "/dashboard", icon: SquaresFour },
+    { name: "我的面试", href: "/dashboard/interview", icon: FileText },
+    { name: "知识库", href: "/dashboard/knowledge", icon: CloudArrowUp },
+    { name: "AI 对话", href: "/chat", icon: ChatCircle },
+    { name: "隐私", href: "/dashboard/privacy", icon: ShieldCheck },
+    { name: "设置", href: "/dashboard/settings", icon: Gear },
   ];
 
   const { user, isLoading, logout } = useAuth();
@@ -107,7 +110,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   fifth of the height; from md up this is the same column. */}
               <nav
                 className="flex gap-2 overflow-x-auto pb-1 md:block md:space-y-2.5 md:overflow-visible md:pb-0"
-                aria-label="Dashboard navigation"
+                aria-label="主导航"
               >
                 {navItems.map((item) => {
                   const isActive = pathname === item.href;
@@ -147,7 +150,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 className="w-auto md:w-full justify-start gap-2 md:gap-4 px-3 md:px-0 text-slate-500 hover:text-rose-600 hover:bg-rose-50/80 border border-transparent hover:border-rose-100/50 shadow-[0_4px_20px_rgba(0,0,0,0.0)] hover:shadow-[0_4px_20px_rgba(244,63,94,0.05)] transition-all duration-500 rounded-[20px] font-medium h-[40px] md:h-[52px] text-[14.5px] group/logout"
               >
                 <SignOut weight="regular" className="w-[22px] h-[22px] text-muted-foreground group-hover/logout:text-rose-500 group-hover/logout:-translate-x-1 transition-all" />
-                <span className="tracking-wide">Log out</span>
+                <span className="tracking-wide">退出登录</span>
               </Button>
             </div>
           </aside>

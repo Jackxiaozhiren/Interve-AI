@@ -349,10 +349,10 @@ function reachedFrom(route: string): string[] {
  * shrink. Each entry must say why, in terms a reader can check.
  */
 const UNLINKED: Record<string, string> = {
-  "/recruiter":
-    "kept as the labelled recruiter demo (docs/audit decision 2026-10-08, PR #15): it is a " +
-    "showcase surface, so the candidate product deliberately has no link into it. Its own page " +
-    "links to /recruiter/assessments, which this rule confirms is reached.",
+  // S3 (2026-11-20) removed /recruiter from this list on purpose. The roadmap
+  // §12.13 requires a role entry for it, and the Footer now carries one labelled
+  // 「招聘方演示」 so the demo is reachable without being sold as a product tier.
+  // Its own page still links to /recruiter/assessments.
   "/s/[token]":
     "opened from a link the candidate sends outside the product: no in-app navigation can point at " +
     "a token that does not exist until it is generated, and the page is deliberately chrome-free so " +

@@ -27,6 +27,7 @@ test.describe('Privacy Center', () => {
 
   test('should be reachable from the dashboard sidebar', async ({ page }) => {
     await page.goto('/dashboard');
-    await expect(page.getByRole('link', { name: /Privacy/ })).toBeVisible();
+    // S3 (2026-11-20) translated the sidebar link to 隐私; route unchanged.
+    await expect(page.getByRole('link', { name: /隐私/ })).toBeVisible();
   });
 });

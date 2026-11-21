@@ -96,7 +96,8 @@ test.describe("Dashboard launcher pages navigate instead of sitting inert", () =
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("link", { name: "My Interviews" }).click();
+    // S3 (2026-11-20) translated the sidebar to Chinese; the route is unchanged.
+    await page.getByRole("link", { name: "我的面试" }).click();
     await expect(page).toHaveURL(/\/dashboard\/interview$/);
 
     await page.getByRole("main").getByRole("link", { name: "前往简历分析" }).click();
