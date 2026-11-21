@@ -460,9 +460,18 @@ test.describe('Automated a11y scans', () => {
     // bump in #179 rather than with a product change. One seat is recorded so a
     // second empty control is a new cause and fails the run; the gate prints the
     // observed count in `described` if the number is higher than this.
+    //
+    // bgOverlap 7 -> 8 (S1, 2026-11-21): the pacing bar's status label moved from
+    // text-[12px] to text-ui-xs. The pixel size is identical, but the token
+    // carries line-height 1.4 where the raw utility inherited the parent's, and
+    // the label's box inside the h-8 pill shifted enough that axe can no longer
+    // composite its background — one more `bgOverlap` incomplete, i.e. one more
+    // measurement that never happened, not a new overlap or a contrast failure.
+    // The bucket holds the observed maximum by design; the maximum moved with
+    // the geometry. A ninth seat is still a new cause and fails the run.
     await expectNoSeriousViolations(page, {
       bgGradient: 3,
-      bgOverlap: 7,
+      bgOverlap: 8,
       elmPartiallyObscured: 4,
       emptyValue: 1,
       imgNode: 1,
