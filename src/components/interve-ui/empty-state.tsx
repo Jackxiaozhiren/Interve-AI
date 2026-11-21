@@ -78,7 +78,7 @@ export function InterveEmptyState({
         {icon && (
           <span className="text-[var(--interve-text-secondary)] mb-2">{icon}</span>
         )}
-        <p className="text-[13px] text-[var(--interve-text-secondary)]">{title}</p>
+        <p className="text-ui-sm text-[var(--interve-text-secondary)]">{title}</p>
       </div>
     );
   }
@@ -91,13 +91,13 @@ export function InterveEmptyState({
       </div>
 
       {/* Title — 18px, 500, #1D2129, mt-24px */}
-      <h3 className="text-[18px] font-medium text-[#1D2129] mt-6">
+      <h3 className="text-ui-xl font-medium text-[#1D2129] mt-6">
         {title}
       </h3>
 
       {/* Description — 14px, var(--interve-text-secondary), mt-12px, max 2 lines */}
       {description && (
-        <p className="text-[14px] text-[var(--interve-text-secondary)] mt-3 max-w-xs text-center line-clamp-2">
+        <p className="text-ui-base text-[var(--interve-text-secondary)] mt-3 max-w-xs text-center line-clamp-2">
           {description}
         </p>
       )}

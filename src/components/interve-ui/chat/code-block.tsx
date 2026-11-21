@@ -135,7 +135,7 @@ export function InterveCodeBlock({
   return (
     <div
       className={cn(
-        "relative rounded-[var(--radius-md)] overflow-hidden",
+        "relative rounded-md overflow-hidden",
         "bg-[rgba(250,250,252,0.8)] backdrop-blur-[8px]",
         "border border-[rgba(0,0,0,0.05)]",
         "group",
@@ -144,15 +144,15 @@ export function InterveCodeBlock({
     >
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[rgba(0,0,0,0.04)] bg-[rgba(250,250,252,0.5)]">
-        <span className="text-[12px] font-medium text-[var(--interve-text-secondary)] uppercase tracking-wider">
+        <span className="text-ui-xs font-medium text-[var(--interve-text-secondary)] uppercase tracking-wider">
           {language}
         </span>
         <button
           type="button"
           onClick={handleCopy}
           className={cn(
-            "flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius-sm)]",
-            "text-[12px] font-medium",
+            "flex items-center gap-1.5 px-2.5 py-1 rounded-sm",
+            "text-ui-xs font-medium",
             "transition-all duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
             copied
               ? "bg-[var(--interve-success-surface)] text-[var(--interve-success-text)]"
@@ -189,13 +189,13 @@ export function InterveCodeBlock({
               <tr key={i} className="hover:bg-[rgba(0,0,0,0.02)] transition-colors duration-75">
                 {showLineNumbers && (
                   <td className="px-4 py-0 text-right select-none w-[1%] whitespace-nowrap">
-                    <span className="text-[12px] text-[#C9CDD4] tabular-nums">
+                    <span className="text-ui-xs text-[#C9CDD4] tabular-nums">
                       {i + 1}
                     </span>
                   </td>
                 )}
                 <td className="px-4 py-0">
-                  <pre className="text-[13px] font-mono text-[#1D2129] leading-[22px] whitespace-pre">
+                  <pre className="text-ui-sm font-mono text-[#1D2129] leading-[22px] whitespace-pre">
                     {shouldHighlight
                       ? tokenizeLine(line).map((token, j) => (
                           <span key={j} style={{ color: TOKEN_COLORS[token.type] }}>

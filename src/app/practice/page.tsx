@@ -153,7 +153,7 @@ function PracticeHubInner() {
               placeholder="Search for 'System Design', 'Conflict Resolution'..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-14 pl-12 rounded-[20px] bg-white/70 backdrop-blur-xl border-zinc-200/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.04)] focus-visible:ring-emerald-500/30 text-base"
+              className="w-full h-14 pl-12 rounded-xl bg-white/70 backdrop-blur-xl border-zinc-200/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.04)] focus-visible:ring-emerald-500/30 text-base"
             />
           </div>
 
@@ -234,7 +234,7 @@ function PracticeHubInner() {
                   </CardContent>
                   <div className="px-4 pb-4 mt-auto flex flex-wrap gap-1.5 pt-4">
                     {q.tags.map(tag => (
-                      <span key={tag} className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100/80 text-slate-500">
+                      <span key={tag} className="text-ui-2xs font-medium px-2 py-0.5 rounded-md bg-slate-100/80 text-slate-500">
                         #{tag}
                       </span>
                     ))}

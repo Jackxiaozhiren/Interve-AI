@@ -19,7 +19,7 @@ export function TelemetryWidget({ isRecording, isAiSpeaking }: TelemetryWidgetPr
         {/* Phase 14: slate-700/500 for 4.5:1 on glass (were 600/400). */}
         <div className="flex items-center gap-1.5 text-slate-700">
           <Brain weight="bold" className="w-4 h-4 text-sky-500" />
-          <span className="text-[10px] font-bold tracking-widest uppercase font-sans text-slate-700">Session</span>
+          <span className="text-ui-2xs font-bold tracking-widest uppercase font-sans text-slate-700">Session</span>
         </div>
       </div>
       
@@ -31,10 +31,10 @@ export function TelemetryWidget({ isRecording, isAiSpeaking }: TelemetryWidgetPr
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
           role="region"
           aria-label="Agent Audio Status"
-          className="flex flex-col p-4 glass-card rounded-2xl relative overflow-hidden group justify-between"
+          className="flex flex-col p-4 interve-glass-heavy rounded-2xl relative overflow-hidden group justify-between"
         >
           <div className="flex items-center justify-between z-10">
-            <span className="text-[10px] text-slate-600 font-bold font-sans uppercase tracking-wider">Status</span>
+            <span className="text-ui-2xs text-slate-600 font-bold font-sans uppercase tracking-wider">Status</span>
           </div>
           <div className="flex flex-col items-center justify-center h-full z-10 mt-2">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/60 shadow-sm border border-white/80 mb-2">
@@ -46,10 +46,10 @@ export function TelemetryWidget({ isRecording, isAiSpeaking }: TelemetryWidgetPr
                 <div className="w-3 h-3 rounded-full bg-slate-300" />
               )}
             </div>
-            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+            <span className="text-ui-2xs font-bold text-slate-700 uppercase tracking-wide">
               {isAiSpeaking ? "AI Active" : isRecording ? "Listening" : "Standby"}
             </span>
-            <span className="text-[9px] text-slate-600 font-medium mt-1">Audio pipeline state</span>
+            <span className="text-ui-2xs text-slate-600 font-medium mt-1">Audio pipeline state</span>
           </div>
         </motion.div>
       </div>

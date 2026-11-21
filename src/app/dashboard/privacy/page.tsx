@@ -221,13 +221,13 @@ export default function PrivacyPage() {
       </div>
 
       {/* Inventory */}
-      <section className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[24px] p-8 shadow-sm">
+      <section className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-2xl p-8 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800 mb-1">收集与存储清单</h2>
         <p className="text-sm text-slate-500 mb-6">采集什么、存在哪里、为什么、保留多久。</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-widest text-muted-foreground border-b border-slate-100">
+              <tr className="text-left text-ui-2xs uppercase tracking-widest text-muted-foreground border-b border-slate-100">
                 <th className="py-2 pr-4 font-bold">数据</th>
                 <th className="py-2 pr-4 font-bold">存储位置</th>
                 <th className="py-2 pr-4 font-bold">用途</th>
@@ -249,7 +249,7 @@ export default function PrivacyPage() {
       </section>
 
       {/* Sessions */}
-      <section className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[24px] p-8 shadow-sm">
+      <section className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-2xl p-8 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800 mb-1">你的面试会话</h2>
         <p className="text-sm text-slate-500 mb-6">逐条删除（含云端记录与本地快照）。</p>
         {loading ? (
@@ -305,7 +305,7 @@ export default function PrivacyPage() {
       </section>
 
       {/* Export + Danger zone */}
-      <section className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[24px] p-8 shadow-sm">
+      <section className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-2xl p-8 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800 mb-1">导出与彻底删除</h2>
         <p className="text-sm text-slate-500 mb-6">导出为 JSON（面试 + 练习），或清空云端全部数据。导出的文件含完整简历与逐字稿，请妥善保存在个人设备并注意转发风险。</p>
         <div className="flex flex-wrap gap-3 mb-8">

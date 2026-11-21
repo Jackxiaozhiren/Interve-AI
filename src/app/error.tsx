@@ -67,7 +67,7 @@ export default function ErrorBoundary({
       >
         <Button
           onClick={reset}
-          className="rounded-full shadow-[0_8px_24px_rgba(15,23,42,0.15)] bg-slate-900 hover:bg-slate-800 font-semibold border border-slate-800"
+          className="rounded-full interve-shadow-button bg-slate-900 hover:bg-slate-800 font-semibold border border-slate-800"
         >
           <ArrowClockwise className="w-4 h-4 mr-2" weight="bold" />
           Try Again

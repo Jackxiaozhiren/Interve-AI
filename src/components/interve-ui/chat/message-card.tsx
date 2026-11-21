@@ -58,14 +58,14 @@ export function InterveMessageCard({
           // Phase 14: user-bubble text darkened for 4.5:1 on the tint
           // (brand-accent measured 3.85:1 here).
           isUser
-            ? "bg-[var(--interve-brand-surface)] text-blue-700 rounded-[16px] rounded-br-[4px]"
-            : "bg-white interve-shadow-xs border border-[var(--interve-border)] rounded-[16px] rounded-bl-[4px] text-[var(--interve-text-title)]"
+            ? "bg-[var(--interve-brand-surface)] text-blue-700 rounded-lg rounded-br-[4px]"
+            : "bg-white interve-shadow-xs border border-[var(--interve-border)] rounded-lg rounded-bl-[4px] text-[var(--interve-text-title)]"
         )}
       >
         {/* Message content */}
         <div
           className={cn(
-            "px-[18px] py-[14px] text-[14px] leading-relaxed",
+            "px-[18px] py-[14px] text-ui-base leading-relaxed",
             isUser ? "font-normal" : "prose-sm"
           )}
         >
@@ -92,7 +92,7 @@ export function InterveMessageCard({
         {timestamp && !streaming && (
           <div
             className={cn(
-              "px-4 pb-2 text-[11px] text-slate-600",
+              "px-4 pb-2 text-ui-2xs text-slate-600",
               isUser && "text-right"
             )}
           >
@@ -109,7 +109,7 @@ export function InterveMessageCard({
                 type="button"
                 onClick={action.onClick}
                 title={action.label}
-                className="w-7 h-7 flex items-center justify-center rounded-[var(--radius-sm)] text-[var(--interve-text-secondary)] hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)] interve-hoverable transition-colors duration-[var(--motion-micro)]"
+                className="w-7 h-7 flex items-center justify-center rounded-sm text-[var(--interve-text-secondary)] hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)] interve-hoverable transition-colors duration-[var(--motion-micro)]"
               >
                 {action.icon}
               </button>
@@ -151,7 +151,7 @@ export function InterveAIResponse({
       className={className}
       content={
         <div
-          className="interve-ai-prose [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:bg-[var(--interve-bg-accent)] [&_code]:rounded-[4px] [&_code]:text-[13px] [&_code]:font-mono [&_strong]:font-semibold"
+          className="interve-ai-prose [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:bg-[var(--interve-bg-accent)] [&_code]:rounded-xs [&_code]:text-ui-sm [&_code]:font-mono [&_strong]:font-semibold"
           dangerouslySetInnerHTML={{ __html: escapeHtml(content) }}
         />
       }

@@ -40,13 +40,13 @@ export function StandbyOverlay({
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white p-10 rounded-[32px] shadow-2xl flex flex-col items-center text-center max-w-md border border-white/50"
+            className="bg-white p-10 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md border border-white/50"
           >
             <div className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center mb-6 border border-sky-100 shadow-sm">
               <Play className="w-10 h-10 text-sky-500 ml-1" weight="fill" />
             </div>
             <h2 className="text-3xl font-bold font-heading text-slate-800 mb-3">准备好开始了吗？</h2>
-            <p className="text-slate-500 mb-8 leading-relaxed text-[15px]">
+            <p className="text-slate-500 mb-8 leading-relaxed text-ui-lg">
               您的硬件检测已完成。点击下方按钮正式进入面试状态。深呼吸，放松心情。
             </p>
             <div className="w-full flex flex-col gap-3">

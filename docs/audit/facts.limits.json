@@ -16,7 +16,8 @@
     "debt.unreferencedProductionDeps": "production dependencies no file under src/ imports. Adjudicated 2026-10-06 at 4: `dexie`, `dexie-react-hooks`, `geist`, `mermaid` — zero references repo-wide outside generated `*.tsbuildinfo`, verified with a scan that counts CSS `@import` and lazy `import()`. They stay installed because dropping a dependency is an owner decision, not a cleanup an audit makes alone; each removal should lower this ceiling, and nothing should raise it. A new entry here is a manifest claim, not a feature.",
     "debt.longestSourceFileLines": "size of the single largest file under src/ — the God-component ceiling; lower it as extraction lands, never raise it to accommodate a new blob. Counted the way the collector counts: split on newlines, so a file ending in one reads a line higher than `wc -l`. Lowered 1180 -> 1100 on 2026-10-11 when the /interview room gave its overlay stack, its telemetry strip and its transcript column to components; the slack above the measurement belongs to the recording loop still in that file, not to lines already recovered.",
     "capabilities.untestedChatCallbacks": "cross-version callbacks with no test naming them",
-    "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)"
+    "capabilities.networkLayer.rawFetchCalls": "raw fetch() bypassing the shared client (no timeout/cancel)",
+    "debt.arbitraryFontSizes": "arbitrary pixel font sizes (`text-[Npx]`) that bypass the seven-step text-ui-* scale in globals.css. Seeded 2026-11-20 (S1) at the measured 295; S1 migrated all 295 sites to scale tokens in the same commit and lowered the ceiling straight to 0 — no unscaled px value survives, and the ratchet cannot be reopened."
   },
   "ceiling": {
     "debt.deprecatedObjectGenFiles": 12,
@@ -34,7 +35,8 @@
     "capabilities.untestedChatCallbacks": 0,
     "capabilities.networkLayer.rawFetchCalls": 17,
     "debt.hardInternalNavigations": 1,
-    "debt.mouseOnlyInteractions": 9
+    "debt.mouseOnlyInteractions": 9,
+    "debt.arbitraryFontSizes": 0
   },
   "floor": {}
 }

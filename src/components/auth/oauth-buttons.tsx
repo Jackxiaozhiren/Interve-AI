@@ -61,7 +61,7 @@ export function OAuthProviderButtons({ onResult }: { onResult: (message: string 
     [onResult]
   );
 
-  const button = "flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,0.15)] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+  const button = "flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-900 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-white interve-shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed";
   const spinner = "w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin";
 
   return (

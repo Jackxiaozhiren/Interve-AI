@@ -171,9 +171,17 @@ describe("the FlowMap step dot is legible in every state it can render", () => {
     );
     expect(classAttr, "the dot has no className, so its font size is unknown").toBeDefined();
     const classText = classAttr!.initializer?.getText() ?? "";
+    // S1 (2026-11-20) migrated the repo to the text-ui-* scale. Accept both
+    // forms so the contrast threshold still binds to the element's real size.
+    const SCALE_PX: Record<string, number> = {
+      "text-ui-2xs": 11, "text-ui-xs": 12, "text-ui-sm": 13,
+      "text-ui-base": 14, "text-ui-lg": 15, "text-ui-xl": 20,
+      "text-ui-2xl": 28, "text-ui-3xl": 32, "text-display": 40,
+    };
+    const scale = Object.keys(SCALE_PX).find((k) => classText.includes(k));
     const size = classText.match(/text-\[(\d+(?:\.\d+)?)px\]/);
-    expect(size, `no text-[Npx] size class in ${classText.slice(0, 140)}`).toBeDefined();
-    const px = Number(size![1]);
+    expect(scale || size, `no text-ui-* or text-[Npx] size class in ${classText.slice(0, 140)}`).toBeDefined();
+    const px = scale ? SCALE_PX[scale] : Number(size![1]);
     const bold = /font-(bold|extrabold|black)/.test(classText);
     // WCAG large text is 24px, or 18.66px at bold-or-heavier; anything else needs 4.5.
     const need = px >= 24 || (px >= 18.66 && bold) ? 3.0 : 4.5;

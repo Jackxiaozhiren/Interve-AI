@@ -57,7 +57,7 @@ export function InterviewTranscript({
           <div className="w-12 h-12 rounded-full bg-white/50 border border-white flex items-center justify-center shadow-sm">
             <Microphone className="w-5 h-5 text-muted-foreground" />
           </div>
-          <p className="text-slate-500 text-[13px] font-medium max-w-[200px]">
+          <p className="text-slate-500 text-ui-sm font-medium max-w-[200px]">
             长按麦克风或输入文本以开始面试
           </p>
         </div>
@@ -76,13 +76,13 @@ export function InterviewTranscript({
             key={m.id}
             className={`flex flex-col group ${m.role === "user" ? "items-end" : "items-start"}`}
           >
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5 px-1">
+            <div className="text-ui-2xs uppercase tracking-widest text-muted-foreground font-semibold mb-1.5 px-1">
               {m.role === "user" ? "我" : "Interve AI"}
             </div>
-            <div className={`px-5 py-3.5 max-w-[85%] text-[14.5px] shadow-[0_2px_12px_rgba(0,0,0,0.04)] ${
+            <div className={`px-5 py-3.5 max-w-[85%] text-ui-base interve-shadow-xs ${
               m.role === "user"
-                ? "bg-slate-800 text-white rounded-[20px] rounded-br-sm border border-slate-700/50 leading-relaxed"
-                : `bg-white/60 backdrop-blur-3xl border border-white/60 text-[#111111] rounded-[20px] rounded-bl-sm font-medium shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.8)] ${isDyslexiaMode ? "font-mono text-[15px] tracking-[0.05em] leading-[1.8]" : "leading-relaxed"}`
+                ? "bg-slate-800 text-white rounded-xl rounded-br-sm border border-slate-700/50 leading-relaxed"
+                : `bg-white/60 backdrop-blur-3xl border border-white/60 text-[#111111] rounded-xl rounded-bl-sm font-medium interve-shadow-card ${isDyslexiaMode ? "font-mono text-ui-lg tracking-[0.05em] leading-[1.8]" : "leading-relaxed"}`
             }`}>
               {content}
             </div>

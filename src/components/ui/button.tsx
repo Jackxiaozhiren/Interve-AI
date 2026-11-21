@@ -8,17 +8,17 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-b from-sky-400 to-sky-500 text-white shadow-[0_4px_16px_rgba(14,165,233,0.25)] hover:shadow-[0_8px_32px_rgba(14,165,233,0.35)] ring-1 ring-sky-300/50",
+        default: "bg-gradient-to-b from-sky-400 to-sky-500 text-white interve-shadow-xs hover:interve-shadow-card ring-1 ring-sky-300/50",
         outline:
-          "glass hover:bg-sky-50/50 hover:text-sky-900 shadow-[0_2px_8px_rgba(0,0,0,0.02)] border border-zinc-200/50",
+          "glass hover:bg-sky-50/50 hover:text-sky-900 interve-shadow-xs border border-zinc-200/50",
         secondary:
           "bg-zinc-100 text-zinc-900 hover:bg-zinc-200/80 border border-zinc-200/50",
         ghost:
           "hover:bg-zinc-100/60 hover:text-zinc-900",
         destructive:
-          "bg-rose-500 text-white hover:bg-rose-600 focus-visible:border-rose-500/50 focus-visible:ring-rose-500/30 shadow-[0_4px_16px_rgba(244,63,94,0.2)]",
+          "bg-rose-500 text-white hover:bg-rose-600 focus-visible:border-rose-500/50 focus-visible:ring-rose-500/30 interve-shadow-xs",
         link: "text-sky-600 underline-offset-4 hover:underline",
-        glass: "glass-card hover:bg-white/90 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
+        glass: "interve-glass-heavy hover:bg-white/90 hover:interve-shadow-card",
       },
       size: {
         default:

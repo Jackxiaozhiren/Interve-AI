@@ -11,7 +11,7 @@ export const AudioVisualizer = React.memo(function AudioVisualizer({ isActive }:
           key={i}
           className={`w-1.5 rounded-full ${
             isActive 
-              ? "bg-gradient-to-t from-sky-400 to-sky-200 shadow-[0_0_12px_rgba(56,189,248,0.6)]" 
+              ? "bg-gradient-to-t from-sky-400 to-sky-200 interve-shadow-focus" 
               : "bg-slate-200/60"
           }`}
           animate={

@@ -92,12 +92,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               fixed 280px column: at 390px that plus its gutters left the content
               64px wide, which is the phone-width defect tests/e2e/phone-width.spec.ts
               measures. From md up every utility here is the one it always was. */}
-          <aside className="w-auto md:w-[280px] mx-4 my-4 md:m-6 rounded-[2.5rem] border border-white shadow-[0_12px_40px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.8)] flex flex-col justify-between md:sticky md:top-6 md:h-[calc(100vh-3rem-64px)] z-40 bg-white/70 backdrop-blur-3xl overflow-hidden group/sidebar">
+          <aside className="w-auto md:w-[280px] mx-4 my-4 md:m-6 rounded-4xl border border-white interve-shadow-hover flex flex-col justify-between md:sticky md:top-6 md:h-[calc(100vh-3rem-64px)] z-40 bg-white/70 backdrop-blur-3xl overflow-hidden group/sidebar">
             <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/10 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-1000 pointer-events-none" />
             <div className="p-3 md:p-8 relative z-10">
-              <Link href="/" className="text-lg md:text-[22px] font-serif font-semibold tracking-tight text-[#111111] flex items-center gap-3 mb-2 md:mb-12 pl-1 group/logo relative">
+              <Link href="/" className="text-lg md:text-ui-2xl font-serif font-semibold tracking-tight text-[#111111] flex items-center gap-3 mb-2 md:mb-12 pl-1 group/logo relative">
                 <div className="absolute -inset-2 bg-white/50 rounded-2xl blur-lg opacity-0 group-hover/logo:opacity-100 transition-opacity duration-500" />
-                <div className="p-2.5 rounded-[14px] bg-gradient-to-br from-white to-sky-50 border border-sky-100 shadow-[0_4px_12px_rgba(14,165,233,0.1)] group-hover/logo:scale-105 group-hover/logo:shadow-[0_8px_20px_rgba(14,165,233,0.2)] transition-all duration-500 ease-out relative z-10">
+                <div className="p-2.5 rounded-lg bg-gradient-to-br from-white to-sky-50 border border-sky-100 interve-shadow-xs group-hover/logo:scale-105 group-hover/logo:interve-shadow-card transition-all duration-500 ease-out relative z-10">
                   <Sparkle weight="fill" className="w-6 h-6 text-sky-500" />
                 </div>
                 <span className="relative z-10">Interve AI</span>
@@ -121,9 +121,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                       href={item.href} 
                       className={buttonVariants({
                         variant: "ghost",
-                        className: `w-auto shrink-0 justify-start gap-2 px-3 md:px-0 md:w-full md:gap-4 transition-all duration-500 rounded-[20px] font-medium h-[40px] md:h-[52px] text-[14.5px] relative overflow-hidden group/navitem ${
+                        className: `w-auto shrink-0 justify-start gap-2 px-3 md:px-0 md:w-full md:gap-4 transition-all duration-500 rounded-xl font-medium h-[40px] md:h-[52px] text-ui-base relative overflow-hidden group/navitem ${
                           isActive 
-                            ? "text-sky-800 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03),inset_0_1px_1px_rgba(255,255,255,1)] border border-white" 
+                            ? "text-sky-800 bg-white interve-shadow-card border border-white" 
                             : "text-slate-500 hover:text-slate-800 hover:bg-white/60 border border-transparent"
                         }`
                       })}
@@ -132,7 +132,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                           <motion.div 
                             layoutId="sidebar-active-indicator"
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-gradient-to-b from-sky-400 to-emerald-400 rounded-r-full shadow-[0_0_12px_rgba(56,189,248,0.6)]" 
+                            className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-gradient-to-b from-sky-400 to-emerald-400 rounded-r-full interve-shadow-focus" 
                           />
                         )}
                         <Icon weight={isActive ? "fill" : "regular"} className={`w-[22px] h-[22px] transition-transform duration-500 ${isActive ? "text-sky-500" : "text-muted-foreground group-hover/navitem:scale-110 group-hover/navitem:text-slate-600"}`} />
@@ -147,7 +147,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               <Button 
                 onClick={() => logout()}
                 variant="ghost" 
-                className="w-auto md:w-full justify-start gap-2 md:gap-4 px-3 md:px-0 text-slate-500 hover:text-rose-600 hover:bg-rose-50/80 border border-transparent hover:border-rose-100/50 shadow-[0_4px_20px_rgba(0,0,0,0.0)] hover:shadow-[0_4px_20px_rgba(244,63,94,0.05)] transition-all duration-500 rounded-[20px] font-medium h-[40px] md:h-[52px] text-[14.5px] group/logout"
+                className="w-auto md:w-full justify-start gap-2 md:gap-4 px-3 md:px-0 text-slate-500 hover:text-rose-600 hover:bg-rose-50/80 border border-transparent hover:border-rose-100/50 interve-shadow-card hover:interve-shadow-card transition-all duration-500 rounded-xl font-medium h-[40px] md:h-[52px] text-ui-base group/logout"
               >
                 <SignOut weight="regular" className="w-[22px] h-[22px] text-muted-foreground group-hover/logout:text-rose-500 group-hover/logout:-translate-x-1 transition-all" />
                 <span className="tracking-wide">退出登录</span>

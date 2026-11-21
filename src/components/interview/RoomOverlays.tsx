@@ -51,7 +51,7 @@ export function ThinkTimeOverlay({
           exit={{ opacity: 0, scale: 0.95, pointerEvents: "none" }}
           className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-white/20 backdrop-blur-sm"
         >
-          <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 flex flex-col items-center min-w-[300px]">
+          <div className="bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/60 flex flex-col items-center min-w-[300px]">
             {isCalmMode ? (
               <div className="w-full min-w-[200px] mb-6 mt-4">
                 <div className="h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">

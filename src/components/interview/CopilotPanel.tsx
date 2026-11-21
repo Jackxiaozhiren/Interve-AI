@@ -100,7 +100,7 @@ export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) 
           <h3 className="text-sm font-semibold text-slate-700">
             Copilot Hints
             {degraded && hints.length > 0 && (
-              <span className="ml-2 text-[10px] font-normal text-amber-600 normal-case tracking-normal">
+              <span className="ml-2 text-ui-2xs font-normal text-amber-600 normal-case tracking-normal">
                 · 离线摘要（AI 提示未生成）
               </span>
             )}
@@ -113,7 +113,7 @@ export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) 
         )}
 
         {/* Resume Content Matches */}
-        <div className="bg-white/40 backdrop-blur-3xl border border-white/60 rounded-[24px] p-4 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.9)] relative overflow-hidden group">
+        <div className="bg-white/40 backdrop-blur-3xl border border-white/60 rounded-2xl p-4 interve-shadow-card relative overflow-hidden group">
            {/* Shimmer Effect */}
            <motion.div 
              animate={{ x: ["-150%", "250%"] }} 
@@ -151,14 +151,14 @@ export const CopilotPanel = React.memo(({ latestAiMessage }: CopilotPanelProps) 
                      show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
                    }}
                    key={i} 
-                   className="text-[12px] text-slate-600 leading-relaxed pl-3 relative before:content-[''] before:absolute before:left-0 before:top-1.5 before:w-1.5 before:h-1.5 before:bg-sky-400 before:rounded-full"
+                   className="text-ui-xs text-slate-600 leading-relaxed pl-3 relative before:content-[''] before:absolute before:left-0 before:top-1.5 before:w-1.5 before:h-1.5 before:bg-sky-400 before:rounded-full"
                  >
                    {hint}
                  </motion.li>
                ))}
              </motion.ul>
            ) : (
-             <p className="text-[12px] text-muted-foreground italic mt-2">
+             <p className="text-ui-xs text-muted-foreground italic mt-2">
                No specific experiences found. Focus on highlighting your soft skills.
              </p>
            )}

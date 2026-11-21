@@ -40,7 +40,7 @@ export function DynamicLoader({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="text-[14px] font-medium text-slate-500 absolute whitespace-nowrap"
+            className="text-ui-base font-medium text-slate-500 absolute whitespace-nowrap"
           >
             {phrases[index]}
           </motion.p>

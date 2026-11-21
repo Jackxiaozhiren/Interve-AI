@@ -27,7 +27,7 @@ export const ReplayTimeline = React.memo(({ events, currentTime = 0, duration = 
   const progressPercent = Math.min(100, Math.max(0, (currentTime / duration) * 100));
 
   return (
-    <div className="w-full bg-white border-t border-slate-200 p-4 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] z-20">
+    <div className="w-full bg-white border-t border-slate-200 p-4 shrink-0 interve-shadow-xs z-20">
       <div className="max-w-5xl mx-auto relative h-16 flex items-center">
         {/* Base line */}
         <div className="absolute left-0 right-0 h-1.5 bg-slate-100 rounded-full overflow-hidden transform-gpu">
@@ -88,7 +88,7 @@ export const ReplayTimeline = React.memo(({ events, currentTime = 0, duration = 
                 </TooltipTrigger>
                 <TooltipContent side="top" className="bg-slate-800 text-slate-100 border-none px-3 py-2">
                   <div className="text-xs font-bold mb-1">{event.title}</div>
-                  <div className="text-[10px] text-slate-400 font-mono">
+                  <div className="text-ui-2xs text-slate-400 font-mono">
                     {Math.floor(event.timestamp / 60000)}:{(Math.floor(event.timestamp % 60000) / 1000).toString().padStart(2, '0')}
                   </div>
                 </TooltipContent>

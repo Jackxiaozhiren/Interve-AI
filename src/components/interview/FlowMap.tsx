@@ -36,7 +36,7 @@ export function FlowMap({ messageCount }: FlowMapProps) {
     // not be advanced at all. The row is now transparent to the pointer and the
     // labels shrink to the active stage on a narrow screen, so nothing needs to be
     // clicked through it in the first place.
-    <div className="w-full flex items-center justify-between px-6 py-4 bg-white/40 backdrop-blur-2xl rounded-[24px] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.02)] mb-4 pointer-events-none">
+    <div className="w-full flex items-center justify-between px-6 py-4 bg-white/40 backdrop-blur-2xl rounded-2xl border border-white/60 interve-shadow-card mb-4 pointer-events-none">
       {stages.map((stage, idx) => {
         const isActive = idx === currentStageIndex;
         const isPast = idx < currentStageIndex;
@@ -76,7 +76,7 @@ export function FlowMap({ messageCount }: FlowMapProps) {
                     color: isActive || isPast ? '#ffffff' : '#475569',
                     boxShadow: isActive ? '0 0 0 4px rgba(14, 165, 233, 0.2)' : '0 0 0 0px rgba(14, 165, 233, 0)'
                   }}
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border border-white/50"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-ui-2xs font-bold border border-white/50"
                 >
                   {isPast ? (
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -89,7 +89,7 @@ export function FlowMap({ messageCount }: FlowMapProps) {
                 {/* Phase 14: active sky-700 (was sky-600, 4.02) and idle
                     slate-500 (was slate-400, 2.63) meet 4.5:1. */}
                 <span
-                  className={`text-[11px] font-semibold transition-colors duration-300 max-w-full truncate px-1 ${
+                  className={`text-ui-2xs font-semibold transition-colors duration-300 max-w-full truncate px-1 ${
                     isActive ? "text-sky-700" : "hidden sm:inline " + (isPast ? "text-slate-600" : "text-slate-500")
                   }`}
                 >

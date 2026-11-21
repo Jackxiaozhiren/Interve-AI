@@ -55,9 +55,9 @@ export const CameraSelfView = React.memo(() => {
         {/* Phase 14: slate-700 for 4.5:1 on tinted glass (was slate-600). */}
         <div className="flex items-center gap-1.5 text-slate-700">
           <Camera weight="bold" className="w-4 h-4 text-emerald-500" />
-          <span className="text-[10px] font-bold tracking-widest uppercase font-sans text-slate-700">Self-view</span>
+          <span className="text-ui-2xs font-bold tracking-widest uppercase font-sans text-slate-700">Self-view</span>
         </div>
-        <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600">
+        <span className="text-ui-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600">
           {t.interview.localOnly}
         </span>
       </div>
@@ -68,7 +68,7 @@ export const CameraSelfView = React.memo(() => {
         transition={{ type: "spring", stiffness: 400, damping: 30, delay: 0.1 }}
         role="region"
         aria-label="Camera self view, no analysis performed"
-        className="glass-card rounded-2xl flex-1 relative overflow-hidden group min-h-[140px]"
+        className="interve-glass-heavy rounded-2xl flex-1 relative overflow-hidden group min-h-[140px]"
       >
         {permission === "granted" ? (
           <video
@@ -81,7 +81,7 @@ export const CameraSelfView = React.memo(() => {
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
             <CameraSlash className="w-8 h-8 text-slate-300" weight="duotone" aria-hidden="true" />
-            <p className="text-[11px] font-medium text-slate-600 leading-relaxed">
+            <p className="text-ui-2xs font-medium text-slate-600 leading-relaxed">
               {permission === "requesting"
                 ? t.interview.cameraRequesting
                 : t.interview.cameraOff}
@@ -95,7 +95,7 @@ export const CameraSelfView = React.memo(() => {
               2.16:1 against the white label below. At /70 the same white-on-light
               worst case resolves to #4c4c4c (~8.9:1). */}
           <div className="px-2 py-1 bg-black/70 backdrop-blur-md rounded-lg border border-white/20 shadow-sm">
-            <p className="text-[11px] font-medium text-white leading-relaxed">
+            <p className="text-ui-2xs font-medium text-white leading-relaxed">
               {t.interview.noVisualAnalysis}
             </p>
           </div>

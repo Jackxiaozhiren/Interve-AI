@@ -135,7 +135,7 @@ export const SystemDesignBoard = React.memo(function SystemDesignBoard({ isOpen,
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: "100%", opacity: 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 200 }}
-          className="fixed inset-6 z-[60] bg-white/95 backdrop-blur-3xl border border-slate-200/60 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.1)] rounded-[2rem] flex flex-col overflow-hidden"
+          className="fixed inset-6 z-[60] bg-white/95 backdrop-blur-3xl border border-slate-200/60 interve-shadow-modal rounded-3xl flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-200/50 bg-white/40 z-10">
@@ -172,7 +172,7 @@ export const SystemDesignBoard = React.memo(function SystemDesignBoard({ isOpen,
                 size="icon"
                 onClick={() => setEditorTheme(prev => prev === "light" ? "dark" : "light")}
                 aria-label={editorTheme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-                className="rounded-[14px] text-slate-500 hover:text-indigo-500 hover:bg-white"
+                className="rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-white"
                 title="Toggle Theme"
               >
                 {editorTheme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
@@ -201,7 +201,7 @@ export const SystemDesignBoard = React.memo(function SystemDesignBoard({ isOpen,
           </div>
           
           {/* Footer Info */}
-          <div className="px-6 py-3 border-t border-slate-200/50 bg-white/40 text-[11px] text-muted-foreground font-bold uppercase tracking-widest flex justify-between items-center z-10">
+          <div className="px-6 py-3 border-t border-slate-200/50 bg-white/40 text-ui-2xs text-muted-foreground font-bold uppercase tracking-widest flex justify-between items-center z-10">
             <span className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               AI Analysis Active

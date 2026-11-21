@@ -37,12 +37,12 @@ export function InterveSlider({
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
-            <label className="text-[13px] font-medium text-[var(--interve-text-body)]">
+            <label className="text-ui-sm font-medium text-[var(--interve-text-body)]">
               {label}
             </label>
           )}
           {showValue && (
-            <span className="text-[13px] tabular-nums text-[var(--interve-text-secondary)]">
+            <span className="text-ui-sm tabular-nums text-[var(--interve-text-secondary)]">
               {value}
             </span>
           )}
@@ -75,7 +75,7 @@ export function InterveSlider({
         <div
           className={cn(
             "absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-[var(--interve-brand-accent)]",
-            "shadow-[0_2px_6px_rgba(22,93,255,0.15)]",
+            "interve-shadow-xs",
             "transition-all duration-[var(--motion-micro)]",
             "pointer-events-none",
             disabled && "border-[#C9CDD4] shadow-none"

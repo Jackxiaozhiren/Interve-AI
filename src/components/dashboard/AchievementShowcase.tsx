@@ -74,7 +74,7 @@ export function AchievementShowcase() {
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-[16px] bg-amber-500 text-white flex items-center justify-center shadow-[0_8px_16px_rgba(245,158,11,0.2)]">
+            <div className="w-12 h-12 rounded-lg bg-amber-500 text-white flex items-center justify-center interve-shadow-xs">
               <Trophy weight="duotone" className="w-6 h-6" />
             </div>
             <div>
@@ -83,7 +83,7 @@ export function AchievementShowcase() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-[13px] font-bold font-mono text-amber-600 bg-amber-100/50 px-4 py-2 rounded-full border border-amber-200 shadow-sm">
+            <div className="text-ui-sm font-bold font-mono text-amber-600 bg-amber-100/50 px-4 py-2 rounded-full border border-amber-200 shadow-sm">
               {achievements.length} UNLOCKED
             </div>
           </div>
@@ -101,7 +101,7 @@ export function AchievementShowcase() {
               <motion.div
                 key={achievement.id}
                 variants={bentoCardVariant}
-                className="bg-white border border-slate-100 rounded-[24px] p-6 shadow-sm relative overflow-hidden group/achievement transform-gpu transition-all hover:shadow-md hover:scale-[1.02] hover:border-amber-200"
+                className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm relative overflow-hidden group/achievement transform-gpu transition-all hover:shadow-md hover:scale-[1.02] hover:border-amber-200"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover/achievement:opacity-100 transition-opacity duration-500 will-change-opacity" />
                 <div className="relative z-10 flex gap-4">
@@ -110,8 +110,8 @@ export function AchievementShowcase() {
                   </div>
                   <div>
                     <h4 className="font-bold text-[#111111] text-[1.1rem] leading-tight mb-1">{achievement.title}</h4>
-                    <p className="text-slate-500 text-[13px] leading-relaxed font-medium mb-3">{achievement.description}</p>
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
+                    <p className="text-slate-500 text-ui-sm leading-relaxed font-medium mb-3">{achievement.description}</p>
+                    <div className="text-ui-2xs font-bold text-muted-foreground uppercase tracking-widest font-mono">
                       Unlocked {new Date(achievement.unlockedAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -124,7 +124,7 @@ export function AchievementShowcase() {
               <motion.div
                 key={achievement.code}
                 variants={bentoCardVariant}
-                className="bg-slate-50/50 border border-slate-100 border-dashed rounded-[24px] p-6 shadow-sm relative overflow-hidden opacity-60 grayscale-[50%] transition-all hover:grayscale-0 hover:opacity-100"
+                className="bg-slate-50/50 border border-slate-100 border-dashed rounded-2xl p-6 shadow-sm relative overflow-hidden opacity-60 grayscale-[50%] transition-all hover:grayscale-0 hover:opacity-100"
               >
                 <div className="relative z-10 flex gap-4">
                   <div className="shrink-0 w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center shadow-inner">
@@ -132,8 +132,8 @@ export function AchievementShowcase() {
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-600 text-[1.1rem] leading-tight mb-1">{achievement.title}</h4>
-                    <p className="text-muted-foreground text-[13px] leading-relaxed font-medium mb-3">{achievement.description}</p>
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
+                    <p className="text-muted-foreground text-ui-sm leading-relaxed font-medium mb-3">{achievement.description}</p>
+                    <div className="text-ui-2xs font-bold text-muted-foreground uppercase tracking-widest font-mono">
                       LOCKED
                     </div>
                   </div>

@@ -49,15 +49,26 @@ const collect = (files: string[]): { paragraphs: number; byFile: Map<string, num
         ) as ts.JsxAttribute | undefined;
         // Every literal in the initialiser counts, including the branches of a
         // conditional template string: an arbitrary size can arrive either way.
+        // S1 (2026-11-20) moved every px value onto the text-ui-* scale, so a
+        // rule that only read `text-[Npx]` would silently stop measuring. Both
+        // forms are read; the scale's px values come from globals.css @theme.
         const text = attr?.initializer ? attr.initializer.getText(sf) : "";
-        for (const m of text.matchAll(/text-\[(\d+(?:\.\d+)?)px\]/g)) {
-          const px = Number(m[1]);
+        const SCALE_PX: Record<string, number> = {
+          "text-ui-2xs": 11, "text-ui-xs": 12, "text-ui-sm": 13,
+          "text-ui-base": 14, "text-ui-lg": 15, "text-ui-xl": 20,
+          "text-ui-2xl": 28, "text-ui-3xl": 32, "text-display": 40,
+        };
+        const sizes: [number, string][] = [
+          ...[...text.matchAll(/text-\[(\d+(?:\.\d+)?)px\]/g)].map((m) => [Number(m[1]), m[0]] as [number, string]),
+          ...Object.entries(SCALE_PX).filter(([k]) => text.includes(k)).map(([k, px]) => [px, k] as [number, string]),
+        ];
+        for (const [px, cls] of sizes) {
           if (px < FLOOR) {
             underFloor.push({
               file: f,
               line: sf.getLineAndCharacterOfPosition(el.getStart(sf)).line + 1,
               px,
-              classes: text.replace(/\s+/g, " ").slice(0, 80),
+              classes: text.replace(/\s+/g, " ").slice(0, 80) + ` [${cls}]`,
             });
           }
         }
@@ -117,11 +128,13 @@ describe("paragraph text keeps a readable floor", () => {
   });
 
   it("the badge population is excluded by tag, not by path", () => {
-    // Guards the exclusion above against becoming an accident: `text-[9px]` must still
-    // exist in src/, on non-paragraph tags. If this ever goes empty the rule has been
-    // widened, and the design-system authorisation V11-11 names is the thing to get.
+    // Guards the exclusion above against becoming an accident: the tiny uppercase
+    // chips must still exist in src/, on non-paragraph tags. S1 (2026-11-20)
+    // migrated text-[9px] to text-ui-2xs (11px), so the exclusion is now keyed on
+    // that token. If this ever goes empty the rule has been widened, and the
+    // design-system authorisation V11-11 names is the thing to get.
     const badges = readFileSync(path.resolve(process.cwd(), "src/components/interview/LiveStats.tsx"), "utf8");
-    expect(badges, "LiveStats no longer carries the uppercase 9px chips this rule excludes").toMatch(/text-\[9px\]/);
+    expect(badges, "LiveStats no longer carries the tiny uppercase chips this rule excludes").toMatch(/text-ui-2xs/);
   });
 });
 

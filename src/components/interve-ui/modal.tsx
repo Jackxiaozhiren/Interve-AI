@@ -80,8 +80,8 @@ export function InterveModal({
             transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
             className={cn(
               "relative z-10 w-full mx-4",
-              "interve-glass-heavy rounded-[var(--radius-xl)]",
-              "shadow-[var(--interve-shadow-modal)]",
+              "interve-glass-heavy rounded-xl",
+              "interve-shadow-modal",
               sizeMap[size],
               className
             )}
@@ -91,12 +91,12 @@ export function InterveModal({
               <div className="flex items-start justify-between p-6 pb-0">
                 <div className="flex flex-col gap-1.5">
                   {title && (
-                    <h2 className="text-[16px] font-semibold text-[var(--interve-text-title)] leading-tight">
+                    <h2 className="text-ui-base font-semibold text-[var(--interve-text-title)] leading-tight">
                       {title}
                     </h2>
                   )}
                   {description && (
-                    <p className="text-[13px] text-[var(--interve-text-secondary)] leading-relaxed">
+                    <p className="text-ui-sm text-[var(--interve-text-secondary)] leading-relaxed">
                       {description}
                     </p>
                   )}
@@ -105,7 +105,7 @@ export function InterveModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-[var(--radius-sm)] text-[var(--interve-text-secondary)] hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)] transition-colors duration-[var(--motion-micro)]"
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-sm text-[var(--interve-text-secondary)] hover:bg-[var(--interve-bg-accent)] hover:text-[var(--interve-text-body)] transition-colors duration-[var(--motion-micro)]"
                     aria-label="Close"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

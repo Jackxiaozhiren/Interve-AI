@@ -58,7 +58,7 @@ export function ResumeUploadSection({
     <WizardSection title="Resume Integration" index="05a">
               
       <div 
-        className={`relative group rounded-[28px] overflow-hidden transition-all duration-500 border-2 border-dashed ${
+        className={`relative group rounded-3xl overflow-hidden transition-all duration-500 border-2 border-dashed ${
           isDragging 
             ? "border-sky-400 bg-sky-50/50" 
             : file 
@@ -170,7 +170,7 @@ export function ResumeAlignmentSection({
     <WizardSection title="Resume Alignment" index="05c">
               
       {!alignmentReport ? (
-        <div className="p-8 rounded-[28px] border border-slate-200/60 bg-white/40 backdrop-blur-sm flex flex-col items-center justify-center text-center gap-4">
+        <div className="p-8 rounded-3xl border border-slate-200/60 bg-white/40 backdrop-blur-sm flex flex-col items-center justify-center text-center gap-4">
           <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100">
             <ChartLineUp className="w-8 h-8 text-indigo-500" weight="duotone" />
           </div>
@@ -194,7 +194,7 @@ export function ResumeAlignmentSection({
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="p-8 rounded-[28px] border border-indigo-200/60 bg-indigo-50/30 backdrop-blur-sm space-y-6"
+          className="p-8 rounded-3xl border border-indigo-200/60 bg-indigo-50/30 backdrop-blur-sm space-y-6"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -260,7 +260,7 @@ export function ResumeAlignmentSection({
               </h4>
               <ul className="space-y-1.5">
                 {alignmentReport.evidence.map((q, i) => (
-                  <li key={i} className="text-[13px] text-slate-600 border-l-2 border-indigo-300 pl-3 italic">“{q}”</li>
+                  <li key={i} className="text-ui-sm text-slate-600 border-l-2 border-indigo-300 pl-3 italic">“{q}”</li>
                 ))}
               </ul>
             </div>
@@ -280,14 +280,14 @@ export function ResumeAlignmentSection({
               gaps: alignmentReport.gaps,
             });
             return (
-              <div className="mt-6 p-5 rounded-[20px] border border-sky-200/50 bg-sky-50/40">
+              <div className="mt-6 p-5 rounded-xl border border-sky-200/50 bg-sky-50/40">
                 <h4 className="text-sm font-bold text-sky-800 mb-3">
                   Your interview plan · {type.name} · {selectedDifficulty} · {Math.round(selectedDurationSec / 60)} min
                 </h4>
-                <p className="text-[13px] text-slate-600 mb-2 font-semibold">Focus areas (highest-value gaps first):</p>
+                <p className="text-ui-sm text-slate-600 mb-2 font-semibold">Focus areas (highest-value gaps first):</p>
                 <ul className="space-y-1.5">
                   {plan.focusAreas.map((f, i) => (
-                    <li key={i} className="text-[13px] text-slate-700 flex items-start gap-2">
+                    <li key={i} className="text-ui-sm text-slate-700 flex items-start gap-2">
                       <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
                       {f}
                     </li>

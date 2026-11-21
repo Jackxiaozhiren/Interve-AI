@@ -126,7 +126,7 @@ export const MultiAgentVisualizer = React.memo(({ isSpeaking, isLoading, statusT
                     scale: isActive ? (actuallySpeaking ? [1, 1.05, 1] : 1) : 0.8,
                   }}
                   transition={{ duration: actuallySpeaking ? 1.5 * animMultiplier : 4 * animMultiplier, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute w-14 h-14 md:w-16 md:h-16 bg-white/20 backdrop-blur-md rounded-full border border-white/40 shadow-[0_4px_16px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.5)] flex items-center justify-center overflow-hidden"
+                  className="absolute w-14 h-14 md:w-16 md:h-16 bg-white/20 backdrop-blur-md rounded-full border border-white/40 interve-shadow-xs flex items-center justify-center overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent rounded-full opacity-60" />
                   
@@ -183,7 +183,7 @@ export const MultiAgentVisualizer = React.memo(({ isSpeaking, isLoading, statusT
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className={`text-[13px] font-medium tracking-wide bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full border shadow-sm
+            className={`text-ui-sm font-medium tracking-wide bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full border shadow-sm
               ${stressTest ? 'text-rose-700 border-rose-100/80' : 'text-slate-600 border-white/80'}`
             }
           >

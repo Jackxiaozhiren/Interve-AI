@@ -110,7 +110,7 @@ function InterveToastItem({
       role="alert"
       className={cn(
         "pointer-events-auto flex items-center gap-2.5 px-4 py-3 min-w-[280px] max-w-sm",
-        "rounded-[12px]",
+        "rounded-md",
         "animate-[interve-toast-enter_var(--motion-moderate)_var(--ease-primary)]"
       )}
       style={{
@@ -122,7 +122,7 @@ function InterveToastItem({
       }}
     >
       <span className="shrink-0">{iconMap[toast.type]}</span>
-      <span className="flex-1 text-[14px] text-[#1D2129]">{toast.message}</span>
+      <span className="flex-1 text-ui-base text-[#1D2129]">{toast.message}</span>
       <button
         type="button"
         onClick={() => onRemove(toast.id)}

@@ -21,7 +21,7 @@ export function QuotaBadge() {
     <span
       role="status"
       aria-live="polite"
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium tabular-nums ${
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-ui-xs font-medium tabular-nums ${
         low
           ? "border-amber-200 bg-amber-50 text-amber-700"
           : "border-slate-200 bg-white/70 text-slate-600"

@@ -23,16 +23,16 @@ export function DashboardSkeleton() {
           className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8"
         >
           <motion.div variants={bentoCardVariant} className="md:col-span-4 min-h-[360px]">
-            <Shimmer className="w-full h-full rounded-[24px]" />
+            <Shimmer className="w-full h-full rounded-2xl" />
           </motion.div>
           <motion.div variants={bentoCardVariant} className="md:col-span-8 lg:col-span-4 min-h-[360px]">
-            <Shimmer className="w-full h-full rounded-[24px]" />
+            <Shimmer className="w-full h-full rounded-2xl" />
           </motion.div>
           <motion.div variants={bentoCardVariant} className="md:col-span-12 lg:col-span-4 min-h-[360px]">
-            <Shimmer className="w-full h-full rounded-[24px]" />
+            <Shimmer className="w-full h-full rounded-2xl" />
           </motion.div>
           <motion.div variants={bentoCardVariant} className="md:col-span-12 min-h-[200px]">
-            <Shimmer className="w-full h-full rounded-[24px]" />
+            <Shimmer className="w-full h-full rounded-2xl" />
           </motion.div>
         </motion.div>
 
@@ -50,7 +50,7 @@ export function DashboardSkeleton() {
               variants={bentoCardVariant}
               className="h-[140px] w-full"
             >
-              <Shimmer className="w-full h-full rounded-[2.5rem]" />
+              <Shimmer className="w-full h-full rounded-4xl" />
             </motion.div>
           ))}
         </div>

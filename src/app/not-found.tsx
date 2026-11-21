@@ -66,7 +66,7 @@ export default function NotFound() {
             className={buttonVariants({
               variant: "default",
               className:
-                "w-full sm:w-auto bg-slate-900 hover:bg-slate-800 gap-2 rounded-full shadow-[0_8px_24px_rgba(15,23,42,0.15)] border border-slate-800",
+                "w-full sm:w-auto bg-slate-900 hover:bg-slate-800 gap-2 rounded-full interve-shadow-button border border-slate-800",
             })}
           >
             <ArrowLeft className="w-4 h-4" /> Back to Dashboard

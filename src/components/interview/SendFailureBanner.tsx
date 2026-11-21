@@ -33,7 +33,7 @@ export function SendFailureBanner({
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed left-1/2 top-4 z-[110] w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-amber-200 bg-white/95 p-4 shadow-[0_16px_48px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+      className="fixed left-1/2 top-4 z-[110] w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-amber-200 bg-white/95 p-4 interve-shadow-modal backdrop-blur-xl"
     >
       <div className="flex items-start gap-3">
         <WarningCircle weight="duotone" className="mt-0.5 h-6 w-6 shrink-0 text-amber-500" />

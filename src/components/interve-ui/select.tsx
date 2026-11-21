@@ -24,9 +24,9 @@ export interface InterveSelectProps {
 }
 
 const sizeStyles = {
-  lg: "h-12 px-4 text-[15px]",
-  md: "h-10 px-3.5 text-[14px]",
-  sm: "h-8 px-3 text-[13px]",
+  lg: "h-12 px-4 text-ui-lg",
+  md: "h-10 px-3.5 text-ui-base",
+  sm: "h-8 px-3 text-ui-sm",
 };
 
 export function InterveSelect({
@@ -77,15 +77,15 @@ export function InterveSelect({
 
   return (
     <div className="flex flex-col gap-1.5 w-full" ref={containerRef}>
-      {label && <label className="text-[13px] font-medium text-[var(--interve-text-body)]">{label}</label>}
+      {label && <label className="text-ui-sm font-medium text-[var(--interve-text-body)]">{label}</label>}
       <div className="relative">
         <button type="button" disabled={disabled} onClick={() => !disabled && setIsOpen(!isOpen)}
-          className={cn("w-full flex items-center justify-between border outline-none rounded-[var(--radius-md)] bg-white/90 border-[var(--interve-border)] transition-all duration-[var(--motion-fast)] ease-[var(--ease-primary)] hover:border-[var(--interve-border-hover)] hover:bg-white", isOpen && "border-[var(--interve-border-focus)] shadow-[var(--interve-shadow-focus)] scale-[1.01]", disabled && "bg-[#F7F8FA] text-[var(--interve-text-disabled)] cursor-not-allowed", sizeStyles[size], className)}>
+          className={cn("w-full flex items-center justify-between border outline-none rounded-md bg-white/90 border-[var(--interve-border)] transition-all duration-[var(--motion-fast)] ease-[var(--ease-primary)] hover:border-[var(--interve-border-hover)] hover:bg-white", isOpen && "border-[var(--interve-border-focus)] interve-shadow-focus scale-[1.01]", disabled && "bg-[#F7F8FA] text-[var(--interve-text-disabled)] cursor-not-allowed", sizeStyles[size], className)}>
           <span className="flex-1 text-left truncate">
             {multiple && selectedLabels.length > 0 ? (
               <span className="flex items-center gap-1 flex-wrap">
                 {selectedLabels.map((lbl, i) => (
-                  <span key={selectedValues[i]} className="inline-flex items-center gap-1 px-2 py-0.5 text-[12px] bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] rounded-[6px]">
+                  <span key={selectedValues[i]} className="inline-flex items-center gap-1 px-2 py-0.5 text-ui-xs bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] rounded-xs">
                     {lbl}
                     <button type="button" onClick={(e) => { e.stopPropagation(); onChange?.(selectedValues.filter((x) => x !== selectedValues[i])); }} className="hover:text-[var(--interve-danger-text)]">×</button>
                   </span>
@@ -103,20 +103,20 @@ export function InterveSelect({
         </button>
 
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 z-50 interve-glass-heavy rounded-[var(--radius-md)] shadow-[var(--interve-shadow-hover)] max-h-[240px] overflow-y-auto animate-[interve-fade-slide-up_var(--motion-fast)_var(--ease-primary)]">
+          <div className="absolute top-full left-0 right-0 mt-1 z-50 interve-glass-heavy rounded-md interve-shadow-hover max-h-[240px] overflow-y-auto animate-[interve-fade-slide-up_var(--motion-fast)_var(--ease-primary)]">
             {searchable && (
               <div className="p-2 border-b border-[var(--interve-divider)]">
                 {/* H1.5: open-triggered focus (not page-load autofocus) — ref replaces banned autoFocus prop. */}
-                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." ref={(el) => { el?.focus(); }} className="w-full h-8 px-3 text-[13px] bg-[var(--interve-bg-secondary)] border border-[var(--interve-border)] rounded-[var(--radius-sm)] outline-none focus:border-[var(--interve-border-focus)] placeholder:text-[var(--interve-text-placeholder)]" />
+                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." ref={(el) => { el?.focus(); }} className="w-full h-8 px-3 text-ui-sm bg-[var(--interve-bg-secondary)] border border-[var(--interve-border)] rounded-sm outline-none focus:border-[var(--interve-border-focus)] placeholder:text-[var(--interve-text-placeholder)]" />
               </div>
             )}
             <div className="p-1">
-              {filteredOptions.length === 0 && <div className="px-3 py-4 text-center text-[13px] text-[var(--interve-text-secondary)]">No results found</div>}
+              {filteredOptions.length === 0 && <div className="px-3 py-4 text-center text-ui-sm text-[var(--interve-text-secondary)]">No results found</div>}
               {filteredOptions.map((opt) => {
                 const sel = selectedValues.includes(opt.value);
                 return (
                   <button type="button" key={opt.value} disabled={opt.disabled} onClick={() => handleSelect(opt.value)}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-left rounded-[var(--radius-sm)] text-[14px] transition-colors duration-[var(--motion-micro)]", sel ? "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)]" : "text-[var(--interve-text-body)] hover:bg-[var(--interve-bg-accent)]", opt.disabled && "opacity-40 cursor-not-allowed")}>
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 text-left rounded-sm text-ui-base transition-colors duration-[var(--motion-micro)]", sel ? "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)]" : "text-[var(--interve-text-body)] hover:bg-[var(--interve-bg-accent)]", opt.disabled && "opacity-40 cursor-not-allowed")}>
                     {opt.icon && <span className="shrink-0 w-4 h-4">{opt.icon}</span>}
                     <span className="flex-1 truncate">{opt.label}</span>
                     {sel && <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}

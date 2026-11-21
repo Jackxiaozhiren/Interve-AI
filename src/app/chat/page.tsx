@@ -80,7 +80,7 @@ export default function ChatPage() {
       <InterveSidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
-        className="shrink-0 z-10 shadow-[var(--interve-shadow-md)]"
+        className="shrink-0 z-10 interve-shadow-md"
         header={
           <div className="flex flex-col gap-2 w-full">
             {/* S3: /chat was reachable only from the footer. Give it a real
@@ -111,15 +111,15 @@ export default function ChatPage() {
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[var(--interve-brand-accent)] to-[#6AA1FF] shrink-0" />
             {!collapsed && (
               <div className="flex flex-col overflow-hidden">
-                <span className="text-[13px] font-medium text-[var(--interve-text-title)] truncate">面试官</span>
-                <span className="text-[11px] text-[var(--interve-text-secondary)] truncate">Pro 用户</span>
+                <span className="text-ui-sm font-medium text-[var(--interve-text-title)] truncate">面试官</span>
+                <span className="text-ui-2xs text-[var(--interve-text-secondary)] truncate">Pro 用户</span>
               </div>
             )}
           </div>
         }
       >
         {!collapsed && (
-          <div className="mb-2 px-2 text-[11px] font-semibold text-[var(--interve-text-placeholder)] uppercase tracking-wider">
+          <div className="mb-2 px-2 text-ui-2xs font-semibold text-[var(--interve-text-placeholder)] uppercase tracking-wider">
             今天
           </div>
         )}
@@ -144,7 +144,7 @@ export default function ChatPage() {
         />
 
         {!collapsed && (
-          <div className="mt-6 mb-2 px-2 text-[11px] font-semibold text-[var(--interve-text-placeholder)] uppercase tracking-wider">
+          <div className="mt-6 mb-2 px-2 text-ui-2xs font-semibold text-[var(--interve-text-placeholder)] uppercase tracking-wider">
             昨天
           </div>
         )}
@@ -237,7 +237,7 @@ export default function ChatPage() {
               showAttach
               maxLength={4000}
             />
-            <div className="text-center mt-2 text-[11px] text-[var(--interve-text-placeholder)]">
+            <div className="text-center mt-2 text-ui-2xs text-[var(--interve-text-placeholder)]">
               AI 会产生不可避免的错误。请核查重要信息。
             </div>
           </div>

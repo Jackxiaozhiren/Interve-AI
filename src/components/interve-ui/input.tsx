@@ -34,9 +34,9 @@ export interface InterveInputProps
 }
 
 const sizeMap = {
-  lg: "h-12 px-4 text-[15px] rounded-[var(--radius-md)]",
-  md: "h-10 px-3.5 text-[14px] rounded-[var(--radius-md)]",
-  sm: "h-8 px-3 text-[13px] rounded-[var(--radius-sm)]",
+  lg: "h-12 px-4 text-ui-lg rounded-md",
+  md: "h-10 px-3.5 text-ui-base rounded-md",
+  sm: "h-8 px-3 text-ui-sm rounded-sm",
 };
 
 const iconSizeMap = {
@@ -111,7 +111,7 @@ export const InterveInput = React.forwardRef<
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label className="text-[13px] font-medium text-[var(--interve-text-body)]">
+          <label className="text-ui-sm font-medium text-[var(--interve-text-body)]">
             {label}
           </label>
         )}
@@ -181,17 +181,17 @@ export const InterveInput = React.forwardRef<
 
         <div className="flex items-center justify-between">
           {computedState === "error" && errorMessage && (
-            <span className="text-[12px] text-[var(--interve-danger-text)]">
+            <span className="text-ui-xs text-[var(--interve-danger-text)]">
               {errorMessage}
             </span>
           )}
           {computedState !== "error" && hint && (
-            <span className="text-[12px] text-[var(--interve-text-secondary)]">
+            <span className="text-ui-xs text-[var(--interve-text-secondary)]">
               {hint}
             </span>
           )}
           {showCount && maxCount && (
-            <span className="text-[12px] text-[var(--interve-text-secondary)] ml-auto">
+            <span className="text-ui-xs text-[var(--interve-text-secondary)] ml-auto">
               {currentValue.length}/{maxCount}
             </span>
           )}
@@ -266,9 +266,9 @@ export const InterveTextarea = React.forwardRef<
     };
 
     const fontSizeMap = {
-      lg: "text-[15px]",
-      md: "text-[14px]",
-      sm: "text-[13px]",
+      lg: "text-ui-lg",
+      md: "text-ui-base",
+      sm: "text-ui-sm",
     };
 
     const stateStyles: Record<string, string> = {
@@ -285,7 +285,7 @@ export const InterveTextarea = React.forwardRef<
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label className="text-[13px] font-medium text-[var(--interve-text-body)]">
+          <label className="text-ui-sm font-medium text-[var(--interve-text-body)]">
             {label}
           </label>
         )}
@@ -298,7 +298,7 @@ export const InterveTextarea = React.forwardRef<
           maxLength={maxCount}
           className={cn(
             "w-full min-h-[100px] border outline-none resize-y",
-            "p-3.5 rounded-[var(--radius-md)]",
+            "p-3.5 rounded-md",
             "backdrop-filter blur-[16px]",
             "transition-all duration-[var(--motion-fast)] ease-[var(--ease-primary)]",
             "placeholder:text-[var(--interve-text-placeholder)]",
@@ -314,17 +314,17 @@ export const InterveTextarea = React.forwardRef<
 
         <div className="flex items-center justify-between">
           {computedState === "error" && errorMessage && (
-            <span className="text-[12px] text-[var(--interve-danger-text)]">
+            <span className="text-ui-xs text-[var(--interve-danger-text)]">
               {errorMessage}
             </span>
           )}
           {computedState !== "error" && hint && (
-            <span className="text-[12px] text-[var(--interve-text-secondary)]">
+            <span className="text-ui-xs text-[var(--interve-text-secondary)]">
               {hint}
             </span>
           )}
           {showCount && maxCount && (
-            <span className="text-[12px] text-[var(--interve-text-secondary)] ml-auto">
+            <span className="text-ui-xs text-[var(--interve-text-secondary)] ml-auto">
               {currentValue.length}/{maxCount}
             </span>
           )}

@@ -42,7 +42,7 @@ export default function KnowledgePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Card className="bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl min-h-[400px] flex flex-col items-center justify-center text-center rounded-[24px]">
+          <Card className="bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl min-h-[400px] flex flex-col items-center justify-center text-center rounded-2xl">
             <CardContent className="pt-6">
               <div className="w-20 h-20 rounded-3xl bg-sky-50 border border-sky-100 flex items-center justify-center mb-6 mx-auto shadow-sm">
                 <Database className="w-10 h-10 text-sky-400" weight="duotone" />
@@ -68,7 +68,7 @@ export default function KnowledgePage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <Card className="h-full bg-white/60 backdrop-blur-xl border-white/80 shadow-sm overflow-hidden rounded-[24px]">
+            <Card className="h-full bg-white/60 backdrop-blur-xl border-white/80 shadow-sm overflow-hidden rounded-2xl">
               <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
                 <CardTitle className="flex items-center gap-2 text-lg text-slate-800 font-serif">
                   <FileText className="w-5 h-5 text-sky-500" />
@@ -84,7 +84,7 @@ export default function KnowledgePage() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <Card className="h-full bg-white/60 backdrop-blur-xl border-white/80 shadow-sm overflow-hidden rounded-[24px]">
+            <Card className="h-full bg-white/60 backdrop-blur-xl border-white/80 shadow-sm overflow-hidden rounded-2xl">
               <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
                 <CardTitle className="flex items-center gap-2 text-lg text-slate-800 font-serif">
                   <Briefcase className="w-5 h-5 text-indigo-500" />
@@ -101,7 +101,7 @@ export default function KnowledgePage() {
 
           {topPredictions && topPredictions.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:col-span-2">
-              <Card className="bg-white/60 backdrop-blur-xl border-white/80 shadow-sm overflow-hidden rounded-[24px]">
+              <Card className="bg-white/60 backdrop-blur-xl border-white/80 shadow-sm overflow-hidden rounded-2xl">
                 <CardHeader className="bg-sky-50/30 border-b border-sky-100/50 pb-4">
                   <CardTitle className="flex items-center gap-2 text-lg text-slate-800 font-serif">
                     <Sparkle className="w-5 h-5 text-sky-500" weight="fill" />
@@ -117,7 +117,7 @@ export default function KnowledgePage() {
                         <p className="text-sm text-slate-500 mb-4 leading-relaxed">{pred.rationale}</p>
                         <div className="flex flex-wrap gap-2 mt-auto">
                           {pred.keyPointsToHit.map((point, pIdx) => (
-                            <span key={pIdx} className="px-2.5 py-1 bg-sky-50 text-sky-700 rounded-lg text-[11px] font-medium border border-sky-100/50">
+                            <span key={pIdx} className="px-2.5 py-1 bg-sky-50 text-sky-700 rounded-lg text-ui-2xs font-medium border border-sky-100/50">
                               {point}
                             </span>
                           ))}

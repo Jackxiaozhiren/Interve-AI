@@ -32,8 +32,8 @@ export function CtaButton() {
       onClick={handleClick}
       className="
         bg-[#6366f1] hover:bg-[#4f46e5] text-white
-        rounded-[8px] px-[28px] py-[12px]
-        text-[16px] font-[600]
+        rounded-sm px-[28px] py-[12px]
+        text-ui-base font-[600]
         transition-colors duration-200 ease-in-out
       "
     >

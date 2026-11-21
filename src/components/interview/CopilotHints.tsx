@@ -57,7 +57,7 @@ export const CopilotHints = React.memo(({ wpm, isRecording }: CopilotHintsProps)
           animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
           exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
-          className="fixed top-24 right-8 z-50 pointer-events-none bg-white/60 border border-white/50 backdrop-blur-xl rounded-2xl p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] relative overflow-hidden group"
+          className="fixed top-24 right-8 z-50 pointer-events-none bg-white/60 border border-white/50 backdrop-blur-xl rounded-2xl p-4 interve-shadow-card relative overflow-hidden group"
         >
           {/* Shimmer Effect */}
           <motion.div
@@ -67,12 +67,12 @@ export const CopilotHints = React.memo(({ wpm, isRecording }: CopilotHintsProps)
             className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none"
           />
           <div className="flex items-start gap-3 relative z-10">
-            <div className="mt-0.5 bg-gradient-to-br from-sky-400 to-emerald-400 p-1.5 rounded-full shadow-[0_2px_8px_rgba(56,189,248,0.4)]">
+            <div className="mt-0.5 bg-gradient-to-br from-sky-400 to-emerald-400 p-1.5 rounded-full interve-shadow-xs">
               <Lightbulb className="w-3.5 h-3.5 text-white" weight="fill" />
             </div>
             <div>
-              <h4 className="text-[11px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">AI Coach</h4>
-              <p role="status" className="text-[13px] text-slate-700 font-medium leading-tight">
+              <h4 className="text-ui-2xs font-bold text-amber-600 uppercase tracking-wider mb-0.5">AI Coach</h4>
+              <p role="status" className="text-ui-sm text-slate-700 font-medium leading-tight">
                 {activeHint}
               </p>
             </div>

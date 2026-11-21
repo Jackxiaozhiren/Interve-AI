@@ -862,8 +862,8 @@
       "name": "AMA3",
       "desc": "the coach hint stops being announced, so a tip that appears mid-interview is only visible",
       "file": "src/components/interview/CopilotHints.tsx",
-      "anchor": "              <p role=\"status\" className=\"text-[13px] text-slate-700 font-medium leading-tight\">",
-      "replacement": "              <p className=\"text-[13px] text-slate-700 font-medium leading-tight\">",
+      "anchor": "              <p role=\"status\" className=\"text-ui-sm text-slate-700 font-medium leading-tight\">",
+      "replacement": "              <p className=\"text-ui-sm text-slate-700 font-medium leading-tight\">",
       "test": "tests/unit/failure-messages-are-announced.test.ts",
       "pattern": "no rendered message sits outside a live region"
     },
@@ -1087,7 +1087,7 @@
       "name": "GFX1",
       "desc": "a paragraph drops back to 9px, which is legible in a contrast report and unreadable on a screen",
       "file": "src/components/interview/CameraSelfView.tsx",
-      "anchor": "<p className=\"text-[11px] font-medium text-white leading-relaxed\">",
+      "anchor": "<p className=\"text-ui-2xs font-medium text-white leading-relaxed\">",
       "replacement": "<p className=\"text-[9px] font-medium text-white leading-relaxed\">",
       "test": "tests/unit/prose-font-floor.test.ts",
       "pattern": "renders below"
@@ -1103,11 +1103,11 @@
     },
     {
       "name": "GFX3",
-      "desc": "the excluded badge chips are widened to the floor as well, which is the design-system decision V11-11 says nobody authorised",
+      "desc": "the excluded badge chips are widened to the next scale step, which is the design-system decision V11-11 says nobody authorised",
       "file": "src/components/interview/LiveStats.tsx",
-      "anchor": "text-[9px]",
-      "replacement": "text-[11px]",
-      "count": 6,
+      "anchor": "text-ui-2xs",
+      "replacement": "text-ui-xs",
+      "count": 19,
       "test": "tests/unit/prose-font-floor.test.ts",
       "pattern": "excluded by tag"
     },

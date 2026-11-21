@@ -92,7 +92,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     aria-label={`按${col.label}排序`}
                   >
                     {col.label}
-                    <span aria-hidden="true" className="text-[10px]">
+                    <span aria-hidden="true" className="text-ui-2xs">
                       {sortKey === col.key ? (sortDir === "asc" ? "▲" : "▼") : "△"}
                     </span>
                   </button>

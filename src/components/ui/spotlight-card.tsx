@@ -80,10 +80,10 @@ export function SpotlightCard({
       tabIndex={tabIndex ?? (onClick ? 0 : undefined)}
       onKeyDown={onKeyDown ?? (onClick ? (e) => { if(e.key==='Enter'||e.key===' ') { e.preventDefault(); onClick(); } } : undefined)}
       aria-label={role === "button" || onClick ? "Spotlight Card Button" : undefined}
-      className={`glass-card relative overflow-hidden group rounded-[24px] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_30px_rgba(0,0,0,0.04)] ${className} ${onClick ? 'cursor-pointer' : ''}`}
+      className={`interve-glass-heavy relative overflow-hidden group rounded-2xl border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_30px_rgba(0,0,0,0.04)] ${className} ${onClick ? 'cursor-pointer' : ''}`}
     >
       <motion.div
-        className="pointer-events-none absolute -inset-px z-0 opacity-0 transition duration-700 group-hover:opacity-100 rounded-[24px]"
+        className="pointer-events-none absolute -inset-px z-0 opacity-0 transition duration-700 group-hover:opacity-100 rounded-2xl"
         style={{
           background: useMotionTemplate`
             radial-gradient(
@@ -95,7 +95,7 @@ export function SpotlightCard({
         }}
       />
       <motion.div
-        className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-700 group-hover:opacity-100 rounded-[24px]"
+        className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-700 group-hover:opacity-100 rounded-2xl"
         style={{
           background: useMotionTemplate`
             radial-gradient(

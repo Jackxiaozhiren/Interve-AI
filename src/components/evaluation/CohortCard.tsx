@@ -68,7 +68,7 @@ export function CohortCard({ interviewType, rubricId, dimensions, enabled }: Coh
 
   return (
     <section
-      className="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+      className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-8 interve-shadow-card"
       aria-labelledby="cohort-heading"
     >
       <h3

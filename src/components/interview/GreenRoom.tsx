@@ -129,7 +129,7 @@ export function GreenRoom({ onComplete, onBypass, onExit }: GreenRoomProps) {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg bg-white/70 backdrop-blur-xl rounded-[32px] p-10 shadow-[0_8px_40px_rgba(0,0,0,0.06)] border border-white flex flex-col items-center text-center"
+        className="w-full max-w-lg bg-white/70 backdrop-blur-xl rounded-3xl p-10 interve-shadow-hover border border-white flex flex-col items-center text-center"
       >
         <div 
           className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center mb-6 shadow-sm border border-sky-100"

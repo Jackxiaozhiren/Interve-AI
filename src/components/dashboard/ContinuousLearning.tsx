@@ -47,7 +47,7 @@ export function ContinuousLearning() {
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex flex-col gap-3 p-5 bg-white/40 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)]">
+            <div key={i} className="flex flex-col gap-3 p-5 bg-white/40 backdrop-blur-xl border border-white/60 rounded-3xl interve-shadow-xs">
               <div className="flex items-center gap-2">
                 <Shimmer className="w-8 h-8 rounded-full" />
                 <Shimmer className="h-4 w-24 rounded-full" />
@@ -65,7 +65,7 @@ export function ContinuousLearning() {
 
   if (sessions.length < 2) {
     return (
-      <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-[32px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-center h-full flex flex-col items-center justify-center">
+      <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-3xl p-8 interve-shadow-card text-center h-full flex flex-col items-center justify-center">
         <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner mb-4">
           <Target weight="duotone" className="w-8 h-8 text-sky-400" />
         </div>
@@ -97,7 +97,7 @@ export function ContinuousLearning() {
   const logicDiff = latest.logic - previous.logic;
 
   return (
-    <div className="bg-white/40 backdrop-blur-3xl border border-white/60 rounded-[32px] p-8 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.9)] w-full relative overflow-hidden">
+    <div className="bg-white/40 backdrop-blur-3xl border border-white/60 rounded-3xl p-8 interve-shadow-hover w-full relative overflow-hidden">
       {/* Decorative glows */}
       <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-gradient-to-bl from-sky-200/40 to-transparent blur-3xl rounded-full pointer-events-none" />
       <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] bg-gradient-to-tr from-emerald-200/30 to-transparent blur-3xl rounded-full pointer-events-none" />
@@ -126,14 +126,14 @@ export function ContinuousLearning() {
       >
         
         {/* WPM Trend Chart */}
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} layout className="bg-white/60 hover:bg-white/80 border border-white/80 rounded-[24px] p-6 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all duration-500 ease-out hover:-translate-y-1 relative group overflow-hidden">
+        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} layout className="bg-white/60 hover:bg-white/80 border border-white/80 rounded-2xl p-6 interve-shadow-xs hover:interve-shadow-card transition-all duration-500 ease-out hover:-translate-y-1 relative group overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-700 tracking-wide">Speaking Rate (WPM)</h3>
-              <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mt-1">Reference band: {WPM_REFERENCE_BAND.low}&ndash;{WPM_REFERENCE_BAND.high}</p>
+              <p className="text-ui-2xs font-mono text-slate-500 uppercase tracking-widest mt-1">Reference band: {WPM_REFERENCE_BAND.low}&ndash;{WPM_REFERENCE_BAND.high}</p>
             </div>
-            <div className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${wpmDiff >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+            <div className={`px-3 py-1.5 rounded-full text-ui-2xs font-bold flex items-center gap-1.5 ${wpmDiff >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
               <TrendUp weight="bold" className={wpmDiff < 0 ? "rotate-180" : ""} />
               <AnimatedCounter value={Math.abs(wpmDiff)} /> WPM
             </div>
@@ -161,14 +161,14 @@ export function ContinuousLearning() {
         </motion.div>
 
         {/* Filler Words Trend Chart */}
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} layout className="bg-white/60 hover:bg-white/80 border border-white/80 rounded-[24px] p-6 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all duration-500 ease-out hover:-translate-y-1 relative group overflow-hidden">
+        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} layout className="bg-white/60 hover:bg-white/80 border border-white/80 rounded-2xl p-6 interve-shadow-xs hover:interve-shadow-card transition-all duration-500 ease-out hover:-translate-y-1 relative group overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-700 tracking-wide">Filler Words Trend</h3>
-              <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mt-1">Goal: Minimize</p>
+              <p className="text-ui-2xs font-mono text-slate-500 uppercase tracking-widest mt-1">Goal: Minimize</p>
             </div>
-            <div className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${fillerDiff <= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            <div className={`px-3 py-1.5 rounded-full text-ui-2xs font-bold flex items-center gap-1.5 ${fillerDiff <= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
               {fillerDiff <= 0 ? <CheckCircle weight="bold" /> : <WarningCircle weight="bold" />}
               {fillerDiff > 0 ? '+' : ''}<AnimatedCounter value={Math.abs(fillerDiff)} /> words
             </div>
@@ -196,15 +196,15 @@ export function ContinuousLearning() {
         </motion.div>
 
         {/* Radar Capability Evolution */}
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} layout className="bg-white/60 hover:bg-white/80 border border-white/80 rounded-[24px] p-6 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all duration-500 ease-out hover:-translate-y-1 relative group overflow-hidden">
+        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} layout className="bg-white/60 hover:bg-white/80 border border-white/80 rounded-2xl p-6 interve-shadow-xs hover:interve-shadow-card transition-all duration-500 ease-out hover:-translate-y-1 relative group overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
           <div className="flex justify-between items-start mb-0">
             <div>
               <h3 className="text-sm font-bold text-slate-700 tracking-wide">Core Capability</h3>
-              <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mt-1">Latest vs Previous</p>
+              <p className="text-ui-2xs font-mono text-slate-500 uppercase tracking-widest mt-1">Latest vs Previous</p>
             </div>
             {logicDiff > 0 && (
-              <div className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1.5">
+              <div className="px-3 py-1.5 rounded-full text-ui-2xs font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1.5">
                 <TrendUp weight="bold" />
                 Logic +<AnimatedCounter value={logicDiff} />
               </div>
