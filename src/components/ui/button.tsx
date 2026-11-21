@@ -9,6 +9,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-gradient-to-b from-sky-400 to-sky-500 text-white interve-shadow-xs hover:interve-shadow-card ring-1 ring-sky-300/50",
+        // S2 (2026-11-21): the two variants InterveButton carried that the
+        // stock set lacked. primary is the light brand surface with brand
+        // text; text is the borderless tinted link-button. danger maps onto
+        // destructive through the compat layer in interve-ui/button.
+        primary:
+          "bg-[var(--interve-brand-surface)] text-[var(--interve-brand-accent)] hover:bg-[#D6E4FF] hover:interve-shadow-button active:bg-[#BFDBFF] disabled:bg-[#F2F3F5] disabled:text-[var(--interve-text-disabled)] disabled:shadow-none",
+        text: "bg-transparent text-[var(--interve-brand-accent)] hover:bg-[var(--interve-brand-surface)] active:bg-[#D6E4FF] disabled:text-[var(--interve-text-disabled)] disabled:bg-transparent",
         outline:
           "glass hover:bg-sky-50/50 hover:text-sky-900 interve-shadow-xs border border-zinc-200/50",
         secondary:

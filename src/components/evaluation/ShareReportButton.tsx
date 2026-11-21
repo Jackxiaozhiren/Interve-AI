@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { LinkSimple, Copy } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import type { EvaluationView } from "@/lib/eval-compat";
@@ -95,15 +96,16 @@ export function ShareReportButton({ interviewId, view, roadmap }: ShareReportBut
             链接 {SHARE_TTL_DAYS} 天后失效，最多打开 {SHARE_MAX_VIEWS} 次；不包含逐字证据与逐题复盘。
           </p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={create}
           disabled={busy}
-          className="inline-flex items-center gap-2 min-h-11 sm:min-h-0 px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          className="min-h-11 sm:min-h-0 px-4 py-2 text-slate-700"
         >
           <LinkSimple className="w-4 h-4" />
           {busy ? "生成中…" : url ? "再生成一条" : "生成分享链接"}
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -121,14 +123,14 @@ export function ShareReportButton({ interviewId, view, roadmap }: ShareReportBut
             onFocus={(e) => e.currentTarget.select()}
             className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
           />
-          <button
+          <Button
             type="button"
             onClick={copy}
-            className="inline-flex items-center gap-1.5 min-h-11 sm:min-h-0 px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-medium"
+            className="min-h-11 sm:min-h-0 px-3 py-2 text-xs"
           >
             <Copy className="w-3.5 h-3.5" />
             复制
-          </button>
+          </Button>
         </div>
       )}
     </div>
