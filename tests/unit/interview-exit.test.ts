@@ -19,6 +19,9 @@ const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url),
 const BUTTON = "src/components/interview/LeaveRoomButton.tsx";
 const GATES = ["src/components/interview/GreenRoom.tsx", "src/components/interview/StandbyOverlay.tsx"];
 const ROOM_PAGE = "src/app/interview/page.tsx";
+// S4 (2026-11-22): one gate stays on the page (GreenRoom), the other moved with
+// the JSX into the view component. Both still go to the dashboard.
+const ROOM_VIEW = "src/components/interview/room/RoomView.tsx";
 
 describe("the room can be left before it starts", () => {
   it("one control owns the words and the handler", () => {
@@ -36,7 +39,7 @@ describe("the room can be left before it starts", () => {
   });
 
   it("the page connects both gates to the same destination", () => {
-    const wired = read(ROOM_PAGE).match(/onExit=\{\(\) => router\.push\("\/dashboard"\)\}/g) ?? [];
+    const wired = (read(ROOM_PAGE) + read(ROOM_VIEW)).match(/onExit=\{\(\) => router\.push\("\/dashboard"\)\}/g) ?? [];
     expect(wired).toHaveLength(2);
   });
 

@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import { dbClient as db, useLiveQuery } from "@/lib/api-client";
 import { SpotlightCard } from "@/components/ui/spotlight-card";

@@ -5,8 +5,8 @@
     {
       "name": "AW1",
       "desc": "a whisper worker loaded from a CDN, so the audio leaves the device",
-      "file": "src/app/interview/page.tsx",
-      "anchor": "new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url), { type: 'module' })",
+      "file": "src/components/interview/room/useModelWorkers.ts",
+      "anchor": "new Worker(new URL('../../../workers/whisper.worker.ts', import.meta.url), { type: 'module' })",
       "replacement": "new Worker(\"https://cdn.example/whisper.worker.js\", { type: 'module' })",
       "test": "tests/unit/audio-stays-local.test.ts",
       "pattern": "every Worker is built from a relative module URL"
@@ -239,7 +239,7 @@
     {
       "name": "FIL1",
       "desc": "the restored session writes the filler total straight, bypassing the ledger that owns it",
-      "file": "src/app/interview/page.tsx",
+      "file": "src/components/interview/room/useSessionPersistence.ts",
       "anchor": "setFillerWordsCount(deliveryLedgerRef.current.seed(snapshot.fillerWordsCount))",
       "replacement": "setFillerWordsCount(snapshot.fillerWordsCount)",
       "test": "tests/unit/filler-count-ownership.test.ts",
@@ -1114,9 +1114,9 @@
     {
       "name": "EXIT1",
       "desc": "the Green Room keeps its exit button but stops calling anything, which is the shape a component test cannot see",
-      "file": "src/app/interview/page.tsx",
-      "anchor": "        onBypass={() => setIsGreenRoom(false)} \n        onExit={() => router.push(\"/dashboard\")}",
-      "replacement": "        onBypass={() => setIsGreenRoom(false)} ",
+      "file": "src/components/interview/room/RoomView.tsx",
+      "anchor": "        onBypass={onGreenRoomDone}\n        onExit={() => router.push(\"/dashboard\")}",
+      "replacement": "        onBypass={onGreenRoomDone}",
       "test": "tests/unit/interview-exit.test.ts",
       "pattern": "the page connects both gates to the same destination"
     }

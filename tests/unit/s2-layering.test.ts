@@ -137,3 +137,34 @@ describe("S2: native buttons are exempted only on record", () => {
     }
   });
 });
+
+/**
+ * S4 (2026-11-22): the room talks to itself through window events, and a lift
+ * that moves the listener but not the dispatcher (or the reverse) leaves a dead
+ * channel that no type check can see. TextSelectionMenu dispatches `ask-ai` and
+ * the composer effect listens — CI's selection arm caught exactly this channel
+ * going silent after the effects were lifted out of page.tsx. Every custom event
+ * dispatched anywhere in src must have at least one listener in src.
+ */
+describe("S4: custom events keep both ends", () => {
+  it("every dispatched window event has a listener", () => {
+    const dispatchers = new Map<string, string[]>();
+    const listeners = new Set<string>();
+    for (const f of walkRepo("src", (r) => r.endsWith(".tsx") || r.endsWith(".ts"))) {
+      const src = read(f);
+      for (const m of src.matchAll(/dispatchEvent\(\s*new\s+CustomEvent(?:<[^>]*>)?\(\s*["']([\w-]+)["']/g)) {
+        const list = dispatchers.get(m[1]) ?? [];
+        list.push(f);
+        dispatchers.set(m[1], list);
+      }
+      for (const m of src.matchAll(/addEventListener\(\s*["']([\w-]+)["']/g)) {
+        listeners.add(m[1]);
+      }
+    }
+    const dead = [...dispatchers.entries()]
+      .filter(([name]) => !listeners.has(name))
+      .map(([name, files]) => `${name} (dispatched by ${files.join(", ")})`);
+    expect(dead, "custom events nobody listens for").toEqual([]);
+    expect(dispatchers.size, "the probe found at least one custom event, or it is blind").toBeGreaterThan(0);
+  });
+});

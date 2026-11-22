@@ -28,7 +28,15 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-const OWNERS = ["src/app/interview/page.tsx", "src/lib/interview/engine-dispatch.ts"];
+// S4 (2026-11-22): the localStorage restore moved verbatim into the room's
+// persistence hook, so the seed site there joins the ownership set.
+// S4 (2026-11-22): the page stopped calling the setter and now forwards it into
+// the hooks, so it leaves the owner set; the two call sites live in the hooks.
+const OWNERS = [
+  "src/lib/interview/engine-dispatch.ts",
+  "src/components/interview/room/useSessionPersistence.ts",
+  "src/components/interview/room/useRecordingLoop.ts",
+];
 
 interface Parsed {
   path: string;

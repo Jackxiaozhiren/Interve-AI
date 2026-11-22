@@ -47,7 +47,10 @@ describe("the think-time window has one owner", () => {
   });
 
   it("arms the countdown from the same owner", () => {
-    expect(page).toContain("setThinkCountdown(THINK_TIME_SECONDS)");
+    // S4 (2026-11-22): arming moved verbatim into the room controls hook.
+    const controls = readFileSync(
+      new URL("../../src/components/interview/room/useRoomControls.ts", import.meta.url), "utf8");
+    expect(controls).toContain("setThinkCountdown(THINK_TIME_SECONDS)");
     // 0 and null are the "spend it now" / "cancel" sentinels; only a positive
     // number here would be a second copy of the window.
     expect(page, "a bare countdown length is back in the page").not.toMatch(/setThinkCountdown\([1-9]\d*\)/);

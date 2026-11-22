@@ -1019,12 +1019,32 @@ export function countNativeButtons(sourceText) {
   return (sourceText.match(/<button\b/g) ?? []).length;
 }
 
+/**
+ * Files that open with a "use client" directive (S4, 2026-11-22). §12.13 asks
+ * for ≤66 of 165 tsx files; the measured count is 120 after converting the
+ * twelve components that used no hook, ref or handler. The rest need their
+ * interactive parts carved out page by page, which is the stage's second and
+ * third iterations, so the ratchet holds the current floor and only descends.
+ */
+export function countUseClientDirective(sourceText) {
+  return /^\s*["']use client["']/.test(sourceText) ? 1 : 0;
+}
+
 const NATIVE_BUTTON_EXCLUDED = /components[\\/](ui|interve-ui|primitives|patterns)[\\/]/;
 
 function countArbitraryFontSizesInSrc() {
   let hits = 0;
   for (const f of sourceFiles()) {
     hits += countArbitraryFontSizes(fs.readFileSync(f, "utf8"));
+  }
+  return hits;
+}
+
+function countUseClientFilesInSrc() {
+  let hits = 0;
+  for (const f of sourceFiles()) {
+    if (!f.endsWith(".tsx")) continue;
+    hits += countUseClientDirective(fs.readFileSync(f, "utf8"));
   }
   return hits;
 }
@@ -1069,6 +1089,7 @@ function collectDebt() {
     todoMarkers: countDebtAcrossTree("todoMarkers"),
     arbitraryFontSizes: countArbitraryFontSizesInSrc(),
     nativeButtons: countNativeButtonsInSrc(),
+    useClientFiles: countUseClientFilesInSrc(),
     hardInternalNavigations: countHardInternalNavigationsInSrc(),
     mouseOnlyInteractions: countMouseOnlyInteractionsInSrc(),
     anyEscapes: countAnyEscapesInSrc(),
@@ -1339,6 +1360,11 @@ export const RATCHET_KEYS = {
     "arbitrary pixel font sizes (`text-[Npx]`) that bypass the seven-step text-ui-* scale in globals.css. "
     + "Seeded 2026-11-20 (S1) at the measured 295; S1 migrated all 295 sites to scale tokens in the same commit "
     + "and lowered the ceiling straight to 0 — no unscaled px value survives, and the ratchet cannot be reopened.",
+  "debt.useClientFiles":
+    "tsx files opening with a \"use client\" directive (§12.13 criterion ②: ≤66 of 165). "
+    + "Measured 120 after the twelve hook-free components converted in S4 iteration 3; the remainder "
+    + "need their interactive parts split out page by page, which is the next iteration. "
+    + "The number only goes down.",
   "debt.nativeButtons":
     "native `<button>` elements in business code (library directories excluded — a button primitive is "
     + "itself a native button). Seeded 2026-11-21 (S2) at the measured 39; §12.13 wants business pages on "
