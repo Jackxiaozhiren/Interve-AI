@@ -36,7 +36,8 @@
     "test:e2e:keyboard": "playwright test --project=chrome-1280x720 --grep-invert \"keyboard-operable\" tests/keyboard.spec.ts",
     "test:a11y": "playwright test --project=chrome-1280x720 tests/accessibility.spec.ts",
     "perf:assert": "node --experimental-strip-types --no-warnings scripts/perf-probe.mjs --assert",
-    "verify": "npm run facts:check && npm run lint && npm run typecheck && npm run test && npm run build"
+    "verify": "npm run facts:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "test:e2e:desktop": "playwright test --project=chrome-1440x900 --project=chrome-1920x1080 tests/e2e/desktop-width.spec.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.112",

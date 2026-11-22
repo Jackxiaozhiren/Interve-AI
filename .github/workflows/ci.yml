@@ -61,6 +61,9 @@ jobs:
       # needs the mic button to leave its `!modelsReady` disabled state, which a
       # cold runner has never done inside the budget.
       # See docs/TESTING.md "Specs no CI lane collects".
+      # S4 criterion ③: the wide end (1440/1920) — a collapsed or overlapping
+      # right column is invisible at 1280 and silent without this measurement.
+      - run: npm run test:e2e:desktop
       - run: npm run test:e2e:keyboard
         env:
           CI: true

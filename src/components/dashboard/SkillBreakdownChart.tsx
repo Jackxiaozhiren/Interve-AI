@@ -1,5 +1,3 @@
-"use client";
-
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, Legend } from "recharts";
 import type { RadarAxis } from "@/lib/dashboard-stats";
 

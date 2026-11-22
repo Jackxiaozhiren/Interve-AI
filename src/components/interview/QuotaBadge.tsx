@@ -1,5 +1,3 @@
-"use client";
-
 import { useSyncExternalStore } from "react";
 import { getQuota, subscribeQuota } from "@/lib/api/quota";
 

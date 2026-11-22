@@ -1,5 +1,3 @@
-"use client";
-
 import { ShieldCheck } from "@phosphor-icons/react";
 import { formatMeasuredAt, formatRate, summarizeFairness } from "@/lib/fairness";
 
