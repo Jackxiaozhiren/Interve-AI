@@ -123,9 +123,9 @@ export function useModelWorkers(opts: {
     // Restore Orama Knowledge Hub if needed. Idempotent: `ensure` returns the
     // moment an instance exists, so this is a no-op when the mount effect already
     // restored or built it, and a second chance when that one raced the data load.
-    import('@/lib/orama-client').then(({ ensureKnowledgeHub }) => {
-      void ensureKnowledgeHub(null);
-    });
+    void import('@/lib/orama-client')
+      .then(({ ensureKnowledgeHub }) => ensureKnowledgeHub(null))
+      .catch(() => console.warn("knowledge hub: module load failed — hints fall back to no retrieval"));
 
     return () => {
       if (whisperWorker.current) {

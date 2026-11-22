@@ -42,7 +42,7 @@ export function useRoomControls(opts: {
       setThinkCountdown(THINK_TIME_SECONDS);
     } else {
       setThinkCountdown(null);
-      startRecording();
+      void startRecording();
     }
   };
 

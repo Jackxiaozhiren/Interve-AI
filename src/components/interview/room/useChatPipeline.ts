@@ -217,7 +217,9 @@ export function useChatPipeline(opts: {
 
   const handleTextSubmit = () => {
     if (!inputText.trim()) return;
-    handleUserInput(inputText.trim());
+    // Fire-and-forget, exactly as the page did: the composer clears immediately
+    // and the pipeline reports its own failures through sendFailure.
+    void handleUserInput(inputText.trim());
     setInputText("");
   };
 
