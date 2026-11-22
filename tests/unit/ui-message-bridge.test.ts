@@ -129,8 +129,12 @@ describe("both boundaries actually call it", () => {
     readFileSync(new URL(`../../${file}`, import.meta.url), "utf8");
 
   it("restores a session through the bridge instead of an assertion", () => {
+    // S4 (2026-11-22) moved the restore flow verbatim into the room's
+    // persistence hook; the page wires it through useSessionPersistence.
+    const hook = read("src/components/interview/room/useSessionPersistence.ts");
+    expect(hook).toMatch(/setMessages\(\s*toUiMessages\(snapshot\.messages\)\s*\)/);
     const page = read("src/app/interview/page.tsx");
-    expect(page).toMatch(/setMessages\(\s*toUiMessages\(snapshot\.messages\)\s*\)/);
+    expect(page).toMatch(/useSessionPersistence\(/);
   });
 
   it("converts the request transcript through the bridge", () => {

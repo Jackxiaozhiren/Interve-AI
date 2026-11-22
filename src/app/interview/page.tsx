@@ -60,6 +60,13 @@ import { UnsavedSessionBanner } from "@/components/interview/UnsavedSessionBanne
 import { SendFailureBanner } from "@/components/interview/SendFailureBanner";
 import { TelemetryRow } from "@/components/interview/TelemetryRow";
 import { TranscriptPanel } from "@/components/interview/TranscriptPanel";
+import { useRoomWorkState } from "@/components/interview/room/useRoomWorkState";
+import { useRoomPanels } from "@/components/interview/room/useRoomPanels";
+import { useInterviewTelemetry } from "@/components/interview/room/useInterviewTelemetry";
+import { useModelRuntime } from "@/components/interview/room/useModelRuntime";
+import { useThinkTime } from "@/components/interview/room/useThinkTime";
+import { useSessionPersistence } from "@/components/interview/room/useSessionPersistence";
+import { useModelWorkers } from "@/components/interview/room/useModelWorkers";
 
 function InterviewRoomContent() {
   const searchParams = useSearchParams();
@@ -72,63 +79,38 @@ function InterviewRoomContent() {
   const aiModel = searchParams?.get('aiModel') || 'zhipu';
   const testMode = searchParams?.get('testMode') === 'true';
 
+  // S4: the room's state slices live in room/ hooks. Each slice moved
+  // verbatim — same states, same refs, same effects — so the page keeps only
+  // orchestration. See src/components/interview/room/.
+  const work = useRoomWorkState();
+  const panels = useRoomPanels();
+  const telemetry = useInterviewTelemetry();
+  const model = useModelRuntime();
+  const { inputText, setInputText, activeContext, setActiveContext, activeCodeContext, setActiveCodeContext, activeSystemDesignContext, setActiveSystemDesignContext, resumeText, setResumeText, problemStatement, setProblemStatement, isRequestingHint, setIsRequestingHint, activeExpert, setActiveExpert, activeCodeContextRef, activeSystemDesignContextRef } = work;
+  const { isScratchpadOpen, setIsScratchpadOpen, isSystemDesignOpen, setIsSystemDesignOpen, isFocusMode, setIsFocusMode, isPaused, setIsPaused } = panels;
+  const { recordingStartTimeRef, deliveryLedgerRef, lastSpeechTimeRef, lastAnalysisTimeRef, sttSessionRef, interruptionsRef, answerSegmentsRef, roundTripsRef, sendSpanRef, unmountedRef, ttftSamplesRef, whisperTurnaroundsRef, whisperSpanRef, ttsStartupSamplesRef, ttsSpanRef } = telemetry;
+  const { modelStatus, setModelStatus, modelsReady, setModelsReady, isUsingNativeTTS, setIsUsingNativeTTS, modelLoadError } = model;
+  // startRecording is defined below; the think-time hook fires it through a ref
+  // so the countdown and the recorder stay decoupled at definition time.
+  const startRecordingRef = useRef<() => void>(null);
+  const { isThinkTimeEnabled, setIsThinkTimeEnabled, thinkCountdown, setThinkCountdown } = useThinkTime(() => startRecordingRef.current?.());
+
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
-  const [modelStatus, setModelStatus] = useState<string>("正在初始化模型...");
-  const [modelsReady, setModelsReady] = useState(false);
-  const [inputText, setInputText] = useState("");
-  const [isUsingNativeTTS, setIsUsingNativeTTS] = useState(false);
-  const [activeContext, setActiveContext] = useState("");
-  const [activeCodeContext, setActiveCodeContext] = useState("");
-  const [activeSystemDesignContext, setActiveSystemDesignContext] = useState("");
-  const [resumeText, setResumeText] = useState("");
-  const [problemStatement, setProblemStatement] = useState("");
-  const [isRequestingHint, setIsRequestingHint] = useState(false);
-  const [activeExpert, setActiveExpert] = useState<AIExpert>('system');
   
 
   // Delivery Stats State (observable signals only — see TRUTHFULNESS_REPORT)
   const [wpm, setWpm] = useState(0);
   const [fillerWordsCount, setFillerWordsCount] = useState(0);
   
-  const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
-  const [isSystemDesignOpen, setIsSystemDesignOpen] = useState(false);
-  const [isFocusMode, setIsFocusMode] = useState(false);
   const { isCalmMode, isDyslexiaMode, showLiveInsights } = useAccessibilityStore();
   const isPageVisible = usePageVisibility();
   const [activeUserTranscript, setActiveUserTranscript] = useState("");
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
   const [isStandby, setIsStandby] = useState(true);
   const router = useRouter();
-  const [isPaused, setIsPaused] = useState(false);
-  const [isThinkTimeEnabled, setIsThinkTimeEnabled] = useState(false);
-  const [thinkCountdown, setThinkCountdown] = useState<number | null>(null);
-  const [modelLoadError, setModelLoadError] = useState(false);
   const [isGreenRoom, setIsGreenRoom] = useState(!testMode);
-  const recordingStartTimeRef = useRef<number | null>(null);
-  // One owner for the hesitation count, because both speech engines see the same
-  // spoken fillers (see src/lib/interview/delivery-ledger.ts).
-  const deliveryLedgerRef = useRef(createDeliveryLedger(countFillers));
-  const lastSpeechTimeRef = useRef<number>(Date.now());
-  const lastAnalysisTimeRef = useRef<number>(0);
-  // Phase 8: observable delivery analytics (no psychology). Refs only —
-  // nothing here is displayed as a score during the interview.
-  const sttSessionRef = useRef(createSttSession());
-  const interruptionsRef = useRef(0);
-  const answerSegmentsRef = useRef<{ startMs: number; endMs: number }[]>([]);
-  const roundTripsRef = useRef<number[]>([]);
-  // One start, two readers: TTFT is read at the first token and the round trip
-  // at the end of the answer, so the span is not consumed by the first.
-  const sendSpanRef = useRef(createLatencySpan());
-  const unmountedRef = useRef(false);
-  // Phase 13: latency breakdown refs (31). TTFT ≈ submit→streaming;
-  // whisper = post→complete turnaround; TTS = speak-request→first audio.
-  const ttftSamplesRef = useRef<number[]>([]);
-  const whisperTurnaroundsRef = useRef<number[]>([]);
-  const whisperSpanRef = useRef(createLatencySpan());
-  const ttsStartupSamplesRef = useRef<number[]>([]);
-  const ttsSpanRef = useRef(createLatencySpan());
   // Phase 6: interview loop (turns/difficulty/budget). Initialized per
   // interview id; authority stays server-side (synthesizeServerState).
   // Phase 9: loop chrome text comes from the locale dictionary.
@@ -147,17 +129,6 @@ function InterviewRoomContent() {
   }, [interviewIdParam, level, initLoop, searchParams]);
   const setCognitiveLoad = useInterveStore(state => state.setCognitiveLoad);
   
-  const activeCodeContextRef = useRef(activeCodeContext);
-  const activeSystemDesignContextRef = useRef(activeSystemDesignContext);
-
-  useEffect(() => {
-    activeCodeContextRef.current = activeCodeContext;
-  }, [activeCodeContext]);
-
-  useEffect(() => {
-    activeSystemDesignContextRef.current = activeSystemDesignContext;
-  }, [activeSystemDesignContext]);
-
   useEffect(() => {
     // Restore the account's serialized index for copilot hints. No resume text is
     // known at this point, so a failed restore is not yet a dead end: the
@@ -169,19 +140,7 @@ function InterviewRoomContent() {
     });
   }, []);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (!modelsReady) {
-      timer = setTimeout(() => {
-        setModelLoadError(true);
-      }, 15000); // 15 seconds timeout
-    }
-    return () => clearTimeout(timer);
-  }, [modelsReady]);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const whisperWorker = useRef<Worker | null>(null);
-  const kokoroWorker = useRef<Worker | null>(null);
   const speechRecognition = useRef<SpeechRecognitionLike | null>(null);
   
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -189,8 +148,6 @@ function InterviewRoomContent() {
   const inputRef = useRef<HTMLInputElement>(null);
   
 
-  // TTS Audio Context
-  const audioContext = useRef<AudioContext | null>(null);
   const currentAudioSource = useRef<AudioBufferSourceNode | null>(null);
 
 
@@ -437,21 +394,6 @@ function InterviewRoomContent() {
     }
   };
 
-  // Phase 28: Think Time Countdown
-  useEffect(() => {
-    if (thinkCountdown === null || thinkCountdown <= 0) {
-      if (thinkCountdown === 0) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setThinkCountdown(null);
-        startRecording();
-      }
-      return;
-    }
-    const t = setTimeout(() => setThinkCountdown(prev => prev! - 1), 1000);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [thinkCountdown]);
-
   // Phase 36: Device Disconnection Fallback
   useEffect(() => {
     const handleDeviceChange = () => {
@@ -468,155 +410,15 @@ function InterviewRoomContent() {
       navigator.mediaDevices?.removeEventListener('devicechange', handleDeviceChange);
     };
   }, []);
-
-  // Phase 26: Session Persistence (+ Phase 10: 30-day local retention)
-  // E1: storage mechanics live in session-persistence.ts (unit-tested);
-  // the component keeps only the restore-prompt UI.
-  useEffect(() => {
-    const interviewId = searchParams?.get('id');
-    if (!interviewId || messages.length === 0) return;
-    saveSession(localStorage, interviewId, { messages, wpm, fillerWordsCount });
-  }, [messages, wpm, fillerWordsCount, searchParams]);
-
-  useEffect(() => {
-    const interviewId = searchParams?.get('id');
-    if (!interviewId) return;
-    const loaded = loadSession(localStorage, interviewId);
-    if (loaded.status !== "found") return;
-    const snapshot = loaded.snapshot;
-    toast("发现未完成的面试记录", {
-      description: "是否恢复之前的对话和状态？",
-      action: {
-        label: "恢复",
-        onClick: () => {
-          setMessages(toUiMessages(snapshot.messages));
-          if (snapshot.wpm) setWpm(snapshot.wpm);
-          if (snapshot.fillerWordsCount) setFillerWordsCount(deliveryLedgerRef.current.seed(snapshot.fillerWordsCount));
-          toast.success("已恢复对话记录");
-        }
-      },
-      cancel: {
-        label: "清除",
-        onClick: () => {
-          clearSession(localStorage, interviewId);
-        }
-      },
-      duration: 15000,
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Initialize Web Workers and Data
-  useEffect(() => {
-    // Load resume text from db if available
-    const interviewId = searchParams?.get('id');
-    if (interviewId) {
-      db.interviews.get(parseInt(interviewId, 10)).then((interview) => {
-        if (interview?.resumeText) {
-          setResumeText(interview.resumeText);
-          // The reader has been live since Phase B4 and the writer had no caller, so
-          // `orama_index` was empty in production and every per-answer retrieval
-          // answered nothing. This is where the resume text and the reader meet.
-          void ensureKnowledgeHub(interview.resumeText).then((outcome) => {
-            if (outcome === "memory-only") console.warn("knowledge hub: built in memory only — the row was refused, so a reload starts empty");
-          });
-        }
-        if (interview?.problemStatement) {
-          setProblemStatement(interview.problemStatement);
-        }
-      }).catch(console.error);
-    }
-
-    // We instantiate workers using Next.js compatible syntax
-    if (testMode) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setModelsReady(true);
-      setIsUsingNativeTTS(true);
-      setModelStatus("");
-      return;
-    }
-    
-    whisperWorker.current = new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url), { type: 'module' });
-    kokoroWorker.current = new Worker(new URL('../../workers/kokoro.worker.ts', import.meta.url), { type: 'module' });
-
-    audioContext.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ sampleRate: 24000 });
-
-    const handleWhisperMessage = createWhisperDispatch({
-      deliveryLedgerRef,
-      whisperSpanRef,
-      whisperTurnaroundsRef,
-      recordingStartTimeRef,
-      lastAnalysisTimeRef,
-      activeCodeContextRef,
-      activeSystemDesignContextRef,
-      handleUserInputRef,
-      setWpm,
-      setFillerWordsCount,
-      setModelStatus,
-      getAnalysisSinks: () => useInterveStore.getState(),
-      toast,
-    });
-
-    const handleKokoroMessage = createKokoroDispatch({
-      setModelsReady,
-      setModelStatus,
-      setIsUsingNativeTTS,
-      setIsAiSpeaking,
-      playAudio,
-      toast,
-    });
-
-    whisperWorker.current.addEventListener('message', handleWhisperMessage);
-    kokoroWorker.current.addEventListener('message', handleKokoroMessage);
-
-    // Trigger loads
-    whisperWorker.current.postMessage({ type: 'load' });
-    kokoroWorker.current.postMessage({ type: 'load' });
-
-    // Restore Orama Knowledge Hub if needed. Idempotent: `ensure` returns the
-    // moment an instance exists, so this is a no-op when the mount effect already
-    // restored or built it, and a second chance when that one raced the data load.
-    import('@/lib/orama-client').then(({ ensureKnowledgeHub }) => {
-      void ensureKnowledgeHub(null);
-    });
-
-    return () => {
-      if (whisperWorker.current) {
-        whisperWorker.current.postMessage({ type: 'dispose' });
-        const worker = whisperWorker.current;
-        setTimeout(() => worker.terminate(), 200);
-      }
-      if (kokoroWorker.current) {
-        kokoroWorker.current.postMessage({ type: 'dispose' });
-        const worker = kokoroWorker.current;
-        setTimeout(() => worker.terminate(), 200);
-      }
-      if (speechRecognition.current) {
-        speechRecognition.current.stop();
-      }
-      if (audioContext.current?.state !== 'closed') {
-         audioContext.current?.close();
-      }
-      window.speechSynthesis.cancel();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sendMessage]);
-
-  useEffect(() => {
-    const handleAskAI = (e: Event) => {
-      const customEvent = e as CustomEvent<string>;
-      const text = customEvent.detail;
-      if (text) {
-        setInputText((prev) => prev ? `${prev} \n\n关于以下内容：\n"${text}"\n` : `关于以下内容：\n"${text}"\n`);
-        setTimeout(() => {
-          inputRef.current?.focus();
-        }, 50);
-      }
-    };
-
-    window.addEventListener('ask-ai', handleAskAI);
-    return () => window.removeEventListener('ask-ai', handleAskAI);
-  }, []);
+  // S4: worker construction + dispatch wiring live in the runtime hook;
+  // playback/recognizer refs stay here — their handlers interleave with
+  // the send pipeline.
+  const { whisperWorker, kokoroWorker, audioContext } = useModelWorkers({
+    testMode, searchParams, speechRecognitionRef: speechRecognition,
+    setResumeText: work.setResumeText, setProblemStatement: work.setProblemStatement,
+    setWpm, setFillerWordsCount,
+    setIsAiSpeaking, playAudio, telemetry, work, model, handleUserInputRef,
+  });
 
   const latestAiMessage = (() => {
     const lastAss = [...messages].reverse().find(m => m.role === 'assistant');
@@ -691,6 +493,15 @@ function InterviewRoomContent() {
     },
   });
 
+
+  // S4: session persistence moved verbatim into the room hook.
+  useSessionPersistence({
+    searchParams, messages, wpm, fillerWordsCount,
+    setMessages, setWpm, setFillerWordsCount, deliveryLedgerRef,
+  });
+
+  // S4: bind the recorder for the think-time hook defined above.
+  startRecordingRef.current = () => { void startRecording(); };
 
   async function startRecording() {
     try {

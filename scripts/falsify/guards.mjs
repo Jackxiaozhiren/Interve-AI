@@ -652,7 +652,9 @@ const PLANTS = [
     name: "N1",
     desc: "the session restore goes back to `as never[]`",
     kind: "gate",
-    file: INTERVIEW_LAUNCHER,
+    // S4 (2026-11-22): the restore moved verbatim into the room's persistence
+    // hook, so the plant follows the code rather than the file name.
+    file: "src/components/interview/room/useSessionPersistence.ts",
     anchor: "setMessages(toUiMessages(snapshot.messages));",
     replacement: "setMessages(snapshot.messages as never[]);",
   },
