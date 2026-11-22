@@ -121,18 +121,31 @@ test.describe("desktop geometry", () => {
       test.skip(true, "the room did not mount in this lane (no seeded session); the overflow reading above still holds");
     }
     expect(m.transcript, "the room renders its transcript log").not.toBeNull();
-    const composerBox = (await composer.first().boundingBox()) as Rect | null;
-    if (!composerBox) {
+    // locator.boundingBox() speaks {x, y, width, height}, not the DOMRect shape
+    // the page-side probe returns; converting here keeps one vocabulary below.
+    const raw = await composer.first().boundingBox();
+    if (!raw) {
+      // test.skip throws, but TypeScript cannot see that; the return keeps the
+      // narrowing honest for the compiler and changes nothing at runtime.
       test.skip(true, "the composer is mounted but has no box (standby overlay) — the overflow reading above still holds");
+      return;
     }
+    const composerRect: Rect = {
+      left: raw.x,
+      right: raw.x + raw.width,
+      top: raw.y,
+      bottom: raw.y + raw.height,
+      width: raw.width,
+      height: raw.height,
+    };
 
     const transcript = m.transcript!;
     expect(
-      overlaps(composerBox!, transcript),
-      `stage composer overlaps the transcript at ${m.vw}px (composer right=${Math.round(composerBox!.right)}, transcript left=${Math.round(transcript.left)})`,
+      overlaps(composerRect, transcript),
+      `stage composer overlaps the transcript at ${m.vw}px (composer right=${Math.round(composerRect.right)}, transcript left=${Math.round(transcript.left)})`,
     ).toBe(false);
     expect(
-      composerBox!.right,
+      composerRect.right,
       `stage column ran into the transcript column at ${m.vw}px`,
     ).toBeLessThanOrEqual(transcript.left + 1);
   });
