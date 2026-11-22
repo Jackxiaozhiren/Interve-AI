@@ -136,7 +136,10 @@ describe("the interview page's onFinish handler (call-site contract)", () => {
   };
 
   it("keeps the real onFinish wired to the envelope", () => {
-    expect(finishContract(readRepo("src/app/interview/page.tsx"))).toEqual(CLEAN);
+    // S4 (2026-11-22): the handler lives in the pipeline hook; the page wires
+    // the hook. Asserting the hook keeps the contract on the shipped code.
+    expect(finishContract(readRepo("src/components/interview/room/useChatPipeline.ts"))).toEqual(CLEAN);
+    expect(readRepo("src/app/interview/page.tsx")).toMatch(/useChatPipeline\(/);
   });
 
   it("rejects the v6 shape it exists to catch", () => {

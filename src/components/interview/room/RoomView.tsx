@@ -17,6 +17,7 @@ import { UnsavedSessionBanner } from "@/components/interview/UnsavedSessionBanne
 import { SendFailureBanner } from "@/components/interview/SendFailureBanner";
 import { TextSelectionMenu } from "@/components/interview/TextSelectionMenu";
 import { StarTracker } from "@/components/interview/StarTracker";
+import { GreenRoom } from "@/components/interview/GreenRoom";
 import type { useRoomWorkState } from "./useRoomWorkState";
 import type { useRoomPanels } from "./useRoomPanels";
 import type { useModelRuntime } from "./useModelRuntime";
@@ -88,6 +89,8 @@ export type RoomViewModel = ReturnType<typeof useRoomWorkState> &
     startFromStandby: () => void;
     router: AppRouterInstance;
     isStandby: boolean;
+    isGreenRoom: boolean;
+    onGreenRoomDone: () => void;
     settlement: Settlement;
     sendFailure: SendFailure;
     framework: string;
@@ -105,6 +108,7 @@ export function RoomView({ vm }: { vm: RoomViewModel }) {
     showLiveInsights, status, latencyPhase, isDyslexiaMode, messagesEndRef, regenerate,
     setMessages, isScratchpadOpen, problemStatement, isSystemDesignOpen,
     modelLoadError, startFromStandby, router, framework, isStandby,
+    isGreenRoom, onGreenRoomDone,
   } = vm;
   const isEnding = vm.settlement.isEnding;
   const saveFailure = vm.settlement.saveFailure;
@@ -113,6 +117,19 @@ export function RoomView({ vm }: { vm: RoomViewModel }) {
   const isRetrying = vm.settlement.isRetrying;
   const handleEndCall = vm.settlement.handleEndCall;
   const sendFailure = vm.sendFailure;
+
+  // The green room is a gate before the room exists: the same early return the
+  // page carried, moved with the rest of the view.
+  if (isGreenRoom) {
+    return (
+      <GreenRoom
+        onComplete={onGreenRoomDone}
+        onBypass={onGreenRoomDone}
+        onExit={() => router.push("/dashboard")}
+      />
+    );
+  }
+
 
   return (
         <div className="flex flex-col h-screen bg-transparent text-foreground font-sans selection:bg-primary/10 p-4 gap-4">

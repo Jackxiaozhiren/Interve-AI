@@ -83,9 +83,12 @@ describe("the room actually uses it", () => {
       "the transport must receive the wrapper, or the badge cannot see the stream's reading"
     ).toMatch(/new DefaultChatTransport\(\{[\s\S]{0,400}fetch:\s*quotaAwareFetch/);
 
-    const page = readRepo("src/app/interview/page.tsx");
-    expect(page, "the room must build its transport through that factory").toContain(
+    // S4 (2026-11-22): the transport is built in the pipeline hook; the page
+    // wires the hook. Same factory, same arguments.
+    const pipeline = readRepo("src/components/interview/room/useChatPipeline.ts");
+    expect(pipeline, "the room must build its transport through that factory").toContain(
       "createQuotaAwareTransport({"
     );
+    expect(readRepo("src/app/interview/page.tsx")).toMatch(/useChatPipeline\(/);
   });
 });

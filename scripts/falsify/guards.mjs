@@ -968,7 +968,8 @@ const PLANTS = [
   windowPlant({
     name: "TT2",
     desc: "the page arms a bare countdown length again",
-    file: INTERVIEW_LAUNCHER,
+    // S4 (2026-11-22): arming moved verbatim into the controls hook.
+    file: "src/components/interview/room/useRoomControls.ts",
     anchor: `setThinkCountdown(THINK_TIME_SECONDS)`,
     replacement: `setThinkCountdown(10)`,
     pattern: "arms the countdown from the same owner",
