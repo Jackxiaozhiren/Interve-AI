@@ -76,7 +76,10 @@ test.describe("desktop geometry", () => {
     test.slow();
     await loginAs(page);
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-    await page.waitForFunction(() => document.body.innerText.trim().length > 0, undefined, { timeout: 15000 });
+    // A shell with a nav and a skeleton also has non-empty text; the measured
+    // widest box was 143px on CI for exactly that reason. Wait for the board's
+    // own landmark, then measure.
+    await expect(page.locator("main")).toBeVisible({ timeout: 20000 });
 
     const m = await assertNoOverflow(page, "/dashboard");
     expect(m.main, "the dashboard renders a <main>").not.toBeNull();
@@ -89,20 +92,23 @@ test.describe("desktop geometry", () => {
   test("/setup keeps its content inside the viewport and full width", async ({ page }) => {
     await loginAs(page);
     await page.goto("/setup", { waitUntil: "domcontentloaded" });
-    await page.waitForFunction(() => document.body.innerText.trim().length > 0, undefined, { timeout: 15000 });
+    // The wizard is a sequence of cards, not a <main>: wait for the first card's
+    // heading, which only exists once the client has mounted the step.
+    await expect(page.getByText("Frontend Engineer").first()).toBeVisible({ timeout: 20000 });
 
     const m = await assertNoOverflow(page, "/setup");
-    expect(m.main, "setup renders a <main>").not.toBeNull();
-    expect(m.main!.width, `setup main collapsed at ${m.vw}px`).toBeGreaterThan(m.vw * 0.5);
+    // Half-width floor on the widest content box: a wizard column centred in
+    // a 1440 viewport at 390px would be the collapse this looks for.
+    expect(m.widest, `setup content collapsed at ${m.vw}px`).toBeGreaterThan(m.vw * 0.5);
   });
 
   test("/interview keeps two real columns without overlap", async ({ page }) => {
     test.slow();
     await loginAs(page);
     await page.goto("/interview?id=e2e-desktop-width", { waitUntil: "domcontentloaded" });
-    // The room renders even without a session; the composer and the log are the
-    // two halves whose geometry this asserts.
-    await page.waitForFunction(() => document.body.innerText.trim().length > 0, undefined, { timeout: 20000 });
+    // The room renders even without a session; wait for the composer and the log,
+    // the two halves whose geometry this asserts.
+    await expect(page.getByPlaceholder("输入文本...")).toBeVisible({ timeout: 25000 });
 
     const m = await assertNoOverflow(page, "/interview");
     expect(m.transcript, "the room renders its transcript log").not.toBeNull();
