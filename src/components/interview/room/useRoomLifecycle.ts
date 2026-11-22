@@ -38,13 +38,15 @@ export function useRoomLifecycle(opts: {
   lastSpeechTimeRef: { current: number };
   setCognitiveLoad: (updater: (prev: number) => number) => void;
   stopRecording: () => void;
+  setInputText: (updater: (prev: string) => string) => void;
+  inputRef: { current: HTMLInputElement | null };
 }) {
   const {
     interviewIdParam, level, searchParams, initLoop,
     isRecording, isStandby, isAiSpeaking, isPaused,
     latestAiMessage, messages, setActiveExpert, messagesEndRef,
     unmountedRef, mediaRecorder, speechRecognition, lastSpeechTimeRef, setCognitiveLoad,
-    stopRecording,
+    stopRecording, setInputText, inputRef,
   } = opts;
 
   useEffect(() => {
@@ -95,6 +97,25 @@ export function useRoomLifecycle(opts: {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, messagesEndRef]);
+
+  // Text selection → composer. TextSelectionMenu dispatches `ask-ai` and this
+  // is its only listener; it was dropped when the effects were lifted and CI's
+  // selection arm caught the empty composer.
+  useEffect(() => {
+    const handleAskAI = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      const text = customEvent.detail;
+      if (text) {
+        setInputText((prev) => prev ? `${prev} \n\n关于以下内容：\n"${text}"\n` : `关于以下内容：\n"${text}"\n`);
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 50);
+      }
+    };
+
+    window.addEventListener('ask-ai', handleAskAI);
+    return () => window.removeEventListener('ask-ai', handleAskAI);
+  }, [setInputText, inputRef]);
 
   // Phase 36: Device Disconnection Fallback
   useEffect(() => {

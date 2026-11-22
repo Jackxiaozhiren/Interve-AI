@@ -176,7 +176,7 @@ function InterviewRoomContent() {
     isRecording, isStandby, isAiSpeaking, isPaused,
     latestAiMessage, messages, setActiveExpert, messagesEndRef,
     unmountedRef, mediaRecorder, speechRecognition, lastSpeechTimeRef, setCognitiveLoad,
-    stopRecording,
+    stopRecording, setInputText, inputRef,
   });
 
   // S4: these three dereference the recorder, so they follow the hook that owns
