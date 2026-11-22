@@ -919,9 +919,10 @@ const PLANTS = [
   roomPlant({
     name: "TP1",
     desc: "the page re-adds its own transcript next to the panel's",
-    file: INTERVIEW_LAUNCHER,
-    anchor: `      <TextSelectionMenu />`,
-    replacement: `      {isFocusMode && <InterviewTranscript />}\n      <TextSelectionMenu />`,
+    // S4 (2026-11-22): the JSX moved into RoomView, so the plant follows it.
+    file: "src/components/interview/room/RoomView.tsx",
+    anchor: `          <TextSelectionMenu />`,
+    replacement: `          {isFocusMode && <InterviewTranscript />}\n          <TextSelectionMenu />`,
   }),
   roomPlant({
     name: "TP2",
@@ -933,9 +934,10 @@ const PLANTS = [
   roomPlant({
     name: "TP3",
     desc: "the scroll anchor gets wired from both layers",
-    file: INTERVIEW_LAUNCHER,
-    anchor: `          endRef={messagesEndRef}`,
-    replacement: `          endRef={messagesEndRef}\n          endRef={messagesEndRef}`,
+    // S4 (2026-11-22): the handoff lives in the view component now.
+    file: "src/components/interview/room/RoomView.tsx",
+    anchor: `              endRef={messagesEndRef}`,
+    replacement: `              endRef={messagesEndRef}\n              endRef={messagesEndRef}`,
     pattern: "hands the scroll anchor",
   }),
   // ── the README's architecture counts are the measured ones ───────────────

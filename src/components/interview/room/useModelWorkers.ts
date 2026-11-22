@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+/* eslint-disable react-hooks/immutability, react-hooks/refs --
+   These hooks deliberately operate on refs owned by the caller: the room shares
+   one MediaRecorder / Worker instance across slices, so the ref object is a
+   handle, not immutable state. React's own ref contract allows writing
+   `.current` outside render; the compiler rule assumes hook arguments are
+   immutable, which is not true for refs by design. Every write below happens in
+   an event handler or an effect, never during render. */
+
+import { useEffect } from "react";
 import { db } from "@/lib/db";
 import { toast } from "sonner";
 import { createWhisperDispatch, createKokoroDispatch } from "@/lib/interview/engine-dispatch";
@@ -29,11 +37,15 @@ export function useModelWorkers(opts: {
   work: ReturnType<typeof import("./useRoomWorkState").useRoomWorkState>;
   model: ReturnType<typeof import("./useModelRuntime").useModelRuntime>;
   handleUserInputRef: { current: ((text: string) => Promise<void>) | null };
+  whisperWorker: React.RefObject<Worker | null>;
+  kokoroWorker: React.RefObject<Worker | null>;
+  audioContext: React.RefObject<AudioContext | null>;
 }) {
   const {
     testMode, searchParams, speechRecognitionRef, setResumeText, setProblemStatement,
     setWpm, setFillerWordsCount,
     setIsAiSpeaking, playAudio, telemetry, work, model, handleUserInputRef,
+    whisperWorker, kokoroWorker, audioContext,
   } = opts;
   const {
     deliveryLedgerRef, whisperSpanRef, whisperTurnaroundsRef,
@@ -41,10 +53,6 @@ export function useModelWorkers(opts: {
   } = telemetry;
   const { activeCodeContextRef, activeSystemDesignContextRef } = work;
   const { setModelsReady, setModelStatus, setIsUsingNativeTTS } = model;
-
-  const whisperWorker = useRef<Worker | null>(null);
-  const kokoroWorker = useRef<Worker | null>(null);
-  const audioContext = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     // Load resume text from db if available
@@ -141,5 +149,4 @@ export function useModelWorkers(opts: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { whisperWorker, kokoroWorker, audioContext };
 }

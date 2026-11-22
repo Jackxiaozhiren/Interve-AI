@@ -17,7 +17,11 @@ import { describe, it, expect } from "vitest";
 import { readRepo } from "./repo-tree";
 
 const roomStage = readRepo("src/components/interview/RoomStage.tsx");
-const interviewPage = readRepo("src/app/interview/page.tsx");
+// S4 (2026-11-22): the room's JSX moved verbatim into the view component; the
+// assertions below span page + view so they keep binding wherever the element
+// lives. Behaviour is unchanged — this is the same markup, one file over.
+const interviewPage =
+  readRepo("src/app/interview/page.tsx") + readRepo("src/components/interview/room/RoomView.tsx");
 const starTracker = readRepo("src/components/interview/StarTracker.tsx");
 const copilotPanel = readRepo("src/components/interview/CopilotPanel.tsx");
 

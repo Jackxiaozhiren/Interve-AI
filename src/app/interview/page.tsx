@@ -7,59 +7,26 @@ import { useAccessibilityStore } from "@/store/useAccessibilityStore";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import { db } from "@/lib/db";
 import { createQuotaAwareTransport } from "@/lib/api/chat-transport";
-import dynamic from "next/dynamic";
-// Phase 13: drawer-gated heavies load on demand, not on first paint.
-// tldraw (~1MB+) and the scratchpad wrapper only mount when opened.
-const TechnicalScratchpad = dynamic(
-  () => import("@/components/interview/TechnicalScratchpad").then((m) => m.TechnicalScratchpad),
-  { ssr: false }
-);
-const SystemDesignBoard = dynamic(
-  () => import("@/components/interview/SystemDesignBoard").then((m) => m.SystemDesignBoard),
-  { ssr: false }
-);
-import { RoomStage } from "@/components/interview/RoomStage";
-import { StarTracker } from "@/components/interview/StarTracker";
-import { CopilotHints } from "@/components/interview/CopilotHints";
-import { useKeyboardShortcuts, createCtrlCmdShortcut } from "@/hooks/useKeyboardShortcuts";
-import { type AIExpert, expertFromMessage } from "@/lib/interview/experts";
+import { expertFromMessage } from "@/lib/interview/experts";
+import type { SpeechRecognitionLike } from "@/lib/interview/speech-session";
+import { getPreferredMicDevice } from "@/lib/audio/vad";
 import { DynamicLoader } from "@/components/ui/DynamicLoader";
-import { getMessageText, getTextFromFinishEvent, toUiMessages } from "@/lib/message-text";
+import { getMessageText, getTextFromFinishEvent } from "@/lib/message-text";
 import { useInterveStore } from "@/store/useInterveStore";
 import { useInterviewLoopStore } from "@/store/useInterviewLoopStore";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { loopBadge } from "@/lib/interview/difficulty-label";
-import { createLatencySpan } from "@/lib/interview/latency";
 import { describeApiFailure, readApiJson } from "@/lib/api/read-response";
 import { useVADInterruption } from "@/hooks/useVADInterruption";
-import { createSttSession } from "@/lib/audio/stt";
-// Phase E1: pure slices extracted from this God component (unit-tested).
-import { computeWpm, countFillers } from "@/lib/interview/delivery-metrics";
-import { createDeliveryLedger } from "@/lib/interview/delivery-ledger";
-import { createWhisperDispatch, createKokoroDispatch } from "@/lib/interview/engine-dispatch";
-import { startSpeechSession, type SpeechRecognitionLike, type WindowWithSpeech } from "@/lib/interview/speech-session";
-import { saveSession, loadSession, clearSession } from "@/lib/interview/session-persistence";
 import { readDesignCanvas, readScratchpadCodeContext, readScratchpadContent } from "@/lib/interview/board-state";
 import { THINK_TIME_SECONDS } from "@/lib/interview/think-time";
 import { useInterviewSettlement } from "@/components/interview/useInterviewSettlement";
-import { micConstraints, getPreferredMicDevice } from "@/lib/audio/vad";
-import { decodeRecordingToMono16k } from "@/lib/audio/decode-recording";
-import { FlowMap } from "@/components/interview/FlowMap";
 import { usePageVisibility } from "@/hooks/usePageVisibility";
 import { useAmbientNoise } from "@/hooks/useAmbientNoise";
 import { useSendFailureRecovery } from "@/hooks/useSendFailureRecovery";
 import { ensureKnowledgeHub } from "@/lib/orama-client";
-import { TextSelectionMenu } from "@/components/interview/TextSelectionMenu";
 import { GreenRoom } from "@/components/interview/GreenRoom";
-import { RoomHeader } from "@/components/interview/RoomHeader";
-import { StandbyOverlay } from "@/components/interview/StandbyOverlay";
-import { PauseOverlay, ThinkTimeOverlay, EndingOverlay } from "@/components/interview/RoomOverlays";
-import { UnsavedSessionBanner } from "@/components/interview/UnsavedSessionBanner";
-import { SendFailureBanner } from "@/components/interview/SendFailureBanner";
-import { TelemetryRow } from "@/components/interview/TelemetryRow";
-import { TranscriptPanel } from "@/components/interview/TranscriptPanel";
 import { useRoomWorkState } from "@/components/interview/room/useRoomWorkState";
 import { useRoomPanels } from "@/components/interview/room/useRoomPanels";
 import { useInterviewTelemetry } from "@/components/interview/room/useInterviewTelemetry";
@@ -67,6 +34,9 @@ import { useModelRuntime } from "@/components/interview/room/useModelRuntime";
 import { useThinkTime } from "@/components/interview/room/useThinkTime";
 import { useSessionPersistence } from "@/components/interview/room/useSessionPersistence";
 import { useModelWorkers } from "@/components/interview/room/useModelWorkers";
+import { useRecordingLoop } from "@/components/interview/room/useRecordingLoop";
+import { useRoomShortcuts } from "@/components/interview/room/useRoomShortcuts";
+import { RoomView } from "@/components/interview/room/RoomView";
 
 function InterviewRoomContent() {
   const searchParams = useSearchParams();
@@ -86,10 +56,10 @@ function InterviewRoomContent() {
   const panels = useRoomPanels();
   const telemetry = useInterviewTelemetry();
   const model = useModelRuntime();
-  const { inputText, setInputText, activeContext, setActiveContext, activeCodeContext, setActiveCodeContext, activeSystemDesignContext, setActiveSystemDesignContext, resumeText, setResumeText, problemStatement, setProblemStatement, isRequestingHint, setIsRequestingHint, activeExpert, setActiveExpert, activeCodeContextRef, activeSystemDesignContextRef } = work;
-  const { isScratchpadOpen, setIsScratchpadOpen, isSystemDesignOpen, setIsSystemDesignOpen, isFocusMode, setIsFocusMode, isPaused, setIsPaused } = panels;
-  const { recordingStartTimeRef, deliveryLedgerRef, lastSpeechTimeRef, lastAnalysisTimeRef, sttSessionRef, interruptionsRef, answerSegmentsRef, roundTripsRef, sendSpanRef, unmountedRef, ttftSamplesRef, whisperTurnaroundsRef, whisperSpanRef, ttsStartupSamplesRef, ttsSpanRef } = telemetry;
-  const { modelStatus, setModelStatus, modelsReady, setModelsReady, isUsingNativeTTS, setIsUsingNativeTTS, modelLoadError } = model;
+  const { inputText, setInputText, activeContext, setActiveContext, activeCodeContext, setActiveCodeContext, activeSystemDesignContext, setActiveSystemDesignContext, isRequestingHint, setIsRequestingHint, activeExpert, setActiveExpert, resumeText, problemStatement } = work;
+  const { isFocusMode, setIsFocusMode, isPaused, setIsPaused } = panels;
+  const { recordingStartTimeRef, deliveryLedgerRef, lastSpeechTimeRef, sttSessionRef, interruptionsRef, answerSegmentsRef, roundTripsRef, sendSpanRef, unmountedRef, ttftSamplesRef, whisperTurnaroundsRef, whisperSpanRef, ttsStartupSamplesRef, ttsSpanRef } = telemetry;
+  const { setModelStatus, modelsReady, setModelsReady, isUsingNativeTTS, setIsUsingNativeTTS, modelLoadError } = model;
   // startRecording is defined below; the think-time hook fires it through a ref
   // so the countdown and the recorder stay decoupled at definition time.
   const startRecordingRef = useRef<() => void>(null);
@@ -141,10 +111,7 @@ function InterviewRoomContent() {
   }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const speechRecognition = useRef<SpeechRecognitionLike | null>(null);
   
-  const mediaRecorder = useRef<MediaRecorder | null>(null);
-  const audioChunks = useRef<BlobPart[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   
 
@@ -286,6 +253,13 @@ function InterviewRoomContent() {
       setLatencyPhase(0);
     }
   }, [status]);
+  const latestAiMessage = (() => {
+    const lastAss = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAss) return "";
+    // Phase 14: v6 parts-first extraction (legacy .content/.text fallback).
+    return getMessageText(lastAss as { parts?: unknown; content?: unknown; text?: unknown });
+  })();
+
   const handleUserInput = async (text: string) => {
     stopAiPlayback();
     // Kept before the request leaves: if the transport fails, this is the only
@@ -394,38 +368,27 @@ function InterviewRoomContent() {
     }
   };
 
-  // Phase 36: Device Disconnection Fallback
-  useEffect(() => {
-    const handleDeviceChange = () => {
-      toast.error("Audio Device Changed", {
-        description: "Your microphone or speaker was disconnected. We have paused the recording and fallen back to the default device.",
-        duration: 8000
-      });
-      if (mediaRecorder.current && mediaRecorder.current.state === 'recording') {
-        stopRecording();
-      }
-    };
-    navigator.mediaDevices?.addEventListener('devicechange', handleDeviceChange);
-    return () => {
-      navigator.mediaDevices?.removeEventListener('devicechange', handleDeviceChange);
-    };
-  }, []);
+  // S4: the three worker/audio refs are page-level because the runtime hook
+  // and the recording hook must agree on one instance (recorder posts to the
+  // worker the runtime hook created — two refs would be two workers).
+  const whisperWorker = useRef<Worker | null>(null);
+  const kokoroWorker = useRef<Worker | null>(null);
+  const audioContext = useRef<AudioContext | null>(null);
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const audioChunks = useRef<BlobPart[]>([]);
+  const speechRecognition = useRef<SpeechRecognitionLike | null>(null);
+
   // S4: worker construction + dispatch wiring live in the runtime hook;
   // playback/recognizer refs stay here — their handlers interleave with
   // the send pipeline.
-  const { whisperWorker, kokoroWorker, audioContext } = useModelWorkers({
+  useModelWorkers({
     testMode, searchParams, speechRecognitionRef: speechRecognition,
     setResumeText: work.setResumeText, setProblemStatement: work.setProblemStatement,
     setWpm, setFillerWordsCount,
     setIsAiSpeaking, playAudio, telemetry, work, model, handleUserInputRef,
+    whisperWorker, kokoroWorker, audioContext,
   });
 
-  const latestAiMessage = (() => {
-    const lastAss = [...messages].reverse().find(m => m.role === 'assistant');
-    if (!lastAss) return "";
-    // Phase 14: v6 parts-first extraction (legacy .content/.text fallback).
-    return getMessageText(lastAss as { parts?: unknown; content?: unknown; text?: unknown });
-  })();
 
   useEffect(() => {
     if (latestAiMessage) {
@@ -435,16 +398,6 @@ function InterviewRoomContent() {
       if (announced) setActiveExpert(announced);
     }
   }, [latestAiMessage]);
-
-  useVADInterruption(isAiSpeaking, () => {
-    // Phase 8: barge-in counted as an observable interruption (19.1).
-    interruptionsRef.current += 1;
-    stopAiPlayback();
-    toast.info("🎤 检测到您的发言", { description: "AI已暂停，您可以继续表达" });
-    if (!isRecording && modelsReady && !isStandby) {
-      startRecording();
-    }
-  }, 25, 5, getPreferredMicDevice());
 
   // Phase 38: Ambient Noise Warning
   useAmbientNoise(!isStandby && !isRecording && !isAiSpeaking && !isPaused, 20, 180);
@@ -500,145 +453,48 @@ function InterviewRoomContent() {
     setMessages, setWpm, setFillerWordsCount, deliveryLedgerRef,
   });
 
-  // S4: bind the recorder for the think-time hook defined above.
-  startRecordingRef.current = () => { void startRecording(); };
+  // S4: the recording loop lives in its hook; the page keeps the playback and
+  // recognizer refs it shares with barge-in and settlement.
+  const { startRecording, stopRecording } = useRecordingLoop({
+    stopAiPlayback, setActiveStream, setRecordingStartTime, setIsRecording,
+    setActiveUserTranscript, setWpm, setFillerWordsCount, setModelStatus,
+    telemetry: { recordingStartTimeRef, deliveryLedgerRef, lastSpeechTimeRef, sttSessionRef, unmountedRef, answerSegmentsRef, whisperSpanRef },
+    whisperWorker, mediaRecorder, audioChunks, speechRecognition,
+  });
 
-  async function startRecording() {
-    try {
-      // Voice interruption: Stop AI speaking if user starts talking
-      stopAiPlayback();
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(getPreferredMicDevice()) });
-      // F3-split-3 late-stream guard (mirrors M4/M5/M1): back-navigation
-      // during the pending acquire must not leak a live track. Signed
-      // green — structural close, recording path unchanged.
-      if (unmountedRef.current) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
+  // S4: these three dereference the recorder, so they follow the hook that owns
+  // it — ordering by dependency is also what react-hooks/immutability asks for.
+  useEffect(() => {
+    startRecordingRef.current = () => { void startRecording(); };
+  }, [startRecording]);
+
+  // Phase 36: Device Disconnection Fallback
+  useEffect(() => {
+    const handleDeviceChange = () => {
+      toast.error("Audio Device Changed", {
+        description: "Your microphone or speaker was disconnected. We have paused the recording and fallen back to the default device.",
+        duration: 8000
+      });
+      if (mediaRecorder.current && mediaRecorder.current.state === 'recording') {
+        stopRecording();
       }
-      // One ledger per answer. Reset before the first engine can report so a
-      // discarded (unmounted) start never burns the reset, and so a second
-      // startRecording() inside the same mount cannot inherit the last
-      // answer's committed total.
-      deliveryLedgerRef.current.beginAnswer();
-      setActiveStream(stream);
-      mediaRecorder.current = new MediaRecorder(stream);
-      audioChunks.current = [];
+    };
+    navigator.mediaDevices?.addEventListener('devicechange', handleDeviceChange);
+    return () => {
+      navigator.mediaDevices?.removeEventListener('devicechange', handleDeviceChange);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-      mediaRecorder.current.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.current.push(e.data);
-      };
-
-      // SpeechRecognition for Real-time Telemetry & API Analysis.
-      // Transcript assembly, the filler delta and the bounded network-reconnect
-      // live in startSpeechSession so they can be tested without a real
-      // window.SpeechRecognition; this call site only pushes React state.
-      const SpeechRecognition = (window as unknown as WindowWithSpeech).SpeechRecognition || (window as unknown as WindowWithSpeech).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const session = startSpeechSession({
-          create: () => new SpeechRecognition(),
-          countFillers,
-          stt: sttSessionRef.current,
-          onWarning: (message) => console.warn(message),
-          onDraft: ({ draft, newFillers }) => {
-            // Update speech time to avoid silence penalty
-            lastSpeechTimeRef.current = Date.now();
-            setCognitiveLoad(prev => Math.max(0, prev - 1)); // Active speaking slightly reduces load
-
-            if (recordingStartTimeRef.current) {
-              const durationMinutes = (Date.now() - recordingStartTimeRef.current) / 60000;
-              const currentWpm = computeWpm(draft, durationMinutes);
-              if (currentWpm !== null) setWpm(currentWpm);
-            }
-            setActiveUserTranscript(draft);
-
-            // Provisional only: if this answer already committed via Whisper,
-            // the ledger returns the committed total and this late browser
-            // flush adds nothing.
-            setFillerWordsCount(deliveryLedgerRef.current.provisionalFromDraft(draft));
-            if (newFillers > 0) {
-              // Phase 2: Voice Pattern Extraction (Hesitation)
-              // Increase cognitive load significantly for repeated hesitation
-              setCognitiveLoad(prev => Math.min(100, prev + newFillers * 5));
-            }
-
-            // Phase 3 (Truthfulness Reset): the chunk-analysis endpoint
-            // response had no consumer while burning provider quota on every
-            // final chunk; the call stays removed. See TRUTHFULNESS_REPORT.
-          },
-        });
-        speechRecognition.current = session.recognition;
-      }
-
-       mediaRecorder.current.onstop = async () => {
-        // Clean up mic stream
-        stream.getTracks().forEach(track => track.stop());
-        if (unmountedRef.current) return;
-        const blob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        setModelStatus("正在识别语音...");
-
-        // decodeRecordingToMono16k closes its own AudioContext and reports
-        // failure as null, so neither a too-short recording nor the browser's
-        // live-context cap can leave this status on screen forever — which is
-        // what an uncaught rejection in this async handler used to do.
-        const AudioContextCtor = window.AudioContext
-          || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        const samples = AudioContextCtor
-          ? await decodeRecordingToMono16k(blob, AudioContextCtor)
-          : null;
-
-        if (unmountedRef.current) return;
-        if (!samples) {
-          // Idle, not "listening": the recorder has stopped and the mic tracks
-          // are closed, so claiming to be listening would be its own small lie.
-          setModelStatus("");
-          if (blob.size > 0) {
-            toast.error("语音转写未完成", {
-              description: "录音解码失败，可直接输入回答，或再答一次。",
-              duration: 6000,
-            });
-          }
-          return;
-        }
-
-        whisperWorker.current?.postMessage({
-          type: 'transcribe',
-          audio: samples
-        }, [samples.buffer]);
-        // Phase 13: STT latency = post → complete turnaround.
-        whisperSpanRef.current.start();
-      };
-
-      mediaRecorder.current.start();
-      setIsRecording(true);
-      const now = Date.now();
-      recordingStartTimeRef.current = now;
-      setRecordingStartTime(now);
-      setModelStatus("正在倾听...");
-      toast("开始录音", { description: "请开始您的回答", duration: 2000 });
-    } catch (err) {
-      console.error("Mic access denied:", err);
-      setModelStatus("未获得麦克风访问权限。");
-      toast.error("麦克风访问被拒绝", { description: "请在浏览器设置中允许麦克风权限" });
+  useVADInterruption(isAiSpeaking, () => {
+    // Phase 8: barge-in counted as an observable interruption (19.1).
+    interruptionsRef.current += 1;
+    stopAiPlayback();
+    toast.info("🎤 检测到您的发言", { description: "AI已暂停，您可以继续表达" });
+    if (!isRecording && modelsReady && !isStandby) {
+      startRecording();
     }
-  }
-
-  const stopRecording = () => {
-    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
-      mediaRecorder.current.stop();
-      toast("录音已结束", { description: "正在分析您的回答...", duration: 2000 });
-    }
-    if (speechRecognition.current) {
-      speechRecognition.current.stop();
-    }
-    // Phase 8: close the answer segment for duration analytics.
-    if (recordingStartTimeRef.current !== null) {
-      answerSegmentsRef.current.push({ startMs: recordingStartTimeRef.current, endMs: Date.now() });
-    }
-    setIsRecording(false);
-    setRecordingStartTime(null);
-    setActiveStream(null);
-  };
+  }, 25, 5, getPreferredMicDevice());
 
   const handleStartSpeaking = () => {
     if (isRecording) {
@@ -683,65 +539,14 @@ function InterviewRoomContent() {
     });
   };
 
-  useKeyboardShortcuts([
-    {
-      key: "Escape",
-      allowInInput: true,
-      handler: togglePaused,
-    },
-    {
-      key: "f",
-      allowInInput: false,
-      handler: toggleFocusMode,
-    },
-    {
-      key: " ",
-      allowInInput: false,
-      handler: () => {
-        if (!isRecording && modelsReady && !isLoading && !isStandby) {
-          startRecording();
-        }
-      },
-      keyUpHandler: () => {
-        if (isRecording && !isStandby) {
-          stopRecording();
-        }
-      }
-    },
-    {
-      key: "Enter",
-      metaKey: true,
-      allowInInput: true,
-      handler: () => {
-        if (!modelsReady || isLoading) return;
-        if (inputText.trim()) {
-          handleTextSubmit();
-        }
-      }
-    },
-    {
-      key: "Enter",
-      ctrlKey: true,
-      allowInInput: true,
-      handler: () => {
-        if (!modelsReady || isLoading) return;
-        if (inputText.trim()) {
-          handleTextSubmit();
-        }
-      }
-    },
-    ...createCtrlCmdShortcut("k", () => {
-      inputRef.current?.focus();
-    }, { allowInInput: true }),
-    ...createCtrlCmdShortcut("m", () => {
-      if (!modelsReady || isLoading || isStandby) return;
-      if (isRecording) {
-        stopRecording();
-      } else {
-        startRecording();
-      }
-    }, { allowInInput: true })
-  ]);
+  // S4: the shortcut table lives in its hook; every handler is injected so the
+  // key map stays a table rather than a second copy of the room's logic.
+  useRoomShortcuts({
+    togglePaused, toggleFocusMode,
+    isRecording, isStandby, modelsReady, isLoading,
+    startRecording, stopRecording,
+    inputText, handleTextSubmit, inputRef,
+  });
 
   if (isGreenRoom) {
     return (
@@ -754,150 +559,26 @@ function InterviewRoomContent() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-transparent text-foreground font-sans selection:bg-primary/10 p-4 gap-4">
-      <PauseOverlay isPaused={isPaused} />
-
-      <ThinkTimeOverlay
-        seconds={thinkCountdown}
-        isCalmMode={isCalmMode}
-        onCancel={() => setThinkCountdown(null)}
-        onStart={() => setThinkCountdown(0)}
-      />
-      
-      {/* Top Header */}
-      <RoomHeader
-        stressTest={stressTest}
-        isRecording={isRecording}
-        recordingStartTime={recordingStartTime}
-        isPaused={isPaused}
-        onTogglePaused={togglePaused}
-        isThinkTimeEnabled={isThinkTimeEnabled}
-        onToggleThinkTime={() => setIsThinkTimeEnabled(!isThinkTimeEnabled)}
-        isFocusMode={isFocusMode}
-        onToggleFocusMode={toggleFocusMode}
-      />
-
-      {/* The stage progress read-out is a desktop affordance: on a phone it costs
-          106px of a 844px screen and pushed the room's own panels below the fold. */}
-      <div className="px-2 shrink-0 max-md:hidden">
-        <FlowMap messageCount={messages.length} />
-      </div>
-
-      {/* Main Split Layout */}
-      <div className="flex flex-col lg:grid lg:grid-cols-12 flex-1 overflow-hidden gap-4 px-2 pb-2">
-        
-        {/* Left: 70% (Bento Stack) */}
-        {/* On a phone the two columns stack, and without a floor neither gets a
-            usable height: the transcript's content won and this column collapsed
-            to 18px, which in turn let the dock (absolute bottom-8) float up over
-            the FlowMap row. Sharing the split instead of letting either column
-            win keeps both panels real and the dock inside its stage. */}
-        <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-4 overflow-hidden max-lg:flex-1 max-lg:min-h-0">
-           {/* W53: normal-flow strip above the stage, never an absolute layer in it. */}
-           {!isFocusMode && framework === 'star' && <div className="shrink-0"><StarTracker variant="inline" /></div>}
-           {/* Top: AI Avatar (Main Bento Card) */}
-                      <RoomStage
-             framework={framework}
-             stressTest={stressTest}
-             isFocusMode={isFocusMode}
-             isPageVisible={isPageVisible}
-             isLoading={isLoading}
-             isRecording={isRecording}
-             isAiSpeaking={isAiSpeaking}
-             modelsReady={modelsReady}
-             isRequestingHint={isRequestingHint}
-             latestAiMessage={latestAiMessage}
-             modelStatus={modelStatus}
-             activeUserTranscript={activeUserTranscript}
-             inputText={inputText}
-             loopMeta={loopMeta}
-             wpm={wpm}
-             activeExpert={activeExpert}
-             activeStream={activeStream}
-             setInputText={setInputText}
-             setIsScratchpadOpen={setIsScratchpadOpen}
-             setIsSystemDesignOpen={setIsSystemDesignOpen}
-             startRecording={startRecording}
-             stopRecording={stopRecording}
-             handleStartSpeaking={handleStartSpeaking}
-             requestHint={requestHint}
-             handleTextSubmit={handleTextSubmit}
-             inputRef={inputRef}
-           />
-
-            <TelemetryRow
-              isFocusMode={isFocusMode} collapsed={framework === 'star'}
-              wpm={wpm}
-              fillerWordsCount={fillerWordsCount}
-              showLiveInsights={showLiveInsights}
-              isRecording={isRecording}
-              isAiSpeaking={isAiSpeaking}
-            />
-        </div>
-
-        <TranscriptPanel
-          messages={messages}
-          isLoading={isLoading}
-          status={status}
-          latencyPhase={latencyPhase}
-          isDyslexiaMode={isDyslexiaMode}
-          isFocusMode={isFocusMode}
-          latestAiMessage={latestAiMessage}
-          endRef={messagesEndRef}
-          onRegenerate={regenerate}
-          onDeleteMessage={(id) => setMessages(messages.filter((msg) => msg.id !== id))}
-          onEndCall={handleEndCall}
-          isEnding={isEnding}
-        />
-      </div>
-
-      <TechnicalScratchpad 
-        isOpen={isScratchpadOpen} 
-        onClose={() => setIsScratchpadOpen(false)} 
-        problemStatement={problemStatement}
-      />
-
-      <SystemDesignBoard 
-        isOpen={isSystemDesignOpen} 
-        onClose={() => setIsSystemDesignOpen(false)} 
-      />
-
-      {/* Dynamic Copilot Coaching Hints */}
-      {!isFocusMode && (
-        <CopilotHints 
-          wpm={wpm} 
-          isRecording={isRecording} 
-        />
-      )}
-
-      {/* Standby / Click to Start Overlay */}
-      <StandbyOverlay
-        open={isStandby}
-        modelsReady={modelsReady}
-        loadError={modelLoadError}
-        onStart={startFromStandby}
-        onExit={() => router.push("/dashboard")}
-      />
-
-      <EndingOverlay isEnding={isEnding} />
-      {saveFailure && (
-        <UnsavedSessionBanner
-          notice={saveFailure.notice}
-          retrying={isRetrying}
-          onRetry={retrySave}
-          onLeave={leaveWithoutSaving}
-        />
-      )}
-      {sendFailure.visible && (
-        <SendFailureBanner
-          retrying={sendFailure.retrying}
-          onRetry={sendFailure.retry}
-          onDismiss={sendFailure.dismiss}
-          notice={sendFailure.notice}
-        />
-      )}
-      <TextSelectionMenu />
-    </div>
+    <RoomView
+      vm={{
+        ...work, ...panels, ...model,
+        thinkCountdown, setThinkCountdown,
+        isCalmMode, stressTest, isRecording, recordingStartTime, togglePaused,
+        isThinkTimeEnabled, setIsThinkTimeEnabled, toggleFocusMode,
+        messages, isPageVisible, isLoading, isAiSpeaking,
+        latestAiMessage: latestAiMessage ?? "",
+        activeUserTranscript, loopMeta, wpm, activeStream,
+        startRecording, stopRecording,
+        handleStartSpeaking,
+        requestHint, handleTextSubmit,
+        inputRef, fillerWordsCount, showLiveInsights,
+        status, latencyPhase, isDyslexiaMode, messagesEndRef, regenerate, setMessages,
+        modelLoadError, startFromStandby, router, isStandby,
+        settlement: { isEnding, handleEndCall, saveFailure, isRetrying, retrySave, leaveWithoutSaving },
+        sendFailure,
+        framework,
+      }}
+    />
   );
 }
 
