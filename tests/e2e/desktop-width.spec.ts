@@ -105,10 +105,12 @@ test.describe("desktop geometry", () => {
   test("/interview keeps two real columns without overlap", async ({ page }) => {
     test.slow();
     await loginAs(page);
-    await page.goto("/interview?id=e2e-desktop-width", { waitUntil: "domcontentloaded" });
-    // The room renders even without a session; wait for the composer and the log,
-    // the two halves whose geometry this asserts.
-    await expect(page.getByPlaceholder("输入文本...")).toBeVisible({ timeout: 25000 });
+    // testMode=true is the page's own switch for the green-room gate
+    // (`isGreenRoom = !testMode`), so the room itself renders and the two
+    // columns can be measured. Without it the gate stands in front and the
+    // composer never mounts.
+    await page.goto("/interview?id=e2e-desktop-width&testMode=true", { waitUntil: "domcontentloaded" });
+    await expect(page.getByPlaceholder("输入文本...")).toBeVisible({ timeout: 30000 });
 
     const m = await assertNoOverflow(page, "/interview");
     expect(m.transcript, "the room renders its transcript log").not.toBeNull();
