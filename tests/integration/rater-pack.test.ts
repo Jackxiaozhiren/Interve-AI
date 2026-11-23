@@ -42,16 +42,57 @@ describe("rater-pack generator", () => {
     expect(logged).toContain("practice-q1");
   });
 
-  it("case files are blind (no authored readiness/bands leak)", () => {
+  it("rater-visible identifiers carry no source id and no authored verdict", () => {
     const out = mkdtempSync(join(tmpdir(), "rater-pack-blind-"));
     gen(out);
-    for (const c of golden.cases as { id: string; expected: { readiness: string } }[]) {
-      const text = readFileSync(join(out, "cases", `interview-${c.id}.md`), "utf8");
-      expect(text, `${c.id}: transcript present`).toMatch(/\*\*(user|assistant):\*\*/);
-      // The authored verdict must not appear — raters score from transcript.
-      // (Transcripts are synthetic; none contain these level tokens.)
-      expect(text, `${c.id}: blind to ${c.expected.readiness}`).not.toContain(c.expected.readiness);
-      expect(text, `${c.id}: no band leak`).not.toMatch(/scoreBand|avgProgressBand/);
+    const authored = golden.cases as { id: string; expected: { readiness: string } }[];
+    const sourceIds = authored.map((c) => c.id);
+    expect(sourceIds.length).toBeGreaterThan(0);
+
+    // key.csv is the only mapping back from a blind id; the assertions below
+    // read it so each case can be checked against its own authored verdict,
+    // not merely against the id list.
+    const keyRows = readFileSync(join(out, "key.csv"), "utf8").trim().split("\n");
+    expect(keyRows[0]).toBe("blind_id,lane,source_id");
+    const byId = new Map(authored.map((c) => [c.id, c] as const));
+    const sourceOf = new Map<string, string>();
+    for (const row of keyRows.slice(1)) {
+      const [blind, lane, source] = row.split(",");
+      expect(lane, `${blind}: lane is interview or practice`).toMatch(/^(interview|practice)$/);
+      sourceOf.set(blind, source);
     }
+
+    // Every artifact a rater touches before returning their sheet.
+    const visible: string[] = [];
+    for (const name of readdirSync(join(out, "cases"))) {
+      const body = readFileSync(join(out, "cases", name), "utf8");
+      visible.push(`cases/${name}`, body);
+      expect(name, `blind filename ${name}`).toMatch(/^case-\d{2}\.md$/);
+
+      const blindId = name.replace(/\.md$/, "");
+      const source = sourceOf.get(blindId);
+      expect(source, `${blindId} is not in key.csv`).toBeTruthy();
+      const c = byId.get(source!);
+      if (c) {
+        // The id no longer spells the verdict, so the body must still not carry
+        // it: blinding the filename cannot be the only thing standing between a
+        // rater and the authored band.
+        expect(body, `${blindId}: blind to ${c.expected.readiness}`).not.toContain(c.expected.readiness);
+        expect(body, `${blindId}: no band leak`).not.toMatch(/scoreBand|avgProgressBand/);
+      }
+    }
+    for (const name of readdirSync(join(out, "scores"))) {
+      visible.push(readFileSync(join(out, "scores", name), "utf8"));
+    }
+    visible.push(readFileSync(join(out, "README.md"), "utf8"));
+    for (const id of sourceIds) {
+      for (const text of visible) {
+        expect(text, `source id ${id} leaked to raters`).not.toContain(id);
+      }
+    }
+
+    // Coverage control for the sweep above: the ids DO exist, in the
+    // out-of-band key. Without this the assertion is vacuous.
+    for (const id of sourceIds) expect(keyRows.join("\n"), `key.csv must map ${id}`).toContain(id);
   });
 });

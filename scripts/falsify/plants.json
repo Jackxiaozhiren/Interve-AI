@@ -231,10 +231,10 @@
       "name": "RTP1",
       "desc": "the blind rater pack starts carrying the authored verdict into the case file raters score from",
       "file": "scripts/rater-pack.mjs",
-      "anchor": "writeFileSync(join(out, \"cases\", `interview-${c.id}.md`), lines.join(\"\\n\"));",
-      "replacement": "writeFileSync(join(out, \"cases\", `interview-${c.id}.md`), lines.concat([c.expected.readiness]).join(\"\\n\"));",
+      "anchor": "      ...c.messages.flatMap((m) => [`**${m.role}:** ${m.content}`, \"\"]),\n    ];\n    writeFileSync(join(out, \"cases\", `${blindId}.md`), lines.join(\"\\n\"));",
+      "replacement": "      ...c.messages.flatMap((m) => [`**${m.role}:** ${m.content}`, \"\"]),\n    ];\n    writeFileSync(join(out, \"cases\", `${blindId}.md`), lines.concat([c.expected.readiness]).join(\"\\n\"));",
       "test": "tests/integration/rater-pack.test.ts",
-      "pattern": "case files are blind"
+      "pattern": "carry no source id and no authored verdict"
     },
     {
       "name": "FIL1",
