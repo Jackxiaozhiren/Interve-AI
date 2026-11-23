@@ -16,6 +16,20 @@ export interface OutboundCookie {
   options: CookieOptions;
 }
 
+/**
+ * @supabase/ssr defaults to httpOnly:false. These cookies carry a refresh
+ * token, so leaving the default would put credential material in JS-readable
+ * storage — a downgrade from the existing HttpOnly HMAC cookie. Override at
+ * every construction site; `secure` follows the environment so localhost over
+ * http still works while production never sends the token in clear.
+ */
+export const SSR_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/",
+} as const;
+
 function env(): { url: string; key: string } | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -50,6 +64,7 @@ export async function issueSsrCookies(accessToken: string, refreshToken: string)
 
   const pending: OutboundCookie[] = [];
   const client = createServerClient(cfg.url, cfg.key, {
+    cookieOptions: SSR_COOKIE_OPTIONS,
     cookies: {
       getAll: () => [],
       setAll: (items) => {
@@ -83,9 +98,9 @@ export function ssrExpiresAt(raw: string | undefined | null): number | null {
 export function clearSsrCookies(): OutboundCookie[] {
   const name = ssrCookieName();
   if (!name) return [];
-  const out: OutboundCookie[] = [{ name, value: "", options: { path: "/", maxAge: 0 } }];
+  const out: OutboundCookie[] = [{ name, value: "", options: { ...SSR_COOKIE_OPTIONS, maxAge: 0 } }];
   for (let i = 0; i < 8; i++) {
-    out.push({ name: `${name}.${i}`, value: "", options: { path: "/", maxAge: 0 } });
+    out.push({ name: `${name}.${i}`, value: "", options: { ...SSR_COOKIE_OPTIONS, maxAge: 0 } });
   }
   return out;
 }
@@ -117,6 +132,7 @@ export async function refreshSsrCookies(
 
   const pending: OutboundCookie[] = [];
   const client = createServerClient(cfg.url, cfg.key, {
+    cookieOptions: SSR_COOKIE_OPTIONS,
     cookies: {
       getAll: () => items,
       setAll: (next) => {

@@ -9,6 +9,7 @@
  */
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { SSR_COOKIE_OPTIONS } from "./session-bridge";
 
 export async function createServerSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,6 +18,7 @@ export async function createServerSupabase() {
 
   const store = await cookies();
   return createServerClient(url, key, {
+    cookieOptions: SSR_COOKIE_OPTIONS,
     cookies: {
       getAll: () => store.getAll(),
       // Refresh happens in proxy.ts, where a response is available to carry

@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   clearSsrCookies,
   cookieHeader,
+  SSR_COOKIE_OPTIONS,
   ssrCookieName,
   ssrExpiresAt,
 } from "@/lib/supabase/session-bridge";
@@ -54,8 +55,25 @@ describe("S5 parallel SSR cookie bridge", () => {
       expect(c.name).toMatch(/^sb-abc123xyz-auth-token(\.\d+)?$/);
       expect(c.options.maxAge).toBe(0);
       expect(cookieHeader(c)).toContain(`${c.name}=`);
+      expect(cookieHeader(c)).toMatch(/;\s*HttpOnly/i);
     }
     expect(cookies.map((c) => c.name)).not.toContain("interveai_user");
+  });
+
+  it("never emits a JS-readable token cookie (@supabase/ssr's default is not HttpOnly)", () => {
+    expect(SSR_COOKIE_OPTIONS.httpOnly).toBe(true);
+    expect(SSR_COOKIE_OPTIONS.sameSite).toBe("lax");
+    // Every client construction site must carry the override; a single one
+    // left at the library default would expose the refresh token to scripts.
+    for (const file of [
+      "../../src/lib/supabase/session-bridge.ts",
+      "../../src/lib/supabase/server.ts",
+    ]) {
+      const text = src(file);
+      const built = (text.match(/createServerClient\(/g) ?? []).length;
+      const overridden = (text.match(/cookieOptions: SSR_COOKIE_OPTIONS/g) ?? []).length;
+      expect(overridden, `${file}: every client needs the cookie override`).toBe(built);
+    }
   });
 
   it("stamps SSR cookies only after the token has been verified with Supabase", () => {
