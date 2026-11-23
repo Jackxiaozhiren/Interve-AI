@@ -118,15 +118,25 @@ const interviews = {
     if (error) throw error;
     return result.id as number | string;
   },
-  async get(id: number | string): Promise<Interview | undefined> {
+  /**
+   * S5: `client` and `uidOverride` let a Server Component perform the same
+   * read with the parallel SSR cookie session. The row predicate is unchanged
+   * — RLS still enforces, and the explicit user_id stays as defense in depth.
+   * Defaults preserve the browser path exactly, so no caller changes yet.
+   */
+  async get(
+    id: number | string,
+    client: typeof supabase = supabase,
+    uidOverride?: string,
+  ): Promise<Interview | undefined> {
     if (!isPersistableInterviewId(id)) return undefined;
     // Defense in depth next to RLS: the policy is the enforcement point, but an
     // anonymous read here would otherwise ask for a row it has no business
     // seeing and depend entirely on the policy being correct. See
     // tests/unit/read-ownership-scope.test.ts.
-    const uid = await currentOwnerId();
+    const uid = uidOverride ?? (await currentOwnerId());
     if (!uid) return undefined;
-    const { data, error } = await supabase.from('interviews').select('*').eq('user_id', uid).eq('id', id).single();
+    const { data, error } = await client.from('interviews').select('*').eq('user_id', uid).eq('id', id).single();
     if (error) {
       if (error.code === 'PGRST116') return undefined; // not found
       throw error;
@@ -473,29 +483,3 @@ export const dbClient = {
   oramaIndex,
   assessments
 };
-
-import { useState, useEffect } from 'react';
-
-export function useLiveQuery<T>(querier: () => Promise<T> | T | undefined, deps: React.DependencyList = []): T | undefined {
-  const [data, setData] = useState<T | undefined>(undefined);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchData = async () => {
-      try {
-        const result = await querier();
-        if (isMounted) setData(result as T);
-      } catch (err) {
-        console.error('useLiveQuery error:', err);
-      }
-    };
-    fetchData();
-    return () => { isMounted = false; };
-    // `deps` is caller-controlled by design (variable dep list): callers pass
-    // inline closures, so a static list cannot be verified. Tracked debt, see
-    // MASTER_AUDIT P2-3. Do not remove without refactoring all call sites.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-
-  return data;
-}

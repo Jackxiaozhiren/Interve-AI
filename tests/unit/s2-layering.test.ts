@@ -104,7 +104,7 @@ const NATIVE_BUTTON_EXEMPT: Record<string, string> = {
   "src/app/practice/page.tsx": "category switcher pill (tab semantics) and a text-link Dismiss inside a banner",
   "src/app/global-error.tsx": "Next.js global error boundary must stay self-contained; component-tree imports here are forbidden by the framework",
   "src/app/recruiter/page.tsx": "carousel arrow, a circular icon control with bespoke positioning",
-  "src/app/dashboard/replay/[id]/page.tsx": "role=tab strip — the ARIA pattern requires raw buttons wired to the tablist",
+  "src/app/dashboard/replay/[id]/client.tsx": "role=tab strip — the ARIA pattern requires raw buttons wired to the tablist",
   "src/components/interview/InterviewTranscript.tsx": "per-message icon tools (copy/regenerate/delete) with custom hover tints",
   "src/components/interview/GreenRoom.tsx": "permission-recovery controls in a warning context with bespoke rose styling",
   "src/components/interview/LeaveRoomButton.tsx": "quiet text-link exit; the shared Button's variants do not include a bare underline text form",
