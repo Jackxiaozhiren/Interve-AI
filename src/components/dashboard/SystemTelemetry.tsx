@@ -1,5 +1,6 @@
 import React from "react";
-import { dbClient as db, useLiveQuery } from "@/lib/api-client";
+import { dbClient as db } from "@/lib/api-client";
+import { useLiveQuery } from "@/lib/use-live-query";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { Pulse, Clock, CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
