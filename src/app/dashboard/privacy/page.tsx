@@ -13,6 +13,7 @@ import { toast } from "sonner";
 // real operation; failures surface as toasts, never silent no-ops.
 
 const INVENTORY: { data: string; where: string; why: string; retention: string }[] = [
+  { data: "Auth session tokens", where: "HttpOnly cookies issued by the server", why: "Let server-rendered pages read your own records without a browser-side fetch", retention: "Until sign-out or token expiry" },
   { data: "Resume text", where: "Database (interviews.resume_text) when you paste/upload", why: "Ground interview questions and gap analysis in your background", retention: "Until you delete the session" },
   { data: "Job description", where: "Database (interviews.job_description)", why: "Match questions and evaluation to the target role", retention: "Until you delete the session" },
   { data: "Interview transcript", where: "Database (interviews.transcript)", why: "Generate your report, replay, and progress tracking", retention: "Until you delete the session" },
