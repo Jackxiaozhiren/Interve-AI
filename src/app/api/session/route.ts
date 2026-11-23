@@ -11,6 +11,7 @@ import {
 import { logApi } from "@/lib/api/logging";
 import { verifySupabaseToken } from "@/lib/api/verify-supabase-token";
 import { getRequestId } from "@/lib/api/request-id";
+import { issueSsrCookies, clearSsrCookies, cookieHeader } from "@/lib/supabase/session-bridge";
 
 export const runtime = "edge";
 
@@ -22,6 +23,11 @@ const LoginSchema = z.object({
   id: z.string().max(64).optional(),
   email: z.string().max(254).optional(),
   username: z.string().max(64).optional(),
+  // Transport only — never authority. The access token in Authorization is
+  // verified with Supabase before any cookie is stamped; the refresh token
+  // lets the server write the parallel SSR session so Server Components can
+  // read RLS-protected rows. Old clients omit it and keep the HMAC-only path.
+  refresh_token: z.string().min(1).max(4096).optional(),
 }).partial();
 
 /**
@@ -86,9 +92,19 @@ export async function POST(req: Request) {
   );
   const secure = process.env.NODE_ENV === "production";
   logApi(ROUTE, { requestId, status: 200, latencyMs: Math.round(performance.now() - started) });
-  return okResponse({ ok: true }, requestId, {
+  const response = okResponse({ ok: true }, requestId, {
     headers: { "Set-Cookie": sessionCookieHeader(signed, secure) },
   });
+
+  // Parallel SSR session. This is additive: if the refresh token is missing or
+  // the exchange fails, the HMAC cookie above still works exactly as before.
+  // Authority never moves into this cookie — it is only the token transport.
+  const refreshToken = gate.ctx.data.refresh_token;
+  if (refreshToken) {
+    const ssrCookies = await issueSsrCookies(token, refreshToken);
+    for (const cookie of ssrCookies) response.headers.append("Set-Cookie", cookieHeader(cookie));
+  }
+  return response;
 }
 
 /** GET /api/session — own-session introspection (no PII beyond caller's own). */
@@ -107,5 +123,11 @@ export async function GET(req: Request) {
 /** DELETE /api/session — clears the session cookie. */
 export async function DELETE(req: Request) {
   const requestId = getRequestId(req);
-  return okResponse({ ok: true }, requestId, { headers: { "Set-Cookie": clearSessionCookieHeader() } });
+  const response = okResponse({ ok: true }, requestId, {
+    headers: { "Set-Cookie": clearSessionCookieHeader() },
+  });
+  for (const cookie of clearSsrCookies()) {
+    response.headers.append("Set-Cookie", cookieHeader(cookie));
+  }
+  return response;
 }

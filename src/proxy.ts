@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { SESSION_COOKIE, getSessionSecret, verifySessionCookie } from '@/lib/api/session';
+import { refreshSsrCookies } from '@/lib/supabase/session-bridge';
 
 export const config = {
   matcher: [
@@ -62,7 +63,27 @@ function loginRedirect(request: NextRequest): NextResponse {
   return response;
 }
 
-export function proxy(request: NextRequest) {
+/**
+ * S5: keep the parallel Supabase cookies fresh on the way out. This wraps the
+ * existing guards rather than joining them — a refresh failure must never turn
+ * into a different page-guard decision, so the whole step is best-effort and
+ * only touches cookies the bridge itself owns.
+ */
+export async function proxy(request: NextRequest): Promise<NextResponse> {
+  const response = await resolveProxy(request);
+  try {
+    const { cookies } = await refreshSsrCookies(() => request.cookies.getAll());
+    for (const cookie of cookies) {
+      response.cookies.set({ name: cookie.name, value: cookie.value, ...cookie.options });
+    }
+  } catch {
+    // The HMAC session remains authoritative; a stale SSR token degrades to
+    // today's client-side reads, not to a logged-out page.
+  }
+  return response;
+}
+
+function resolveProxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // 0. 私域试点门（2026-11-15，W1 / ADJ-13）：/signup 关停，默认跳登录页。

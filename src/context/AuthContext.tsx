@@ -36,7 +36,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
       },
-      body: "{}",
+      // Transport only: the server verifies the Bearer token and ignores any
+      // identity in this body. The refresh token lets it also stamp the
+      // parallel SSR cookies used by Server Components; old/keyless sessions
+      // simply omit it and keep the HMAC-only behaviour.
+      body: JSON.stringify(session.refresh_token ? { refresh_token: session.refresh_token } : {}),
     });
     if (!res.ok) {
       throw new Error("Failed to establish server session");
