@@ -12,6 +12,7 @@ import {
   cookieHeader,
   SSR_COOKIE_OPTIONS,
   ssrCookieName,
+  ssrCookieValue,
   ssrExpiresAt,
 } from "@/lib/supabase/session-bridge";
 
@@ -40,10 +41,16 @@ describe("S5 parallel SSR cookie bridge", () => {
     expect(ssrCookieName()).toBe("sb-abc123xyz-auth-token");
   });
 
-  it("reads expiry from a base64url cookie payload, including a chunked value", () => {
-    const payload = Buffer.from(JSON.stringify({ expires_at: 1900000000 })).toString("base64url");
-    expect(ssrExpiresAt(payload)).toBe(1900000000);
-    expect(ssrExpiresAt(`${payload}.0`)).toBe(1900000000);
+  it("reads expiry across @supabase/ssr's base64- prefix and cookie chunks", () => {
+    const encoded = `base64-${Buffer.from(JSON.stringify({ expires_at: 1900000000 })).toString("base64url")}`;
+    expect(ssrExpiresAt(encoded)).toBe(1900000000);
+    const name = ssrCookieName();
+    const chunks = [
+      { name: `${name}.1`, value: encoded.slice(20) },
+      { name: `${name}.0`, value: encoded.slice(0, 20) },
+    ];
+    // Chunks arrive in arbitrary order; .N must be concatenated numerically.
+    expect(ssrExpiresAt(ssrCookieValue(chunks, name))).toBe(1900000000);
     expect(ssrExpiresAt("not-json")).toBeNull();
     expect(ssrExpiresAt(undefined)).toBeNull();
   });

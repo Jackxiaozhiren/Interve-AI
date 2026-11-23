@@ -80,14 +80,39 @@ export async function issueSsrCookies(accessToken: string, refreshToken: string)
   return pending;
 }
 
-/** Expiry from the first cookie chunk; null when absent or unreadable. */
+/**
+ * @supabase/ssr v0.12 writes `base64-<base64url(JSON)>` and then splits that
+ * string into chunks named `key.0`, `key.1`, ... — the chunks are substrings of
+ * one encoded value, not independently decodable pieces.
+ */
+export function ssrCookieValue(
+  items: { name: string; value: string }[],
+  name: string
+): string | null {
+  const parts = items.filter((c) => {
+    if (c.name === name) return true;
+    if (!c.name.startsWith(`${name}.`)) return false;
+    return /^\d+$/.test(c.name.slice(name.length + 1));
+  });
+  if (!parts.length) return null;
+  parts.sort((a, b) => {
+    const rank = (n: string) => (n === name ? -1 : Number(n.slice(name.length + 1)));
+    return rank(a.name) - rank(b.name);
+  });
+  return parts.map((c) => c.value).join("");
+}
+
+function decodeSsrPayload(raw: string): string {
+  if (!raw.startsWith("base64-")) return raw;
+  const b64 = raw.slice("base64-".length).replace(/-/g, "+").replace(/_/g, "/");
+  return atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4));
+}
+
+/** Expiry from a complete cookie value; null when absent or unreadable. */
 export function ssrExpiresAt(raw: string | undefined | null): number | null {
   if (!raw) return null;
-  const firstChunk = raw.split(".")[0];
-  if (!firstChunk) return null;
   try {
-    const padded = firstChunk.replace(/-/g, "+").replace(/_/g, "/");
-    const json = JSON.parse(atob(padded + "=".repeat((4 - (padded.length % 4)) % 4)));
+    const json = JSON.parse(decodeSsrPayload(raw));
     return typeof json?.expires_at === "number" ? json.expires_at : null;
   } catch {
     return null;
@@ -123,7 +148,7 @@ export async function refreshSsrCookies(
 
   const items = getAll();
   const name = ssrCookieName();
-  const raw = items.find((c) => c.name === name)?.value;
+  const raw = ssrCookieValue(items, name);
   if (!raw) return { cookies: [], expired: false };
 
   const exp = ssrExpiresAt(raw);
