@@ -20,7 +20,9 @@ export function useLiveQuery<T>(querier: () => Promise<T> | T | undefined, deps:
         console.error('useLiveQuery error:', err);
       }
     };
-    fetchData();
+    // Fire-and-forget by design: the hook reports read failures itself and
+    // unmount is guarded by isMounted. Marked so it cannot float as a rejection.
+    void fetchData();
     return () => { isMounted = false; };
     // `deps` is caller-controlled by design (variable dep list): callers pass
     // inline closures, so a static list cannot be verified. Tracked debt, see

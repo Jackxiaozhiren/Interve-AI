@@ -125,19 +125,6 @@ describe("replay server shell / client island boundary", () => {
     expect(hook).not.toContain('"use client"');
   });
 
-  it("keeps React hooks out of the module the server reader imports", () => {
-    const apiClient = readFileSync(new URL("src/lib/api-client.ts", ROOT), "utf8");
-    const hook = readFileSync(new URL("src/lib/use-live-query.ts", ROOT), "utf8");
-    expect(apiClient, "a hook in api-client.ts breaks every RSC importer").not.toMatch(
-      /from ['"]react['"]|useState|useEffect/
-    );
-    expect(apiClient).not.toContain("useLiveQuery");
-    expect(hook).toContain("export function useLiveQuery");
-    // The hook module has no directive on purpose: both importers are already
-    // client components. Adding "use client" would grow the ratchet for no gain.
-    expect(hook).not.toContain('"use client"');
-  });
-
   it("seeds island state from the server read and only fetches on unavailable", () => {
     expect(island).toContain('"use client"');
     expect(island).toContain('initial.status === "ok" ? initial.value : null');
