@@ -405,11 +405,17 @@ labels replace single-author bands.
   emits gitignored `rater-pack/` — 12 interview + 5 practice blind
   transcripts (no authored bands/outputs), per-rater CSV sheets, README
   protocol (independent + blind, lower-on-tie, adjudication by 3rd rater).
+  Blindness is by identifier, not only by body text: the source ids name
+  the expected verdict (`behavioral-strong-01`), so cases ship under
+  seeded-shuffled blind ids and the only mapping back is `key.csv`, which
+  the pack README withholds until both sheets are returned and sealed.
   Graduation: quadratic-weighted κ ≥ 0.6 on 12 interview cases
   (`weightedKappaQuadratic`) before authored bands are replaced; below
   that, bands stay provisional and the pack is re-rated after anchor
   clarification. Pinned keylessly (`tests/integration/rater-pack.test.ts`:
-  structure + blindness — readiness/band tokens never leak into cases).
+  structure + blindness — no source id appears in any rater-visible
+  artifact, with a coverage control asserting the ids do exist in
+  `key.csv` so the sweep cannot pass vacuously).
 - Turn-level steering set: `evals/turn-golden.json` (v1.0.0, analyze-star
   lane, NOT an evaluation) — 1 strong / 1 vague / 1 thin STAR turn with
   WIDE smoke bands + verbatim `mustQuote`. Keyless shape/quote/cap checks

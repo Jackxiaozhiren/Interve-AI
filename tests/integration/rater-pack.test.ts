@@ -42,16 +42,32 @@ describe("rater-pack generator", () => {
     expect(logged).toContain("practice-q1");
   });
 
-  it("case files are blind (no authored readiness/bands leak)", () => {
+  it("rater-visible identifiers carry no source id (blind by name, not just body)", () => {
     const out = mkdtempSync(join(tmpdir(), "rater-pack-blind-"));
     gen(out);
-    for (const c of golden.cases as { id: string; expected: { readiness: string } }[]) {
-      const text = readFileSync(join(out, "cases", `interview-${c.id}.md`), "utf8");
-      expect(text, `${c.id}: transcript present`).toMatch(/\*\*(user|assistant):\*\*/);
-      // The authored verdict must not appear — raters score from transcript.
-      // (Transcripts are synthetic; none contain these level tokens.)
-      expect(text, `${c.id}: blind to ${c.expected.readiness}`).not.toContain(c.expected.readiness);
-      expect(text, `${c.id}: no band leak`).not.toMatch(/scoreBand|avgProgressBand/);
+    const sourceIds = (golden.cases as { id: string }[]).map((c) => c.id);
+    expect(sourceIds.length).toBeGreaterThan(0);
+
+    // Every artifact a rater touches before returning their sheet.
+    const visible: string[] = [];
+    for (const name of readdirSync(join(out, "cases"))) {
+      visible.push(`cases/${name}`, readFileSync(join(out, "cases", name), "utf8"));
+      expect(name, `blind filename ${name}`).toMatch(/^case-\d{2}\.md$/);
     }
+    for (const name of readdirSync(join(out, "scores"))) {
+      visible.push(readFileSync(join(out, "scores", name), "utf8"));
+    }
+    visible.push(readFileSync(join(out, "README.md"), "utf8"));
+    for (const id of sourceIds) {
+      for (const text of visible) {
+        expect(text, `source id ${id} leaked to raters`).not.toContain(id);
+      }
+    }
+
+    // Coverage control for the sweep above: the ids DO exist, in the
+    // out-of-band key. Without this the assertion is vacuous.
+    const key = readFileSync(join(out, "key.csv"), "utf8");
+    expect(key.split("\n")[0]).toBe("blind_id,lane,source_id");
+    for (const id of sourceIds) expect(key, `key.csv must map ${id}`).toContain(id);
   });
 });
