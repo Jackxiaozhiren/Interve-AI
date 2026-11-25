@@ -1,5 +1,3 @@
-"use client";
-
 import { Suspense } from "react";
 import { GlobalBackground } from "@/components/ui/global-background";
 import { LoginForm } from "@/components/auth/LoginForm";
