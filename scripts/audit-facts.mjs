@@ -1361,13 +1361,17 @@ export const RATCHET_KEYS = {
     + "Seeded 2026-11-20 (S1) at the measured 295; S1 migrated all 295 sites to scale tokens in the same commit "
     + "and lowered the ceiling straight to 0 — no unscaled px value survives, and the ratchet cannot be reopened.",
   "debt.useClientFiles":
-    "tsx files opening with a \"use client\" directive (§12.13 criterion ② named ≤66 of 165). "
-    + "Measured 120 after the twelve hook-free components converted in S4 iteration 3. Closed "
-    + "2026-11-23 as a down-only ratchet, not a staged march to 66: a server shell does not lower "
-    + "this count (its island keeps the directive), the mechanically convertible remainder is 4-9 "
-    + "files rather than 54, and this repo has no server data path at all — one browser Supabase "
-    + "client in src/lib/supabase.ts, no @supabase/ssr — so the routes §12.12 named cannot fetch "
-    + "on the server yet. Reaching 66 first requires that infrastructure, tracked as its own stage.",
+    "tsx files opening with a \"use client\" directive (§12.13 criterion ② named ≤66 of 165). Measured "
+    + "120 after the twelve hook-free components converted in S4 iteration 3; lowered to 117 in S5 "
+    + "slice 3, which lifted the directive from three composition-only route shells (/login, "
+    + "/dashboard/resume, /dashboard/interview — links, static copy and already-client children) with "
+    + "no hook, browser call or handler of their own. Down-only ratchet, not a staged march to 66: S5 "
+    + "slices 1-2 showed a server shell around a live client island keeps the directive and does not "
+    + "lower this count, so only genuinely hook-free files move it. The 2026-11-23 note that this repo "
+    + "had no server data path is stale — slice 1 added @supabase/ssr beside the HMAC session and slice "
+    + "2 added readInterviewOnServer on /dashboard/replay/[id] — but that bridge serves one route, and "
+    + "the remaining directive-bearing files still own hooks, so 66 is not reachable by mechanical "
+    + "conversion; each further drop needs its interactive parts carved out page by page.",
   "debt.nativeButtons":
     "native `<button>` elements in business code (library directories excluded — a button primitive is "
     + "itself a native button). Seeded 2026-11-21 (S2) at the measured 39; §12.13 wants business pages on "

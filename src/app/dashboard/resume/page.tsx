@@ -1,5 +1,3 @@
-"use client";
-
 import { ACCEPTED_RESUME_KINDS, MAX_RESUME_MB } from "@/lib/uploads";
 import Link from "next/link";
 import { InterveButton } from "@/components/interve-ui";
