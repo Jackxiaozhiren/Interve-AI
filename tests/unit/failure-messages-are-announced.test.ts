@@ -30,7 +30,7 @@
 //
 // Components are excluded from M1 on purpose: `<StateBlocks.ErrorState>` owns its own
 // markup and already renders `role="alert"` (src/components/data/StateBlocks.tsx:96),
-// which is what `src/app/dashboard/report/[id]/page.tsx:128` goes through. A rule that
+// which is what `src/app/dashboard/report/[id]/client.tsx:128` goes through. A rule that
 // flagged the component as well would demand a role on a tag that renders none.
 import ts from "typescript";
 import { describe, expect, it } from "vitest";

@@ -62,7 +62,7 @@ const VERIFIED: Record<string, Entry> = {
     digits: ["100", "2"],
     why: "/100 is the readiness scale's denominator; 2 is `computeProgressInsights`'s own rule that improvementVelocity needs >= 2 scored sessions",
   },
-  "src/app/dashboard/report/[id]/page.tsx": {
+  "src/app/dashboard/report/[id]/client.tsx": {
     digits: ["100", "3"],
     why: "/100 scale suffix; 'Step 3 · Review' is a step label, not a measurement",
   },

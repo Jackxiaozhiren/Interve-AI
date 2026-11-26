@@ -105,7 +105,7 @@ describe("the card says which case it is in", () => {
   });
 
   it("is mounted on the report page with the audit artifact", () => {
-    const page = readRepo("src/app/dashboard/report/[id]/page.tsx");
+    const page = readRepo("src/app/dashboard/report/[id]/client.tsx");
     expect(
       page,
       "the card exists but nothing renders it: the candidate still cannot see the measurement"

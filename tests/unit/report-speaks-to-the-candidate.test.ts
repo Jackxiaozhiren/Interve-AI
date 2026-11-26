@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
-const REPORT = "src/app/dashboard/report/[id]/page.tsx";
+const REPORT = "src/app/dashboard/report/[id]/client.tsx";
 
 const STACK_METRICS = ["TTFT", "STT 耗时", "TTS 启动", "平均往返"];
 

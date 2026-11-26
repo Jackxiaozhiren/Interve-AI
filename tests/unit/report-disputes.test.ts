@@ -135,7 +135,7 @@ describe("the write path is guarded where it is dangerous", () => {
   });
 
   it("is mounted on the report page and refuses a local-only row", () => {
-    const page = readRepo("src/app/dashboard/report/[id]/page.tsx");
+    const page = readRepo("src/app/dashboard/report/[id]/client.tsx");
     expect(page).toContain("<DisputePanel");
     expect(
       page,
