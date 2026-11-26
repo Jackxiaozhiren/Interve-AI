@@ -150,7 +150,7 @@ describe("the export leads with the roadmap", () => {
 });
 
 describe("the report page speaks Chinese in the roadmap block", () => {
-  const page = readRepo("src/app/dashboard/report/[id]/page.tsx");
+  const page = readRepo("src/app/dashboard/report/[id]/client.tsx");
 
   it("uses the Chinese headings", () => {
     for (const heading of ["下一步练什么", "技术重点", "行为与表达", "推荐资源"]) {

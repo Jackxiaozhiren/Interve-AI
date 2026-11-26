@@ -123,7 +123,7 @@ describe("the card cannot show a number the floor forbids", () => {
   });
 
   it("is mounted on the report page", () => {
-    const page = readRepo("src/app/dashboard/report/[id]/page.tsx");
+    const page = readRepo("src/app/dashboard/report/[id]/client.tsx");
     expect(page).toContain("<CohortCard");
   });
 });

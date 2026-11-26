@@ -169,7 +169,7 @@ describe("the read path cannot widen by accident", () => {
   });
 
   it("is mounted on the report page", () => {
-    const page = readRepo("src/app/dashboard/report/[id]/page.tsx");
+    const page = readRepo("src/app/dashboard/report/[id]/client.tsx");
     expect(page).toContain("<ShareReportButton");
   });
 });

@@ -18,7 +18,7 @@ const SURFACES = [
   "src/components/dashboard/PrintableDossier.tsx",
   "src/components/interview/PrintLayout.tsx",
   "src/lib/utils/export.ts",
-  "src/app/dashboard/report/[id]/page.tsx",
+  "src/app/dashboard/report/[id]/client.tsx",
 ];
 
 describe("no employment verdict reaches a user-facing surface", () => {
