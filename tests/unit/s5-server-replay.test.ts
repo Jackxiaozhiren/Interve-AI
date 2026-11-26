@@ -10,6 +10,7 @@ const state: {
   user: { id: string } | null;
   getUserError: unknown;
   row: unknown;
+  rows: unknown[];
   throws: boolean;
   calls: unknown[][];
 } = {
@@ -17,6 +18,7 @@ const state: {
   user: { id: "uid-owner" },
   getUserError: null,
   row: undefined,
+  rows: [],
   throws: false,
   calls: [],
 };
@@ -25,6 +27,9 @@ vi.mock("@/lib/supabase/server", () => ({
   createServerSupabase: async () => state.client,
 }));
 
+// One harness for both readers: slice 2's row read and slice 5's list read
+// resolve the session the same way. Keeping them in one file means the mock
+// plumbing exists once instead of being copied per route.
 vi.mock("@/lib/db", () => ({
   db: {
     interviews: {
@@ -33,11 +38,20 @@ vi.mock("@/lib/db", () => ({
         if (state.throws) throw new Error("database unreachable");
         return state.row;
       },
+      orderBy: (...args: unknown[]) => ({
+        reverse: () => ({
+          toArray: async () => {
+            state.calls.push(args);
+            if (state.throws) throw new Error("database unreachable");
+            return state.rows;
+          },
+        }),
+      }),
     },
   },
 }));
 
-import { readInterviewOnServer } from "@/lib/supabase/server-reads";
+import { readInterviewOnServer, readInterviewsOnServer } from "@/lib/supabase/server-reads";
 
 const ROOT = new URL("../../", import.meta.url);
 const shell = readFileSync(new URL("src/app/dashboard/replay/[id]/page.tsx", ROOT), "utf8");
@@ -56,6 +70,7 @@ beforeEach(() => {
   state.user = { id: "uid-owner" };
   state.getUserError = null;
   state.row = undefined;
+  state.rows = [];
   state.throws = false;
   state.calls = [];
 });
@@ -99,6 +114,49 @@ describe("readInterviewOnServer", () => {
 
     state.throws = true;
     expect(await readInterviewOnServer(42)).toEqual({ status: "unavailable" });
+  });
+});
+
+// S5 slice 5: the dashboard reads a list, so it has no not_found state — an
+// empty account is a real `ok` with an empty array and must render the empty
+// dashboard, not fall back. The session resolution is the same harness above.
+describe("readInterviewsOnServer", () => {
+  it("returns unavailable without a parallel session and never reads a list", async () => {
+    expect(await readInterviewsOnServer()).toEqual({ status: "unavailable" });
+    expect(state.calls).toEqual([]);
+  });
+
+  it("passes the injected client and validated uid to the existing chain", async () => {
+    const client = fakeClient();
+    state.client = client;
+    state.rows = [{ id: 1, status: "completed" }];
+
+    expect(await readInterviewsOnServer()).toEqual({
+      status: "ok",
+      value: [{ id: 1, status: "completed" }],
+    });
+    expect(state.calls).toEqual([["createdAt", client, "uid-owner"]]);
+  });
+
+  it("treats an empty account as ok with an empty array, not as a fallback", async () => {
+    state.client = fakeClient();
+    state.rows = [];
+    expect(await readInterviewsOnServer()).toEqual({ status: "ok", value: [] });
+  });
+
+  it("treats an unvalidated token or a failed read as unavailable", async () => {
+    state.client = fakeClient();
+    state.user = null;
+    expect(await readInterviewsOnServer()).toEqual({ status: "unavailable" });
+    expect(state.calls).toEqual([]);
+
+    state.user = { id: "uid-owner" };
+    state.getUserError = new Error("expired");
+    expect(await readInterviewsOnServer()).toEqual({ status: "unavailable" });
+
+    state.getUserError = null;
+    state.throws = true;
+    expect(await readInterviewsOnServer()).toEqual({ status: "unavailable" });
   });
 });
 
