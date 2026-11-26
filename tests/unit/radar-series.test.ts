@@ -114,7 +114,7 @@ it("orders the axes by the subject list, not by object key order", () => {
  */
 describe("the dashboard card", () => {
   const page = readFileSync(
-    new URL("../../src/app/dashboard/page.tsx", import.meta.url),
+    new URL("../../src/app/dashboard/client.tsx", import.meta.url),
     "utf8"
   );
 

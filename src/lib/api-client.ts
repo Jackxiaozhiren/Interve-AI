@@ -159,24 +159,35 @@ const interviews = {
     const { error } = await supabase.from('interviews').delete().eq('id', id);
     if (error) throw error;
   },
-  orderBy(field: string) {
+  /**
+   * S5: `client` and `uidOverride` mirror `get` — a Server Component reads the
+   * same list through the parallel SSR cookie session instead of the module
+   * browser client. Defaults keep the browser path identical, and the
+   * user_id predicate stays explicit next to RLS.
+   */
+  orderBy(
+    field: string,
+    client: typeof supabase = supabase,
+    uidOverride?: string,
+  ) {
     const snakeField = field.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    const uidOf = async () => uidOverride ?? (await currentOwnerId());
     return {
       reverse() {
         return {
           async toArray(): Promise<Interview[]> {
-            const uid = await currentOwnerId();
+            const uid = await uidOf();
             if (!uid) return [];
-            const { data, error } = await supabase.from('interviews').select('*').eq('user_id', uid).order(snakeField, { ascending: false });
+            const { data, error } = await client.from('interviews').select('*').eq('user_id', uid).order(snakeField, { ascending: false });
             if (error) throw error;
             return toCamelCase<Interview[]>(data || []);
           }
         }
       },
       async toArray(): Promise<Interview[]> {
-        const uid = await currentOwnerId();
+        const uid = await uidOf();
         if (!uid) return [];
-        const { data, error } = await supabase.from('interviews').select('*').eq('user_id', uid).order(snakeField, { ascending: true });
+        const { data, error } = await client.from('interviews').select('*').eq('user_id', uid).order(snakeField, { ascending: true });
         if (error) throw error;
         return toCamelCase<Interview[]>(data || []);
       }

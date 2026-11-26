@@ -58,7 +58,7 @@ interface Entry {
 
 /** Digits whose meaning is pinned to code in this repository. */
 const VERIFIED: Record<string, Entry> = {
-  "src/app/dashboard/page.tsx": {
+  "src/app/dashboard/client.tsx": {
     digits: ["100", "2"],
     why: "/100 is the readiness scale's denominator; 2 is `computeProgressInsights`'s own rule that improvementVelocity needs >= 2 scored sessions",
   },
@@ -147,7 +147,7 @@ describe("user-visible digits have an owner", () => {
     // Attributes are not copy: a class like `text-[3.5rem]` must not appear.
     expect(JSON.stringify(measured)).not.toContain("3.5");
     // And JSX text is: the scale denominator does.
-    expect(measured["src/app/dashboard/page.tsx"]).toContain("100");
+    expect(measured["src/app/dashboard/client.tsx"]).toContain("100");
   });
 
   it("names every file that prints a digit, and no file that no longer does", () => {

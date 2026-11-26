@@ -37,3 +37,36 @@ export async function readInterviewOnServer(id: number | string): Promise<Server
     return { status: "unavailable" };
   }
 }
+
+/**
+ * S5 slice 5: the server-side counterpart of the dashboard's
+ * `db.interviews.orderBy('createdAt').reverse().toArray()`.
+ *
+ * A list has no "not_found" state — an empty account is a legitimate `ok` with
+ * an empty array and must render the empty dashboard, not a fallback. Only
+ * `unavailable` (no session / failed validation / failed read) returns the page
+ * to its original browser read.
+ */
+export type ServerListRead<T> =
+  | { status: "ok"; value: T[] }
+  | { status: "unavailable" };
+
+export async function readInterviewsOnServer(): Promise<ServerListRead<Interview>> {
+  const client = await createServerSupabase();
+  if (!client) return { status: "unavailable" };
+
+  try {
+    const { data, error } = await client.auth.getUser();
+    if (error || !data.user) return { status: "unavailable" };
+
+    // Same chain, injected transport: the explicit user_id predicate and RLS
+    // are exactly the browser path's, and no new select-site is added.
+    const rows = await db.interviews
+      .orderBy("createdAt", client, data.user.id)
+      .reverse()
+      .toArray();
+    return { status: "ok", value: rows };
+  } catch {
+    return { status: "unavailable" };
+  }
+}

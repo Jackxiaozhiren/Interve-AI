@@ -43,7 +43,7 @@ const PENDING: string[] = [
   "src/app/dashboard/settings/page.tsx",
   "src/components/dashboard/PrintableDossier.tsx",
   "src/components/interview/PrintLayout.tsx",
-  "src/app/dashboard/page.tsx",
+  "src/app/dashboard/client.tsx",
   "src/components/dashboard/ContinuousLearning.tsx",
   "src/components/dashboard/SessionDetailModal.tsx",
   "src/components/interview/LiveStats.tsx",
